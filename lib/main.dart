@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'screens/login_page.dart';
+import 'screens/newtrekhKhuudas.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MyApp(
+  ));
 }
 
 class MyApp extends StatelessWidget {
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
             ),
             fontFamily: 'Inter',
           ),
-          home: const LoginPage(),
+          home: const Newtrekhkhuudas(),
         );
       },
     );

@@ -9,11 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  dropdown_button2: ^2.3.8
   google_fonts: ^6.3.2
   http: ^1.1.0
   flutter_screenutil: ^5.9.3
-
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

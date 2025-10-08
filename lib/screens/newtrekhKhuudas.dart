@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
+import 'nuutsUgSergeekh.dart';
+import 'burtguulekh.dart';
 
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+class Newtrekhkhuudas extends StatelessWidget {
+  const Newtrekhkhuudas({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +120,14 @@ class LoginPage extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NuutsUgSergeekh(),
+                          ),
+                        );
+                      },
                       child: const Text(
                         'Нууц үгээ мартсан уу?',
                         style: TextStyle(
@@ -162,7 +171,7 @@ class LoginPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'OR',
+                    'Эсвэл',
                     style: TextStyle(color: AppColors.grayColor),
                   ),
                   const SizedBox(height: 20),
@@ -178,7 +187,18 @@ class LoginPage extends StatelessWidget {
                         ),
                       ],
                     ),
+
                     child: TextField(
+                      readOnly: true,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const Burtguulekh(),
+                          ),
+                        );
+                      },
+
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
                         hintText: 'Бүртгүүлэх',
