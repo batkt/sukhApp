@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'nuutsUgSergeekh.dart';
-import 'burtguulekh.dart';
+import 'burtguulekh/burtguulekh_neg.dart';
 
 class Newtrekhkhuudas extends StatelessWidget {
   const Newtrekhkhuudas({super.key});
@@ -187,34 +187,44 @@ class Newtrekhkhuudas extends StatelessWidget {
                         ),
                       ],
                     ),
-
-                    child: TextField(
-                      readOnly: true,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const Burtguulekh(),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(100),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(
+                          100,
+                        ), // match container
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Burtguulekh_Neg(),
+                            ),
+                          );
+                        },
+                        splashColor: Colors.white.withOpacity(
+                          0.2,
+                        ), // ripple color
+                        highlightColor: Colors.white.withOpacity(
+                          0.1,
+                        ), // tap highlight
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 20,
                           ),
-                        );
-                      },
-
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: 'Бүртгүүлэх',
-                        hintStyle: const TextStyle(color: AppColors.grayColor),
-                        filled: true,
-                        fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(100),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 16,
-                          horizontal: 20,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.inputGrayColor.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: const Text(
+                            'Бүртгүүлэх',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
-                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ],
