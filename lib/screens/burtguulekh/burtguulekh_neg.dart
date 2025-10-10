@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'burtguulekh_khoyor.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class Burtguulekh_Neg extends StatefulWidget {
   const Burtguulekh_Neg({super.key});
@@ -100,19 +102,21 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     }
   }
 
-  void _validateAndSubmit() {
+  void _validateAndSubmit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Бүх мэдээлэл зөв байна!'),
-          backgroundColor: Colors.green,
-        ),
+      showGlassSnackBar(
+        context,
+        message: 'Бүх мэдээлэл зөв байна!',
+        icon: Icons.check_circle,
+        iconColor: Colors.green,
       );
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const Burtguulekh_Khoyor()),
-      );
+      Future.delayed(const Duration(milliseconds: 800), () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const Burtguulekh_Khoyor()),
+        );
+      });
     }
   }
 
@@ -132,6 +136,33 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
           ),
           // Dark overlay
           Container(color: Colors.black.withOpacity(0.5)),
+
+          Positioned(
+            top: 60,
+            left: 16,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
 
           Positioned(
             top: 88,
@@ -403,7 +434,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                 },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return '                                          Хотхон сонгоно уу';
+                              return '                                           Хотхон сонгоно уу';
                             }
                             return null;
                           },
@@ -552,14 +583,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                     });
                                   },
                             validator: (value) {
-                              if (selectedDistrict == null) {
-                                return null;
-                              }
-                              if (selectedKhotkhon == null) {
-                                return null;
-                              }
                               if (value == null || value.isEmpty) {
-                                return 'СӨХ сонгоно уу';
+                                return '                                                СӨХ сонгоно уу';
                               }
                               return null;
                             },
@@ -610,7 +635,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _validateAndSubmit,
+                          onPressed: () => _validateAndSubmit(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFCAD2DB),
                             foregroundColor: Colors.black,

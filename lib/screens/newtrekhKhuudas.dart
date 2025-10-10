@@ -17,17 +17,27 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
   Route _createRoute(Widget page) {
     return PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(1.0, 0.0);
-        const end = Offset.zero;
-        const curve = Curves.easeInOut;
-        final tween = Tween(
-          begin: begin,
-          end: end,
-        ).chain(CurveTween(curve: curve));
-        return SlideTransition(position: animation.drive(tween), child: child);
+        const beginOffset = Offset(0.2, 0);
+        const endOffset = Offset.zero;
+        final slideTween = Tween(
+          begin: beginOffset,
+          end: endOffset,
+        ).chain(CurveTween(curve: Curves.easeOutCubic));
+        final fadeTween = Tween(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+        return SlideTransition(
+          position: animation.drive(slideTween),
+          child: FadeTransition(
+            opacity: animation.drive(fadeTween),
+            child: child,
+          ),
+        );
       },
     );
   }
@@ -35,7 +45,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   @override
   void initState() {
     super.initState();
-
     phoneController.addListener(() => setState(() {}));
     passwordController.addListener(() => setState(() {}));
   }
@@ -64,7 +73,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               ),
             ),
             Container(color: Colors.black.withOpacity(0.5)),
-
             Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -96,8 +104,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       ),
                     ),
                     const SizedBox(height: 30),
-
-                    // 📱 PHONE INPUT
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
@@ -127,7 +133,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                             vertical: 16,
                             horizontal: 20,
                           ),
-                          // 🧹 X Button
                           suffixIcon: phoneController.text.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(
@@ -142,8 +147,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // 🔒 PASSWORD INPUT
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
@@ -186,9 +189,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -210,7 +211,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       ),
                     ),
                     const SizedBox(height: 8),
-
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
@@ -241,14 +241,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
                     const Text(
                       'Эсвэл',
                       style: TextStyle(color: AppColors.grayColor),
                     ),
                     const SizedBox(height: 20),
-
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
@@ -295,6 +293,21 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 25),
+                child: Center(
+                  child: Text(
+                    'ZevTabs © 2025',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             ),

@@ -34,7 +34,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   @override
   void initState() {
     super.initState();
-    // Listen to changes to update the clear button visibility
     ovogController.addListener(() => setState(() {}));
     nerController.addListener(() => setState(() {}));
     registerController.addListener(() => setState(() {}));
@@ -52,12 +51,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
 
   void _validateAndSubmit() {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Бүх мэдээлэл зөв байна!'),
-          backgroundColor: Colors.green,
-        ),
-      );
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const Burtguulekh_Guraw()),
@@ -116,6 +109,32 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
             ),
           ),
           Container(color: Colors.black.withOpacity(0.5)),
+          Positioned(
+            top: 60,
+            left: 16,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
           Center(
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
@@ -160,7 +179,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       ),
                     ),
                     const SizedBox(height: 50),
-
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
@@ -269,7 +287,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     Container(
                       decoration: _boxShadowDecoration(),
                       child: TextFormField(
@@ -283,7 +300,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     Container(
                       decoration: _boxShadowDecoration(),
                       child: TextFormField(
@@ -297,7 +313,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     Container(
                       decoration: _boxShadowDecoration(),
                       child: TextFormField(
@@ -314,7 +329,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
                     Container(
                       decoration: _boxShadowDecoration(),
                       child: TextFormField(
@@ -339,7 +353,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     Container(
                       decoration: _boxShadowDecoration(),
                       child: SizedBox(

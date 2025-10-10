@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/screens/newtrekhKhuudas.dart';
 
 class Burtguulekh_Guraw extends StatefulWidget {
   const Burtguulekh_Guraw({super.key});
@@ -17,7 +19,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
 
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _smsController = TextEditingController();
-
+  final TextEditingController _dugaarController = TextEditingController();
   int _resendSeconds = 30;
   bool _canResend = false;
   Timer? _timer;
@@ -59,19 +61,23 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         setState(() {
           _isPhoneSubmitted = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('SMS код илгээгдлээ.'),
-            backgroundColor: Colors.green,
-          ),
+        showGlassSnackBar(
+          context,
+          message: "4 оронтой баталгаажуулах код илгээлээ",
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
         );
         _startResendTimer();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Баталгаажуулах код зөв байна!'),
-            backgroundColor: Colors.green,
-          ),
+        showGlassSnackBar(
+          context,
+          message: "Баталгаажуулах код зөв байна!",
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Newtrekhkhuudas()),
         );
       }
     }
@@ -92,6 +98,32 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             ),
           ),
           Container(color: Colors.black.withOpacity(0.5)),
+          Positioned(
+            top: 60,
+            left: 16,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
           LayoutBuilder(
             builder: (context, constraints) {
               final topBoxSize = constraints.maxWidth * 0.35;
@@ -140,7 +172,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                           fontSize: 16,
                         ),
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 80),
                       if (!_isPhoneSubmitted)
                         _buildPhoneNumberField()
                       else
@@ -162,45 +194,19 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
     return SizedBox(
       height: 60,
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(100),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              offset: const Offset(0, 10),
-              blurRadius: 8,
-            ),
-          ],
-        ),
+        decoration: _boxShadowDecoration(),
         child: TextFormField(
           controller: _phoneController,
-          style: TextStyle(color: AppColors.grayColor),
+          style: const TextStyle(color: AppColors.grayColor),
+          decoration: _inputDecoration("Утасны дугаар", _dugaarController),
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(8),
           ],
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 25,
-              vertical: 18,
-            ),
-            filled: true,
-            fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-            hintText: 'Утасны дугаар',
-            hintStyle: const TextStyle(color: AppColors.grayColor),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(100),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(100),
-              borderSide: const BorderSide(
-                color: AppColors.grayColor,
-                width: 1.5,
-              ),
-            ),
-          ),
+          validator: (value) => value == null || value.trim().isEmpty
+              ? '                            Утасны дугаар оруулна уу'
+              : null,
         ),
       ),
     );
@@ -237,7 +243,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                 ),
                 filled: true,
                 fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                hintText: 'SMS код 4 оронтой',
+                hintText: 'Баталгаажуулах код',
                 hintStyle: const TextStyle(color: AppColors.grayColor),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(100),
@@ -252,9 +258,10 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                 ),
               ),
               validator: (value) {
-                if (value == null || value.trim().isEmpty)
-                  return 'SMS код оруулна уу';
-                if (value.length != 4) return 'SMS код 4 оронтой байх ёстой';
+                if (value == null || value.trim().isEmpty) {
+                  return 'Баталгаажуулах код оруулна уу';
+                }
+                if (value.length != 4) return 'Код 4 оронтой байх ёстой';
                 return null;
               },
             ),
@@ -267,11 +274,11 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             TextButton(
               onPressed: _canResend
                   ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('SMS код дахин илгээгдлээ.'),
-                          backgroundColor: Colors.green,
-                        ),
+                      showGlassSnackBar(
+                        context,
+                        message: "Баталгаажуулах код дахин илгээлээ",
+                        icon: Icons.check_circle,
+                        iconColor: Colors.green,
                       );
                       _startResendTimer();
                     }
@@ -305,6 +312,55 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         ),
         child: const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 16)),
       ),
+    );
+  }
+
+  BoxDecoration _boxShadowDecoration() {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(100),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.3),
+          offset: const Offset(0, 10),
+          blurRadius: 8,
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(
+    String hint,
+    TextEditingController controller,
+  ) {
+    return InputDecoration(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 25),
+      filled: true,
+      fillColor: AppColors.inputGrayColor.withOpacity(0.5),
+      hintText: hint,
+      hintStyle: const TextStyle(color: AppColors.grayColor),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: AppColors.grayColor, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
+      suffixIcon: controller.text.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.clear, color: Colors.white70),
+              onPressed: () => controller.clear(),
+            )
+          : null,
     );
   }
 }
