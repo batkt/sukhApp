@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'burtguulekh_guraw.dart';
 
 class Burtguulekh_Khoyor extends StatefulWidget {
   const Burtguulekh_Khoyor({super.key});
@@ -23,24 +24,87 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
 
   List<String> toot = ['Toot 1', 'Toot 2'];
   List<String> sokhs = ['test', 'test'];
-
   bool isLoadingToot = false;
+
+  final TextEditingController ovogController = TextEditingController();
+  final TextEditingController nerController = TextEditingController();
+  final TextEditingController registerController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to changes to update the clear button visibility
+    ovogController.addListener(() => setState(() {}));
+    nerController.addListener(() => setState(() {}));
+    registerController.addListener(() => setState(() {}));
+    emailController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    ovogController.dispose();
+    nerController.dispose();
+    registerController.dispose();
+    emailController.dispose();
+    super.dispose();
+  }
 
   void _validateAndSubmit() {
     if (_formKey.currentState!.validate()) {
-      // All fields are valid
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Бүх мэдээлэл зөв байна!'),
           backgroundColor: Colors.green,
         ),
       );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const Burtguulekh_Guraw()),
+      );
     }
+  }
+
+  InputDecoration _inputDecoration(
+    String hint,
+    TextEditingController controller,
+  ) {
+    return InputDecoration(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 25),
+      filled: true,
+      fillColor: AppColors.inputGrayColor.withOpacity(0.5),
+      hintText: hint,
+      hintStyle: const TextStyle(color: AppColors.grayColor),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: AppColors.grayColor, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
+      suffixIcon: controller.text.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.clear, color: Colors.white70),
+              onPressed: () => controller.clear(),
+            )
+          : null,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           Container(
@@ -51,55 +115,52 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
               ),
             ),
           ),
-          // Dark overlay
           Container(color: Colors.black.withOpacity(0.5)),
-
-          // Blurred white square
-          Positioned(
-            top: 88,
-            left: (MediaQuery.of(context).size.width - 154) / 2,
-            child: SizedBox(
-              width: 154,
-              height: 154,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(36),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(color: Colors.white.withOpacity(0.2)),
-                ),
-              ),
-            ),
-          ),
-
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 40),
+              physics: const ClampingScrollPhysics(),
+              padding: EdgeInsets.only(
+                left: 50,
+                right: 50,
+                top: 40,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 100,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 200),
+                    SizedBox(
+                      width: 154,
+                      height: 154,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(36),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            color: Colors.white.withOpacity(0.2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
                     Text(
                       'Бүртгэл',
                       style: TextStyle(
                         color: AppColors.grayColor,
                         fontSize: 36,
                       ),
-                      maxLines: 1,
-                      softWrap: false,
                     ),
                     const SizedBox(height: 20),
-                    Text(
+                    const Text(
                       '2/4',
                       style: TextStyle(
                         color: AppColors.grayColor,
                         fontSize: 16,
                       ),
-                      maxLines: 1,
-                      softWrap: false,
                     ),
                     const SizedBox(height: 50),
+
                     Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(100),
@@ -142,11 +203,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                               width: 1.5,
                             ),
                           ),
-                          errorStyle: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 14,
-                          ),
-                          errorMaxLines: 2,
                         ),
                         hint: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -183,20 +239,13 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                             .toList(),
                         value: toot.contains(selectedToot)
                             ? selectedToot
-                            : null, // ✅ safe
+                            : null,
                         onChanged: isLoadingToot || toot.isEmpty
                             ? null
-                            : (value) {
-                                setState(() {
-                                  selectedToot = value;
-                                });
-                              },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '                                                Тоот сонгоно уу';
-                          }
-                          return null;
-                        },
+                            : (value) => setState(() => selectedToot = value),
+                        validator: (value) => (value == null || value.isEmpty)
+                            ? 'Тоот сонгоно уу'
+                            : null,
                         buttonStyleData: const ButtonStyleData(
                           height: 56,
                           padding: EdgeInsets.only(right: 11),
@@ -215,280 +264,88 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                             color: Colors.white,
                           ),
                         ),
-                        onMenuStateChange: (isOpen) {
-                          setState(() {
-                            isTootOpen = isOpen;
-                          });
-                        },
+                        onMenuStateChange: (isOpen) =>
+                            setState(() => isTootOpen = isOpen),
                       ),
                     ),
                     const SizedBox(height: 16),
+
                     Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 10),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
+                      decoration: _boxShadowDecoration(),
                       child: TextFormField(
-                        style: TextStyle(color: AppColors.grayColor),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 25,
-                          ),
-                          filled: true,
-                          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                          hintText: 'Овог',
-                          hintStyle: const TextStyle(
-                            color: AppColors.grayColor,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: AppColors.grayColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorStyle: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 14,
-                          ),
+                        controller: ovogController,
+                        style: const TextStyle(color: AppColors.grayColor),
+                        decoration: _inputDecoration('Овог', ovogController),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                            ? 'Овог оруулна уу'
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      decoration: _boxShadowDecoration(),
+                      child: TextFormField(
+                        controller: nerController,
+                        style: const TextStyle(color: AppColors.grayColor),
+                        decoration: _inputDecoration('Нэр', nerController),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                            ? 'Нэр оруулна уу'
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      decoration: _boxShadowDecoration(),
+                      child: TextFormField(
+                        controller: registerController,
+                        style: const TextStyle(color: AppColors.grayColor),
+                        decoration: _inputDecoration(
+                          'Регистрийн дугаар',
+                          registerController,
+                        ),
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                            ? 'Регистрийн дугаар оруулна уу'
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      decoration: _boxShadowDecoration(),
+                      child: TextFormField(
+                        controller: emailController,
+                        style: const TextStyle(color: AppColors.grayColor),
+                        decoration: _inputDecoration(
+                          'И-Мэйл хаяг',
+                          emailController,
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return '                                         Овог оруулна уу';
+                            return 'И-Мэйл хаяг оруулна уу';
+                          }
+                          final emailRegex = RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          );
+                          if (!emailRegex.hasMatch(value.trim())) {
+                            return 'Зөв И-Мэйл хаяг оруулна уу';
                           }
                           return null;
                         },
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
+
                     Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 10),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        style: TextStyle(color: AppColors.grayColor),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 25,
-                          ),
-                          filled: true,
-                          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                          hintText: 'Нэр',
-                          hintStyle: const TextStyle(
-                            color: AppColors.grayColor,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: AppColors.grayColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorStyle: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 14,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return '                                          Нэр оруулна уу';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 10),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        style: TextStyle(color: AppColors.grayColor),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 25,
-                          ),
-                          filled: true,
-                          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                          hintText: 'Регистрийн дугаар',
-                          hintStyle: const TextStyle(
-                            color: AppColors.grayColor,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: AppColors.grayColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorStyle: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 14,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return '                          Регистрийн дугаар оруулна уу';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 10),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: TextFormField(
-                        style: TextStyle(color: AppColors.grayColor),
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 25,
-                          ),
-                          filled: true,
-                          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                          hintText: 'И-Мэйл хаяг',
-                          hintStyle: const TextStyle(
-                            color: AppColors.grayColor,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: AppColors.grayColor,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorStyle: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 14,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return '                           И-Мэйл хаяг оруулна уу';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 10),
-                            blurRadius: 8,
-                            spreadRadius: 0,
-                          ),
-                        ],
-                      ),
+                      decoration: _boxShadowDecoration(),
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            _validateAndSubmit();
-                          },
+                          onPressed: _validateAndSubmit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFCAD2DB),
                             foregroundColor: Colors.black,
@@ -511,6 +368,19 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
           ),
         ],
       ),
+    );
+  }
+
+  BoxDecoration _boxShadowDecoration() {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(100),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.3),
+          offset: const Offset(0, 10),
+          blurRadius: 8,
+        ),
+      ],
     );
   }
 }
