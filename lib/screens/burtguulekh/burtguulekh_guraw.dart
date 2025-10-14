@@ -18,8 +18,15 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
   bool _isPhoneSubmitted = false;
 
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _smsController = TextEditingController();
-  final TextEditingController _dugaarController = TextEditingController();
+  final List<TextEditingController> _pinControllers = List.generate(
+    4,
+    (index) => TextEditingController(),
+  );
+  final List<FocusNode> _pinFocusNodes = List.generate(
+    4,
+    (index) => FocusNode(),
+  );
+
   int _resendSeconds = 30;
   bool _canResend = false;
   Timer? _timer;
@@ -28,14 +35,18 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
   void initState() {
     super.initState();
     _phoneController.addListener(() => setState(() {}));
-    _smsController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _phoneController.dispose();
-    _smsController.dispose();
+    for (var controller in _pinControllers) {
+      controller.dispose();
+    }
+    for (var node in _pinFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -68,17 +79,25 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
           iconColor: Colors.green,
         );
         _startResendTimer();
+        // Focus on first PIN box
+        Future.delayed(Duration.zero, () {
+          _pinFocusNodes[0].requestFocus();
+        });
       } else {
-        showGlassSnackBar(
-          context,
-          message: "Баталгаажуулах код зөв байна!",
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Newtrekhkhuudas()),
-        );
+        // Validate PIN
+        String pin = _pinControllers.map((c) => c.text).join();
+        if (pin.length == 4) {
+          showGlassSnackBar(
+            context,
+            message: "Баталгаажуулах код зөв байна!",
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Newtrekhkhuudas()),
+          );
+        }
       }
     }
   }
@@ -102,7 +121,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             top: 60,
             left: 16,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(100),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
@@ -111,10 +130,12 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: IconButton(
+                    padding: EdgeInsets.only(left: 7),
+                    constraints: const BoxConstraints(),
                     icon: const Icon(
-                      Icons.arrow_back,
+                      Icons.arrow_back_ios,
                       color: Colors.white,
-                      size: 28,
+                      size: 20,
                     ),
                     onPressed: () {
                       Navigator.pop(context);
@@ -198,7 +219,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         child: TextFormField(
           controller: _phoneController,
           style: const TextStyle(color: AppColors.grayColor),
-          decoration: _inputDecoration("Утасны дугаар", _dugaarController),
+          decoration: _inputDecoration("Утасны дугаар", _phoneController),
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
@@ -215,57 +236,40 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
   Widget _buildSecretCodeField() {
     return Column(
       children: [
-        SizedBox(
+        // Display phone number
+        Container(
           height: 60,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(100),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  offset: const Offset(0, 10),
-                  blurRadius: 8,
-                ),
-              ],
-            ),
-            child: TextFormField(
-              controller: _smsController,
-              style: TextStyle(color: AppColors.grayColor),
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(4),
-              ],
-              decoration: InputDecoration(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 25,
-                  vertical: 18,
-                ),
-                filled: true,
-                fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                hintText: 'Баталгаажуулах код',
-                hintStyle: const TextStyle(color: AppColors.grayColor),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(100),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(100),
-                  borderSide: const BorderSide(
-                    color: AppColors.grayColor,
-                    width: 1.5,
-                  ),
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(100),
+            color: AppColors.inputGrayColor.withOpacity(0.3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                offset: const Offset(0, 10),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Text(
+                _phoneController.text,
+                style: const TextStyle(
+                  color: AppColors.grayColor,
+                  fontSize: 16,
                 ),
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Баталгаажуулах код оруулна уу';
-                }
-                if (value.length != 4) return 'Код 4 оронтой байх ёстой';
-                return null;
-              },
-            ),
+            ],
           ),
+        ),
+        const SizedBox(height: 20),
+        // PIN Input boxes
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(4, (index) {
+            return _buildPinBox(index);
+          }),
         ),
         const SizedBox(height: 10),
         Row(
@@ -274,6 +278,10 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             TextButton(
               onPressed: _canResend
                   ? () {
+                      // Clear all PIN boxes
+                      for (var controller in _pinControllers) {
+                        controller.clear();
+                      }
                       showGlassSnackBar(
                         context,
                         message: "Баталгаажуулах код дахин илгээлээ",
@@ -281,6 +289,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                         iconColor: Colors.green,
                       );
                       _startResendTimer();
+                      _pinFocusNodes[0].requestFocus();
                     }
                   : null,
               child: Text(
@@ -297,14 +306,78 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
     );
   }
 
+  Widget _buildPinBox(int index) {
+    return Container(
+      width: 60,
+      height: 70,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            offset: const Offset(0, 4),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: _pinControllers[index],
+        focusNode: _pinFocusNodes[index],
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: AppColors.grayColor,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(1),
+        ],
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.grayColor, width: 2),
+          ),
+          contentPadding: EdgeInsets.zero,
+        ),
+        onChanged: (value) {
+          if (value.isNotEmpty && index < 3) {
+            _pinFocusNodes[index + 1].requestFocus();
+          }
+          setState(() {});
+        },
+        onTap: () {
+          // Select all text when tapped
+          _pinControllers[index].selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: _pinControllers[index].text.length,
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildContinueButton() {
+    bool isValid = !_isPhoneSubmitted
+        ? _phoneController.text.length == 8
+        : _pinControllers.every((c) => c.text.isNotEmpty);
+
     return SizedBox(
       height: 60,
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _validateAndSubmit,
+        onPressed: isValid ? _validateAndSubmit : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFCAD2DB),
+          backgroundColor: isValid
+              ? const Color(0xFFCAD2DB)
+              : const Color(0xFFCAD2DB).withOpacity(0.5),
           foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(100),
@@ -333,7 +406,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
     TextEditingController controller,
   ) {
     return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 25),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,

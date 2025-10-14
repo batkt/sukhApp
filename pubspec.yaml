@@ -16,7 +16,8 @@ dependencies:
   flutter_screenutil: ^5.9.3
   cupertino_icons: ^1.0.8
   top_snackbar_flutter: ^3.3.0
-
+  go_router: ^14.2.0
+  shared_preferences: ^2.1.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

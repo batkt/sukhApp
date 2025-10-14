@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -63,7 +64,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
     TextEditingController controller,
   ) {
     return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 25),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
@@ -113,7 +114,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
             top: 60,
             left: 16,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(100),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
@@ -122,13 +123,15 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: IconButton(
+                    padding: const EdgeInsets.only(left: 7),
+                    constraints: const BoxConstraints(),
                     icon: const Icon(
-                      Icons.arrow_back,
+                      Icons.arrow_back_ios,
                       color: Colors.white,
-                      size: 28,
+                      size: 20,
                     ),
                     onPressed: () {
-                      Navigator.pop(context);
+                      context.pop();
                     },
                   ),
                 ),

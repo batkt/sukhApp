@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'screens/newtrekhKhuudas.dart';
+import 'app_router.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,22 +16,21 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        // 👇 Wrap the entire MaterialApp with GestureDetector
         return GestureDetector(
           onTap: () {
-            // This closes the keyboard when tapping outside a TextField
             FocusManager.instance.primaryFocus?.unfocus();
           },
           behavior: HitTestBehavior.translucent,
-          child: MaterialApp(
+          child: MaterialApp.router(
             debugShowCheckedModeBanner: false,
+            routerConfig: appRouter,
             theme: ThemeData(
+              scaffoldBackgroundColor: Colors.black,
               textTheme: const TextTheme(
                 bodyMedium: TextStyle(fontWeight: FontWeight.w400),
               ),
               fontFamily: 'Inter',
             ),
-            home: const Newtrekhkhuudas(),
           ),
         );
       },

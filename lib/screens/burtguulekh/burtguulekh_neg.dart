@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -58,20 +59,24 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     try {
       await Future.delayed(const Duration(seconds: 1));
 
-      setState(() {
-        khotkhons = ['Хотхон 1', 'Хотхон 2', 'Хотхон 3'];
-        isLoadingKhotkhon = false;
-      });
+      if (mounted) {
+        setState(() {
+          khotkhons = ['Хотхон 1', 'Хотхон 2', 'Хотхон 3'];
+          isLoadingKhotkhon = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        isLoadingKhotkhon = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Хотхон мэдээлэл татахад алдаа гарлаа'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          isLoadingKhotkhon = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Хотхон мэдээлэл татахад алдаа гарлаа'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -83,22 +88,26 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     });
 
     try {
-      await Future.delayed(const Duration(seconds: 1)); // Simulating API call
+      await Future.delayed(const Duration(seconds: 1));
 
-      setState(() {
-        sokhs = ['СӨХ 1', 'СӨХ 2', 'СӨХ 3'];
-        isLoadingSOKH = false;
-      });
+      if (mounted) {
+        setState(() {
+          sokhs = ['СӨХ 1', 'СӨХ 2', 'СӨХ 3'];
+          isLoadingSOKH = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        isLoadingSOKH = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('СӨХ мэдээлэл татахад алдаа гарлаа'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          isLoadingSOKH = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('СӨХ мэдээлэл татахад алдаа гарлаа'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -111,11 +120,10 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         iconColor: Colors.green,
       );
 
-      Future.delayed(const Duration(milliseconds: 800), () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const Burtguulekh_Khoyor()),
-        );
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) {
+          context.push('/burtguulekh_khoyor');
+        }
       });
     }
   }
@@ -125,7 +133,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background image
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -134,14 +141,14 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
               ),
             ),
           ),
-          // Dark overlay
+
           Container(color: Colors.black.withOpacity(0.5)),
 
           Positioned(
             top: 60,
             left: 16,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(100),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
@@ -150,13 +157,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: IconButton(
+                    padding: const EdgeInsets.only(left: 7),
+                    constraints: const BoxConstraints(),
                     icon: const Icon(
-                      Icons.arrow_back,
+                      Icons.arrow_back_ios,
                       color: Colors.white,
-                      size: 28,
+                      size: 20,
                     ),
                     onPressed: () {
-                      Navigator.pop(context);
+                      context.pop();
                     },
                   ),
                 ),
@@ -188,7 +197,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const SizedBox(height: 120 / 2),
-                    Text(
+                    const Text(
                       'Бүртгэл',
                       style: TextStyle(
                         color: AppColors.grayColor,
@@ -198,7 +207,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                       softWrap: false,
                     ),
                     const SizedBox(height: 20),
-                    Text(
+                    const Text(
                       '1/4',
                       style: TextStyle(
                         color: AppColors.grayColor,
@@ -292,7 +301,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                           setState(() {
                             selectedDistrict = value;
                           });
-                          // Clear error when value is selected
                           _districtFieldKey.currentState?.validate();
                           if (value != null) {
                             _loadKhotkhons(value);
@@ -338,7 +346,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                           _districtFieldKey.currentState?.didChange(
                             selectedDistrict,
                           );
-
                           setState(() {});
                         }
                       },
@@ -426,7 +433,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                   setState(() {
                                     selectedKhotkhon = value;
                                   });
-                                  // Clear error when value is selected
                                   _khotkhonFieldKey.currentState?.validate();
                                   if (value != null) {
                                     _loadSOKHs(value);
@@ -467,7 +473,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
 
                     const SizedBox(height: 16),
 
-                    // SÖХ Dropdown
                     GestureDetector(
                       onTap: () {
                         if (selectedDistrict == null) {
@@ -639,7 +644,10 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFCAD2DB),
                             foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 10,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(100),
                             ),
@@ -648,7 +656,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                           ),
                           child: const Text(
                             'Үргэлжлүүлэх',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(fontSize: 14),
                           ),
                         ),
                       ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
-import 'nuutsUgSergeekh.dart';
-import 'burtguulekh/burtguulekh_neg.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:go_router/go_router.dart';
 
 class Newtrekhkhuudas extends StatefulWidget {
   const Newtrekhkhuudas({super.key});
@@ -15,32 +15,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  Route _createRoute(Widget page) {
-    return PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const beginOffset = Offset(0.2, 0);
-        const endOffset = Offset.zero;
-        final slideTween = Tween(
-          begin: beginOffset,
-          end: endOffset,
-        ).chain(CurveTween(curve: Curves.easeOutCubic));
-        final fadeTween = Tween(
-          begin: 0.0,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOutCubic));
-
-        return SlideTransition(
-          position: animation.drive(slideTween),
-          child: FadeTransition(
-            opacity: animation.drive(fadeTween),
-            child: child,
-          ),
-        );
-      },
-    );
-  }
+  String dugaar = "99536945";
+  String password = "1234";
 
   @override
   void initState() {
@@ -194,12 +170,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const NuutsUgSergeekh(),
-                            ),
-                          );
+                          context.push('/forgot-password');
                         },
                         child: const Text(
                           'Нууц үгээ мартсан уу?',
@@ -225,7 +196,35 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            String inputPhone = phoneController.text.trim();
+                            String inputPassword = passwordController.text
+                                .trim();
+
+                            if (inputPhone.isEmpty || inputPassword.isEmpty) {
+                              showGlassSnackBar(
+                                context,
+                                message:
+                                    "Утасны дугаар болон нууц үгийг оруулна уу",
+                                icon: Icons.error,
+                                iconColor: Colors.red,
+                              );
+                              return;
+                            }
+
+                            if (inputPhone == dugaar &&
+                                inputPassword == password) {
+                              context.go('/burtguulekh_neg');
+                            } else {
+                              showGlassSnackBar(
+                                context,
+                                message:
+                                    "Утасны дугаар эсвэл нууц үг буруу байна",
+                                icon: Icons.error,
+                                iconColor: Colors.red,
+                              );
+                            }
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFCAD2DB),
                             foregroundColor: Colors.black,
@@ -264,9 +263,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(100),
                           onTap: () {
-                            Navigator.of(
-                              context,
-                            ).push(_createRoute(const Burtguulekh_Neg()));
+                            context.push('/ekhniikh');
                           },
                           splashColor: Colors.white.withOpacity(0.2),
                           highlightColor: Colors.white.withOpacity(0.1),
@@ -292,22 +289,13 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 40),
+                    const Text(
+                      'ZevTabs © 2025',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
                   ],
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 16,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 25),
-                child: Center(
-                  child: Text(
-                    'ZevTabs © 2025',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
                 ),
               ),
             ),
