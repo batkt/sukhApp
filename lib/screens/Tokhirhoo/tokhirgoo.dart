@@ -1,6 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:go_router/go_router.dart';
+
+class AppBackground extends StatelessWidget {
+  final Widget child;
+  const AppBackground({Key? key, required this.child}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('lib/assets/img/background_image.png'),
+          fit: BoxFit.none,
+          scale: 3,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
 
 class Tokhirgoo extends StatefulWidget {
   const Tokhirgoo({Key? key}) : super(key: key);
@@ -39,242 +59,221 @@ class _TokhirgooState extends State<Tokhirgoo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1a1a2e),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () => context.pop(),
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: const Text(
+                    const SizedBox(width: 12),
+                    const Text(
                       'Тохиргоо',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFe6ff00).withOpacity(0.2),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFe6ff00),
-                                width: 2,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Color(0xFFe6ff00),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFe6ff00),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.black,
-                                  size: 20,
-                                ),
-                                onPressed: () {},
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Хэрэглэгчийн мэдээлэл',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          _buildTextField(
-                            controller: _nameController,
-                            label: 'Нэр',
-                            icon: Icons.person_outline,
-                            enabled: false,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _emailController,
-                            label: 'И-мэйл',
-                            icon: Icons.email_outlined,
-                            enabled: false,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _phoneController,
-                            label: 'Утас',
-                            icon: Icons.phone_outlined,
-                            enabled: false,
-                            keyboardType: TextInputType.phone,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    const Text(
-                      'Нэвтрэх нууц код солих',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Form(
-                      key: _passwordFormKey,
-                      child: Column(
-                        children: [
-                          _buildPasswordField(
-                            controller: _currentPasswordController,
-                            label: 'Одоогийн нууц код',
-                            obscureText: _obscureCurrentPassword,
-                            onToggle: () {
-                              setState(() {
-                                _obscureCurrentPassword =
-                                    !_obscureCurrentPassword;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _buildPasswordField(
-                            controller: _newPasswordController,
-                            label: 'Шинэ нууц код',
-                            obscureText: _obscureNewPassword,
-                            onToggle: () {
-                              setState(() {
-                                _obscureNewPassword = !_obscureNewPassword;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _buildPasswordField(
-                            controller: _confirmPasswordController,
-                            label: 'Нууц код давтах',
-                            obscureText: _obscureConfirmPassword,
-                            onToggle: () {
-                              setState(() {
-                                _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (_passwordFormKey.currentState!.validate()) {
-                                  showGlassSnackBar(
-                                    context,
-                                    message: 'Нууц код амжилттай солигдлоо',
-                                    icon: Icons.check_circle,
-                                    iconColor: Colors.green,
-                                  );
-                                  _currentPasswordController.clear();
-                                  _newPasswordController.clear();
-                                  _confirmPasswordController.clear();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFe6ff00),
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Нууц код солих',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
                   ],
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFe6ff00).withOpacity(0.2),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFe6ff00),
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Color(0xFFe6ff00),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFe6ff00),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.black,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {},
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Хэрэглэгчийн мэдээлэл',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            _buildTextField(
+                              controller: _nameController,
+                              label: 'Нэр',
+                              icon: Icons.person_outline,
+                              enabled: false,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _emailController,
+                              label: 'И-мэйл',
+                              icon: Icons.email_outlined,
+                              enabled: false,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _phoneController,
+                              label: 'Утас',
+                              icon: Icons.phone_outlined,
+                              enabled: false,
+                              keyboardType: TextInputType.phone,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Нэвтрэх нууц код солих',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Form(
+                        key: _passwordFormKey,
+                        child: Column(
+                          children: [
+                            _buildPasswordField(
+                              controller: _currentPasswordController,
+                              label: 'Одоогийн нууц код',
+                              obscureText: _obscureCurrentPassword,
+                              onToggle: () {
+                                setState(() {
+                                  _obscureCurrentPassword =
+                                      !_obscureCurrentPassword;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _buildPasswordField(
+                              controller: _newPasswordController,
+                              label: 'Шинэ нууц код',
+                              obscureText: _obscureNewPassword,
+                              onToggle: () {
+                                setState(() {
+                                  _obscureNewPassword = !_obscureNewPassword;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _buildPasswordField(
+                              controller: _confirmPasswordController,
+                              label: 'Нууц код давтах',
+                              obscureText: _obscureConfirmPassword,
+                              onToggle: () {
+                                setState(() {
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (_passwordFormKey.currentState!
+                                      .validate()) {
+                                    showGlassSnackBar(
+                                      context,
+                                      message: 'Нууц код амжилттай солигдлоо',
+                                      icon: Icons.check_circle,
+                                      iconColor: Colors.green,
+                                    );
+                                    _currentPasswordController.clear();
+                                    _newPasswordController.clear();
+                                    _confirmPasswordController.clear();
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFe6ff00),
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: const Text(
+                                  'Нууц код солих',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -338,7 +337,6 @@ class _TokhirgooState extends State<Tokhirgoo> {
       controller: controller,
       obscureText: obscureText,
       style: const TextStyle(color: Colors.white),
-
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),

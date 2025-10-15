@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sukh_app/models/Menu/side_menu.dart';
 import 'package:sukh_app/models/Notifications/notification.dart';
+import 'dart:ui';
+import 'package:sukh_app/widgets/glassmorphism.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,7 +26,6 @@ class MyApp extends StatelessWidget {
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-
   const AppBackground({Key? key, required this.child}) : super(key: key);
 
   @override
@@ -49,6 +51,7 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
+  bool _isBlur = false;
   DateTime selectedDate = DateTime.now();
   int? selectedDay;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -354,8 +357,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                                             .settings_outlined,
                                                         title: 'Тохиргоо',
                                                         onTap: () {
-                                                          Navigator.pop(
-                                                            context,
+                                                          context.push(
+                                                            '/tokhirgoo',
                                                           );
                                                         },
                                                       ),
@@ -410,47 +413,55 @@ class _BookingScreenState extends State<BookingScreen> {
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Нийт үлдэгдэл',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 36,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const Text(
+                          'Нийт үлдэгдэл',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 36,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         const Text(
                           '152,200₮',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 32,
+                            fontSize: 56,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const Spacer(),
-                        Container(
+                      ],
+                    ),
+                    const Spacer(),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(50),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: 26,
+                            vertical: 15,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(50),
                           ),
                           child: const Text(
                             'Төлөх',
                             style: TextStyle(
                               color: Colors.white70,
-                              fontSize: 12,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -458,7 +469,6 @@ class _BookingScreenState extends State<BookingScreen> {
 
               const SizedBox(height: 24),
 
-              // Month selector with navigation
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Row(
@@ -494,7 +504,6 @@ class _BookingScreenState extends State<BookingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
                     children: [
-                      // Week days header
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -510,7 +519,6 @@ class _BookingScreenState extends State<BookingScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Calendar grid
                       Expanded(
                         child: GridView.builder(
                           gridDelegate:
@@ -560,56 +568,105 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
               ),
 
-              // Bottom section
               Container(
-                padding: const EdgeInsets.all(24),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(24),
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF2D3748), Color(0xFF1A202C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Төлөх мэдээлэл',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    const SizedBox(height: 12),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                '-25,880 Анхдагч төлөлт',
+                                'Товч мэдээлэл',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 12),
                               Text(
-                                '4:10 PM',
+                                'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.5),
-                                  fontSize: 12,
+                                  color: Colors.white.withOpacity(0.6),
+                                  fontSize: 13,
+                                  height: 1.4,
                                 ),
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    Row(
+                      children: List.generate(
+                        150 ~/ 6,
+                        (index) => Expanded(
+                          child: Container(
+                            color: index % 2 == 0
+                                ? Colors.white.withOpacity(0.3)
+                                : Colors.transparent,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '-25,880',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text(
+                              'Дараагын төлөлт',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '21 Dec - 24 Dec',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

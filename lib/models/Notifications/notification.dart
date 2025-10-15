@@ -91,11 +91,9 @@ class NotificationDropdown extends StatelessWidget {
 
           const Divider(color: Colors.white12, height: 1),
 
-          // Footer
           InkWell(
             onTap: () {
               Navigator.pop(context);
-              // Navigate to full notifications page if needed
             },
             child: Container(
               padding: const EdgeInsets.all(12),

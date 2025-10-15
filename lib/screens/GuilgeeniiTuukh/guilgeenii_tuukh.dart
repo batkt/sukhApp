@@ -1,4 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+class AppBackground extends StatelessWidget {
+  final Widget child;
+  const AppBackground({Key? key, required this.child}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('lib/assets/img/background_image.png'),
+          fit: BoxFit.none,
+          scale: 3,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
 
 class GuilgeeniiTuukh extends StatefulWidget {
   const GuilgeeniiTuukh({Key? key}) : super(key: key);
@@ -26,94 +46,86 @@ class _GuilgeeState extends State<GuilgeeniiTuukh>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1a1a2e),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () => context.pop(),
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Гэрээнүүд',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Гэрээнүүд',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: Colors.black,
-                  unselectedLabelColor: Colors.white,
-                  indicator: BoxDecoration(
-                    color: const Color(0xFFe6ff00),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  dividerColor: Colors.transparent,
-                  tabs: const [
-                    Tab(text: 'Бүгд'),
-                    Tab(text: 'Идэвхтэй'),
-                    Tab(text: 'Идэвхгүй'),
                   ],
                 ),
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Танд холбогдсон бүх гэрээний жагсаалт.',
-                    style: TextStyle(fontSize: 14, color: Colors.white60),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
                   ),
-                ],
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.black,
+                    unselectedLabelColor: Colors.white,
+                    indicator: BoxDecoration(
+                      color: const Color(0xFFe6ff00),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(text: 'Бүгд'),
+                      Tab(text: 'Идэвхтэй'),
+                      Tab(text: 'Идэвхгүй'),
+                    ],
+                  ),
+                ),
               ),
-            ),
-
-            const SizedBox(height: 16),
-
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildCertificateList(),
-                  _buildCertificateList(),
-                  _buildCertificateList(),
-                ],
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Танд холбогдсон бүх гэрээний жагсаалт.',
+                      style: TextStyle(fontSize: 14, color: Colors.white60),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildCertificateList(),
+                    _buildCertificateList(),
+                    _buildCertificateList(),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

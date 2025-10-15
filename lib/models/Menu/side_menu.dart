@@ -27,7 +27,8 @@ class SideMenu extends StatelessWidget {
               icon: Icons.history,
               title: 'Гүйлгээний түүх',
               onTap: () {
-                context.go('/guilgee');
+                Navigator.pop(context);
+                context.push('/guilgee');
               },
             ),
 
@@ -37,6 +38,7 @@ class SideMenu extends StatelessWidget {
               title: 'Нэхэмжлэх',
               onTap: () {
                 Navigator.pop(context);
+                context.push('/nekhemjlekh');
               },
             ),
             _buildMenuItem(
@@ -45,6 +47,7 @@ class SideMenu extends StatelessWidget {
               title: 'Санал хүсэлт',
               onTap: () {
                 Navigator.pop(context);
+                context.push('/sanal_khuselt');
               },
             ),
             _buildMenuItem(
@@ -53,6 +56,7 @@ class SideMenu extends StatelessWidget {
               title: 'Машин',
               onTap: () {
                 Navigator.pop(context);
+                context.push("/mashin");
               },
             ),
             _buildMenuItem(
@@ -61,6 +65,7 @@ class SideMenu extends StatelessWidget {
               title: 'Дуудлага үйлчилгээ ',
               onTap: () {
                 Navigator.pop(context);
+                context.push("/duudlaga");
               },
             ),
             _buildMenuItem(
@@ -69,6 +74,7 @@ class SideMenu extends StatelessWidget {
               title: 'Мэдэгдэл',
               onTap: () {
                 Navigator.pop(context);
+                context.push('/medegdel');
               },
             ),
             _buildMenuItem(
@@ -76,7 +82,8 @@ class SideMenu extends StatelessWidget {
               icon: Icons.settings_outlined,
               title: 'Тохиргоо',
               onTap: () {
-                context.go('/tokhirgoo');
+                Navigator.pop(context);
+                context.push('/tokhirgoo');
               },
             ),
 
