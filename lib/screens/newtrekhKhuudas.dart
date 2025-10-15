@@ -245,7 +245,13 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
                           if (inputPhone == dugaar &&
                               inputPassword == password) {
-                            context.go('/burtguulekh_neg');
+                            showGlassSnackBar(
+                              context,
+                              message: 'Нэвтрэлт амжилттай',
+                              icon: Icons.check_outlined,
+                              iconColor: Colors.green,
+                            );
+                            context.go('/nuur');
                           } else {
                             showGlassSnackBar(
                               context,

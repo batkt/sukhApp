@@ -12,11 +12,17 @@ import 'package:sukh_app/screens/Nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
 import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
 import 'package:sukh_app/screens/mashin/mashin.dart';
-import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
+import 'package:sukh_app/screens/newtrekhKhuudas.dart';
 
 final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const Newtrekhkhuudas()),
+    GoRoute(path: '/nuur', builder: (context, state) => const NuurKhuudas()),
+    GoRoute(
+      path: '/newtrekh',
+      builder: (context, state) => const Newtrekhkhuudas(),
+    ),
+    GoRoute(path: '/ekhniikh', builder: (context, state) => OnboardingScreen()),
     GoRoute(
       path: '/burtguulekh_neg',
       builder: (context, state) => const Burtguulekh_Neg(),
@@ -25,7 +31,6 @@ final GoRouter appRouter = GoRouter(
       path: '/burtguulekh_khoyor',
       builder: (context, state) => const Burtguulekh_Khoyor(),
     ),
-
     GoRoute(path: '/tokhirgoo', builder: (context, state) => const Tokhirgoo()),
     GoRoute(
       path: '/guilgee',

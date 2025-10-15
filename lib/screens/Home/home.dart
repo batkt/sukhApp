@@ -5,25 +5,6 @@ import 'dart:ui';
 import 'package:sukh_app/widgets/glassmorphism.dart';
 import 'package:go_router/go_router.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.transparent,
-      ),
-      home: const BookingScreen(),
-    );
-  }
-}
-
 class AppBackground extends StatelessWidget {
   final Widget child;
   const AppBackground({Key? key, required this.child}) : super(key: key);
@@ -43,14 +24,14 @@ class AppBackground extends StatelessWidget {
   }
 }
 
-class BookingScreen extends StatefulWidget {
-  const BookingScreen({Key? key}) : super(key: key);
+class NuurKhuudas extends StatefulWidget {
+  const NuurKhuudas({Key? key}) : super(key: key);
 
   @override
-  State<BookingScreen> createState() => _BookingScreenState();
+  State<NuurKhuudas> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> {
+class _BookingScreenState extends State<NuurKhuudas> {
   bool _isBlur = false;
   DateTime selectedDate = DateTime.now();
   int? selectedDay;
@@ -386,8 +367,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                                         icon: Icons.logout,
                                                         title: 'Гарах',
                                                         onTap: () {
-                                                          Navigator.pop(
-                                                            context,
+                                                          context.go(
+                                                            '/newtrekh',
                                                           );
                                                         },
                                                         isLogout: true,
