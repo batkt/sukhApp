@@ -343,21 +343,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                                           );
                                                         },
                                                       ),
-                                                      const Divider(
-                                                        color: Colors.white12,
-                                                        height: 1,
-                                                      ),
-                                                      _buildProfileMenuItem(
-                                                        context,
-                                                        icon:
-                                                            Icons.help_outline,
-                                                        title: 'Тусламж',
-                                                        onTap: () {
-                                                          Navigator.pop(
-                                                            context,
-                                                          );
-                                                        },
-                                                      ),
+
                                                       const Divider(
                                                         color: Colors.white12,
                                                         height: 1,
@@ -405,7 +391,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 36,
+                            fontSize: 28,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -413,7 +399,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           '152,200₮',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 56,
+                            fontSize: 38,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -551,7 +537,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFF2D3748), Color(0xFF1A202C)],
@@ -580,7 +566,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum',
+                                'СӨХ ийн төлбөрөө цөг тухайн бүрт нь төлж байгаарай',
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.6),
                                   fontSize: 13,

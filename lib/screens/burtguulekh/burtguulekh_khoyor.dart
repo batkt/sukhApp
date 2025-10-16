@@ -3,7 +3,29 @@ import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
-import 'burtguulekh_guraw.dart';
+
+class AppBackground extends StatelessWidget {
+  final Widget child;
+  const AppBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: double.infinity,
+      child: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('lib/assets/img/background_image.png'),
+            fit: BoxFit.none,
+            scale: 3,
+          ),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
 
 class Burtguulekh_Khoyor extends StatefulWidget {
   const Burtguulekh_Khoyor({super.key});
@@ -52,10 +74,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
 
   void _validateAndSubmit() {
     if (_formKey.currentState!.validate()) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const Burtguulekh_Guraw()),
-      );
+      context.push('/burtguulekh_guraw');
     }
   }
 
@@ -68,7 +87,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.grayColor),
+      hintStyle: const TextStyle(color: Colors.white70),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(100),
         borderSide: BorderSide.none,
@@ -86,303 +105,407 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
       errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
-      suffixIcon: controller.text.isNotEmpty
-          ? IconButton(
-              icon: const Icon(Icons.clear, color: Colors.white70),
-              onPressed: () => controller.clear(),
-            )
-          : null,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('lib/assets/img/main_background.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Container(color: Colors.black.withOpacity(0.5)),
-          Positioned(
-            top: 60,
-            left: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(100),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: IconButton(
-                    padding: const EdgeInsets.only(left: 7),
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      context.pop();
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: EdgeInsets.only(
-                left: 50,
-                right: 50,
-                top: 40,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 100,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 154,
-                      height: 154,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(36),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            color: Colors.white.withOpacity(0.2),
-                          ),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: AppBackground(
+          child: Stack(
+            children: [
+              SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final keyboardHeight = MediaQuery.of(
+                      context,
+                    ).viewInsets.bottom;
+                    return SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: 50,
+                          right: 50,
+                          top: 40,
+                          bottom: keyboardHeight > 0 ? keyboardHeight + 20 : 40,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    Text(
-                      'Бүртгэл',
-                      style: TextStyle(
-                        color: AppColors.grayColor,
-                        fontSize: 36,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      '2/4',
-                      style: TextStyle(
-                        color: AppColors.grayColor,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 50),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            offset: const Offset(0, 10),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: DropdownButtonFormField2<String>(
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          contentPadding: EdgeInsets.zero,
-                          filled: true,
-                          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.white,
-                              width: 1.5,
-                            ),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(100),
-                            borderSide: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                        hint: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              isLoadingToot ? 'Уншиж байна...' : 'Тоот сонгох',
-                              style: const TextStyle(
-                                color: AppColors.grayColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        items: toot
-                            .map(
-                              (item) => DropdownMenuItem<String>(
-                                value: item,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                  ),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      item,
-                                      style: const TextStyle(
-                                        color: AppColors.grayColor,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minHeight: 80,
+                                  maxHeight: 154,
+                                  minWidth: 154,
+                                  maxWidth: 154,
+                                ),
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(36),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 10,
+                                        sigmaY: 10,
+                                      ),
+                                      child: Container(
+                                        color: Colors.white.withOpacity(0.2),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            )
-                            .toList(),
-                        value: toot.contains(selectedToot)
-                            ? selectedToot
-                            : null,
-                        onChanged: isLoadingToot || toot.isEmpty
-                            ? null
-                            : (value) => setState(() => selectedToot = value),
-                        validator: (value) => (value == null || value.isEmpty)
-                            ? 'Тоот сонгоно уу'
-                            : null,
-                        buttonStyleData: const ButtonStyleData(
-                          height: 56,
-                          padding: EdgeInsets.only(right: 11),
-                        ),
-                        dropdownStyleData: DropdownStyleData(
-                          decoration: BoxDecoration(
-                            color: AppColors.inputGrayColor.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(16),
+                              const SizedBox(height: 30),
+                              const Text(
+                                'Бүртгэл',
+                                style: TextStyle(
+                                  color: AppColors.grayColor,
+                                  fontSize: 36,
+                                ),
+                                maxLines: 1,
+                                softWrap: false,
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                '2/3',
+                                style: TextStyle(
+                                  color: AppColors.grayColor,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 1,
+                                softWrap: false,
+                              ),
+                              const SizedBox(height: 20),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(100),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      offset: const Offset(0, 10),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                                child: DropdownButtonFormField2<String>(
+                                  isExpanded: true,
+                                  decoration: InputDecoration(
+                                    contentPadding: EdgeInsets.zero,
+                                    filled: true,
+                                    fillColor: AppColors.inputGrayColor
+                                        .withOpacity(0.5),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                      borderSide: const BorderSide(
+                                        color: AppColors.grayColor,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    errorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                      borderSide: const BorderSide(
+                                        color: Colors.redAccent,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                      borderSide: const BorderSide(
+                                        color: Colors.redAccent,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    errorStyle: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  hint: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    child: Text(
+                                      isLoadingToot
+                                          ? 'Уншиж байна...'
+                                          : 'Тоот сонгох',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                  items: toot
+                                      .map(
+                                        (item) => DropdownMenuItem<String>(
+                                          value: item,
+                                          child: Text(
+                                            item,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  selectedItemBuilder: (context) {
+                                    return toot.map((item) {
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
+                                        child: Text(
+                                          item,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList();
+                                  },
+                                  value: toot.contains(selectedToot)
+                                      ? selectedToot
+                                      : null,
+                                  onChanged: isLoadingToot || toot.isEmpty
+                                      ? null
+                                      : (value) => setState(
+                                          () => selectedToot = value,
+                                        ),
+                                  validator: (value) =>
+                                      (value == null || value.isEmpty)
+                                      ? '                                             Тоот сонгоно уу'
+                                      : null,
+                                  buttonStyleData: const ButtonStyleData(
+                                    height: 56,
+                                    padding: EdgeInsets.only(right: 11),
+                                  ),
+                                  dropdownStyleData: DropdownStyleData(
+                                    maxHeight: 300,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.inputGrayColor
+                                          .withOpacity(0.95),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.2),
+                                        width: 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          offset: const Offset(0, 8),
+                                          blurRadius: 24,
+                                          spreadRadius: 0,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  menuItemStyleData: MenuItemStyleData(
+                                    height: 48,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    overlayColor:
+                                        WidgetStateProperty.resolveWith<Color?>(
+                                          (Set<WidgetState> states) {
+                                            if (states.contains(
+                                              WidgetState.hovered,
+                                            )) {
+                                              return Colors.white.withOpacity(
+                                                0.1,
+                                              );
+                                            }
+                                            if (states.contains(
+                                              WidgetState.focused,
+                                            )) {
+                                              return Colors.white.withOpacity(
+                                                0.15,
+                                              );
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                  ),
+                                  iconStyleData: IconStyleData(
+                                    icon: Icon(
+                                      isTootOpen
+                                          ? Icons.arrow_drop_up
+                                          : Icons.arrow_drop_down,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  onMenuStateChange: (isOpen) =>
+                                      setState(() => isTootOpen = isOpen),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: _boxShadowDecoration(),
+                                child: TextFormField(
+                                  controller: ovogController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _inputDecoration(
+                                    'Овог',
+                                    ovogController,
+                                  ),
+                                  validator: (value) =>
+                                      value == null || value.trim().isEmpty
+                                      ? '                                      Овог оруулна уу'
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: _boxShadowDecoration(),
+                                child: TextFormField(
+                                  controller: nerController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _inputDecoration(
+                                    'Нэр',
+                                    nerController,
+                                  ),
+                                  validator: (value) =>
+                                      value == null || value.trim().isEmpty
+                                      ? '                                        Нэр оруулна уу'
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: _boxShadowDecoration(),
+                                child: TextFormField(
+                                  controller: registerController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _inputDecoration(
+                                    'Регистрийн дугаар',
+                                    registerController,
+                                  ),
+                                  validator: (value) =>
+                                      value == null || value.trim().isEmpty
+                                      ? '             Регистрийн дугаар оруулна уу'
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: _boxShadowDecoration(),
+                                child: TextFormField(
+                                  controller: emailController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _inputDecoration(
+                                    'И-Мэйл хаяг',
+                                    emailController,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return '                        И-Мэйл хаяг оруулна уу';
+                                    }
+                                    final emailRegex = RegExp(
+                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                    );
+                                    if (!emailRegex.hasMatch(value.trim())) {
+                                      return '                                  Зөв И-Мэйл хаяг оруулна уу';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(100),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      offset: const Offset(0, 10),
+                                      blurRadius: 8,
+                                      spreadRadius: 0,
+                                    ),
+                                  ],
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: _validateAndSubmit,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFCAD2DB),
+                                      foregroundColor: Colors.black,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                        horizontal: 10,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          100,
+                                        ),
+                                      ),
+                                      shadowColor: Colors.black.withOpacity(
+                                        0.3,
+                                      ),
+                                      elevation: 8,
+                                    ),
+                                    child: const Text(
+                                      'Үргэлжлүүлэх',
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        iconStyleData: IconStyleData(
-                          icon: Icon(
-                            isTootOpen
-                                ? Icons.arrow_drop_up
-                                : Icons.arrow_drop_down,
-                            color: Colors.white,
-                          ),
-                        ),
-                        onMenuStateChange: (isOpen) =>
-                            setState(() => isTootOpen = isOpen),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: _boxShadowDecoration(),
-                      child: TextFormField(
-                        controller: ovogController,
-                        style: const TextStyle(color: AppColors.grayColor),
-                        decoration: _inputDecoration('Овог', ovogController),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty
-                            ? 'Овог оруулна уу'
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: _boxShadowDecoration(),
-                      child: TextFormField(
-                        controller: nerController,
-                        style: const TextStyle(color: AppColors.grayColor),
-                        decoration: _inputDecoration('Нэр', nerController),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty
-                            ? 'Нэр оруулна уу'
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: _boxShadowDecoration(),
-                      child: TextFormField(
-                        controller: registerController,
-                        style: const TextStyle(color: AppColors.grayColor),
-                        decoration: _inputDecoration(
-                          'Регистрийн дугаар',
-                          registerController,
-                        ),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty
-                            ? 'Регистрийн дугаар оруулна уу'
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: _boxShadowDecoration(),
-                      child: TextFormField(
-                        controller: emailController,
-                        style: const TextStyle(color: AppColors.grayColor),
-                        decoration: _inputDecoration(
-                          'И-Мэйл хаяг',
-                          emailController,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'И-Мэйл хаяг оруулна уу';
-                          }
-                          final emailRegex = RegExp(
-                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                          );
-                          if (!emailRegex.hasMatch(value.trim())) {
-                            return 'Зөв И-Мэйл хаяг оруулна уу';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      decoration: _boxShadowDecoration(),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _validateAndSubmit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFCAD2DB),
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                          ),
-                          child: const Text(
-                            'Үргэлжлүүлэх',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
-            ),
+              Positioned(
+                top: 16,
+                left: 16,
+                child: SafeArea(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: IconButton(
+                          padding: const EdgeInsets.only(left: 7),
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            context.pop();
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -244,8 +244,244 @@ class _GuilgeeState extends State<GuilgeeniiTuukh>
                 color: Color(0xFFe6ff00),
                 size: 20,
               ),
-              onPressed: () {},
+              onPressed: () =>
+                  _showDetailsModal(context, contractNumber, branchNumber),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDetailsModal(
+    BuildContext context,
+    String contractNumber,
+    String branchNumber,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 40,
+          ),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0a0e27).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Гэрээний дэлгэрэнгүй',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildDetailRow('Гэрээний дугаар', contractNumber),
+                        const SizedBox(height: 16),
+                        _buildDetailRow('Талбайн дугаар', branchNumber),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Түүх',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildTransactionCard(
+                          type: 'Түрээс',
+                          amount: '4,500,000.00₮',
+                          date: '2024/08/19 10:48',
+                          balance: '8,100,000.00₮',
+                          status: 0,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildTransactionCard(
+                          type: 'Түрээс',
+                          amount: '2,700,000.00₮',
+                          date: '2024/08/19 10:47',
+                          balance: '12,600,000.00₮',
+                          status: 0,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildTransactionCard(
+                          type: 'Түрээс',
+                          amount: '9,000,000.00₮',
+                          date: '2024/08/19 10:45',
+                          balance: '15,300,000.00₮',
+                          status: 0,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildTransactionCard(
+                          type: 'Төлөх дүн',
+                          amount: '18,000,000.00₮',
+                          date: '2024/11/12',
+                          balance: '24,300,000.00₮',
+                          status: 0,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildTransactionCard(
+                          type: 'Түрээс',
+                          amount: '4,500,000.00₮',
+                          date: '2024/08/19 10:48',
+                          balance: '6,300,000.00₮',
+                          status: 0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTransactionCard({
+    required String type,
+    required String amount,
+    required String date,
+    required String balance,
+    required int status,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                type,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                status.toString(),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Хямдрал:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    amount,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    date,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Үлдэгдэл:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    balance,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),

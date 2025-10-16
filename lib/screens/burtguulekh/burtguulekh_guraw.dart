@@ -6,6 +6,29 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/screens/newtrekhKhuudas.dart';
 
+class AppBackground extends StatelessWidget {
+  final Widget child;
+  const AppBackground({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: double.infinity,
+      child: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('lib/assets/img/background_image.png'),
+            fit: BoxFit.none,
+            scale: 3,
+          ),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
 class Burtguulekh_Guraw extends StatefulWidget {
   const Burtguulekh_Guraw({super.key});
 
@@ -79,17 +102,16 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
           iconColor: Colors.green,
         );
         _startResendTimer();
-        // Focus on first PIN box
+
         Future.delayed(Duration.zero, () {
           _pinFocusNodes[0].requestFocus();
         });
       } else {
-        // Validate PIN
         String pin = _pinControllers.map((c) => c.text).join();
         if (pin.length == 4) {
           showGlassSnackBar(
             context,
-            message: "Баталгаажуулах код зөв байна!",
+            message: "Бүртгэл амжилттай!",
             icon: Icons.check_circle,
             iconColor: Colors.green,
           );
@@ -104,131 +126,145 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('lib/assets/img/main_background.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Container(color: Colors.black.withOpacity(0.5)),
-          Positioned(
-            top: 60,
-            left: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(100),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: IconButton(
-                    padding: EdgeInsets.only(left: 7),
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final topBoxSize = constraints.maxWidth * 0.35;
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: 50,
-                  right: 50,
-                  top: 50,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 50,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(height: 20),
-                      Center(
-                        child: SizedBox(
-                          width: topBoxSize,
-                          height: topBoxSize,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(36),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                              child: Container(
-                                color: Colors.white.withOpacity(0.2),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: AppBackground(
+          child: Stack(
+            children: [
+              SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final keyboardHeight = MediaQuery.of(
+                      context,
+                    ).viewInsets.bottom;
+                    return SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: 50,
+                          right: 50,
+                          top: 40,
+                          bottom: keyboardHeight > 0 ? keyboardHeight + 20 : 40,
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minHeight: 80,
+                                  maxHeight: 154,
+                                  minWidth: 154,
+                                  maxWidth: 154,
+                                ),
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(36),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 10,
+                                        sigmaY: 10,
+                                      ),
+                                      child: Container(
+                                        color: Colors.white.withOpacity(0.2),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 30),
+                              const Text(
+                                'Бүртгэл',
+                                style: TextStyle(
+                                  color: AppColors.grayColor,
+                                  fontSize: 36,
+                                ),
+                                maxLines: 1,
+                                softWrap: false,
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                '3/3',
+                                style: TextStyle(
+                                  color: AppColors.grayColor,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 1,
+                                softWrap: false,
+                              ),
+                              const SizedBox(height: 20),
+                              if (!_isPhoneSubmitted)
+                                _buildPhoneNumberField()
+                              else
+                                _buildSecretCodeField(),
+                              const SizedBox(height: 16),
+                              if (_phoneController.text.isNotEmpty ||
+                                  _isPhoneSubmitted)
+                                _buildContinueButton(),
+                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
-                      Text(
-                        'Бүртгэл',
-                        style: TextStyle(
-                          color: AppColors.grayColor,
-                          fontSize: 36,
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                top: 16,
+                left: 16,
+                child: SafeArea(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: IconButton(
+                          padding: const EdgeInsets.only(left: 7),
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '3/4',
-                        style: TextStyle(
-                          color: AppColors.grayColor,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 80),
-                      if (!_isPhoneSubmitted)
-                        _buildPhoneNumberField()
-                      else
-                        _buildSecretCodeField(),
-                      const SizedBox(height: 16),
-                      _buildContinueButton(),
-                    ],
+                    ),
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildPhoneNumberField() {
-    return SizedBox(
-      height: 60,
-      child: Container(
-        decoration: _boxShadowDecoration(),
-        child: TextFormField(
-          controller: _phoneController,
-          style: const TextStyle(color: AppColors.grayColor),
-          decoration: _inputDecoration("Утасны дугаар", _phoneController),
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(8),
-          ],
-          validator: (value) => value == null || value.trim().isEmpty
-              ? '                            Утасны дугаар оруулна уу'
-              : null,
-        ),
+    return Container(
+      decoration: _boxShadowDecoration(),
+      child: TextFormField(
+        controller: _phoneController,
+        style: const TextStyle(color: Colors.white),
+        decoration: _inputDecoration("Утасны дугаар", _phoneController),
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(8),
+        ],
+        validator: (value) => value == null || value.trim().isEmpty
+            ? '                            Утасны дугаар оруулна уу'
+            : null,
       ),
     );
   }
@@ -238,11 +274,10 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
       children: [
         // Display phone number
         Container(
-          height: 60,
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(100),
-            color: AppColors.inputGrayColor.withOpacity(0.3),
+            color: AppColors.inputGrayColor.withOpacity(0.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.3),
@@ -255,10 +290,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             children: [
               Text(
                 _phoneController.text,
-                style: const TextStyle(
-                  color: AppColors.grayColor,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ],
           ),
@@ -315,8 +347,8 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
-            offset: const Offset(0, 4),
-            blurRadius: 6,
+            offset: const Offset(0, 10),
+            blurRadius: 8,
           ),
         ],
       ),
@@ -325,7 +357,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         focusNode: _pinFocusNodes[index],
         textAlign: TextAlign.center,
         style: const TextStyle(
-          color: AppColors.grayColor,
+          color: Colors.white,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
@@ -343,7 +375,10 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.grayColor, width: 2),
+            borderSide: const BorderSide(
+              color: AppColors.grayColor,
+              width: 1.5,
+            ),
           ),
           contentPadding: EdgeInsets.zero,
         ),
@@ -369,21 +404,34 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         ? _phoneController.text.length == 8
         : _pinControllers.every((c) => c.text.isNotEmpty);
 
-    return SizedBox(
-      height: 60,
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: isValid ? _validateAndSubmit : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isValid
-              ? const Color(0xFFCAD2DB)
-              : const Color(0xFFCAD2DB).withOpacity(0.5),
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            offset: const Offset(0, 10),
+            blurRadius: 8,
+            spreadRadius: 0,
           ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: isValid ? _validateAndSubmit : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFCAD2DB),
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(100),
+            ),
+            shadowColor: Colors.black.withOpacity(0.3),
+            elevation: 8,
+          ),
+          child: const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 14)),
         ),
-        child: const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 16)),
       ),
     );
   }
@@ -410,7 +458,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
-      hintStyle: const TextStyle(color: AppColors.grayColor),
+      hintStyle: const TextStyle(color: Colors.white70),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(100),
         borderSide: BorderSide.none,
@@ -428,12 +476,6 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
       errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
-      suffixIcon: controller.text.isNotEmpty
-          ? IconButton(
-              icon: const Icon(Icons.clear, color: Colors.white70),
-              onPressed: () => controller.clear(),
-            )
-          : null,
     );
   }
 }
