@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
-import 'package:sukh_app/screens/newtrekhKhuudas.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/screens/burtguulekh/burtguulekh_dorow.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -30,7 +31,9 @@ class AppBackground extends StatelessWidget {
 }
 
 class Burtguulekh_Guraw extends StatefulWidget {
-  const Burtguulekh_Guraw({super.key});
+  final Map<String, dynamic>? locationData;
+
+  const Burtguulekh_Guraw({super.key, this.locationData});
 
   @override
   State<Burtguulekh_Guraw> createState() => _BurtguulekhState();
@@ -39,6 +42,7 @@ class Burtguulekh_Guraw extends StatefulWidget {
 class _BurtguulekhState extends State<Burtguulekh_Guraw> {
   final _formKey = GlobalKey<FormState>();
   bool _isPhoneSubmitted = false;
+  bool _isLoading = false;
 
   final TextEditingController _phoneController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
@@ -89,36 +93,110 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
     });
   }
 
-  void _validateAndSubmit() {
+  Future<void> _validateAndSubmit() async {
     if (_formKey.currentState!.validate()) {
       if (!_isPhoneSubmitted) {
+        // Call phone verification API
         setState(() {
-          _isPhoneSubmitted = true;
+          _isLoading = true;
         });
-        showGlassSnackBar(
-          context,
-          message: "4 оронтой баталгаажуулах код илгээлээ",
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
-        _startResendTimer();
 
-        Future.delayed(Duration.zero, () {
-          _pinFocusNodes[0].requestFocus();
-        });
+        try {
+          await ApiService.verifyPhoneNumber(
+            baiguullagiinId: '68ecc6add3ec8ad389b64697',
+            utas: _phoneController.text,
+            duureg: widget.locationData?['duureg'] ?? '',
+            horoo: widget.locationData?['horoo'] ?? '',
+            soh: widget.locationData?['soh'] ?? '',
+          );
+
+          if (mounted) {
+            setState(() {
+              _isPhoneSubmitted = true;
+              _isLoading = false;
+            });
+            showGlassSnackBar(
+              context,
+              message: "4 оронтой баталгаажуулах код илгээлээ",
+              icon: Icons.check_circle,
+              iconColor: Colors.green,
+            );
+            _startResendTimer();
+
+            Future.delayed(Duration.zero, () {
+              _pinFocusNodes[0].requestFocus();
+            });
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            showGlassSnackBar(
+              context,
+              message: "Алдаа гарлаа: $e",
+              icon: Icons.error,
+              iconColor: Colors.red,
+            );
+          }
+        }
       } else {
+        // Verify PIN code
         String pin = _pinControllers.map((c) => c.text).join();
         if (pin.length == 4) {
-          showGlassSnackBar(
-            context,
-            message: "Бүртгэл амжилттай!",
-            icon: Icons.check_circle,
-            iconColor: Colors.green,
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const Newtrekhkhuudas()),
-          );
+          setState(() {
+            _isLoading = true;
+          });
+
+          try {
+            await ApiService.verifySecretCode(
+              baiguullagiinId: '68ecc6add3ec8ad389b64697',
+              utas: _phoneController.text,
+              code: pin,
+            );
+
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+              showGlassSnackBar(
+                context,
+                message: "Утас баталгаажлаа!",
+                icon: Icons.check_circle,
+                iconColor: Colors.green,
+              );
+
+              // Navigate to password page with all registration data
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => Burtguulekh_Dorow(
+                    registrationData: {
+                      ...?widget.locationData,
+                      'utas': _phoneController.text,
+                    },
+                  ),
+                ),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+              showGlassSnackBar(
+                context,
+                message: "Баталгаажуулах код буруу байна",
+                icon: Icons.error,
+                iconColor: Colors.red,
+              );
+              // Clear PIN fields on error
+              for (var controller in _pinControllers) {
+                controller.clear();
+              }
+              _pinFocusNodes[0].requestFocus();
+            }
+          }
         }
       }
     }
@@ -186,23 +264,14 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                                 maxLines: 1,
                                 softWrap: false,
                               ),
-                              const SizedBox(height: 20),
-                              const Text(
-                                '3/3',
-                                style: TextStyle(
-                                  color: AppColors.grayColor,
-                                  fontSize: 16,
-                                ),
-                                maxLines: 1,
-                                softWrap: false,
-                              ),
+
                               const SizedBox(height: 20),
                               if (!_isPhoneSubmitted)
                                 _buildPhoneNumberField()
                               else
                                 _buildSecretCodeField(),
                               const SizedBox(height: 16),
-                              if (_phoneController.text.isNotEmpty ||
+                              if (_phoneController.text.length == 8 ||
                                   _isPhoneSubmitted)
                                 _buildContinueButton(),
                             ],
@@ -419,7 +488,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: isValid ? _validateAndSubmit : null,
+          onPressed: (isValid && !_isLoading) ? _validateAndSubmit : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
@@ -430,7 +499,16 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             shadowColor: Colors.black.withOpacity(0.3),
             elevation: 8,
           ),
-          child: const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 14)),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                  ),
+                )
+              : const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 14)),
         ),
       ),
     );

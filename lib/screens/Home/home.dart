@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sukh_app/models/Menu/side_menu.dart';
-import 'package:sukh_app/models/Notifications/notification.dart';
+import 'package:sukh_app/components/Menu/side_menu.dart';
+import 'package:sukh_app/components/Notifications/notification.dart';
 import 'dart:ui';
 import 'package:sukh_app/widgets/glassmorphism.dart';
 import 'package:go_router/go_router.dart';
@@ -37,18 +37,15 @@ class _BookingScreenState extends State<NuurKhuudas> {
   int? selectedDay;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Get the number of days in the current month
   int getDaysInMonth(DateTime date) {
     return DateTime(date.year, date.month + 1, 0).day;
   }
 
-  // Get the first day of the month (0 = Monday, 6 = Sunday)
   int getFirstDayOfMonth(DateTime date) {
     final firstDay = DateTime(date.year, date.month, 1);
     return (firstDay.weekday - 1) % 7;
   }
 
-  // Get month name in Mongolian
   String getMonthName(int month) {
     const months = [
       '1-р сар',
@@ -310,12 +307,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                                         BorderRadius.circular(
                                                           16,
                                                         ),
-                                                    border: Border.all(
-                                                      color: const Color(
-                                                        0xFFe6ff00,
-                                                      ).withOpacity(0.3),
-                                                      width: 1,
-                                                    ),
                                                     boxShadow: [
                                                       BoxShadow(
                                                         color: Colors.black
@@ -493,18 +484,16 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                 crossAxisCount: 7,
                                 childAspectRatio: 0.75,
                                 crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
+                                mainAxisSpacing: 5,
                               ),
                           itemCount: totalCells,
                           itemBuilder: (context, index) {
-                            // Empty cells before the first day
                             if (index < firstDayOffset) {
                               return const SizedBox();
                             }
 
                             int day = index - firstDayOffset + 1;
 
-                            // Check if it's today
                             bool isToday =
                                 selectedDate.year == DateTime.now().year &&
                                 selectedDate.month == DateTime.now().month &&
@@ -674,7 +663,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
         color: isSelected
             ? const Color(0xFFe6ff00).withOpacity(0.2)
             : Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         border: isSelected || isToday
             ? Border.all(
                 color: const Color(0xFFe6ff00),

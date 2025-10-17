@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:go_router/go_router.dart';
 
 class AppBackground extends StatelessWidget {
@@ -34,18 +33,6 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
   String selectedFileName = 'No file chosen';
 
   final List<String> categories = ['Санал хүсэлт', 'Гомдол'];
-
-  Color get primaryColor {
-    return selectedCategory == 'Санал хүсэлт'
-        ? const Color(0xFF00d4ff)
-        : const Color(0xFFff6b6b);
-  }
-
-  Color get secondaryColor {
-    return selectedCategory == 'Санал хүсэлт'
-        ? const Color(0xFF0099ff)
-        : const Color(0xFFee5a6f);
-  }
 
   String get descriptionLabel {
     return selectedCategory == 'Санал хүсэлт' ? 'Тайлбар:' : 'Гомдлын тайлбар:';
@@ -98,7 +85,7 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
 
   Widget _buildAppBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
           IconButton(
@@ -107,7 +94,7 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
           ),
           const SizedBox(width: 12),
           const Text(
-            'Санал хүсэлт',
+            'Санал',
             style: TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -136,9 +123,6 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
 
   Widget _buildCategoryOption(String category) {
     final bool isSelected = selectedCategory == category;
-    final Color optionColor = category == 'Санал хүсэлт'
-        ? const Color(0xFF00d4ff)
-        : const Color(0xFFff6b6b);
 
     return GestureDetector(
       onTap: () {
@@ -150,55 +134,27 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: [optionColor, optionColor.withOpacity(0.7)],
-                )
-              : LinearGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.1),
-                    Colors.white.withOpacity(0.05),
-                  ],
-                ),
-          border: Border.all(
-            color: isSelected ? optionColor : Colors.white.withOpacity(0.2),
-            width: isSelected ? 2 : 1.5,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: optionColor.withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ]
-              : [],
+          color: isSelected
+              ? const Color(0xFFe6ff00)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: isSelected ? 5 : 10,
-              sigmaY: isSelected ? 5 : 10,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isSelected)
+              const Icon(Icons.check_circle, color: Colors.black, size: 20),
+            if (isSelected) const SizedBox(width: 8),
+            Text(
+              category,
+              style: TextStyle(
+                color: isSelected ? Colors.black : Colors.white,
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (isSelected)
-                  Icon(Icons.check_circle, color: Colors.white, size: 20),
-                if (isSelected) const SizedBox(width: 8),
-                Text(
-                  category,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -221,43 +177,21 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
           ),
         ),
         const SizedBox(height: 12),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+        Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withOpacity(0.1),
-                Colors.white.withOpacity(0.05),
-              ],
-            ),
-            border: Border.all(
-              color: primaryColor.withOpacity(0.3),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: primaryColor.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: TextField(
-                controller: descriptionController,
-                maxLines: 8,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: descriptionHint,
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(20),
-                ),
-              ),
+          child: TextField(
+            controller: descriptionController,
+            maxLines: 8,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: descriptionHint,
+              hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.all(16),
             ),
           ),
         ),
@@ -284,64 +218,40 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
               selectedFileName = 'example_image.jpg';
             });
           },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white.withOpacity(0.1),
-                  Colors.white.withOpacity(0.05),
-                ],
-              ),
-              border: Border.all(
-                color: primaryColor.withOpacity(0.3),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryColor.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.upload_file,
+                    color: Color(0xFFe6ff00),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    selectedFileName,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+                const Icon(
+                  Icons.attach_file,
+                  color: Color(0xFFe6ff00),
+                  size: 20,
                 ),
               ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.upload_file,
-                        color: primaryColor,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        selectedFileName,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.attach_file,
-                      color: primaryColor.withOpacity(0.6),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ),
@@ -350,45 +260,35 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
   }
 
   Widget _buildGlassButton() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: double.infinity,
-      height: 56,
+    return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(colors: [primaryColor, secondaryColor]),
+        borderRadius: BorderRadius.circular(100),
         boxShadow: [
           BoxShadow(
-            color: primaryColor.withOpacity(0.4),
-            blurRadius: 20,
+            color: Colors.black.withOpacity(0.3),
             offset: const Offset(0, 10),
+            blurRadius: 8,
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () {},
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFCAD2DB),
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(100),
             ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: Text(
-                buttonText,
-                key: ValueKey(buttonText),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              buttonText,
+              key: ValueKey(buttonText),
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ),

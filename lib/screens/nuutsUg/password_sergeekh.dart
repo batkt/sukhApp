@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/services/api_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -34,6 +35,8 @@ class NuutsUgSergeekh extends StatefulWidget {
 class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
   bool _isPhoneSubmitted = false;
   bool _isPinVerified = false;
+  bool _isLoading = false;
+  String _verifiedCode = '';
 
   final TextEditingController _phoneController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
@@ -95,7 +98,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     });
   }
 
-  void _validateAndSubmit() {
+  Future<void> _validateAndSubmit() async {
     if (!_isPhoneSubmitted) {
       // Submit phone number
       if (_phoneController.text.trim().isEmpty) {
@@ -117,33 +120,96 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         return;
       }
 
+      // Call phone verification API
       setState(() {
-        _isPhoneSubmitted = true;
+        _isLoading = true;
       });
-      showGlassSnackBar(
-        context,
-        message: "4 оронтой баталгаажуулах код илгээлээ",
-        icon: Icons.check_circle,
-        iconColor: Colors.green,
-      );
-      _startResendTimer();
 
-      Future.delayed(Duration.zero, () {
-        _pinFocusNodes[0].requestFocus();
-      });
+      try {
+        await ApiService.verifyPhoneNumber(
+          baiguullagiinId: '68ecc6add3ec8ad389b64697',
+          utas: _phoneController.text,
+          duureg: '',
+          horoo: '',
+          soh: '',
+        );
+
+        if (mounted) {
+          setState(() {
+            _isPhoneSubmitted = true;
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: "4 оронтой баталгаажуулах код илгээлээ",
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+          _startResendTimer();
+
+          Future.delayed(Duration.zero, () {
+            _pinFocusNodes[0].requestFocus();
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: "Алдаа гарлаа: $e",
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
     } else if (!_isPinVerified) {
       // Verify PIN
       String pin = _pinControllers.map((c) => c.text).join();
       if (pin.length == 4) {
         setState(() {
-          _isPinVerified = true;
+          _isLoading = true;
         });
-        showGlassSnackBar(
-          context,
-          message: "Баталгаажуулалт амжилттай!",
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
+
+        try {
+          await ApiService.verifySecretCode(
+            baiguullagiinId: '68ecc6add3ec8ad389b64697',
+            utas: _phoneController.text,
+            code: pin,
+          );
+
+          if (mounted) {
+            setState(() {
+              _isPinVerified = true;
+              _isLoading = false;
+              _verifiedCode = pin; // Store the verified code for password reset
+            });
+            showGlassSnackBar(
+              context,
+              message: "Баталгаажуулалт амжилттай!",
+              icon: Icons.check_circle,
+              iconColor: Colors.green,
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            showGlassSnackBar(
+              context,
+              message: "Баталгаажуулах код буруу байна",
+              icon: Icons.error,
+              iconColor: Colors.red,
+            );
+            // Clear PIN fields on error
+            for (var controller in _pinControllers) {
+              controller.clear();
+            }
+            _pinFocusNodes[0].requestFocus();
+          }
+        }
       }
     } else {
       // Reset password
@@ -184,18 +250,48 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         return;
       }
 
-      showGlassSnackBar(
-        context,
-        message: "Нууц код амжилттай солигдлоо!",
-        icon: Icons.check_circle,
-        iconColor: Colors.green,
-      );
-      // Navigate back to login or home
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          Navigator.pop(context);
-        }
+      // Call password reset API
+      setState(() {
+        _isLoading = true;
       });
+
+      try {
+        await ApiService.resetPassword(
+          utas: _phoneController.text,
+          code: _verifiedCode,
+          shineNuutsUg: _newPasswordController.text,
+        );
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: "Нууц код амжилттай солигдлоо!",
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+          // Navigate back to login or home
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: "Алдаа гарлаа: $e",
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
     }
   }
 
@@ -448,19 +544,51 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           children: [
             TextButton(
               onPressed: _canResend
-                  ? () {
+                  ? () async {
                       // Clear all PIN boxes
                       for (var controller in _pinControllers) {
                         controller.clear();
                       }
-                      showGlassSnackBar(
-                        context,
-                        message: "Баталгаажуулах код дахин илгээлээ",
-                        icon: Icons.check_circle,
-                        iconColor: Colors.green,
-                      );
-                      _startResendTimer();
-                      _pinFocusNodes[0].requestFocus();
+
+                      setState(() {
+                        _isLoading = true;
+                      });
+
+                      try {
+                        await ApiService.verifyPhoneNumber(
+                          baiguullagiinId: '68ecc6add3ec8ad389b64697',
+                          utas: _phoneController.text,
+                          duureg: '',
+                          horoo: '',
+                          soh: '',
+                        );
+
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                          showGlassSnackBar(
+                            context,
+                            message: "Баталгаажуулах код дахин илгээлээ",
+                            icon: Icons.check_circle,
+                            iconColor: Colors.green,
+                          );
+                          _startResendTimer();
+                          _pinFocusNodes[0].requestFocus();
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                          showGlassSnackBar(
+                            context,
+                            message: "Алдаа гарлаа: $e",
+                            icon: Icons.error,
+                            iconColor: Colors.red,
+                          );
+                        }
+                      }
                     }
                   : null,
               child: Text(
@@ -706,7 +834,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: isValid ? _validateAndSubmit : null,
+          onPressed: (isValid && !_isLoading) ? _validateAndSubmit : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
@@ -715,7 +843,16 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
               borderRadius: BorderRadius.circular(100),
             ),
           ),
-          child: const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 16)),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                  ),
+                )
+              : const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 16)),
         ),
       ),
     );

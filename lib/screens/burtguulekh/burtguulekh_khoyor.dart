@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -28,7 +27,9 @@ class AppBackground extends StatelessWidget {
 }
 
 class Burtguulekh_Khoyor extends StatefulWidget {
-  const Burtguulekh_Khoyor({super.key});
+  final Map<String, dynamic>? locationData;
+
+  const Burtguulekh_Khoyor({super.key, this.locationData});
 
   @override
   State<Burtguulekh_Khoyor> createState() => _BurtguulekhState();
@@ -36,19 +37,9 @@ class Burtguulekh_Khoyor extends StatefulWidget {
 
 class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   final _formKey = GlobalKey<FormState>();
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
-  String? selectedDistrict;
-  String? selectedToot;
-  String? selectedSOKH;
-
-  bool isTootOpen = false;
-  bool isKhotkhonOpen = false;
-  bool isSOKHOpen = false;
-
-  List<String> toot = ['Toot 1', 'Toot 2'];
-  List<String> sokhs = ['test', 'test'];
-  bool isLoadingToot = false;
-
+  final TextEditingController tootController = TextEditingController();
   final TextEditingController ovogController = TextEditingController();
   final TextEditingController nerController = TextEditingController();
   final TextEditingController registerController = TextEditingController();
@@ -57,6 +48,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   @override
   void initState() {
     super.initState();
+    tootController.addListener(() => setState(() {}));
     ovogController.addListener(() => setState(() {}));
     nerController.addListener(() => setState(() {}));
     registerController.addListener(() => setState(() {}));
@@ -65,6 +57,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
 
   @override
   void dispose() {
+    tootController.dispose();
     ovogController.dispose();
     nerController.dispose();
     registerController.dispose();
@@ -73,6 +66,10 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   }
 
   void _validateAndSubmit() {
+    setState(() {
+      _autovalidateMode = AutovalidateMode.onUserInteraction;
+    });
+
     if (_formKey.currentState!.validate()) {
       context.push('/burtguulekh_guraw');
     }
@@ -134,6 +131,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                         ),
                         child: Form(
                           key: _formKey,
+                          autovalidateMode: _autovalidateMode,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -171,185 +169,21 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                 softWrap: false,
                               ),
                               const SizedBox(height: 20),
-                              const Text(
-                                '2/3',
-                                style: TextStyle(
-                                  color: AppColors.grayColor,
-                                  fontSize: 16,
-                                ),
-                                maxLines: 1,
-                                softWrap: false,
-                              ),
+
                               const SizedBox(height: 20),
                               Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                                child: DropdownButtonFormField2<String>(
-                                  isExpanded: true,
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.zero,
-                                    filled: true,
-                                    fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.5),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.grayColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    errorStyle: const TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 14,
-                                    ),
+                                decoration: _boxShadowDecoration(),
+                                child: TextFormField(
+                                  controller: tootController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _inputDecoration(
+                                    'Тоот',
+                                    tootController,
                                   ),
-                                  hint: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                    ),
-                                    child: Text(
-                                      isLoadingToot
-                                          ? 'Уншиж байна...'
-                                          : 'Тоот сонгох',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                  ),
-                                  items: toot
-                                      .map(
-                                        (item) => DropdownMenuItem<String>(
-                                          value: item,
-                                          child: Text(
-                                            item,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  selectedItemBuilder: (context) {
-                                    return toot.map((item) {
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                        ),
-                                        child: Text(
-                                          item,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                  value: toot.contains(selectedToot)
-                                      ? selectedToot
-                                      : null,
-                                  onChanged: isLoadingToot || toot.isEmpty
-                                      ? null
-                                      : (value) => setState(
-                                          () => selectedToot = value,
-                                        ),
                                   validator: (value) =>
-                                      (value == null || value.isEmpty)
-                                      ? '                                             Тоот сонгоно уу'
+                                      value == null || value.trim().isEmpty
+                                      ? '                                      Тоот оруулна уу'
                                       : null,
-                                  buttonStyleData: const ButtonStyleData(
-                                    height: 56,
-                                    padding: EdgeInsets.only(right: 11),
-                                  ),
-                                  dropdownStyleData: DropdownStyleData(
-                                    maxHeight: 300,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.inputGrayColor
-                                          .withOpacity(0.95),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.2),
-                                        width: 1,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          offset: const Offset(0, 8),
-                                          blurRadius: 24,
-                                          spreadRadius: 0,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  menuItemStyleData: MenuItemStyleData(
-                                    height: 48,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    overlayColor:
-                                        WidgetStateProperty.resolveWith<Color?>(
-                                          (Set<WidgetState> states) {
-                                            if (states.contains(
-                                              WidgetState.hovered,
-                                            )) {
-                                              return Colors.white.withOpacity(
-                                                0.1,
-                                              );
-                                            }
-                                            if (states.contains(
-                                              WidgetState.focused,
-                                            )) {
-                                              return Colors.white.withOpacity(
-                                                0.15,
-                                              );
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                  ),
-                                  iconStyleData: IconStyleData(
-                                    icon: Icon(
-                                      isTootOpen
-                                          ? Icons.arrow_drop_up
-                                          : Icons.arrow_drop_down,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  onMenuStateChange: (isOpen) =>
-                                      setState(() => isTootOpen = isOpen),
                                 ),
                               ),
                               const SizedBox(height: 16),

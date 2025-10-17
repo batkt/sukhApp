@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/services/api_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -34,8 +35,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  String dugaar = "99536945";
-  String password = "1234";
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -121,6 +121,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               child: TextField(
                                 controller: phoneController,
                                 keyboardType: TextInputType.phone,
+                                autofocus: false,
                                 style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   hintText: 'Утасны дугаар',
@@ -172,7 +173,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               ),
                               child: TextField(
                                 controller: passwordController,
+                                keyboardType: TextInputType.number,
                                 obscureText: true,
+                                autofocus: false,
                                 style: const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
                                   hintText: 'Нууц код',
@@ -241,44 +244,64 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               child: SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    String inputPhone = phoneController.text
-                                        .trim();
-                                    String inputPassword = passwordController
-                                        .text
-                                        .trim();
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () async {
+                                          String inputPhone = phoneController
+                                              .text
+                                              .trim();
+                                          String inputPassword =
+                                              passwordController.text.trim();
 
-                                    if (inputPhone.isEmpty ||
-                                        inputPassword.isEmpty) {
-                                      showGlassSnackBar(
-                                        context,
-                                        message:
-                                            "Утасны дугаар болон нууц үгийг оруулна уу",
-                                        icon: Icons.error,
-                                        iconColor: Colors.red,
-                                      );
-                                      return;
-                                    }
+                                          if (inputPhone.isEmpty ||
+                                              inputPassword.isEmpty) {
+                                            showGlassSnackBar(
+                                              context,
+                                              message:
+                                                  "Утасны дугаар болон нууц үгийг оруулна уу",
+                                              icon: Icons.error,
+                                              iconColor: Colors.red,
+                                            );
+                                            return;
+                                          }
 
-                                    if (inputPhone == dugaar &&
-                                        inputPassword == password) {
-                                      showGlassSnackBar(
-                                        context,
-                                        message: 'Нэвтрэлт амжилттай',
-                                        icon: Icons.check_outlined,
-                                        iconColor: Colors.green,
-                                      );
-                                      context.go('/nuur');
-                                    } else {
-                                      showGlassSnackBar(
-                                        context,
-                                        message:
-                                            "Утасны дугаар эсвэл нууц үг буруу байна",
-                                        icon: Icons.error,
-                                        iconColor: Colors.red,
-                                      );
-                                    }
-                                  },
+                                          setState(() {
+                                            _isLoading = true;
+                                          });
+
+                                          try {
+                                            await ApiService.loginUser(
+                                              utas: inputPhone,
+                                              nuutsUg: inputPassword,
+                                            );
+
+                                            if (mounted) {
+                                              setState(() {
+                                                _isLoading = false;
+                                              });
+                                              showGlassSnackBar(
+                                                context,
+                                                message: 'Нэвтрэлт амжилттай',
+                                                icon: Icons.check_outlined,
+                                                iconColor: Colors.green,
+                                              );
+                                              context.go('/ekhniikh');
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              setState(() {
+                                                _isLoading = false;
+                                              });
+                                              showGlassSnackBar(
+                                                context,
+                                                message:
+                                                    "Утасны дугаар эсвэл нууц үг буруу байна",
+                                                icon: Icons.error,
+                                                iconColor: Colors.red,
+                                              );
+                                            }
+                                          }
+                                        },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFCAD2DB),
                                     foregroundColor: Colors.black,
@@ -289,21 +312,26 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                       borderRadius: BorderRadius.circular(100),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Нэвтрэх',
-                                    style: TextStyle(fontSize: 16),
-                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.black,
+                                                ),
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Нэвтрэх',
+                                          style: TextStyle(fontSize: 16),
+                                        ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 20),
-                            const Text(
-                              'Эсвэл',
-                              style: TextStyle(
-                                color: AppColors.grayColor,
-                                fontSize: 14,
-                              ),
-                            ),
+
                             const SizedBox(height: 20),
                             Container(
                               decoration: BoxDecoration(
@@ -352,6 +380,15 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                             const SizedBox(height: 40),
                             const Text(
                               'ZevTabs © 2025',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 40),
+                            const Text(
+                              'V 1.0',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,

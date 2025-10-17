@@ -35,13 +35,54 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/burtguulekh_khoyor',
-      builder: (context, state) => const Burtguulekh_Khoyor(),
+      builder: (context, state) => Burtguulekh_Khoyor(
+        locationData: state.extra as Map<String, dynamic>?,
+      ),
     ),
     GoRoute(
       path: '/burtguulekh_guraw',
-      builder: (context, state) => const Burtguulekh_Guraw(),
+      builder: (context, state) => Burtguulekh_Guraw(
+        locationData: state.extra as Map<String, dynamic>?,
+      ),
     ),
-    GoRoute(path: '/tokhirgoo', builder: (context, state) => const Tokhirgoo()),
+    GoRoute(
+      path: '/tokhirgoo',
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const Tokhirgoo(),
+        transitionDuration: const Duration(milliseconds: 350),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Slide from right to center with fade
+          var slideAnimation = Tween<Offset>(
+            begin: const Offset(1.0, 0.0), // Start from right side
+            end: Offset.zero, // End at center
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ),
+          );
+
+          var fadeAnimation = Tween<double>(
+            begin: 0.0,
+            end: 1.0,
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeIn,
+            ),
+          );
+
+          return SlideTransition(
+            position: slideAnimation,
+            child: FadeTransition(
+              opacity: fadeAnimation,
+              child: child,
+            ),
+          );
+        },
+      ),
+    ),
     GoRoute(
       path: '/guilgee',
       builder: (context, state) => const GuilgeeniiTuukh(),

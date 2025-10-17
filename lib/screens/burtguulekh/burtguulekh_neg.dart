@@ -210,16 +210,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                     maxLines: 1,
                                     softWrap: false,
                                   ),
-                                  const SizedBox(height: 20),
-                                  const Text(
-                                    '1/3',
-                                    style: TextStyle(
-                                      color: AppColors.grayColor,
-                                      fontSize: 16,
-                                    ),
-                                    maxLines: 1,
-                                    softWrap: false,
-                                  ),
+
                                   const SizedBox(height: 20),
                                   Container(
                                     decoration: BoxDecoration(
