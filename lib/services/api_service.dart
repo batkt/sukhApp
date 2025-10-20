@@ -6,12 +6,17 @@ class ApiService {
   static const String bearerToken =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZWNjNmFkZDNlYzhhZDM4OWI2NDY5YSIsIm5lciI6Im5paGFvbWEiLCJiYWlndXVsbGFnaWluSWQiOiI2OGVjYzZhZGQzZWM4YWQzODliNjQ2OTciLCJzYWxiYXJ1dWQiOlt7InNhbGJhcmlpbklkIjoiNjhlY2M2YWRkM2VjOGFkMzg5YjY0Njk4IiwiZHV1c2FraE9nbm9vIjoiMjAyNi0xMC0wMVQwOTozMDoxMS4yMTdaIn1dLCJkdXVzYWtoT2dub28iOiIyMDI2LTEwLTAxVDA5OjMwOjExLjIxN1oiLCJpYXQiOjE3NjA2NjQ1MzksImV4cCI6MTc2MDcwNzczOX0.sASrN_gd9S5E1fIk5hviwWN8LedLrmXWNIz-uOcYYiE';
 
-  static Future<Map<String, dynamic>> fetchLocationData() async {
+  static List<Map<String, dynamic>>? _cachedLocationData;
+
+  static Future<List<Map<String, dynamic>>> fetchLocationData() async {
+    if (_cachedLocationData != null) {
+      return _cachedLocationData!;
+    }
+
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/baiguullagaBairshilaarAvya'),
         headers: {
-          'Authorization': 'Bearer $bearerToken',
           'Content-Type': 'application/json',
         },
       );
@@ -19,27 +24,12 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        Set<String> districts = {};
-        Set<String> khotkhons = {};
-
         if (data['result'] != null && data['result'] is List) {
-          for (var item in data['result']) {
-            if (item['duureg'] != null &&
-                item['duureg'].toString().isNotEmpty) {
-              districts.add(item['duureg'].toString());
-            }
-
-            if (item['districtCode'] != null &&
-                item['districtCode'].toString().isNotEmpty) {
-              khotkhons.add(item['districtCode'].toString());
-            }
-          }
+          _cachedLocationData = List<Map<String, dynamic>>.from(data['result']);
+          return _cachedLocationData!;
         }
 
-        return {
-          'districts': districts.toList(),
-          'khotkhons': khotkhons.toList(),
-        };
+        return [];
       } else {
         throw Exception(
           'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
@@ -52,40 +42,31 @@ class ApiService {
 
   static Future<List<String>> fetchDistricts() async {
     final data = await fetchLocationData();
-    return data['districts'] as List<String>;
+    Set<String> districts = {};
+
+    for (var item in data) {
+      if (item['duureg'] != null && item['duureg'].toString().isNotEmpty) {
+        districts.add(item['duureg'].toString());
+      }
+    }
+
+    return districts.toList();
   }
 
   static Future<List<String>> fetchKhotkhons(String districtName) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/baiguullagaBairshilaarAvya'),
-        headers: {
-          'Authorization': 'Bearer $bearerToken',
-          'Content-Type': 'application/json',
-        },
-      );
+      final data = await fetchLocationData();
+      Set<String> khotkhonCodes = {};
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        Set<String> khotkhonCodes = {};
-
-        if (data['result'] != null && data['result'] is List) {
-          for (var item in data['result']) {
-            // Match the district name and extract districtCode (khotkhon)
-            if (item['duureg'] == districtName &&
-                item['districtCode'] != null &&
-                item['districtCode'].toString().isNotEmpty) {
-              khotkhonCodes.add(item['districtCode'].toString());
-            }
-          }
+      for (var item in data) {
+        if (item['duureg'] == districtName &&
+            item['districtCode'] != null &&
+            item['districtCode'].toString().isNotEmpty) {
+          khotkhonCodes.add(item['districtCode'].toString());
         }
-
-        return khotkhonCodes.toList();
-      } else {
-        throw Exception(
-          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
-        );
       }
+
+      return khotkhonCodes.toList();
     } catch (e) {
       throw Exception('Хотхон мэдээлэл татахад алдаа гарлаа: $e');
     }
@@ -93,37 +74,55 @@ class ApiService {
 
   static Future<List<String>> fetchSOKH(String khotkhonCode) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/baiguullagaBairshilaarAvya'),
-        headers: {
-          'Authorization': 'Bearer $bearerToken',
-          'Content-Type': 'application/json',
-        },
-      );
+      final data = await fetchLocationData();
+      Set<String> sokhCodes = {};
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        Set<String> sokhCodes = {};
-
-        if (data['result'] != null && data['result'] is List) {
-          for (var item in data['result']) {
-            // Match the khotkhon (districtCode) and extract sohCode
-            if (item['districtCode'] == khotkhonCode &&
-                item['sohCode'] != null &&
-                item['sohCode'].toString().isNotEmpty) {
-              sokhCodes.add(item['sohCode'].toString());
-            }
-          }
+      for (var item in data) {
+        if (item['districtCode'] == khotkhonCode &&
+            item['sohCode'] != null &&
+            item['sohCode'].toString().isNotEmpty) {
+          sokhCodes.add(item['sohCode'].toString());
         }
-
-        return sokhCodes.toList();
-      } else {
-        throw Exception(
-          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
-        );
       }
+
+      return sokhCodes.toList();
     } catch (e) {
       throw Exception('СӨХ мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  // Get baiguullagiinId based on selected location (duureg, khotkhon, soh)
+  static Future<String?> getBaiguullagiinId({
+    String? duureg,
+    String? districtCode,
+    String? sohCode,
+  }) async {
+    try {
+      final data = await fetchLocationData();
+
+      for (var item in data) {
+        bool matches = true;
+
+        if (duureg != null && item['duureg'] != duureg) {
+          matches = false;
+        }
+
+        if (districtCode != null && item['districtCode'] != districtCode) {
+          matches = false;
+        }
+
+        if (sohCode != null && item['sohCode'] != sohCode) {
+          matches = false;
+        }
+
+        if (matches && item['baiguullagiinId'] != null) {
+          return item['baiguullagiinId'].toString();
+        }
+      }
+
+      return null;
+    } catch (e) {
+      throw Exception('BaiguullagiinId олоход алдаа гарлаа: $e');
     }
   }
 
@@ -138,7 +137,6 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/dugaarBatalgaajuulya'),
         headers: {
-          'Authorization': 'Bearer $bearerToken',
           'Content-Type': 'application/json',
         },
         body: json.encode({
@@ -171,7 +169,6 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/dugaarBatalgaajuulakh'),
         headers: {
-          'Authorization': 'Bearer $bearerToken',
           'Content-Type': 'application/json',
         },
         body: json.encode({
@@ -183,7 +180,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Check if the response indicates success
+
         if (data['success'] == false || data['error'] != null) {
           throw Exception(data['message'] ?? 'Баталгаажуулах код буруу байна');
         }
@@ -198,6 +195,87 @@ class ApiService {
     }
   }
 
+  // Check if register already exists using davhardsanOrshinSuugchShalgayy service
+  // Returns error message if exists, null if available
+  static Future<String?> checkRegisterExists({
+    required String register,
+    required String baiguullagiinId,
+  }) async {
+    try {
+      // Send only register and baiguullagiinId to check
+      final checkPayload = {
+        'register': register,
+        'baiguullagiinId': baiguullagiinId,
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/davhardsanOrshinSuugchShalgayy'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(checkPayload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // If success is false, return the message (register exists)
+        if (data['success'] == false && data['message'] != null) {
+          return data['message'].toString();
+        }
+
+        // If success is true, register is available
+        if (data['success'] == true) {
+          return null; // Available
+        }
+      }
+
+      return null; // On any other status, allow continuation
+    } catch (e) {
+      // On error, return null to allow continuation
+      return null;
+    }
+  }
+
+  // Check if phone number already exists using davhardsanOrshinSuugchShalgayy service
+  // Returns error message if exists, null if available
+  static Future<String?> checkPhoneExists({
+    required String utas,
+    required String baiguullagiinId,
+  }) async {
+    try {
+      // Send only utas and baiguullagiinId to check
+      final checkPayload = {'utas': utas, 'baiguullagiinId': baiguullagiinId};
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/davhardsanOrshinSuugchShalgayy'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(checkPayload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // If success is false, return the message (phone exists)
+        if (data['success'] == false && data['message'] != null) {
+          return data['message'].toString();
+        }
+
+        // If success is true, phone is available
+        if (data['success'] == true) {
+          return null; // Available
+        }
+      }
+
+      return null; // On any other status, allow continuation
+    } catch (e) {
+      // On error, return null to allow continuation
+      return null;
+    }
+  }
+
   static Future<Map<String, dynamic>> registerUser(
     Map<String, dynamic> registrationData,
   ) async {
@@ -205,20 +283,30 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/orshinSuugchBurtgey'),
         headers: {
-          'Authorization': 'Bearer $bearerToken',
           'Content-Type': 'application/json',
         },
         body: json.encode(registrationData),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 500) {
+        final data = json.decode(response.body);
+
+        if (data['success'] == false && data['aldaa'] != null) {
+          throw Exception(data['aldaa']);
+        }
+
+        return data;
       } else {
         throw Exception(
           'Бүртгэл үүсгэхэд алдаа гарлаа: ${response.statusCode}',
         );
       }
     } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
       throw Exception('Бүртгэл үүсгэхэд алдаа гарлаа: $e');
     }
   }
@@ -256,7 +344,6 @@ class ApiService {
       final response = await http.post(
         Uri.parse('$baseUrl/nuutsUgSergeeye'),
         headers: {
-          'Authorization': 'Bearer $bearerToken',
           'Content-Type': 'application/json',
         },
         body: json.encode({
@@ -269,7 +356,9 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else {
-        throw Exception('Нууц үг сэргээхэд алдаа гарлаа: ${response.statusCode}');
+        throw Exception(
+          'Нууц үг сэргээхэд алдаа гарлаа: ${response.statusCode}',
+        );
       }
     } catch (e) {
       throw Exception('Нууц үг сэргээхэд алдаа гарлаа: $e');

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/core/auth_config.dart';
+import 'package:sukh_app/screens/burtguulekh/burtguulekh_guraw.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -38,6 +42,7 @@ class Burtguulekh_Khoyor extends StatefulWidget {
 class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   final _formKey = GlobalKey<FormState>();
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+  bool _isLoading = false;
 
   final TextEditingController tootController = TextEditingController();
   final TextEditingController ovogController = TextEditingController();
@@ -65,13 +70,97 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
     super.dispose();
   }
 
-  void _validateAndSubmit() {
+  Future<void> _validateAndSubmit() async {
     setState(() {
       _autovalidateMode = AutovalidateMode.onUserInteraction;
     });
 
     if (_formKey.currentState!.validate()) {
-      context.push('/burtguulekh_guraw');
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Get baiguullagiinId from previous screen or AuthConfig
+        final baiguullagiinId =
+            widget.locationData?['baiguullagiinId'] ??
+            AuthConfig.instance.baiguullagiinId;
+
+        if (baiguullagiinId == null) {
+          setState(() {
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: 'Байгууллагын мэдээлэл олдсонгүй',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+          return;
+        }
+
+        final errorMessage = await ApiService.checkRegisterExists(
+          register: registerController.text,
+          baiguullagiinId: baiguullagiinId,
+        );
+
+        if (!mounted) return;
+
+        if (errorMessage != null) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          showGlassSnackBar(
+            context,
+            message: errorMessage,
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+          return;
+        }
+
+        final allData = {
+          'duureg':
+              widget.locationData?['duureg'] ?? AuthConfig.instance.duureg,
+          'horoo':
+              widget.locationData?['horoo'] ?? AuthConfig.instance.districtCode,
+          'soh': widget.locationData?['soh'] ?? AuthConfig.instance.sohCode,
+          'baiguullagiinId':
+              widget.locationData?['baiguullagiinId'] ??
+              AuthConfig.instance.baiguullagiinId,
+
+          'toot': tootController.text,
+          'ovog': ovogController.text,
+          'ner': nerController.text,
+          'register': registerController.text,
+          'email': emailController.text,
+        };
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Burtguulekh_Guraw(locationData: allData),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        showGlassSnackBar(
+          context,
+          message: 'Алдаа гарлаа: $e',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
     }
   }
 
@@ -274,7 +363,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                 child: SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
-                                    onPressed: _validateAndSubmit,
+                                    onPressed: _isLoading
+                                        ? null
+                                        : _validateAndSubmit,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFFCAD2DB),
                                       foregroundColor: Colors.black,
@@ -292,10 +383,22 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       ),
                                       elevation: 8,
                                     ),
-                                    child: const Text(
-                                      'Үргэлжлүүлэх',
-                                      style: TextStyle(fontSize: 14),
-                                    ),
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.black,
+                                                  ),
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Үргэлжлүүлэх',
+                                            style: TextStyle(fontSize: 14),
+                                          ),
                                   ),
                                 ),
                               ),

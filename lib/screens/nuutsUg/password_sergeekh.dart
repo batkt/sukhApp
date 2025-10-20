@@ -212,7 +212,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         }
       }
     } else {
-      // Reset password
       if (_newPasswordController.text.trim().isEmpty) {
         showGlassSnackBar(
           context,
@@ -250,7 +249,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         return;
       }
 
-      // Call password reset API
       setState(() {
         _isLoading = true;
       });
@@ -272,7 +270,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             icon: Icons.check_circle,
             iconColor: Colors.green,
           );
-          // Navigate back to login or home
+
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
               Navigator.pop(context);
@@ -353,14 +351,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                Text(
-                                  _getStepText(),
-                                  style: const TextStyle(
-                                    color: AppColors.grayColor,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
                                 if (!_isPhoneSubmitted)
                                   _buildPhoneNumberField()
                                 else if (!_isPinVerified)
@@ -418,16 +408,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         ),
       ),
     );
-  }
-
-  String _getStepText() {
-    if (!_isPhoneSubmitted) {
-      return '1/3';
-    } else if (!_isPinVerified) {
-      return '2/3';
-    } else {
-      return '3/3';
-    }
   }
 
   bool _shouldShowContinueButton() {
@@ -531,7 +511,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           ),
         ),
         const SizedBox(height: 20),
-        // PIN Input boxes
+
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: List.generate(4, (index) {
@@ -545,7 +525,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             TextButton(
               onPressed: _canResend
                   ? () async {
-                      // Clear all PIN boxes
                       for (var controller in _pinControllers) {
                         controller.clear();
                       }

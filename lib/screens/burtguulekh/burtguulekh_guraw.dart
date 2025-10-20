@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/core/auth_config.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_dorow.dart';
 
 class AppBackground extends StatelessWidget {
@@ -96,14 +97,58 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
   Future<void> _validateAndSubmit() async {
     if (_formKey.currentState!.validate()) {
       if (!_isPhoneSubmitted) {
-        // Call phone verification API
         setState(() {
           _isLoading = true;
         });
 
         try {
+          // Get dynamic baiguullagiinId from AuthConfig
+          final baiguullagiinId = await AuthConfig.instance.initialize(
+            duureg: widget.locationData?['duureg'],
+            districtCode: widget.locationData?['horoo'],
+            sohCode: widget.locationData?['soh'],
+          );
+
+          if (baiguullagiinId == null) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+              showGlassSnackBar(
+                context,
+                message: 'Байгууллагын мэдээлэл олдсонгүй',
+                icon: Icons.error,
+                iconColor: Colors.red,
+              );
+            }
+            return;
+          }
+
+          // Check if phone number already exists before sending verification code
+          final phoneExistsError = await ApiService.checkPhoneExists(
+            utas: _phoneController.text,
+            baiguullagiinId: baiguullagiinId,
+          );
+
+          if (!mounted) return;
+
+          if (phoneExistsError != null) {
+            // Phone already exists, show error and don't send verification code
+            setState(() {
+              _isLoading = false;
+            });
+            showGlassSnackBar(
+              context,
+              message: phoneExistsError,
+              icon: Icons.error,
+              iconColor: Colors.red,
+            );
+            return;
+          }
+
+          // Phone is available, send verification code
           await ApiService.verifyPhoneNumber(
-            baiguullagiinId: '68ecc6add3ec8ad389b64697',
+            baiguullagiinId: baiguullagiinId,
             utas: _phoneController.text,
             duureg: widget.locationData?['duureg'] ?? '',
             horoo: widget.locationData?['horoo'] ?? '',
@@ -149,8 +194,26 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
           });
 
           try {
+            // Use baiguullagiinId from AuthConfig (already initialized)
+            final baiguullagiinId = AuthConfig.instance.baiguullagiinId;
+
+            if (baiguullagiinId == null) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+                showGlassSnackBar(
+                  context,
+                  message: 'Байгууллагын мэдээлэл олдсонгүй',
+                  icon: Icons.error,
+                  iconColor: Colors.red,
+                );
+              }
+              return;
+            }
+
             await ApiService.verifySecretCode(
-              baiguullagiinId: '68ecc6add3ec8ad389b64697',
+              baiguullagiinId: baiguullagiinId,
               utas: _phoneController.text,
               code: pin,
             );

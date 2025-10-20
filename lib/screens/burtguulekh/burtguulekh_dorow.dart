@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/core/auth_config.dart';
 import 'package:go_router/go_router.dart';
 
 class AppBackground extends StatelessWidget {
@@ -78,16 +79,35 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
       });
 
       try {
-        // Prepare registration data
+        final baiguullagiinId = AuthConfig.instance.baiguullagiinId;
+
+        if (baiguullagiinId == null) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            showGlassSnackBar(
+              context,
+              message: 'Байгууллагын мэдээлэл олдсонгүй',
+              icon: Icons.error,
+              iconColor: Colors.red,
+            );
+          }
+          return;
+        }
+
         final registrationPayload = {
           'utas': widget.registrationData?['utas'] ?? '',
           'nuutsUg': _passwordController.text,
+          'toot': widget.registrationData?['toot'] ?? '',
+          'ovog': widget.registrationData?['ovog'] ?? '',
           'ner': widget.registrationData?['ner'] ?? '',
-          'baiguullagiinId': '68ecc6add3ec8ad389b64697',
+          'baiguullagiinId': baiguullagiinId,
           'duureg': widget.registrationData?['duureg'] ?? '',
           'horoo': widget.registrationData?['horoo'] ?? '',
           'soh': widget.registrationData?['soh'] ?? '',
           'register': widget.registrationData?['register'] ?? '',
+          'email': widget.registrationData?['email'] ?? '',
         };
 
         await ApiService.registerUser(registrationPayload);
@@ -115,9 +135,16 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
           setState(() {
             _isLoading = false;
           });
+
+          // Extract error message from Exception
+          String errorMessage = e.toString();
+          if (errorMessage.startsWith('Exception: ')) {
+            errorMessage = errorMessage.substring(11);
+          }
+
           showGlassSnackBar(
             context,
-            message: 'Бүртгэл үүсгэхэд алдаа гарлаа: $e',
+            message: errorMessage,
             icon: Icons.error,
             iconColor: Colors.red,
           );
@@ -249,8 +276,9 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         controller: _passwordController,
         obscureText: _obscurePassword,
         style: const TextStyle(color: Colors.white),
+        keyboardType: TextInputType.number,
         decoration: _inputDecoration(
-          "Нууц үг",
+          "Нууц код",
           _passwordController,
           suffixIcon: IconButton(
             icon: Icon(
@@ -266,10 +294,10 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return '                            Нууц үг оруулна уу';
+            return '                            Нууц од оруулна уу';
           }
           if (value.length < 4) {
-            return '                            Нууц үг богино байна';
+            return '                            Нууц код богино байна';
           }
           return null;
         },
@@ -284,8 +312,9 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         controller: _confirmPasswordController,
         obscureText: _obscureConfirmPassword,
         style: const TextStyle(color: Colors.white),
+        keyboardType: TextInputType.number,
         decoration: _inputDecoration(
-          "Нууц үг давтах",
+          "Нууц код давтах",
           _confirmPasswordController,
           suffixIcon: IconButton(
             icon: Icon(
@@ -301,10 +330,10 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return '                            Нууц үг давтан оруулна уу';
+            return '                            Нууц код давтан оруулна уу';
           }
           if (value != _passwordController.text) {
-            return '                            Нууц үг таарахгүй байна';
+            return '                            Нууц код таарахгүй байна';
           }
           return null;
         },

@@ -6,6 +6,8 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'burtguulekh_khoyor.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/core/auth_config.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -43,44 +45,97 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   String? selectedDistrict;
   String? selectedKhotkhon;
   String? selectedSOKH;
+  String? selectedBaiguullagiinId;
 
   bool isDistrictOpen = false;
   bool isKhotkhonOpen = false;
   bool isSOKHOpen = false;
 
-  final List<String> districts = [
-    'Сүхбаатар',
-    'Хан-Уул',
-    'Чингэлтэй',
-    'Баянзүрх',
-    'Баянгол',
-    'Сонгинохайрхан',
-    'Налайх',
-    'Багахангай',
-    'Багануур',
-  ];
+  List<String> districts = [];
+  List<String> khotkhons = [];
+  List<String> sokhs = [];
 
-  List<String> khotkhons = ['test', 'test'];
-  List<String> sokhs = ['test', 'test'];
+  // Store full location data from API
+  List<Map<String, dynamic>> locationData = [];
 
+  bool isLoadingDistricts = false;
   bool isLoadingKhotkhon = false;
   bool isLoadingSOKH = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDistricts();
+  }
+
+  Future<void> _loadDistricts() async {
+    setState(() {
+      isLoadingDistricts = true;
+    });
+
+    try {
+      final data = await ApiService.fetchLocationData();
+
+      if (mounted) {
+        setState(() {
+          locationData = data;
+          // Extract unique districts
+          districts = data
+              .where(
+                (item) =>
+                    item['duureg'] != null &&
+                    item['duureg'].toString().isNotEmpty,
+              )
+              .map((item) => item['duureg'].toString())
+              .toSet()
+              .toList();
+          isLoadingDistricts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoadingDistricts = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: 'Дүүрэг мэдээлэл татахад алдаа гарлаа: $e',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
 
   Future<void> _loadKhotkhons(String district) async {
     setState(() {
       isLoadingKhotkhon = true;
       selectedKhotkhon = null;
       selectedSOKH = null;
+      selectedBaiguullagiinId = null;
       khotkhons = [];
       sokhs = [];
     });
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      // Filter location data by selected district
+      final filteredData = locationData
+          .where(
+            (item) =>
+                item['duureg'] == district &&
+                item['districtCode'] != null &&
+                item['districtCode'].toString().isNotEmpty,
+          )
+          .toList();
+
+      final uniqueKhotkhons = filteredData
+          .map((item) => item['districtCode'].toString())
+          .toSet()
+          .toList();
 
       if (mounted) {
         setState(() {
-          khotkhons = ['Хотхон 1', 'Хотхон 2', 'Хотхон 3'];
+          khotkhons = uniqueKhotkhons;
           isLoadingKhotkhon = false;
         });
       }
@@ -89,11 +144,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         setState(() {
           isLoadingKhotkhon = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Хотхон мэдээлэл татахад алдаа гарлаа'),
-            backgroundColor: Colors.redAccent,
-          ),
+        showGlassSnackBar(
+          context,
+          message: 'Хотхон мэдээлэл татахад алдаа гарлаа: $e',
+          icon: Icons.error,
+          iconColor: Colors.red,
         );
       }
     }
@@ -103,15 +158,31 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     setState(() {
       isLoadingSOKH = true;
       selectedSOKH = null;
+      selectedBaiguullagiinId = null;
       sokhs = [];
     });
 
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      // Filter location data by selected district and khotkhon
+      final filteredData = locationData
+          .where(
+            (item) =>
+                item['duureg'] == selectedDistrict &&
+                item['districtCode'] == khotkhon &&
+                item['sohCode'] != null &&
+                item['sohCode'].toString().isNotEmpty,
+          )
+          .toList();
+
+      // Extract unique SOKHs (sohCode)
+      final uniqueSOKHs = filteredData
+          .map((item) => item['sohCode'].toString())
+          .toSet()
+          .toList();
 
       if (mounted) {
         setState(() {
-          sokhs = ['СӨХ 1', 'СӨХ 2', 'СӨХ 3'];
+          sokhs = uniqueSOKHs;
           isLoadingSOKH = false;
         });
       }
@@ -120,30 +191,86 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         setState(() {
           isLoadingSOKH = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('СӨХ мэдээлэл татахад алдаа гарлаа'),
-            backgroundColor: Colors.redAccent,
-          ),
+        showGlassSnackBar(
+          context,
+          message: 'СӨХ мэдээлэл татахад алдаа гарлаа: $e',
+          icon: Icons.error,
+          iconColor: Colors.red,
         );
+      }
+    }
+  }
+
+  // Get baiguullagiinId when SOKh is selected
+  void _updateBaiguullagiinId() {
+    if (selectedDistrict != null &&
+        selectedKhotkhon != null &&
+        selectedSOKH != null) {
+      // Find matching location data
+      final matchingData = locationData.firstWhere(
+        (item) =>
+            item['duureg'] == selectedDistrict &&
+            item['districtCode'] == selectedKhotkhon &&
+            item['sohCode'] == selectedSOKH,
+        orElse: () => {},
+      );
+
+      if (matchingData.isNotEmpty && matchingData['baiguullagiinId'] != null) {
+        setState(() {
+          selectedBaiguullagiinId = matchingData['baiguullagiinId'].toString();
+        });
       }
     }
   }
 
   void _validateAndSubmit(BuildContext context) {
     if (_formKey.currentState!.validate()) {
-      showGlassSnackBar(
-        context,
-        message: 'Бүх мэдээлэл зөв байна!',
-        icon: Icons.check_circle,
-        iconColor: Colors.green,
-      );
+      // Validate baiguullagiinId is available
+      if (selectedBaiguullagiinId != null) {
+        // Initialize AuthConfig with selected location (async operation)
+        AuthConfig.instance.initialize(
+          duureg: selectedDistrict,
+          districtCode: selectedKhotkhon,
+          sohCode: selectedSOKH,
+        );
 
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted) {
-          context.push('/burtguulekh_khoyor');
-        }
-      });
+        // Store location data to pass to next screen
+        final locationDataToPass = {
+          'duureg': selectedDistrict,
+          'horoo': selectedKhotkhon,
+          'soh': selectedSOKH,
+          'baiguullagiinId': selectedBaiguullagiinId,
+        };
+
+        showGlassSnackBar(
+          context,
+          message: 'Бүх мэдээлэл зөв байна!',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+
+        // Store navigator before async gap
+        final navigator = Navigator.of(context);
+
+        // Navigate to next screen with location data
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (!mounted) return;
+
+          navigator.push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  Burtguulekh_Khoyor(locationData: locationDataToPass),
+            ),
+          );
+        });
+      } else {
+        showGlassSnackBar(
+          context,
+          message: 'Байгууллагын мэдээлэл олдсонгүй',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
     }
   }
 
@@ -874,6 +1001,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                   setState(() {
                                                     selectedSOKH = value;
                                                   });
+                                                  _updateBaiguullagiinId();
                                                 },
                                           validator: (value) {
                                             if (value == null ||
