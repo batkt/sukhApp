@@ -4,6 +4,7 @@ import 'package:sukh_app/components/Notifications/notification.dart';
 import 'dart:ui';
 import 'package:sukh_app/widgets/glassmorphism.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -279,86 +280,172 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                 transitionDuration: const Duration(
                                   milliseconds: 200,
                                 ),
-                                pageBuilder:
-                                    (context, animation, secondaryAnimation) {
-                                      return Material(
-                                        color: Colors.transparent,
-                                        child: Stack(
-                                          children: [
-                                            GestureDetector(
-                                              onTap: () =>
-                                                  Navigator.pop(context),
-                                              child: Container(
-                                                color: Colors.transparent,
-                                              ),
-                                            ),
-                                            Positioned(
-                                              top: position.dy + 120,
-                                              right: 16,
-                                              child: FadeTransition(
-                                                opacity: animation,
-                                                child: Container(
-                                                  width: 200,
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFF1a1a2e,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          16,
-                                                        ),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withOpacity(0.3),
-                                                        blurRadius: 20,
-                                                        offset: const Offset(
-                                                          0,
-                                                          10,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  child: Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      _buildProfileMenuItem(
-                                                        context,
-                                                        icon: Icons
-                                                            .settings_outlined,
-                                                        title: 'Тохиргоо',
-                                                        onTap: () {
-                                                          context.push(
-                                                            '/tokhirgoo',
-                                                          );
-                                                        },
-                                                      ),
-
-                                                      const Divider(
-                                                        color: Colors.white12,
-                                                        height: 1,
-                                                      ),
-                                                      _buildProfileMenuItem(
-                                                        context,
-                                                        icon: Icons.logout,
-                                                        title: 'Гарах',
-                                                        onTap: () {
-                                                          context.go(
-                                                            '/newtrekh',
-                                                          );
-                                                        },
-                                                        isLogout: true,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                pageBuilder: (context, animation, secondaryAnimation) {
+                                  return Material(
+                                    color: Colors.transparent,
+                                    child: Stack(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () => Navigator.pop(context),
+                                          child: Container(
+                                            color: Colors.transparent,
+                                          ),
                                         ),
-                                      );
-                                    },
+                                        Positioned(
+                                          top: position.dy + 120,
+                                          right: 16,
+                                          child: FadeTransition(
+                                            opacity: animation,
+                                            child: Container(
+                                              width: 200,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF1a1a2e),
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 20,
+                                                    offset: const Offset(0, 10),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  _buildProfileMenuItem(
+                                                    context,
+                                                    icon:
+                                                        Icons.settings_outlined,
+                                                    title: 'Тохиргоо',
+                                                    onTap: () {
+                                                      context.push(
+                                                        '/tokhirgoo',
+                                                      );
+                                                    },
+                                                  ),
+
+                                                  const Divider(
+                                                    color: Colors.white12,
+                                                    height: 1,
+                                                  ),
+                                                  _buildProfileMenuItem(
+                                                    context,
+                                                    icon: Icons.logout,
+                                                    title: 'Гарах',
+                                                    onTap: () async {
+                                                      // Store the router before popping
+                                                      final router =
+                                                          GoRouter.of(context);
+
+                                                      Navigator.pop(context);
+
+                                                      final shouldLogout = await showDialog<bool>(
+                                                        context: context,
+                                                        barrierDismissible:
+                                                            false,
+                                                        builder:
+                                                            (
+                                                              BuildContext
+                                                              dialogContext,
+                                                            ) {
+                                                              return AlertDialog(
+                                                                backgroundColor:
+                                                                    const Color(
+                                                                      0xFF1a1a2e,
+                                                                    ),
+                                                                shape: RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        16,
+                                                                      ),
+                                                                ),
+                                                                title: const Text(
+                                                                  'Гарах',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontSize:
+                                                                        20,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                  ),
+                                                                ),
+                                                                content: const Text(
+                                                                  'Та системээс гарахдаа итгэлтэй байна уу?',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .white70,
+                                                                    fontSize:
+                                                                        16,
+                                                                  ),
+                                                                ),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () {
+                                                                      Navigator.of(
+                                                                        dialogContext,
+                                                                      ).pop(
+                                                                        false,
+                                                                      );
+                                                                    },
+                                                                    child: const Text(
+                                                                      'Үгүй',
+                                                                      style: TextStyle(
+                                                                        color: Colors
+                                                                            .white70,
+                                                                        fontSize:
+                                                                            16,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  TextButton(
+                                                                    onPressed: () {
+                                                                      Navigator.of(
+                                                                        dialogContext,
+                                                                      ).pop(
+                                                                        true,
+                                                                      );
+                                                                    },
+                                                                    child: const Text(
+                                                                      'Тийм',
+                                                                      style: TextStyle(
+                                                                        color: Colors
+                                                                            .red,
+                                                                        fontSize:
+                                                                            16,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            },
+                                                      );
+
+                                                      if (shouldLogout ==
+                                                          true) {
+                                                        // Clear authentication data
+                                                        await StorageService.clearAuthData();
+
+                                                        // Navigate to login screen using the stored router
+                                                        router.go('/newtrekh');
+                                                      }
+                                                    },
+                                                    isLogout: true,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),

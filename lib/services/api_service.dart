@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:sukh_app/services/storage_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://103.143.40.46:8084';
@@ -16,9 +17,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/baiguullagaBairshilaarAvya'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
@@ -91,7 +90,6 @@ class ApiService {
     }
   }
 
-  // Get baiguullagiinId based on selected location (duureg, khotkhon, soh)
   static Future<String?> getBaiguullagiinId({
     String? duureg,
     String? districtCode,
@@ -136,9 +134,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/dugaarBatalgaajuulya'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'baiguullagiinId': baiguullagiinId,
           'utas': utas,
@@ -168,9 +164,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/dugaarBatalgaajuulakh'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'baiguullagiinId': baiguullagiinId,
           'utas': utas,
@@ -210,9 +204,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$baseUrl/davhardsanOrshinSuugchShalgayy'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode(checkPayload),
       );
 
@@ -249,9 +241,7 @@ class ApiService {
 
       final response = await http.post(
         Uri.parse('$baseUrl/davhardsanOrshinSuugchShalgayy'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode(checkPayload),
       );
 
@@ -282,9 +272,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/orshinSuugchBurtgey'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode(registrationData),
       );
 
@@ -318,21 +306,39 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/orshinSuugchNevtrey'),
-        headers: {
-          'Authorization': 'Bearer $bearerToken',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({'utas': utas, 'nuutsUg': nuutsUg}),
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final loginData = json.decode(response.body);
+
+        if (loginData['success'] == true && loginData['token'] != null) {
+          await StorageService.saveToken(loginData['token']);
+          await StorageService.saveUserData(loginData);
+        }
+
+        return loginData;
       } else {
         throw Exception('Утасны дугаар эсвэл нууц үг буруу байна');
       }
     } catch (e) {
       throw Exception('Нэвтрэхэд алдаа гарлаа: $e');
     }
+  }
+
+  /// Logout user and clear all stored data
+  static Future<void> logoutUser() async {
+    await StorageService.clearAuthData();
+  }
+
+  /// Get authentication headers with saved token
+  static Future<Map<String, String>> getAuthHeaders() async {
+    final token = await StorageService.getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
   }
 
   static Future<Map<String, dynamic>> resetPassword({
@@ -343,9 +349,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/nuutsUgSergeeye'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'utas': utas,
           'code': code,
@@ -362,6 +366,45 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Нууц үг сэргээхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getUserProfile() async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/tokenoorOrshinSuugchAvya'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // Check if response contains user data directly (has _id field)
+        if (data['_id'] != null) {
+          return {'success': true, 'result': data};
+        }
+        // Check if response has result field
+        else if (data['result'] != null) {
+          return {'success': true, 'result': data['result']};
+        }
+        // Check if response has success field
+        else if (data['success'] != null) {
+          return data;
+        }
+        // If none of the above, throw error
+        else {
+          throw Exception(data['message'] ?? 'Хэрэглэгчийн мэдээлэл олдсонгүй');
+        }
+      } else {
+        throw Exception(
+          'Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error in getUserProfile: $e');
+      throw Exception('Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
 }

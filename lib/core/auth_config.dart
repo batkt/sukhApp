@@ -1,4 +1,5 @@
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 /// AuthConfig - Global configuration for managing baiguullagiinId
 ///
@@ -129,5 +130,45 @@ class AuthConfig {
       'districtCode': _districtCode,
       'sohCode': _sohCode,
     };
+  }
+
+  /// Check if user is logged in (has a valid token)
+  Future<bool> isLoggedIn() async {
+    return await StorageService.isLoggedIn();
+  }
+
+  /// Get saved authentication token
+  Future<String?> getToken() async {
+    return await StorageService.getToken();
+  }
+
+  /// Get saved user data
+  Future<Map<String, String?>> getUserData() async {
+    return {
+      'userId': await StorageService.getUserId(),
+      'userName': await StorageService.getUserName(),
+      'baiguullagiinId': await StorageService.getBaiguullagiinId(),
+      'baiguullagiinNer': await StorageService.getBaiguullagiinNer(),
+      'duusakhOgnoo': await StorageService.getDuusakhOgnoo(),
+    };
+  }
+
+  /// Logout user - clears both memory and persistent storage
+  Future<void> logout() async {
+    clear();
+    await StorageService.clearAuthData();
+  }
+
+  /// Initialize from saved session (call on app startup)
+  Future<bool> initializeFromStorage() async {
+    final isLoggedIn = await StorageService.isLoggedIn();
+    if (isLoggedIn) {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId != null) {
+        _baiguullagiinId = baiguullagiinId;
+        return true;
+      }
+    }
+    return false;
   }
 }

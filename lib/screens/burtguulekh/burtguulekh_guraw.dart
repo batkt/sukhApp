@@ -334,8 +334,13 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                               else
                                 _buildSecretCodeField(),
                               const SizedBox(height: 16),
-                              if (_phoneController.text.length == 8 ||
-                                  _isPhoneSubmitted)
+                              if (_phoneController.text.length == 8 &&
+                                  !_isPhoneSubmitted)
+                                _buildContinueButton(),
+                              if (_isPhoneSubmitted &&
+                                  _pinControllers.every(
+                                    (c) => c.text.isNotEmpty,
+                                  ))
                                 _buildContinueButton(),
                             ],
                           ),
@@ -484,49 +489,60 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
           ),
         ],
       ),
-      child: TextFormField(
-        controller: _pinControllers[index],
-        focusNode: _pinFocusNodes[index],
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-        keyboardType: TextInputType.number,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(1),
-        ],
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: AppColors.grayColor,
-              width: 1.5,
-            ),
-          ),
-          contentPadding: EdgeInsets.zero,
-        ),
-        onChanged: (value) {
-          if (value.isNotEmpty && index < 3) {
-            _pinFocusNodes[index + 1].requestFocus();
+      child: KeyboardListener(
+        focusNode: FocusNode(),
+        onKeyEvent: (KeyEvent event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.backspace) {
+            // If current field is empty and backspace is pressed
+            if (_pinControllers[index].text.isEmpty && index > 0) {
+              // Clear previous field and move focus there
+              _pinControllers[index - 1].clear();
+              _pinFocusNodes[index - 1].requestFocus();
+              setState(() {});
+            }
           }
-          setState(() {});
         },
-        onTap: () {
-          // Select all text when tapped
-          _pinControllers[index].selection = TextSelection(
-            baseOffset: 0,
-            extentOffset: _pinControllers[index].text.length,
-          );
-        },
+        child: TextFormField(
+          controller: _pinControllers[index],
+          focusNode: _pinFocusNodes[index],
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(1),
+          ],
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.inputGrayColor.withOpacity(0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppColors.grayColor,
+                width: 1.5,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+          onChanged: (value) {
+            if (value.isNotEmpty && index < 3) {
+              _pinFocusNodes[index + 1].requestFocus();
+            } else if (value.isEmpty && index > 0) {
+              // Move to previous field when deleting
+              _pinFocusNodes[index - 1].requestFocus();
+            }
+            setState(() {});
+          },
+        ),
       ),
     );
   }

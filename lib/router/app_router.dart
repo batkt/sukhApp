@@ -12,11 +12,32 @@ import 'package:sukh_app/screens/Nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
 import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
 import 'package:sukh_app/screens/mashin/mashin.dart';
-import 'package:sukh_app/screens/newtrekhKhuudas.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_guraw.dart';
 import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 final GoRouter appRouter = GoRouter(
+  initialLocation: '/',
+  redirect: (context, state) async {
+    final isLoggedIn = await StorageService.isLoggedIn();
+    final isGoingToLogin = state.matchedLocation == '/newtrekh' || state.matchedLocation == '/';
+    final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
+    final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
+    final isGoingToPasswordReset = state.matchedLocation == '/nuutsUg';
+
+    // If logged in and trying to access login/register pages, redirect to home
+    if (isLoggedIn && (isGoingToLogin || isGoingToRegister || isGoingToOnboarding)) {
+      return '/nuur';
+    }
+
+    // If not logged in and trying to access protected pages, redirect to login
+    if (!isLoggedIn && !isGoingToLogin && !isGoingToRegister && !isGoingToOnboarding && !isGoingToPasswordReset) {
+      return '/newtrekh';
+    }
+
+    // No redirect needed
+    return null;
+  },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const Newtrekhkhuudas()),
     GoRoute(path: '/nuur', builder: (context, state) => const NuurKhuudas()),

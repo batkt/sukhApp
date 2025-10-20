@@ -48,7 +48,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   final TextEditingController ovogController = TextEditingController();
   final TextEditingController nerController = TextEditingController();
   final TextEditingController registerController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController mailController = TextEditingController();
 
   @override
   void initState() {
@@ -57,7 +57,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
     ovogController.addListener(() => setState(() {}));
     nerController.addListener(() => setState(() {}));
     registerController.addListener(() => setState(() {}));
-    emailController.addListener(() => setState(() {}));
+    mailController.addListener(() => setState(() {}));
   }
 
   @override
@@ -66,7 +66,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
     ovogController.dispose();
     nerController.dispose();
     registerController.dispose();
-    emailController.dispose();
+    mailController.dispose();
     super.dispose();
   }
 
@@ -134,7 +134,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
           'ovog': ovogController.text,
           'ner': nerController.text,
           'register': registerController.text,
-          'email': emailController.text,
+          'mail': mailController.text,
         };
 
         setState(() {
@@ -327,20 +327,20 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                               Container(
                                 decoration: _boxShadowDecoration(),
                                 child: TextFormField(
-                                  controller: emailController,
+                                  controller: mailController,
                                   style: const TextStyle(color: Colors.white),
                                   decoration: _inputDecoration(
                                     'И-Мэйл хаяг',
-                                    emailController,
+                                    mailController,
                                   ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return '                        И-Мэйл хаяг оруулна уу';
                                     }
-                                    final emailRegex = RegExp(
+                                    final mailRegex = RegExp(
                                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                                     );
-                                    if (!emailRegex.hasMatch(value.trim())) {
+                                    if (!mailRegex.hasMatch(value.trim())) {
                                       return '                                  Зөв И-Мэйл хаяг оруулна уу';
                                     }
                                     return null;

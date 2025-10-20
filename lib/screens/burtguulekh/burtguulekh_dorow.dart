@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
@@ -107,7 +108,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
           'horoo': widget.registrationData?['horoo'] ?? '',
           'soh': widget.registrationData?['soh'] ?? '',
           'register': widget.registrationData?['register'] ?? '',
-          'email': widget.registrationData?['email'] ?? '',
+          'mail': widget.registrationData?['mail'] ?? '',
         };
 
         await ApiService.registerUser(registrationPayload);
@@ -277,9 +278,15 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         obscureText: _obscurePassword,
         style: const TextStyle(color: Colors.white),
         keyboardType: TextInputType.number,
+        maxLength: 4,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(4),
+        ],
         decoration: _inputDecoration(
           "Нууц код",
           _passwordController,
+          counterText: '',
           suffixIcon: IconButton(
             icon: Icon(
               _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -294,10 +301,13 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return '                            Нууц од оруулна уу';
+            return '                            Нууц код оруулна уу';
           }
-          if (value.length < 4) {
-            return '                            Нууц код богино байна';
+          if (value.length != 4) {
+            return '                            Нууц код 4 оронтой байх ёстой';
+          }
+          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+            return '                            Зөвхөн тоо оруулна уу';
           }
           return null;
         },
@@ -313,9 +323,15 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         obscureText: _obscureConfirmPassword,
         style: const TextStyle(color: Colors.white),
         keyboardType: TextInputType.number,
+        maxLength: 4,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(4),
+        ],
         decoration: _inputDecoration(
           "Нууц код давтах",
           _confirmPasswordController,
+          counterText: '',
           suffixIcon: IconButton(
             icon: Icon(
               _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
@@ -331,6 +347,12 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
             return '                            Нууц код давтан оруулна уу';
+          }
+          if (value.length != 4) {
+            return '                            Нууц код 4 оронтой байх ёстой';
+          }
+          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+            return '                            Зөвхөн тоо оруулна уу';
           }
           if (value != _passwordController.text) {
             return '                            Нууц код таарахгүй байна';
@@ -400,6 +422,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
     String hint,
     TextEditingController controller, {
     Widget? suffixIcon,
+    String? counterText,
   }) {
     return InputDecoration(
       contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
@@ -408,6 +431,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
       hintText: hint,
       hintStyle: const TextStyle(color: Colors.white70),
       suffixIcon: suffixIcon,
+      counterText: counterText,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(100),
         borderSide: BorderSide.none,
