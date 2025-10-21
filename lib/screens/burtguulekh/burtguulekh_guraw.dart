@@ -125,21 +125,23 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
           }
 
           // Check if phone number already exists before sending verification code
-          final phoneExistsError = await ApiService.checkPhoneExists(
+          final phoneExistsResult = await ApiService.checkPhoneExists(
             utas: _phoneController.text,
             baiguullagiinId: baiguullagiinId,
           );
 
           if (!mounted) return;
 
-          if (phoneExistsError != null) {
+          if (phoneExistsResult != null) {
             // Phone already exists, show error and don't send verification code
             setState(() {
               _isLoading = false;
             });
             showGlassSnackBar(
               context,
-              message: phoneExistsError,
+              message:
+                  phoneExistsResult['message'] ??
+                  'Энэ утасны дугаар аль хэдийн бүртгэлтэй байна',
               icon: Icons.error,
               iconColor: Colors.red,
             );
@@ -213,9 +215,9 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             }
 
             await ApiService.verifySecretCode(
-              baiguullagiinId: baiguullagiinId,
               utas: _phoneController.text,
               code: pin,
+              baiguullagiinId: baiguullagiinId,
             );
 
             if (mounted) {
@@ -434,11 +436,13 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         ),
         const SizedBox(height: 20),
         // PIN Input boxes
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (index) {
-            return _buildPinBox(index);
-          }),
+        AutofillGroup(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(4, (index) {
+              return _buildPinBox(index);
+            }),
+          ),
         ),
         const SizedBox(height: 10),
         Row(
@@ -513,10 +517,9 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             fontWeight: FontWeight.bold,
           ),
           keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(1),
-          ],
+          autofillHints: const [AutofillHints.oneTimeCode],
+          enableInteractiveSelection: false,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.inputGrayColor.withOpacity(0.5),
@@ -534,11 +537,48 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
             contentPadding: EdgeInsets.zero,
           ),
           onChanged: (value) {
-            if (value.isNotEmpty && index < 3) {
+            if (value.isEmpty) {
+              setState(() {});
+              return;
+            }
+
+            // Handle autofill - when multiple digits are pasted
+            if (value.length > 1) {
+              // Split the autofilled code into individual digits
+              final digits = value.replaceAll(
+                RegExp(r'\D'),
+                '',
+              ); // Remove non-digits
+
+              // Clear all boxes first
+              for (var controller in _pinControllers) {
+                controller.clear();
+              }
+
+              // Fill each box with a digit
+              for (int i = 0; i < digits.length && i < 4; i++) {
+                _pinControllers[i].text = digits[i];
+              }
+
+              // Move focus to the last filled box
+              final lastIndex = (digits.length - 1).clamp(0, 3);
+              _pinFocusNodes[lastIndex].requestFocus();
+
+              setState(() {});
+              return;
+            }
+
+            // Normal single digit input - keep only the last character
+            if (value.length > 1) {
+              _pinControllers[index].text = value.substring(value.length - 1);
+              _pinControllers[index].selection = TextSelection.fromPosition(
+                TextPosition(offset: _pinControllers[index].text.length),
+              );
+            }
+
+            // Move to next box if there's a value
+            if (_pinControllers[index].text.isNotEmpty && index < 3) {
               _pinFocusNodes[index + 1].requestFocus();
-            } else if (value.isEmpty && index > 0) {
-              // Move to previous field when deleting
-              _pinFocusNodes[index - 1].requestFocus();
             }
             setState(() {});
           },

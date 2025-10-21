@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,10 +59,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   void _finishOnboarding() async {
+    // Update local storage
+    await StorageService.setTaniltsuulgaKharakhEsekh(false);
+
+    // If checkbox is checked, update backend
     if (_dontShowAgain) {
+      try {
+        await ApiService.updateTaniltsuulgaKharakhEsekh(
+          taniltsuulgaKharakhEsekh: false,
+        );
+      } catch (e) {
+        print('Error updating taniltsuulgaKharakhEsekh in backend: $e');
+      }
+
+      // Also keep the old seenOnboarding for backwards compatibility if needed
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('seenOnboarding', true);
     }
+
     if (mounted) {
       context.go('/nuur');
     }

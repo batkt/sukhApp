@@ -4,6 +4,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -276,6 +277,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             );
 
                                             if (mounted) {
+                                              // Check if we should show onboarding
+                                              final taniltsuulgaKharakhEsekh = await StorageService.getTaniltsuulgaKharakhEsekh();
+
                                               setState(() {
                                                 _isLoading = false;
                                               });
@@ -285,7 +289,13 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 icon: Icons.check_outlined,
                                                 iconColor: Colors.green,
                                               );
-                                              context.go('/ekhniikh');
+
+                                              // Navigate to onboarding if taniltsuulgaKharakhEsekh is true, otherwise go to home
+                                              if (taniltsuulgaKharakhEsekh) {
+                                                context.go('/ekhniikh');
+                                              } else {
+                                                context.go('/nuur');
+                                              }
                                             }
                                           } catch (e) {
                                             if (mounted) {

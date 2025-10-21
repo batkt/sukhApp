@@ -37,6 +37,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
   bool _isPinVerified = false;
   bool _isLoading = false;
   String _verifiedCode = '';
+  String _baiguullagiinId = '68ecc6add3ec8ad389b64697'; // Default ID
 
   final TextEditingController _phoneController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
@@ -100,7 +101,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
 
   Future<void> _validateAndSubmit() async {
     if (!_isPhoneSubmitted) {
-      // Submit phone number
       if (_phoneController.text.trim().isEmpty) {
         showGlassSnackBar(
           context,
@@ -120,14 +120,39 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         return;
       }
 
-      // Call phone verification API
       setState(() {
         _isLoading = true;
       });
 
       try {
+        final phoneCheckResult = await ApiService.checkPhoneExists(
+          utas: _phoneController.text,
+          baiguullagiinId: _baiguullagiinId,
+        );
+
+        if (phoneCheckResult == null) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            showGlassSnackBar(
+              context,
+              message: "Энэ утасны дугаараар бүртгэлгүй байна",
+              icon: Icons.error,
+              iconColor: Colors.red,
+            );
+          }
+          return;
+        }
+
+        // Phone exists - extract baiguullagiinId from response
+        if (phoneCheckResult['baiguullagiinId'] != null) {
+          _baiguullagiinId = phoneCheckResult['baiguullagiinId'].toString();
+        }
+
+        // Phone exists, now send verification code
         await ApiService.verifyPhoneNumber(
-          baiguullagiinId: '68ecc6add3ec8ad389b64697',
+          baiguullagiinId: _baiguullagiinId,
           utas: _phoneController.text,
           duureg: '',
           horoo: '',
@@ -174,9 +199,9 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
 
         try {
           await ApiService.verifySecretCode(
-            baiguullagiinId: '68ecc6add3ec8ad389b64697',
             utas: _phoneController.text,
             code: pin,
+            baiguullagiinId: _baiguullagiinId,
           );
 
           if (mounted) {
@@ -487,7 +512,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
   Widget _buildSecretCodeField() {
     return Column(
       children: [
-        // Display phone number
+        // Display phone number with edit button
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 18),
           decoration: BoxDecoration(
@@ -502,25 +527,49 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             ],
           ),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 _phoneController.text,
                 style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isPhoneSubmitted = false;
+                    _timer?.cancel();
+                    _canResend = false;
+                    _resendSeconds = 30;
+                    for (var controller in _pinControllers) {
+                      controller.clear();
+                    }
+                  });
+                },
+                child: const Text(
+                  'Солих',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (index) {
-            return _buildPinBox(index);
-          }),
+        AutofillGroup(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(4, (index) {
+              return _buildPinBox(index);
+            }),
+          ),
         ),
         const SizedBox(height: 10),
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextButton(
               onPressed: _canResend
@@ -535,7 +584,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
 
                       try {
                         await ApiService.verifyPhoneNumber(
-                          baiguullagiinId: '68ecc6add3ec8ad389b64697',
+                          baiguullagiinId: _baiguullagiinId,
                           utas: _phoneController.text,
                           duureg: '',
                           horoo: '',
@@ -598,49 +647,113 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           ),
         ],
       ),
-      child: TextField(
-        controller: _pinControllers[index],
-        focusNode: _pinFocusNodes[index],
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-        keyboardType: TextInputType.number,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(1),
-        ],
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: AppColors.grayColor,
-              width: 1.5,
-            ),
-          ),
-          contentPadding: EdgeInsets.zero,
-        ),
-        onChanged: (value) {
-          if (value.isNotEmpty && index < 3) {
-            _pinFocusNodes[index + 1].requestFocus();
+      child: KeyboardListener(
+        focusNode: FocusNode(),
+        onKeyEvent: (KeyEvent event) {
+          // Handle backspace key
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.backspace) {
+            if (_pinControllers[index].text.isEmpty && index > 0) {
+              // If current box is empty and backspace is pressed, go to previous box
+              _pinControllers[index - 1].clear();
+              _pinFocusNodes[index - 1].requestFocus();
+              setState(() {});
+            }
           }
-          setState(() {});
         },
-        onTap: () {
-          // Select all text when tapped
-          _pinControllers[index].selection = TextSelection(
-            baseOffset: 0,
-            extentOffset: _pinControllers[index].text.length,
-          );
-        },
+        child: TextField(
+          controller: _pinControllers[index],
+          focusNode: _pinFocusNodes[index],
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+          keyboardType: TextInputType.number,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          enableInteractiveSelection: false,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.inputGrayColor.withOpacity(0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppColors.grayColor,
+                width: 1.5,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+          onChanged: (value) {
+            if (value.isEmpty) {
+              setState(() {});
+              return;
+            }
+
+            // Handle autofill - when multiple digits are pasted
+            if (value.length > 1) {
+              // Split the autofilled code into individual digits
+              final digits = value.replaceAll(
+                RegExp(r'\D'),
+                '',
+              ); // Remove non-digits
+
+              // Clear all boxes first
+              for (var controller in _pinControllers) {
+                controller.clear();
+              }
+
+              // Fill each box with a digit
+              for (int i = 0; i < digits.length && i < 4; i++) {
+                _pinControllers[i].text = digits[i];
+              }
+
+              // Move focus to the last filled box
+              final lastIndex = (digits.length - 1).clamp(0, 3);
+              _pinFocusNodes[lastIndex].requestFocus();
+
+              setState(() {});
+
+              // Auto-submit if all 4 digits are filled
+              if (digits.length == 4) {
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (_pinControllers.every((c) => c.text.isNotEmpty)) {
+                    _validateAndSubmit();
+                  }
+                });
+              }
+
+              return;
+            }
+
+            // Normal single digit input - keep only the last character
+            if (value.length > 1) {
+              _pinControllers[index].text = value.substring(value.length - 1);
+              _pinControllers[index].selection = TextSelection.fromPosition(
+                TextPosition(offset: _pinControllers[index].text.length),
+              );
+            }
+
+            // Move to next box if there's a value
+            if (_pinControllers[index].text.isNotEmpty && index < 3) {
+              _pinFocusNodes[index + 1].requestFocus();
+            }
+            setState(() {});
+          },
+          onTap: () {
+            // Select all text when tapped
+            _pinControllers[index].selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: _pinControllers[index].text.length,
+            );
+          },
+        ),
       ),
     );
   }

@@ -157,18 +157,18 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> verifySecretCode({
-    required String baiguullagiinId,
     required String utas,
     required String code,
+    required String baiguullagiinId,
   }) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/dugaarBatalgaajuulakh'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'baiguullagiinId': baiguullagiinId,
           'utas': utas,
           'code': code,
+          'baiguullagiinId': baiguullagiinId,
         }),
       );
 
@@ -189,8 +189,6 @@ class ApiService {
     }
   }
 
-  // Check if register already exists using davhardsanOrshinSuugchShalgayy service
-  // Returns error message if exists, null if available
   static Future<String?> checkRegisterExists({
     required String register,
     required String baiguullagiinId,
@@ -230,8 +228,8 @@ class ApiService {
   }
 
   // Check if phone number already exists using davhardsanOrshinSuugchShalgayy service
-  // Returns error message if exists, null if available
-  static Future<String?> checkPhoneExists({
+  // Returns full response data if exists (including baiguullagiinId), null if available
+  static Future<Map<String, dynamic>?> checkPhoneExists({
     required String utas,
     required String baiguullagiinId,
   }) async {
@@ -248,9 +246,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        // If success is false, return the message (phone exists)
-        if (data['success'] == false && data['message'] != null) {
-          return data['message'].toString();
+        // If success is false, phone exists - return full data
+        if (data['success'] == false) {
+          return data; // Return full response including baiguullagiinId
         }
 
         // If success is true, phone is available
@@ -405,6 +403,41 @@ class ApiService {
     } catch (e) {
       print('Error in getUserProfile: $e');
       throw Exception('Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Update taniltsuulgaKharakhEsekh in backend
+  static Future<void> updateTaniltsuulgaKharakhEsekh({
+    required bool taniltsuulgaKharakhEsekh,
+  }) async {
+    try {
+      final userId = await StorageService.getUserId();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      if (userId == null || baiguullagiinId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/orshinSuugch/$userId'),
+        headers: headers,
+        body: json.encode({
+          '_id': userId,
+          'baiguullagiinId': baiguullagiinId,
+          'taniltsuulgaKharakhEsekh': taniltsuulgaKharakhEsekh,
+        }),
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(
+          'Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error updating taniltsuulgaKharakhEsekh: $e');
+      throw Exception('Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа: $e');
     }
   }
 }

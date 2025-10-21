@@ -20,13 +20,19 @@ final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) async {
     final isLoggedIn = await StorageService.isLoggedIn();
+    final taniltsuulgaKharakhEsekh = await StorageService.getTaniltsuulgaKharakhEsekh();
     final isGoingToLogin = state.matchedLocation == '/newtrekh' || state.matchedLocation == '/';
     final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
     final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
     final isGoingToPasswordReset = state.matchedLocation == '/nuutsUg';
 
-    // If logged in and trying to access login/register pages, redirect to home
-    if (isLoggedIn && (isGoingToLogin || isGoingToRegister || isGoingToOnboarding)) {
+    // If logged in and trying to access login/register pages
+    if (isLoggedIn && (isGoingToLogin || isGoingToRegister)) {
+      return '/nuur';
+    }
+
+    // If logged in and taniltsuulgaKharakhEsekh is false, redirect onboarding page to home
+    if (isLoggedIn && !taniltsuulgaKharakhEsekh && isGoingToOnboarding) {
       return '/nuur';
     }
 

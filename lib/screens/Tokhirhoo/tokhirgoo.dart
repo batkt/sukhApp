@@ -89,7 +89,6 @@ class _TokhirgooState extends State<Tokhirgoo>
         final userData = response['result'];
 
         setState(() {
-          // Combine ovog and ner for the name field
           String fullName = '';
           if (userData['ovog'] != null &&
               userData['ovog'].toString().isNotEmpty) {
@@ -105,12 +104,10 @@ class _TokhirgooState extends State<Tokhirgoo>
           }
           _nameController.text = fullName;
 
-          // Set email
           if (userData['mail'] != null) {
             _mailController.text = userData['mail'].toString();
           }
 
-          // Set phone
           if (userData['utas'] != null) {
             _phoneController.text = userData['utas'].toString();
           }
