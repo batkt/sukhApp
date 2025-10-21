@@ -279,10 +279,6 @@ class ApiService {
           response.statusCode == 500) {
         final data = json.decode(response.body);
 
-        if (data['success'] == false && data['aldaa'] != null) {
-          throw Exception(data['aldaa']);
-        }
-
         return data;
       } else {
         throw Exception(
@@ -382,17 +378,13 @@ class ApiService {
         // Check if response contains user data directly (has _id field)
         if (data['_id'] != null) {
           return {'success': true, 'result': data};
-        }
-        // Check if response has result field
-        else if (data['result'] != null) {
+        } else if (data['result'] != null) {
           return {'success': true, 'result': data['result']};
         }
         // Check if response has success field
         else if (data['success'] != null) {
           return data;
-        }
-        // If none of the above, throw error
-        else {
+        } else {
           throw Exception(data['message'] ?? 'Хэрэглэгчийн мэдээлэл олдсонгүй');
         }
       } else {
@@ -406,7 +398,6 @@ class ApiService {
     }
   }
 
-  /// Update taniltsuulgaKharakhEsekh in backend
   static Future<void> updateTaniltsuulgaKharakhEsekh({
     required bool taniltsuulgaKharakhEsekh,
   }) async {
