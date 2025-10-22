@@ -100,6 +100,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         final registrationPayload = {
           'utas': widget.registrationData?['utas'] ?? '',
           'nuutsUg': _passwordController.text,
+          'davkhar': widget.registrationData?['davkhar'] ?? '',
           'toot': widget.registrationData?['toot'] ?? '',
           'ovog': widget.registrationData?['ovog'] ?? '',
           'ner': widget.registrationData?['ner'] ?? '',

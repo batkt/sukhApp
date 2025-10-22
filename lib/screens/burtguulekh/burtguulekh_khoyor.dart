@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/core/auth_config.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_guraw.dart';
-import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class AppBackground extends StatelessWidget {
@@ -30,6 +30,7 @@ class AppBackground extends StatelessWidget {
   }
 }
 
+// ignore: camel_case_types
 class Burtguulekh_Khoyor extends StatefulWidget {
   final Map<String, dynamic>? locationData;
 
@@ -44,28 +45,28 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   bool _isLoading = false;
 
+  final TextEditingController davkharController = TextEditingController();
   final TextEditingController tootController = TextEditingController();
   final TextEditingController ovogController = TextEditingController();
   final TextEditingController nerController = TextEditingController();
-  final TextEditingController registerController = TextEditingController();
   final TextEditingController mailController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    davkharController.addListener(() => setState(() {}));
     tootController.addListener(() => setState(() {}));
     ovogController.addListener(() => setState(() {}));
     nerController.addListener(() => setState(() {}));
-    registerController.addListener(() => setState(() {}));
     mailController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
+    davkharController.dispose();
     tootController.dispose();
     ovogController.dispose();
     nerController.dispose();
-    registerController.dispose();
     mailController.dispose();
     super.dispose();
   }
@@ -81,45 +82,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
       });
 
       try {
-        // Get baiguullagiinId from previous screen or AuthConfig
-        final baiguullagiinId =
-            widget.locationData?['baiguullagiinId'] ??
-            AuthConfig.instance.baiguullagiinId;
-
-        if (baiguullagiinId == null) {
-          setState(() {
-            _isLoading = false;
-          });
-          showGlassSnackBar(
-            context,
-            message: 'Байгууллагын мэдээлэл олдсонгүй',
-            icon: Icons.error,
-            iconColor: Colors.red,
-          );
-          return;
-        }
-
-        final errorMessage = await ApiService.checkRegisterExists(
-          register: registerController.text,
-          baiguullagiinId: baiguullagiinId,
-        );
-
-        if (!mounted) return;
-
-        if (errorMessage != null) {
-          setState(() {
-            _isLoading = false;
-          });
-
-          showGlassSnackBar(
-            context,
-            message: errorMessage,
-            icon: Icons.error,
-            iconColor: Colors.red,
-          );
-          return;
-        }
-
         final allData = {
           'duureg':
               widget.locationData?['duureg'] ?? AuthConfig.instance.duureg,
@@ -129,11 +91,10 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
           'baiguullagiinId':
               widget.locationData?['baiguullagiinId'] ??
               AuthConfig.instance.baiguullagiinId,
-
+          'davkhar': davkharController.text,
           'toot': tootController.text,
           'ovog': ovogController.text,
           'ner': nerController.text,
-          'register': registerController.text,
           'mail': mailController.text,
         };
 
@@ -263,6 +224,32 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                               Container(
                                 decoration: _boxShadowDecoration(),
                                 child: TextFormField(
+                                  controller: davkharController,
+                                  style: const TextStyle(color: Colors.white),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(2),
+                                  ],
+                                  decoration: _inputDecoration(
+                                    'Давхар',
+                                    davkharController,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return '                                      Давхар оруулна уу';
+                                    }
+                                    if (value.length > 2) {
+                                      return '                                      Давхар 2 оронтой байх ёстой';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: _boxShadowDecoration(),
+                                child: TextFormField(
                                   controller: tootController,
                                   style: const TextStyle(color: Colors.white),
                                   decoration: _inputDecoration(
@@ -304,22 +291,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
                                       ? '                                        Нэр оруулна уу'
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: TextFormField(
-                                  controller: registerController,
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: _inputDecoration(
-                                    'Регистрийн дугаар',
-                                    registerController,
-                                  ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                      ? '             Регистрийн дугаар оруулна уу'
                                       : null,
                                 ),
                               ),

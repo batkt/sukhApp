@@ -25,10 +25,10 @@ class SideMenu extends StatelessWidget {
             _buildMenuItem(
               context,
               icon: Icons.history,
-              title: 'Гүйлгээний түүх',
+              title: 'Гэрээ',
               onTap: () {
                 Navigator.pop(context);
-                context.push('/guilgee');
+                context.push('/geree');
               },
             ),
 

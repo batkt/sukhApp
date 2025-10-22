@@ -26,9 +26,9 @@ class StorageService {
   static const String _userIdKey = 'user_id';
   static const String _userNerKey = 'user_ner';
   static const String _duusakhOgnooKey = 'duusakh_ognoo';
-  static const String _taniltsuulgaKharakhEsekhKey = 'taniltsuulga_kharakh_esekh';
+  static const String _taniltsuulgaKharakhEsekhKey =
+      'taniltsuulga_kharakh_esekh';
 
-  /// Save authentication token
   static Future<bool> saveToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -42,6 +42,7 @@ class StorageService {
   static Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      
       return prefs.getString(_tokenKey);
     } catch (e) {
       print('Token алдаа: $e');
@@ -54,14 +55,10 @@ class StorageService {
     return token != null && token.isNotEmpty;
   }
 
-  /// Save user data after successful login
-  ///
-  /// Stores essential user information from the login response
   static Future<bool> saveUserData(Map<String, dynamic> userData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Save user ID
       if (userData['result']?['_id'] != null) {
         await prefs.setString(_userIdKey, userData['result']['_id']);
       }

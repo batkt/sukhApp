@@ -7,7 +7,7 @@ import 'package:sukh_app/screens/newtrekhKhuudas.dart';
 import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
 import 'package:sukh_app/screens/Home/home.dart';
 import 'package:sukh_app/screens/Tokhirhoo/tokhirgoo.dart';
-import 'package:sukh_app/screens/GuilgeeniiTuukh/guilgeenii_tuukh.dart';
+import 'package:sukh_app/screens/geree/geree.dart';
 import 'package:sukh_app/screens/Nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
 import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
@@ -20,24 +20,27 @@ final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) async {
     final isLoggedIn = await StorageService.isLoggedIn();
-    final taniltsuulgaKharakhEsekh = await StorageService.getTaniltsuulgaKharakhEsekh();
-    final isGoingToLogin = state.matchedLocation == '/newtrekh' || state.matchedLocation == '/';
+    final taniltsuulgaKharakhEsekh =
+        await StorageService.getTaniltsuulgaKharakhEsekh();
+    final isGoingToLogin =
+        state.matchedLocation == '/newtrekh' || state.matchedLocation == '/';
     final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
     final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
     final isGoingToPasswordReset = state.matchedLocation == '/nuutsUg';
 
-    // If logged in and trying to access login/register pages
     if (isLoggedIn && (isGoingToLogin || isGoingToRegister)) {
       return '/nuur';
     }
 
-    // If logged in and taniltsuulgaKharakhEsekh is false, redirect onboarding page to home
     if (isLoggedIn && !taniltsuulgaKharakhEsekh && isGoingToOnboarding) {
       return '/nuur';
     }
 
-    // If not logged in and trying to access protected pages, redirect to login
-    if (!isLoggedIn && !isGoingToLogin && !isGoingToRegister && !isGoingToOnboarding && !isGoingToPasswordReset) {
+    if (!isLoggedIn &&
+        !isGoingToLogin &&
+        !isGoingToRegister &&
+        !isGoingToOnboarding &&
+        !isGoingToPasswordReset) {
       return '/newtrekh';
     }
 
@@ -68,9 +71,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/burtguulekh_guraw',
-      builder: (context, state) => Burtguulekh_Guraw(
-        locationData: state.extra as Map<String, dynamic>?,
-      ),
+      builder: (context, state) =>
+          Burtguulekh_Guraw(locationData: state.extra as Map<String, dynamic>?),
     ),
     GoRoute(
       path: '/tokhirgoo',
@@ -80,40 +82,27 @@ final GoRouter appRouter = GoRouter(
         transitionDuration: const Duration(milliseconds: 350),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           // Slide from right to center with fade
-          var slideAnimation = Tween<Offset>(
-            begin: const Offset(1.0, 0.0), // Start from right side
-            end: Offset.zero, // End at center
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            ),
-          );
+          var slideAnimation =
+              Tween<Offset>(
+                begin: const Offset(1.0, 0.0), // Start from right side
+                end: Offset.zero, // End at center
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              );
 
           var fadeAnimation = Tween<double>(
             begin: 0.0,
             end: 1.0,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeIn,
-            ),
-          );
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeIn));
 
           return SlideTransition(
             position: slideAnimation,
-            child: FadeTransition(
-              opacity: fadeAnimation,
-              child: child,
-            ),
+            child: FadeTransition(opacity: fadeAnimation, child: child),
           );
         },
       ),
     ),
-    GoRoute(
-      path: '/guilgee',
-      builder: (context, state) => const GuilgeeniiTuukh(),
-    ),
+    GoRoute(path: '/geree', builder: (context, state) => const Geree()),
     GoRoute(
       path: '/nekhemjlekh',
       builder: (context, state) => const NekhemjlekhPage(),

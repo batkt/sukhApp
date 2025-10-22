@@ -31,16 +31,18 @@ class AppBackground extends StatelessWidget {
   }
 }
 
+// ignore: camel_case_types
 class Burtguulekh_Guraw extends StatefulWidget {
   final Map<String, dynamic>? locationData;
 
   const Burtguulekh_Guraw({super.key, this.locationData});
 
   @override
-  State<Burtguulekh_Guraw> createState() => _BurtguulekhState();
+  State<Burtguulekh_Guraw> createState() => _Burtguulekh_guraw_state();
 }
 
-class _BurtguulekhState extends State<Burtguulekh_Guraw> {
+// ignore: camel_case_types
+class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
   final _formKey = GlobalKey<FormState>();
   bool _isPhoneSubmitted = false;
   bool _isLoading = false;

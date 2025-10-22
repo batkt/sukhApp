@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/session_service.dart';
 
 class ApiService {
   static const String baseUrl = 'http://103.143.40.46:8084';
-  static const String bearerToken =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZWNjNmFkZDNlYzhhZDM4OWI2NDY5YSIsIm5lciI6Im5paGFvbWEiLCJiYWlndXVsbGFnaWluSWQiOiI2OGVjYzZhZGQzZWM4YWQzODliNjQ2OTciLCJzYWxiYXJ1dWQiOlt7InNhbGJhcmlpbklkIjoiNjhlY2M2YWRkM2VjOGFkMzg5YjY0Njk4IiwiZHV1c2FraE9nbm9vIjoiMjAyNi0xMC0wMVQwOTozMDoxMS4yMTdaIn1dLCJkdXVzYWtoT2dub28iOiIyMDI2LTEwLTAxVDA5OjMwOjExLjIxN1oiLCJpYXQiOjE3NjA2NjQ1MzksImV4cCI6MTc2MDcwNzczOX0.sASrN_gd9S5E1fIk5hviwWN8LedLrmXWNIz-uOcYYiE';
 
   static List<Map<String, dynamic>>? _cachedLocationData;
 
@@ -310,6 +309,7 @@ class ApiService {
         if (loginData['success'] == true && loginData['token'] != null) {
           await StorageService.saveToken(loginData['token']);
           await StorageService.saveUserData(loginData);
+          await SessionService.saveLoginTimestamp();
         }
 
         return loginData;
@@ -321,12 +321,10 @@ class ApiService {
     }
   }
 
-  /// Logout user and clear all stored data
   static Future<void> logoutUser() async {
     await StorageService.clearAuthData();
   }
 
-  /// Get authentication headers with saved token
   static Future<Map<String, String>> getAuthHeaders() async {
     final token = await StorageService.getToken();
     return {
@@ -375,14 +373,11 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        // Check if response contains user data directly (has _id field)
         if (data['_id'] != null) {
           return {'success': true, 'result': data};
         } else if (data['result'] != null) {
           return {'success': true, 'result': data['result']};
-        }
-        // Check if response has success field
-        else if (data['success'] != null) {
+        } else if (data['success'] != null) {
           return data;
         } else {
           throw Exception(data['message'] ?? 'Хэрэглэгчийн мэдээлэл олдсонгүй');
@@ -429,6 +424,30 @@ class ApiService {
     } catch (e) {
       print('Error updating taniltsuulgaKharakhEsekh: $e');
       throw Exception('Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchGeree(String orshinSuugchId) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      // Build URI with query parameters
+      final uri = Uri.parse('$baseUrl/geree').replace(
+        queryParameters: {'query': '{"orshinSuugchId":"$orshinSuugchId"}'},
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Гэрээний мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching geree: $e');
+      throw Exception('Гэрээний мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
 }
