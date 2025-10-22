@@ -431,7 +431,6 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
 
-      // Build URI with query parameters
       final uri = Uri.parse('$baseUrl/geree').replace(
         queryParameters: {'query': '{"orshinSuugchId":"$orshinSuugchId"}'},
       );

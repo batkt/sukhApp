@@ -8,7 +8,7 @@ import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
 import 'package:sukh_app/screens/Home/home.dart';
 import 'package:sukh_app/screens/Tokhirhoo/tokhirgoo.dart';
 import 'package:sukh_app/screens/geree/geree.dart';
-import 'package:sukh_app/screens/Nekhemjlekh/nekhemjlekh.dart';
+import 'package:sukh_app/screens/nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
 import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
 import 'package:sukh_app/screens/mashin/mashin.dart';

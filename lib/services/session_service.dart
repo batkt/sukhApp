@@ -5,20 +5,16 @@ import 'package:sukh_app/core/auth_config.dart';
 
 class SessionService {
   static const String _loginTimestampKey = 'login_timestamp';
-  static const Duration _sessionDuration = Duration(minutes: 1);
+  static const Duration _sessionDuration = Duration(minutes: 5);
 
-  /// Save the current login timestamp
   static Future<void> saveLoginTimestamp() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       await prefs.setInt(_loginTimestampKey, timestamp);
-    } catch (e) {
-      // Silent fail - logging would be better in production
-    }
+    } catch (e) {}
   }
 
-  /// Get the saved login timestamp
   static Future<DateTime?> getLoginTimestamp() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -30,7 +26,6 @@ class SessionService {
     }
   }
 
-  /// Check if the session is still valid
   static Future<bool> isSessionValid() async {
     final loginTime = await getLoginTimestamp();
     if (loginTime == null) return false;
@@ -41,7 +36,6 @@ class SessionService {
     return difference < _sessionDuration;
   }
 
-  /// Get remaining session time
   static Future<Duration?> getRemainingSessionTime() async {
     final loginTime = await getLoginTimestamp();
     if (loginTime == null) return null;
@@ -53,8 +47,6 @@ class SessionService {
     return remaining.isNegative ? Duration.zero : remaining;
   }
 
-  /// Check session and logout if expired
-  /// Returns true if session is valid, false if expired
   static Future<bool> checkAndHandleSession() async {
     final isLoggedIn = await StorageService.isLoggedIn();
 
@@ -95,7 +87,7 @@ class SessionService {
     await saveLoginTimestamp();
   }
 
-  /// Get session info for debugging
+
   static Future<Map<String, dynamic>> getSessionInfo() async {
     final loginTime = await getLoginTimestamp();
     final isValid = await isSessionValid();

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:sukh_app/components/Menu/side_menu.dart';
 import 'package:sukh_app/components/Notifications/notification.dart';
 import 'dart:ui';
-import 'package:sukh_app/widgets/glassmorphism.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/api_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -36,7 +36,53 @@ class _BookingScreenState extends State<NuurKhuudas> {
   bool _isBlur = false;
   DateTime selectedDate = DateTime.now();
   int? selectedDay;
+  int? paymentDay; // Day extracted from gereeniiOgnoo
+  bool isLoadingPaymentDay = true;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPaymentDay();
+  }
+
+  Future<void> _loadPaymentDay() async {
+    try {
+      final userId = await StorageService.getUserId();
+      if (userId == null) return;
+
+      final response = await ApiService.fetchGeree(userId);
+
+      if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+        final List<dynamic> jagsaalt = response['jagsaalt'];
+
+        if (jagsaalt.isNotEmpty) {
+          final firstContract = jagsaalt[0];
+          final gereeniiOgnoo = firstContract['gereeniiOgnoo'] as String?;
+
+          if (gereeniiOgnoo != null) {
+            try {
+              final dateTime = DateTime.parse(gereeniiOgnoo);
+              setState(() {
+                paymentDay = dateTime.day;
+                isLoadingPaymentDay = false;
+              });
+            } catch (e) {
+              print('Error parsing gereeniiOgnoo: $e');
+              setState(() {
+                isLoadingPaymentDay = false;
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading payment day: $e');
+      setState(() {
+        isLoadingPaymentDay = false;
+      });
+    }
+  }
 
   int getDaysInMonth(DateTime date) {
     return DateTime(date.year, date.month + 1, 0).day;
@@ -588,6 +634,8 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
                             bool hasBooking = day == 5 || day == 12;
                             bool isReserved = day == 12;
+                            bool isPaymentDay =
+                                paymentDay != null && day == paymentDay;
 
                             return GestureDetector(
                               onTap: () {
@@ -601,6 +649,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                 isReserved: isReserved,
                                 isSelected: selectedDay == day,
                                 isToday: isToday,
+                                isPaymentDay: isPaymentDay,
                               ),
                             );
                           },
@@ -642,7 +691,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'СӨХ ийн төлбөрөө цөг тухайн бүрт нь төлж байгаарай',
+                                'СӨХ ийн төлбөрөө цаг тухайн бүрт нь төлж байгаарай',
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.6),
                                   fontSize: 13,
@@ -744,6 +793,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
     bool isReserved = false,
     bool isSelected = false,
     bool isToday = false,
+    bool isPaymentDay = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -769,18 +819,18 @@ class _BookingScreenState extends State<NuurKhuudas> {
               fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
             ),
           ),
-          if (hasBooking) ...[
+          if (isPaymentDay) ...[
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: isReserved ? const Color(0xFFe6ff00) : Colors.blue,
+                color: const Color(0xFFFF6B6B),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                isReserved ? 'For one week' : 'Танилц хийх хайх',
-                style: const TextStyle(
-                  color: Colors.black,
+              child: const Text(
+                'Төлөлт хийх өдөр',
+                style: TextStyle(
+                  color: Colors.white,
                   fontSize: 6,
                   fontWeight: FontWeight.w600,
                 ),
