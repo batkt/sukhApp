@@ -55,7 +55,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   List<String> khotkhons = [];
   List<String> sokhs = [];
 
-  // Store full location data from API
   List<Map<String, dynamic>> locationData = [];
 
   bool isLoadingDistricts = false;

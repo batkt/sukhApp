@@ -188,53 +188,35 @@ class ApiService {
     }
   }
 
-  static Future<String?> checkRegisterExists({
-    required String register,
-    required String baiguullagiinId,
+  // Check if phone number is registered for password reset
+  static Future<Map<String, dynamic>> validatePhoneForPasswordReset({
+    required String utas,
   }) async {
     try {
-      // Send only register and baiguullagiinId to check
-      final checkPayload = {
-        'register': register,
-        'baiguullagiinId': baiguullagiinId,
-      };
-
       final response = await http.post(
-        Uri.parse('$baseUrl/davhardsanOrshinSuugchShalgayy'),
+        Uri.parse('$baseUrl/orshinSuugchBatalgaajuulya'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode(checkPayload),
+        body: json.encode({'utas': utas}),
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        // If success is false, return the message (register exists)
-        if (data['success'] == false && data['message'] != null) {
-          return data['message'].toString();
-        }
-
-        // If success is true, register is available
-        if (data['success'] == true) {
-          return null; // Available
-        }
+        return json.decode(response.body);
+      } else if (response.statusCode == 404) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Алдаа гарлаа: ${response.statusCode}');
       }
-
-      return null; // On any other status, allow continuation
     } catch (e) {
-      // On error, return null to allow continuation
-      return null;
+      throw Exception('Алдаа гарлаа: $e');
     }
   }
 
-  // Check if phone number already exists using davhardsanOrshinSuugchShalgayy service
-  // Returns full response data if exists (including baiguullagiinId), null if available
   static Future<Map<String, dynamic>?> checkPhoneExists({
     required String utas,
-    required String baiguullagiinId,
   }) async {
     try {
       // Send only utas and baiguullagiinId to check
-      final checkPayload = {'utas': utas, 'baiguullagiinId': baiguullagiinId};
+      final checkPayload = {'utas': utas};
 
       final response = await http.post(
         Uri.parse('$baseUrl/davhardsanOrshinSuugchShalgayy'),
@@ -245,12 +227,6 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        // If success is false, phone exists - return full data
-        if (data['success'] == false) {
-          return data; // Return full response including baiguullagiinId
-        }
-
-        // If success is true, phone is available
         if (data['success'] == true) {
           return null; // Available
         }
@@ -447,6 +423,42 @@ class ApiService {
     } catch (e) {
       print('Error fetching geree: $e');
       throw Exception('Гэрээний мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchNekhemjlekh({
+    required int khuudasniiDugaar,
+    required int khuudasniiKhemjee,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/nekhemjlekhiinTuukh'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        try {
+          final data = json.decode(response.body);
+          // If the response is a string (like "Amjilttai"), return empty data
+          if (data is String) {
+            print('API returned string instead of JSON: $data');
+            return {'jagsaalt': []};
+          }
+          return data;
+        } catch (e) {
+          print('JSON parsing failed. Response body: ${response.body}');
+          return {'jagsaalt': []};
+        }
+      } else {
+        throw Exception(
+          'Нэхэмжлэхийн мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching nekhemjlekh: $e');
+      throw Exception('Нэхэмжлэхийн мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
 }

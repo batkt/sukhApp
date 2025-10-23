@@ -37,7 +37,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
   bool _isPinVerified = false;
   bool _isLoading = false;
   String _verifiedCode = '';
-  String _baiguullagiinId = '68ecc6add3ec8ad389b64697'; // Default ID
+  String? _baiguullagiinId;
 
   final TextEditingController _phoneController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
@@ -125,19 +125,20 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
       });
 
       try {
-        final phoneCheckResult = await ApiService.checkPhoneExists(
+        // Validate phone number and send verification code
+        final validateResult = await ApiService.validatePhoneForPasswordReset(
           utas: _phoneController.text,
-          baiguullagiinId: _baiguullagiinId,
         );
 
-        if (phoneCheckResult == null) {
+        // Check if validation failed
+        if (validateResult['success'] == false) {
           if (mounted) {
             setState(() {
               _isLoading = false;
             });
             showGlassSnackBar(
               context,
-              message: "Энэ утасны дугаараар бүртгэлгүй байна",
+              message: validateResult['message'] ?? "Дугаар бүртгэлтгүй байна",
               icon: Icons.error,
               iconColor: Colors.red,
             );
@@ -145,28 +146,18 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           return;
         }
 
-        // Phone exists - extract baiguullagiinId from response
-        if (phoneCheckResult['baiguullagiinId'] != null) {
-          _baiguullagiinId = phoneCheckResult['baiguullagiinId'].toString();
-        }
-
-        // Phone exists, now send verification code
-        await ApiService.verifyPhoneNumber(
-          baiguullagiinId: _baiguullagiinId,
-          utas: _phoneController.text,
-          duureg: '',
-          horoo: '',
-          soh: '',
-        );
-
+        // Phone is registered and verification code sent successfully
+        // Store baiguullagiinId from response
         if (mounted) {
           setState(() {
             _isPhoneSubmitted = true;
             _isLoading = false;
+            _baiguullagiinId = validateResult['baiguullagiinId'];
           });
           showGlassSnackBar(
             context,
-            message: "4 оронтой баталгаажуулах код илгээлээ",
+            message:
+                validateResult['message'] ?? "Баталгаажуулах код илгээгдлээ",
             icon: Icons.check_circle,
             iconColor: Colors.green,
           );
@@ -190,7 +181,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         }
       }
     } else if (!_isPinVerified) {
-      // Verify PIN
       String pin = _pinControllers.map((c) => c.text).join();
       if (pin.length == 4) {
         setState(() {
@@ -198,17 +188,21 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         });
 
         try {
+          if (_baiguullagiinId == null) {
+            throw Exception('БайгууллагийнId олдсонгүй');
+          }
+
           await ApiService.verifySecretCode(
             utas: _phoneController.text,
             code: pin,
-            baiguullagiinId: _baiguullagiinId,
+            baiguullagiinId: _baiguullagiinId!,
           );
 
           if (mounted) {
             setState(() {
               _isPinVerified = true;
               _isLoading = false;
-              _verifiedCode = pin; // Store the verified code for password reset
+              _verifiedCode = pin;
             });
             showGlassSnackBar(
               context,
@@ -583,13 +577,10 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                       });
 
                       try {
-                        await ApiService.verifyPhoneNumber(
-                          baiguullagiinId: _baiguullagiinId,
-                          utas: _phoneController.text,
-                          duureg: '',
-                          horoo: '',
-                          soh: '',
-                        );
+                        final resendResult =
+                            await ApiService.validatePhoneForPasswordReset(
+                              utas: _phoneController.text,
+                            );
 
                         if (mounted) {
                           setState(() {
@@ -597,7 +588,9 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                           });
                           showGlassSnackBar(
                             context,
-                            message: "Баталгаажуулах код дахин илгээлээ",
+                            message:
+                                resendResult['message'] ??
+                                "Баталгаажуулах код дахин илгээлээ",
                             icon: Icons.check_circle,
                             iconColor: Colors.green,
                           );

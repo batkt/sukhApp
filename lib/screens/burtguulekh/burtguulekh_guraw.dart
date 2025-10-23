@@ -126,31 +126,29 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             return;
           }
 
-          // Check if phone number already exists before sending verification code
-          final phoneExistsResult = await ApiService.checkPhoneExists(
-            utas: _phoneController.text,
-            baiguullagiinId: baiguullagiinId,
-          );
+          // Check if phone number already exists using orshinSuugchBatalgaajuulya
+          final phoneCheckResult =
+              await ApiService.validatePhoneForPasswordReset(
+                utas: _phoneController.text,
+              );
 
           if (!mounted) return;
 
-          if (phoneExistsResult != null) {
-            // Phone already exists, show error and don't send verification code
+          if (phoneCheckResult['success'] == true) {
+            // Phone already registered - show error and stop
             setState(() {
               _isLoading = false;
             });
             showGlassSnackBar(
               context,
-              message:
-                  phoneExistsResult['message'] ??
-                  'Энэ утасны дугаар аль хэдийн бүртгэлтэй байна',
+              message: 'Бүртгэлтэй дугаар байна',
               icon: Icons.error,
               iconColor: Colors.red,
             );
             return;
           }
 
-          // Phone is available, send verification code
+         
           await ApiService.verifyPhoneNumber(
             baiguullagiinId: baiguullagiinId,
             utas: _phoneController.text,
@@ -198,7 +196,6 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           });
 
           try {
-            // Use baiguullagiinId from AuthConfig (already initialized)
             final baiguullagiinId = AuthConfig.instance.baiguullagiinId;
 
             if (baiguullagiinId == null) {

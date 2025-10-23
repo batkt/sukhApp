@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sukh_app/services/api_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -32,35 +33,48 @@ class NekhemjlekhPage extends StatefulWidget {
 }
 
 class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
-  final List<InvoiceData> invoices = [
-    InvoiceData(
-      id: '1',
-      date: '2025.09.16',
-      amount: '8,302,500.00₮',
-      company: 'Computer Mall',
-      contractNumber: 'ГД2210121',
-      isSelected: false,
-      isExpanded: false,
-    ),
-    InvoiceData(
-      id: '2',
-      date: '2025.09.01',
-      amount: '5,150,000.00₮',
-      company: 'Tech Store',
-      contractNumber: 'ГД2210122',
-      isSelected: false,
-      isExpanded: false,
-    ),
-    InvoiceData(
-      id: '3',
-      date: '2025.08.25',
-      amount: '3,200,000.00₮',
-      company: 'Electronics Hub',
-      contractNumber: 'ГД2210123',
-      isSelected: false,
-      isExpanded: false,
-    ),
-  ];
+  List<NekhemjlekhItem> invoices = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNekhemjlekh();
+  }
+
+  Future<void> _loadNekhemjlekh() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      final response = await ApiService.fetchNekhemjlekh(
+        khuudasniiDugaar: 1,
+        khuudasniiKhemjee: 10,
+      );
+
+      if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+        setState(() {
+          invoices = (response['jagsaalt'] as List)
+              .map((item) => NekhemjlekhItem.fromJson(item))
+              .toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Мэдээлэл олдсонгүй';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Алдаа гарлаа: $e';
+      });
+    }
+  }
 
   bool get allSelected =>
       invoices.isNotEmpty && invoices.every((invoice) => invoice.isSelected);
@@ -72,10 +86,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     double total = 0;
     for (var invoice in invoices) {
       if (invoice.isSelected) {
-        String amountStr = invoice.amount
-            .replaceAll('₮', '')
-            .replaceAll(',', '');
-        total += double.tryParse(amountStr) ?? 0;
+        total += invoice.niitTulbur;
       }
     }
     return '${total.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮';
@@ -456,7 +467,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.5,
         decoration: BoxDecoration(
           color: const Color(0xFF0a0e27),
           borderRadius: const BorderRadius.only(
@@ -466,10 +476,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
@@ -496,102 +507,97 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               ),
             ),
             // Content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    // Price information panel
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Төлөх дүн',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.6),
-                            ),
-                          ),
-                          Text(
-                            totalSelectedAmount,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Price information panel
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
-                    const SizedBox(height: 12),
-                    // Contract information panel
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Гэрээ',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.6),
-                            ),
-                          ),
-                          Text(
-                            '$selectedCount гэрээ',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    // Payment button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _showBankInfoModal();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Банкны аппликешнээр төлөх',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Төлөх дүн',
                           style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                        Text(
+                          totalSelectedAmount,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Contract information panel
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Гэрээ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                        Text(
+                          '$selectedCount гэрээ',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Payment button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showBankInfoModal();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Банкны аппликешнээр төлөх',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -632,151 +638,169 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      if (selectedCount > 0) ...[
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F1119),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.1),
-                            ),
-                          ),
+                child: isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : errorMessage != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                '$selectedCount гэрээ сонгосон байна',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Төлөх дүн: $totalSelectedAmount',
+                                errorMessage!,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton(
-                                      onPressed: _showPaymentModal,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: Colors.black,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 14,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Төлбөр төлөх',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              ElevatedButton(
+                                onPressed: _loadNekhemjlekh,
+                                child: const Text('Дахин оролдох'),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                      ],
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(100),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              offset: const Offset(0, 10),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(100),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(100),
-                            onTap: toggleSelectAll,
-                            splashColor: Colors.white.withOpacity(0.2),
-                            highlightColor: Colors.white.withOpacity(0.1),
+                      )
+                    : Column(
+                        children: [
+                          // Sticky payment section at top
+                          Padding(
+                            padding: const EdgeInsets.all(16),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 20,
-                              ),
-                              alignment: Alignment.center,
+                              padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: AppColors.inputGrayColor.withOpacity(
-                                  0.5,
+                                color: const Color(0xFF0F1119),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.1),
                                 ),
-                                borderRadius: BorderRadius.circular(100),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 20,
-                                    height: 20,
-                                    decoration: BoxDecoration(
-                                      color: allSelected
-                                          ? Colors.white
-                                          : Colors.transparent,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(4),
+                                  Text(
+                                    selectedCount > 0
+                                        ? '$selectedCount гэрээ сонгосон байна'
+                                        : 'Гэрээ сонгоно уу',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
                                     ),
-                                    child: allSelected
-                                        ? const Icon(
-                                            Icons.check,
-                                            color: Colors.black,
-                                            size: 14,
-                                          )
-                                        : null,
                                   ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Бүгдийг сонгох',
-                                    style: TextStyle(
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Төлөх дүн: $totalSelectedAmount',
+                                    style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 16,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: selectedCount > 0
+                                              ? _showPaymentModal
+                                              : null,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.black,
+                                            disabledBackgroundColor: Colors
+                                                .white
+                                                .withOpacity(0.3),
+                                            disabledForegroundColor: Colors
+                                                .black
+                                                .withOpacity(0.3),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 14,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Төлбөр төлөх',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Scrollable invoice list
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: Column(
+                                children: [
+                                  GestureDetector(
+                                    onTap: toggleSelectAll,
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 20,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            color: allSelected
+                                                ? Colors.white
+                                                : Colors.transparent,
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: allSelected
+                                              ? const Icon(
+                                                  Icons.check,
+                                                  color: Colors.black,
+                                                  size: 14,
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Text(
+                                          'Бүгдийг сонгох',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ...invoices.map(
+                                    (invoice) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 16,
+                                      ),
+                                      child: _buildInvoiceCard(invoice),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      ...invoices.map(
-                        (invoice) => Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildInvoiceCard(invoice),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
@@ -785,7 +809,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     );
   }
 
-  Widget _buildInvoiceCard(InvoiceData invoice) {
+  Widget _buildInvoiceCard(NekhemjlekhItem invoice) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -841,7 +865,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              invoice.company,
+                              invoice.displayName,
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 16,
@@ -850,7 +874,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Гэрээ: ${invoice.contractNumber}',
+                              'Гэрээ: ${invoice.gereeniiDugaar}',
                               style: TextStyle(
                                 color: Colors.black.withOpacity(0.6),
                                 fontSize: 12,
@@ -864,7 +888,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            invoice.amount,
+                            invoice.formattedAmount,
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 16,
@@ -873,7 +897,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            invoice.date,
+                            invoice.formattedDate,
                             style: TextStyle(
                               color: Colors.black.withOpacity(0.6),
                               fontSize: 12,
@@ -935,11 +959,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           children: [
                             _buildInfoTitle('Нэхэмжлэгч'),
                             _buildInfoText(
-                              'Байгууллагын нэр:\n${invoice.company}',
+                              'Байгууллагын нэр:\n${invoice.baiguullagiinNer}',
                             ),
-                            _buildInfoText('Регистр: 6688845'),
-                            _buildInfoText('Дансны дугаар:\n5431127001'),
-                            _buildInfoText('Хаяг: sukhbaatar 9th\ndistrict'),
+                            if (invoice.khayag.isNotEmpty)
+                              _buildInfoText('Хаяг: ${invoice.khayag}'),
                           ],
                         ),
                       ),
@@ -948,11 +971,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildInfoTitle('Төлөгч'),
-                            _buildInfoText('Нэр: БамБа-85'),
-                            _buildInfoText('Регистр:\nHM95055105'),
-                            _buildInfoText('Утас:\n89082220８0128555'),
+                            _buildInfoText('Нэр: ${invoice.displayName}'),
+                            if (invoice.register.isNotEmpty)
+                              _buildInfoText('Регистр: ${invoice.register}'),
+                            if (invoice.phoneNumber.isNotEmpty)
+                              _buildInfoText('Утас: ${invoice.phoneNumber}'),
                             _buildInfoText(
-                              'Гэрээний дугаар:\n${invoice.contractNumber}',
+                              'Гэрээний дугаар:\n${invoice.gereeniiDugaar}',
                             ),
                           ],
                         ),
@@ -966,7 +991,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       TextButton(
                         onPressed: () {},
                         child: Text(
-                          'Бараа материал',
+                          'Зардал',
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.7),
                             decoration: TextDecoration.underline,
@@ -976,7 +1001,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       TextButton(
                         onPressed: () {},
                         child: Text(
-                          'Нэмж үнэ',
+                          'Үнэ төлбөр',
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.7),
                             decoration: TextDecoration.underline,
@@ -986,12 +1011,23 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildPriceRow('Өмнөх өр төлбөр', '8,100,000.00₮'),
-                  _buildPriceRow('Энэ сарын төлбөр', '0'),
-                  _buildPriceRow('Нийт үлдэгдэл', '8,100,000.00₮'),
-                  _buildPriceRow('Барьцаа үлдэгдэл', '0.00₮'),
-                  _buildPriceRow('Барьцаа ашиглалт', '0.00₮'),
-                  _buildPriceRow('Алданги үлдэгдэл', '202,500.00₮'),
+                  // Display expenses (zardluud)
+                  if (invoice.medeelel != null &&
+                      invoice.medeelel!.zardluud.isNotEmpty) ...[
+                    const Text(
+                      'Зардлын жагсаалт:',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...invoice.medeelel!.zardluud.map(
+                      (zardal) =>
+                          _buildPriceRow(zardal.ner, zardal.formattedTariff),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -1011,7 +1047,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           ),
                         ),
                         Text(
-                          invoice.amount,
+                          invoice.formattedAmount,
                           style: const TextStyle(
                             color: Colors.black,
                             fontSize: 18,
@@ -1085,23 +1121,137 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 }
 
-// Invoice data model
-class InvoiceData {
+// Nekhemjlekh data models
+class NekhemjlekhItem {
   final String id;
-  final String date;
-  final String amount;
-  final String company;
-  final String contractNumber;
+  final String baiguullagiinNer;
+  final String ovog;
+  final String ner;
+  final String register;
+  final String khayag;
+  final String gereeniiDugaar;
+  final String nekhemjlekhiinOgnoo;
+  final double niitTulbur;
+  final List<String> utas;
+  final NekhemjlekhMedeelel? medeelel;
   bool isSelected;
   bool isExpanded;
 
-  InvoiceData({
+  NekhemjlekhItem({
     required this.id,
-    required this.date,
-    required this.amount,
-    required this.company,
-    required this.contractNumber,
+    required this.baiguullagiinNer,
+    required this.ovog,
+    required this.ner,
+    required this.register,
+    required this.khayag,
+    required this.gereeniiDugaar,
+    required this.nekhemjlekhiinOgnoo,
+    required this.niitTulbur,
+    required this.utas,
+    this.medeelel,
     this.isSelected = false,
     this.isExpanded = false,
   });
+
+  factory NekhemjlekhItem.fromJson(Map<String, dynamic> json) {
+    return NekhemjlekhItem(
+      id: json['_id'] ?? '',
+      baiguullagiinNer: json['baiguullagiinNer'] ?? '',
+      ovog: json['ovog'] ?? '',
+      ner: json['ner'] ?? '',
+      register: json['register'] ?? '',
+      khayag: json['khayag'] ?? '',
+      gereeniiDugaar: json['gereeniiDugaar'] ?? '',
+      nekhemjlekhiinOgnoo: json['nekhemjlekhiinOgnoo'] ?? json['ognoo'] ?? '',
+      niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),
+      utas: json['utas'] != null ? List<String>.from(json['utas']) : [],
+      medeelel: json['medeelel'] != null
+          ? NekhemjlekhMedeelel.fromJson(json['medeelel'])
+          : null,
+    );
+  }
+
+  String get formattedDate {
+    try {
+      final date = DateTime.parse(nekhemjlekhiinOgnoo);
+      return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return nekhemjlekhiinOgnoo;
+    }
+  }
+
+  String get formattedAmount {
+    final formatted = niitTulbur
+        .toStringAsFixed(2)
+        .replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (match) => '${match[1]},',
+        );
+    return '$formatted₮';
+  }
+
+  String get displayName =>
+      '$ovog $ner'.trim().isNotEmpty ? '$ovog $ner' : baiguullagiinNer;
+  String get phoneNumber => utas.isNotEmpty ? utas.first : '';
+}
+
+class NekhemjlekhMedeelel {
+  final List<Zardal> zardluud;
+  final double toot;
+  final String temdeglel;
+
+  NekhemjlekhMedeelel({
+    required this.zardluud,
+    required this.toot,
+    required this.temdeglel,
+  });
+
+  factory NekhemjlekhMedeelel.fromJson(Map<String, dynamic> json) {
+    return NekhemjlekhMedeelel(
+      zardluud: json['zardluud'] != null
+          ? (json['zardluud'] as List).map((z) => Zardal.fromJson(z)).toList()
+          : [],
+      toot: (json['toot'] ?? 0).toDouble(),
+      temdeglel: json['temdeglel'] ?? '',
+    );
+  }
+}
+
+class Zardal {
+  final String ner;
+  final String turul;
+  final double tariff;
+  final String tariffUsgeer;
+  final String zardliinTurul;
+  final double dun;
+
+  Zardal({
+    required this.ner,
+    required this.turul,
+    required this.tariff,
+    required this.tariffUsgeer,
+    required this.zardliinTurul,
+    required this.dun,
+  });
+
+  factory Zardal.fromJson(Map<String, dynamic> json) {
+    return Zardal(
+      ner: json['ner'] ?? '',
+      turul: json['turul'] ?? '',
+      tariff: (json['tariff'] ?? 0).toDouble(),
+      tariffUsgeer: json['tariffUsgeer'] ?? '₮',
+      zardliinTurul: json['zardliinTurul'] ?? '',
+      dun: (json['dun'] ?? 0).toDouble(),
+    );
+  }
+
+  String get formattedTariff {
+    final formatted = tariff
+        .toStringAsFixed(2)
+        .replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (match) => '${match[1]},',
+        );
+    return '$formatted$tariffUsgeer';
+  }
 }

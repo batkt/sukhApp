@@ -5,7 +5,7 @@ import 'package:sukh_app/core/auth_config.dart';
 
 class SessionService {
   static const String _loginTimestampKey = 'login_timestamp';
-  static const Duration _sessionDuration = Duration(minutes: 5);
+  static const Duration _sessionDuration = Duration(minutes: 15);
 
   static Future<void> saveLoginTimestamp() async {
     try {
@@ -86,7 +86,6 @@ class SessionService {
   static Future<void> updateLoginTimestamp() async {
     await saveLoginTimestamp();
   }
-
 
   static Future<Map<String, dynamic>> getSessionInfo() async {
     final loginTime = await getLoginTimestamp();
