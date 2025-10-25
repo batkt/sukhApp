@@ -88,9 +88,9 @@ class SideMenu extends StatelessWidget {
             ),
 
             const Spacer(),
-            Positioned(
-              bottom: 5,
-              child: const Text(
+            const Padding(
+              padding: EdgeInsets.only(bottom: 5),
+              child: Text(
                 'ZevTabs © 2025',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
                 textAlign: TextAlign.center,
