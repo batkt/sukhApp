@@ -23,6 +23,7 @@ class StorageService {
   static const String _tokenKey = 'auth_token';
   static const String _baiguullagiinIdKey = 'baiguullagiinId';
   static const String _baiguullagiinNerKey = 'baiguullagiinNer';
+  static const String _barilgiinIdKey = 'barilgiinId';
   static const String _userIdKey = 'user_id';
   static const String _userNerKey = 'user_ner';
   static const String _duusakhOgnooKey = 'duusakh_ognoo';
@@ -81,6 +82,14 @@ class StorageService {
         await prefs.setString(
           _baiguullagiinNerKey,
           userData['result']['baiguullagiinNer'],
+        );
+      }
+
+      // Save barilgiinId
+      if (userData['result']?['barilgiinId'] != null) {
+        await prefs.setString(
+          _barilgiinIdKey,
+          userData['result']['barilgiinId'],
         );
       }
 
@@ -148,6 +157,17 @@ class StorageService {
     }
   }
 
+  /// Get barilgiinId
+  static Future<String?> getBarilgiinId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_barilgiinIdKey);
+    } catch (e) {
+      print('Error getting barilgiinId: $e');
+      return null;
+    }
+  }
+
   /// Get duusakhOgnoo (expiration date)
   static Future<String?> getDuusakhOgnoo() async {
     try {
@@ -202,6 +222,7 @@ class StorageService {
       await prefs.remove(_userNerKey);
       await prefs.remove(_baiguullagiinIdKey);
       await prefs.remove(_baiguullagiinNerKey);
+      await prefs.remove(_barilgiinIdKey);
       await prefs.remove(_duusakhOgnooKey);
       await prefs.remove(_taniltsuulgaKharakhEsekhKey);
       return true;

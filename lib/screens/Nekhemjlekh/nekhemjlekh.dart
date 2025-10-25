@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -36,11 +38,136 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   List<NekhemjlekhItem> invoices = [];
   bool isLoading = true;
   String? errorMessage;
+  List<QPayBank> qpayBanks = [];
+  bool isLoadingQPay = false;
 
   @override
   void initState() {
     super.initState();
     _loadNekhemjlekh();
+    _loadBaiguullaga();
+  }
+
+  Map<String, dynamic>? baiguullagaData;
+
+  Future<void> _loadBaiguullaga() async {
+    try {
+      print('Loading baiguullaga data...');
+      final response = await ApiService.fetchBaiguullaga();
+      baiguullagaData = response;
+      print('Baiguullaga data loaded: ${response['niitMur']} organizations');
+    } catch (e) {
+      print('Error loading baiguullaga: $e');
+    }
+  }
+
+  Future<void> _createQPayInvoice() async {
+    print('=== Starting QPay Invoice Creation ===');
+    setState(() {
+      isLoadingQPay = true;
+    });
+
+    try {
+      // Get user data from storage
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+
+      print('BaiguullagiinId: $baiguullagiinId');
+      print('BarilgiinId: $barilgiinId');
+
+      if (baiguullagiinId == null || barilgiinId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      // Get baiguullaga register from baiguullaga data
+      String? burtgeliinDugaar;
+
+      if (baiguullagaData != null && baiguullagaData!['jagsaalt'] != null) {
+        final jagsaalt = baiguullagaData!['jagsaalt'] as List;
+        for (var item in jagsaalt) {
+          if (item['_id'] == baiguullagiinId) {
+            burtgeliinDugaar = item['register']?.toString() ?? '';
+            print('Found register from baiguullaga: $burtgeliinDugaar');
+            break;
+          }
+        }
+      }
+
+      if (burtgeliinDugaar == null || burtgeliinDugaar.isEmpty) {
+        throw Exception('Байгууллагын регистр олдсонгүй');
+      }
+
+      // Calculate total amount and get first selected invoice ID
+      double totalAmount = 0;
+      String? selectedInvoiceId;
+
+      for (var invoice in invoices) {
+        if (invoice.isSelected) {
+          totalAmount += invoice.niitTulbur;
+          // Get the first selected invoice ID if not set yet
+          if (selectedInvoiceId == null) {
+            selectedInvoiceId = invoice.id;
+          }
+        }
+      }
+
+      if (selectedInvoiceId == null || selectedInvoiceId.isEmpty) {
+        throw Exception('Нэхэмжлэх сонгоогүй байна');
+      }
+
+      print('Total amount: $totalAmount');
+      print('Selected count: $selectedCount');
+      print('Selected invoice ID: $selectedInvoiceId');
+
+      // Create timestamp for order number
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final orderNumber = 'TEST-$timestamp';
+
+      print('Order number: $orderNumber');
+      print('Calling QPay API...');
+
+      // Call QPay API
+      final response = await ApiService.qpayGargaya(
+        baiguullagiinId: baiguullagiinId,
+        barilgiinId: barilgiinId,
+        dun: totalAmount,
+        turul: 'Test Payment',
+        zakhialgiinDugaar: orderNumber,
+        dansniiDugaar: '3455153452',
+        burtgeliinDugaar: burtgeliinDugaar,
+        nekhemjlekhiinId: selectedInvoiceId,
+      );
+
+      print('QPay API Response: $response');
+
+      // Parse bank URLs from response
+      if (response['urls'] != null && response['urls'] is List) {
+        print('Found ${response['urls'].length} banks');
+        setState(() {
+          qpayBanks = (response['urls'] as List)
+              .map((bank) => QPayBank.fromJson(bank))
+              .toList();
+          isLoadingQPay = false;
+        });
+        print('QPay banks loaded successfully');
+      } else {
+        throw Exception('Банкны мэдээлэл олдсонгүй');
+      }
+    } catch (e) {
+      print('QPay Error: $e');
+      setState(() {
+        isLoadingQPay = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Алдаа гарлаа: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadNekhemjlekh() async {
@@ -101,101 +228,111 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     });
   }
 
-  void _showBankInfoModal() {
+  void _showBankInfoModal() async {
+    // First, create the QPay invoice
+    await _createQPayInvoice();
+
+    if (!mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: const BoxDecoration(
-            color: Color(0xFF0a0e27),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
-            ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Column(
-                children: [
-                  // Handle bar
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Банкны мэдээлэл',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Bank list
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      children: [
-                        _buildBankItem(
-                          bankName: 'Хаан банк',
-                          accountNumber: '5000 1234 5678',
-                          accountName: 'SUKH APP',
-                          logoImage: 'lib/assets/img/khan_bank.png',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildBankItem(
-                          bankName: 'Худалдаа хөгжлийн банк',
-                          accountNumber: '4212 9876 5432',
-                          accountName: 'SUKH APP',
-                          logoImage: 'lib/assets/img/tdb_bank.png',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildBankItem(
-                          bankName: 'Social Pay',
-                          accountNumber: '3100 5555 8888',
-                          accountName: 'SUKH APP',
-                          logoImage: 'lib/assets/img/social_pay.png',
-                          onTap: _showSocialPayQRModal,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildBankItem(
-                          bankName: 'Төрийн банк',
-                          accountNumber: '1000 7777 9999',
-                          accountName: 'SUKH APP',
-                          logoImage: 'lib/assets/img/turiin_bank.png',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0a0e27),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
               ),
-            ),
-          ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Column(
+                    children: [
+                      // Handle bar
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Банк сонгох',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Bank grid
+                      Expanded(
+                        child: isLoadingQPay
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              )
+                            : qpayBanks.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'Банкны мэдээлэл олдсонгүй',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              )
+                            : GridView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
+                                ),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 0.85,
+                                    ),
+                                itemCount: qpayBanks.length,
+                                itemBuilder: (context, index) {
+                                  final bank = qpayBanks[index];
+                                  return _buildQPayBankItem(bank);
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -364,6 +501,208 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             ),
           );
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Алдаа гарлаа: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildQPayBankItem(QPayBank bank) {
+    return GestureDetector(
+      onTap: () => _openBankApp(bank.link),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Bank logo
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  bank.logo,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.account_balance,
+                      color: Colors.grey,
+                      size: 30,
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Bank name
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                bank.description,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openBankApp(String deepLink) async {
+    try {
+      final Uri bankUri = Uri.parse(deepLink);
+
+      print('Attempting to launch bank app with URL: $deepLink');
+
+      // Try to launch the bank app
+      bool launched = false;
+      try {
+        launched = await launchUrl(
+          bankUri,
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (e) {
+        print('Error launching bank app: $e');
+        launched = false;
+      }
+
+      if (launched) {
+        // Successfully opened the app
+        print('Bank app launched successfully');
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      } else {
+        // App not installed - show options to install or use alternative
+        if (mounted) {
+          _showBankAppNotInstalledDialog(deepLink);
+        }
+      }
+    } catch (e) {
+      print('Error in _openBankApp: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Алдаа гарлаа: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBankAppNotInstalledDialog(String deepLink) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0a0e27),
+          title: const Text(
+            'Банкны апп олдсонгүй',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Банкны апп суулгагдаагүй эсвэл нээгдэхгүй байна. Та апп татах эсвэл QR кодыг хуулж авах уу?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Болих',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _copyQRCodeToClipboard(deepLink);
+              },
+              child: const Text(
+                'QR код хуулах',
+                style: TextStyle(color: Color(0xFFe6ff00)),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _openAppStore();
+              },
+              child: const Text(
+                'Апп татах',
+                style: TextStyle(color: Color(0xFFe6ff00)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _copyQRCodeToClipboard(String qrData) {
+    // Extract just the QR code part from the deep link
+    final qrMatch = RegExp(r'qPay_QRcode=([^&]+)').firstMatch(qrData);
+    if (qrMatch != null) {
+      final qrCode = Uri.decodeComponent(qrMatch.group(1) ?? '');
+      Clipboard.setData(ClipboardData(text: qrCode));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QR код хуулагдлаа'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QR код олдсонгүй'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openAppStore() async {
+    // XacBank app store links
+    // You may need to find the actual app IDs for XacBank
+    String appStoreUrl = '';
+
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      // iOS App Store link
+      appStoreUrl =
+          'https://apps.apple.com/mn/app/xacbank/id1234567890'; // Replace with actual ID
+    } else {
+      // Android Play Store link
+      appStoreUrl =
+          'https://play.google.com/store/apps/details?id=mn.xacbank.mobile'; // Replace with actual package name
+    }
+
+    try {
+      final uri = Uri.parse(appStoreUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
       if (mounted) {
@@ -1253,5 +1592,29 @@ class Zardal {
           (match) => '${match[1]},',
         );
     return '$formatted$tariffUsgeer';
+  }
+}
+
+// QPay Bank model
+class QPayBank {
+  final String name;
+  final String description;
+  final String logo;
+  final String link;
+
+  QPayBank({
+    required this.name,
+    required this.description,
+    required this.logo,
+    required this.link,
+  });
+
+  factory QPayBank.fromJson(Map<String, dynamic> json) {
+    return QPayBank(
+      name: json['name'] ?? '',
+      description: json['description'] ?? '',
+      logo: json['logo'] ?? '',
+      link: json['link'] ?? '',
+    );
   }
 }

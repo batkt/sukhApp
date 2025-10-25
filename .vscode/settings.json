@@ -1,0 +1,7 @@
+{
+  "dart.flutterSelectDeviceWhenConnected": false,
+  "dart.previewFlutterUiGuides": true,
+  "dart.debugExternalPackageLibraries": false,
+  "dart.debugSdkLibraries": false,
+  "dart.flutterPlatform": "android"
+}

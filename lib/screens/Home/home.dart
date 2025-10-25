@@ -207,7 +207,10 @@ class _BookingScreenState extends State<NuurKhuudas> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -232,11 +235,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           },
                           borderRadius: BorderRadius.circular(100),
                           child: Padding(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(10),
                             child: Icon(
                               Icons.menu_rounded,
                               color: Colors.white.withOpacity(0.3),
-                              size: 30,
+                              size: 26,
                             ),
                           ),
                         ),
@@ -311,11 +314,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                   },
                                   borderRadius: BorderRadius.circular(100),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(8),
+                                    padding: const EdgeInsets.all(7),
                                     child: Icon(
                                       Icons.notifications_rounded,
                                       color: Colors.white.withOpacity(0.3),
-                                      size: 36,
+                                      size: 30,
                                     ),
                                   ),
                                 ),
@@ -559,11 +562,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               },
                               borderRadius: BorderRadius.circular(100),
                               child: Padding(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(10),
                                 child: Icon(
                                   Icons.person_rounded,
                                   color: Colors.white.withOpacity(0.3),
-                                  size: 30,
+                                  size: 26,
                                 ),
                               ),
                             ),
@@ -588,7 +591,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 28,
+                            fontSize: 22,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -596,7 +599,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           '${_formatNumberWithComma(totalNiitTulbur)}₮',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 38,
+                            fontSize: 34,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -642,175 +645,210 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 ),
               ),
 
-              const SizedBox(height: 40),
-
-              // Payment Date Display Section
-              Expanded(
-                child: isLoadingPaymentData
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFFe6ff00),
-                        ),
-                      )
-                    : gereeData == null
-                    ? const Center(
-                        child: Text(
-                          'Төлбөрийн мэдээлэл олдсонгүй',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
-                        ),
-                      )
-                    : paymentDate == null
-                    ? const Center(
-                        child: Text(
-                          'Төлбөрийн огноо тохируулаагүй байна',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
-                        ),
-                      )
-                    : _buildPaymentDisplay(),
-              ),
-
               const SizedBox(height: 20),
 
-              // Contract Information Container
-              if (gereeData != null)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2D3748), Color(0xFF1A202C)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+              // Payment Date Display Section with scrollable content
+              Expanded(
+                child: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Гэрээний мэдээлэл',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Гэрээний дугаар: ${gereeData!.gereeniiDugaar}',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontSize: 14,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Барилгын нэр: ${gereeData!.bairNer}',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.6),
-                                    fontSize: 13,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Давхар: ${gereeData!.davkhar}',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.6),
-                                    fontSize: 13,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Тоот: ${gereeData!.toot}',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.6),
-                                    fontSize: 13,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
+                      if (isLoadingPaymentData)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 100),
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFe6ff00),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                        )
+                      else if (gereeData == null)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 100),
+                            child: Text(
+                              'Төлбөрийн мэдээлэл олдсонгүй',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (paymentDate == null)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 100),
+                            child: Text(
+                              'Төлбөрийн огноо тохируулаагүй байна',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        _buildPaymentDisplay(),
 
-                      Row(
-                        children: List.generate(
-                          150 ~/ 6,
-                          (index) => Expanded(
-                            child: Container(
-                              color: index % 2 == 0
-                                  ? Colors.white.withOpacity(0.3)
-                                  : Colors.transparent,
-                              height: 1,
+                      const SizedBox(height: 20),
+
+                      // Contract Information Container
+                      if (gereeData != null)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF2D3748), Color(0xFF1A202C)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Алдангт:',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Гэрээний мэдээлэл',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Гэрээний дугаар: ${gereeData!.gereeniiDugaar}',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(
+                                              0.8,
+                                            ),
+                                            fontSize: 14,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Барилгын нэр: ${gereeData!.bairNer}',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(
+                                              0.6,
+                                            ),
+                                            fontSize: 13,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Давхар: ${gereeData!.davkhar}',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(
+                                              0.6,
+                                            ),
+                                            fontSize: 13,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Тоот: ${gereeData!.toot}',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(
+                                              0.6,
+                                            ),
+                                            fontSize: 13,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              Row(
+                                children: List.generate(
+                                  150 ~/ 6,
+                                  (index) => Expanded(
+                                    child: Container(
+                                      color: index % 2 == 0
+                                          ? Colors.white.withOpacity(0.3)
+                                          : Colors.transparent,
+                                      height: 1,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${gereeData!.baritsaaniiUldegdel.toStringAsFixed(0)} ₮',
-                                style: const TextStyle(
-                                  color: Color(0xFFFF6B6B),
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Алдангт:',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${gereeData!.baritsaaniiUldegdel.toStringAsFixed(0)} ₮',
+                                        style: const TextStyle(
+                                          color: Color(0xFFFF6B6B),
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      const Text(
+                                        'Төлөх хугацаа:',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        formatDate(gereeData!.tulukhOgnoo),
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text(
-                                'Төлөх хугацаа:',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                formatDate(gereeData!.tulukhOgnoo),
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        ),
+
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
+              ),
             ],
           ),
         ),

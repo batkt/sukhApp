@@ -4,26 +4,19 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-    
     {
-      "name": "sukh_app",
+      "name": "sukh_app (Android)",
       "request": "launch",
       "type": "dart",
-      "deviceId": "adb-R58M52PQR3A-VbfJK2._adb-tls-connect._tcp"
+      "args": ["-d", "android-x64"]
     },
-    {
-      "name": "sukh_app (profile mode)",
-      "request": "launch",
-      "type": "dart",
-      "flutterMode": "profile",
-      "deviceId": "adb-R58M52PQR3A-VbfJK2._adb-tls-connect._tcp"
-    },
+
     {
       "name": "sukh_app (release mode)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "release",
-      "deviceId": "adb-R58M52PQR3A-VbfJK2._adb-tls-connect._tcp"
+      "args": ["-d", "android"]
     }
   ]
 }

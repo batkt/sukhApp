@@ -278,7 +278,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
                                             if (mounted) {
                                               // Check if we should show onboarding
-                                              final taniltsuulgaKharakhEsekh = await StorageService.getTaniltsuulgaKharakhEsekh();
+                                              final taniltsuulgaKharakhEsekh =
+                                                  await StorageService.getTaniltsuulgaKharakhEsekh();
 
                                               setState(() {
                                                 _isLoading = false;

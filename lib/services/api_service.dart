@@ -461,4 +461,74 @@ class ApiService {
       throw Exception('Нэхэмжлэхийн мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
+
+  static Future<Map<String, dynamic>> fetchBaiguullaga({
+    int khuudasniiDugaar = 1,
+    int khuudasniiKhemjee = 100,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final uri = Uri.parse('$baseUrl/baiguullaga').replace(
+        queryParameters: {
+          'khuudasniiDugaar': khuudasniiDugaar.toString(),
+          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+        },
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Байгууллагын мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching baiguullaga: $e');
+      throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> qpayGargaya({
+    required String baiguullagiinId,
+    required String barilgiinId,
+    required double dun,
+    required String turul,
+    required String zakhialgiinDugaar,
+    required String dansniiDugaar,
+    required String burtgeliinDugaar,
+    required String nekhemjlekhiinId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/qpayGargaya'),
+        headers: headers,
+        body: json.encode({
+          'baiguullagiinId': baiguullagiinId,
+          'barilgiinId': barilgiinId,
+          'dun': dun,
+          'turul': turul,
+          'zakhialgiinDugaar': zakhialgiinDugaar,
+          'dansniiDugaar': dansniiDugaar,
+          'burtgeliinDugaar': burtgeliinDugaar,
+          'nekhemjlekhiinId': nekhemjlekhiinId,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error creating QPay payment: $e');
+      throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
 }
