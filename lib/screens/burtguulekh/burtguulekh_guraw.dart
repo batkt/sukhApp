@@ -7,6 +7,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/core/auth_config.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_dorow.dart';
+import 'package:sukh_app/widgets/app_logo.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -104,12 +105,8 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
         });
 
         try {
-          // Get dynamic baiguullagiinId from AuthConfig
-          final baiguullagiinId = await AuthConfig.instance.initialize(
-            duureg: widget.locationData?['duureg'],
-            districtCode: widget.locationData?['horoo'],
-            sohCode: widget.locationData?['soh'],
-          );
+          // Get baiguullagiinId from locationData passed from previous screen
+          final baiguullagiinId = widget.locationData?['baiguullagiinId'];
 
           if (baiguullagiinId == null) {
             if (mounted) {
@@ -125,6 +122,13 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             }
             return;
           }
+
+          // Also initialize AuthConfig for consistency
+          await AuthConfig.instance.initialize(
+            duureg: widget.locationData?['duureg'],
+            districtCode: widget.locationData?['horoo'],
+            sohCode: widget.locationData?['soh'],
+          );
 
           // Check if phone number already exists using orshinSuugchBatalgaajuulya
           final phoneCheckResult =
@@ -148,7 +152,6 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             return;
           }
 
-         
           await ApiService.verifyPhoneNumber(
             baiguullagiinId: baiguullagiinId,
             utas: _phoneController.text,
@@ -196,7 +199,8 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           });
 
           try {
-            final baiguullagiinId = AuthConfig.instance.baiguullagiinId;
+            // Get baiguullagiinId from locationData passed from previous screen
+            final baiguullagiinId = widget.locationData?['baiguullagiinId'];
 
             if (baiguullagiinId == null) {
               if (mounted) {
@@ -295,29 +299,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minHeight: 80,
-                                  maxHeight: 154,
-                                  minWidth: 154,
-                                  maxWidth: 154,
-                                ),
-                                child: AspectRatio(
-                                  aspectRatio: 1,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(36),
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(
-                                        sigmaX: 10,
-                                        sigmaY: 10,
-                                      ),
-                                      child: Container(
-                                        color: Colors.white.withOpacity(0.2),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              const AppLogo(),
                               const SizedBox(height: 30),
                               const Text(
                                 'Бүртгэл',

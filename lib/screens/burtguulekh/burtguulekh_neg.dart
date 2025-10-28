@@ -8,6 +8,7 @@ import 'package:top_snackbar_flutter/top_snack_bar.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/core/auth_config.dart';
+import 'package:sukh_app/widgets/app_logo.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -46,13 +47,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   String? selectedKhotkhon;
   String? selectedSOKH;
   String? selectedBaiguullagiinId;
+  String? selectedDistrictCode; // Store districtCode for API
+  String? selectedHorooKod; // Store horoo.kod for API
 
   bool isDistrictOpen = false;
   bool isKhotkhonOpen = false;
   bool isSOKHOpen = false;
 
   List<String> districts = [];
-  List<String> khotkhons = [];
+  List<Map<String, String>> khotkhons = [];
   List<String> sokhs = [];
 
   List<Map<String, dynamic>> locationData = [];
@@ -78,14 +81,14 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       if (mounted) {
         setState(() {
           locationData = data;
-          // Extract unique districts
+
           districts = data
               .where(
                 (item) =>
-                    item['duureg'] != null &&
-                    item['duureg'].toString().isNotEmpty,
+                    item['duuregNer'] != null &&
+                    item['duuregNer'].toString().isNotEmpty,
               )
-              .map((item) => item['duureg'].toString())
+              .map((item) => item['duuregNer'].toString())
               .toSet()
               .toList();
           isLoadingDistricts = false;
@@ -112,29 +115,45 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       selectedKhotkhon = null;
       selectedSOKH = null;
       selectedBaiguullagiinId = null;
+      selectedHorooKod = null;
       khotkhons = [];
       sokhs = [];
     });
 
     try {
-      // Filter location data by selected district
+      // Filter location data by selected district using duuregNer
       final filteredData = locationData
           .where(
             (item) =>
-                item['duureg'] == district &&
-                item['districtCode'] != null &&
-                item['districtCode'].toString().isNotEmpty,
+                item['duuregNer'] == district &&
+                item['horoo'] != null &&
+                item['horoo']['ner'] != null,
           )
           .toList();
 
-      final uniqueKhotkhons = filteredData
-          .map((item) => item['districtCode'].toString())
-          .toSet()
+      // Get baiguullagiinId from the first matching record for this district
+      String? districtBaiguullagiinId;
+      if (filteredData.isNotEmpty &&
+          filteredData[0]['baiguullagiinId'] != null) {
+        districtBaiguullagiinId = filteredData[0]['baiguullagiinId'].toString();
+      }
+
+      // Extract unique horoos (ner and kod)
+      final uniqueHoroos = <String, String>{};
+      for (var item in filteredData) {
+        final horooNer = item['horoo']['ner'].toString();
+        final horooKod = item['horoo']['kod'].toString();
+        uniqueHoroos[horooNer] = horooKod;
+      }
+
+      final horooList = uniqueHoroos.entries
+          .map((e) => {'ner': e.key, 'kod': e.value})
           .toList();
 
       if (mounted) {
         setState(() {
-          khotkhons = uniqueKhotkhons;
+          khotkhons = horooList;
+          selectedBaiguullagiinId = districtBaiguullagiinId;
           isLoadingKhotkhon = false;
         });
       }
@@ -145,7 +164,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         });
         showGlassSnackBar(
           context,
-          message: 'Хотхон мэдээлэл татахад алдаа гарлаа: $e',
+          message: 'Хороо мэдээлэл татахад алдаа гарлаа: $e',
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -153,7 +172,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     }
   }
 
-  Future<void> _loadSOKHs(String khotkhon) async {
+  Future<void> _loadSOKHs(String horooNer) async {
     setState(() {
       isLoadingSOKH = true;
       selectedSOKH = null;
@@ -162,12 +181,13 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     });
 
     try {
-      // Filter location data by selected district and khotkhon
+      // Filter location data by selected district and horoo
       final filteredData = locationData
           .where(
             (item) =>
-                item['duureg'] == selectedDistrict &&
-                item['districtCode'] == khotkhon &&
+                item['duuregNer'] == selectedDistrict &&
+                item['horoo'] != null &&
+                item['horoo']['ner'] == horooNer &&
                 item['sohCode'] != null &&
                 item['sohCode'].toString().isNotEmpty,
           )
@@ -205,11 +225,12 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     if (selectedDistrict != null &&
         selectedKhotkhon != null &&
         selectedSOKH != null) {
-      // Find matching location data
+      // Find matching location data using new structure
       final matchingData = locationData.firstWhere(
         (item) =>
-            item['duureg'] == selectedDistrict &&
-            item['districtCode'] == selectedKhotkhon &&
+            item['duuregNer'] == selectedDistrict &&
+            item['horoo'] != null &&
+            item['horoo']['ner'] == selectedKhotkhon &&
             item['sohCode'] == selectedSOKH,
         orElse: () => {},
       );
@@ -217,6 +238,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       if (matchingData.isNotEmpty && matchingData['baiguullagiinId'] != null) {
         setState(() {
           selectedBaiguullagiinId = matchingData['baiguullagiinId'].toString();
+          selectedDistrictCode = matchingData['districtCode']?.toString();
+          selectedHorooKod = matchingData['horoo']['kod']?.toString();
         });
       }
     }
@@ -229,16 +252,18 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         // Initialize AuthConfig with selected location (async operation)
         AuthConfig.instance.initialize(
           duureg: selectedDistrict,
-          districtCode: selectedKhotkhon,
+          districtCode:
+              selectedHorooKod, // Use horoo.kod (may be null if not selected yet)
           sohCode: selectedSOKH,
         );
 
         // Store location data to pass to next screen
         final locationDataToPass = {
           'duureg': selectedDistrict,
-          'horoo': selectedKhotkhon,
+          'horoo': selectedHorooKod, // Pass horoo.kod for API (may be null)
           'soh': selectedSOKH,
-          'baiguullagiinId': selectedBaiguullagiinId,
+          'baiguullagiinId':
+              selectedBaiguullagiinId, // This is now set when district is selected
         };
 
         showGlassSnackBar(
@@ -301,31 +326,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      minHeight: 80,
-                                      maxHeight: 154,
-                                      minWidth: 154,
-                                      maxWidth: 154,
-                                    ),
-                                    child: AspectRatio(
-                                      aspectRatio: 1,
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(36),
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(
-                                            sigmaX: 10,
-                                            sigmaY: 10,
-                                          ),
-                                          child: Container(
-                                            color: Colors.white.withOpacity(
-                                              0.2,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                  const AppLogo(),
                                   const SizedBox(height: 30),
                                   const Text(
                                     'Бүртгэл',
@@ -660,7 +661,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                 Text(
                                                   isLoadingKhotkhon
                                                       ? 'Уншиж байна...'
-                                                      : 'Хотхон сонгох',
+                                                      : 'Хороо сонгох',
                                                   style: const TextStyle(
                                                     color: Colors.white70,
                                                     fontSize: 15,
@@ -674,7 +675,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                 (
                                                   khotkhon,
                                                 ) => DropdownMenuItem<String>(
-                                                  value: khotkhon,
+                                                  value: khotkhon['ner'],
                                                   child: Row(
                                                     children: [
                                                       Icon(
@@ -685,7 +686,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                       ),
                                                       const SizedBox(width: 12),
                                                       Text(
-                                                        khotkhon,
+                                                        khotkhon['ner']!,
                                                         style: const TextStyle(
                                                           color: Colors.white,
                                                           fontSize: 15,
@@ -715,7 +716,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                     ),
                                                     const SizedBox(width: 12),
                                                     Text(
-                                                      khotkhon,
+                                                      khotkhon['ner']!,
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 15,
@@ -746,7 +747,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           validator: (value) {
                                             if (value == null ||
                                                 value.isEmpty) {
-                                              return '                                           Хотхон сонгоно уу';
+                                              return '                                           Хороо сонгоно уу';
                                             }
                                             return null;
                                           },

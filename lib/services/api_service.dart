@@ -441,7 +441,7 @@ class ApiService {
       if (response.statusCode == 200) {
         try {
           final data = json.decode(response.body);
-          // If the response is a string (like "Amjilttai"), return empty data
+
           if (data is String) {
             print('API returned string instead of JSON: $data');
             return {'jagsaalt': []};
@@ -459,6 +459,48 @@ class ApiService {
     } catch (e) {
       print('Error fetching nekhemjlekh: $e');
       throw Exception('Нэхэмжлэхийн мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchNekhemjlekhiinTuukh({
+    required String gereeniiDugaar,
+    int khuudasniiDugaar = 1,
+    int khuudasniiKhemjee = 10,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final queryObject = json.encode({'gereeniiDugaar': gereeniiDugaar});
+
+      final uri = Uri.parse(
+        '$baseUrl/nekhemjlekhiinTuukh',
+      ).replace(queryParameters: {'query': queryObject});
+
+      print('Fetching nekhemjlekhiinTuukh with URL: $uri');
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        try {
+          final data = json.decode(response.body);
+
+          if (data is String) {
+            print('API returned string instead of JSON: $data');
+            return {'jagsaalt': []};
+          }
+          return data;
+        } catch (e) {
+          print('JSON parsing failed. Response body: ${response.body}');
+          return {'jagsaalt': []};
+        }
+      } else {
+        throw Exception(
+          'Нэхэмжлэхийн түүх татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching nekhemjlekhiinTuukh: $e');
+      throw Exception('Нэхэмжлэхийн түүх татахад алдаа гарлаа: $e');
     }
   }
 

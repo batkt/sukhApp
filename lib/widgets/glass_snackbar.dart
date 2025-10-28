@@ -46,5 +46,7 @@ void showGlassSnackBar(
         ),
       ),
     ),
+    dismissType: DismissType.onSwipe,
+    dismissDirection: [DismissDirection.up],
   );
 }

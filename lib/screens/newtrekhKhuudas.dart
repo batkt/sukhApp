@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/widgets/app_logo.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -76,29 +76,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                minHeight: 80,
-                                maxHeight: 154,
-                                minWidth: 154,
-                                maxWidth: 154,
-                              ),
-                              child: AspectRatio(
-                                aspectRatio: 1,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(36),
-                                  child: BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                      sigmaX: 10,
-                                      sigmaY: 10,
-                                    ),
-                                    child: Container(
-                                      color: Colors.white.withOpacity(0.2),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                            const AppLogo(),
                             const SizedBox(height: 30),
                             Text(
                               'Тавтай морил',

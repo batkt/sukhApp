@@ -45,20 +45,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   void initState() {
     super.initState();
     _loadNekhemjlekh();
-    _loadBaiguullaga();
-  }
-
-  Map<String, dynamic>? baiguullagaData;
-
-  Future<void> _loadBaiguullaga() async {
-    try {
-      print('Loading baiguullaga data...');
-      final response = await ApiService.fetchBaiguullaga();
-      baiguullagaData = response;
-      print('Baiguullaga data loaded: ${response['niitMur']} organizations');
-    } catch (e) {
-      print('Error loading baiguullaga: $e');
-    }
   }
 
   Future<void> _createQPayInvoice() async {
@@ -79,34 +65,18 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
-      // Get baiguullaga register from baiguullaga data
-      String? burtgeliinDugaar;
-
-      if (baiguullagaData != null && baiguullagaData!['jagsaalt'] != null) {
-        final jagsaalt = baiguullagaData!['jagsaalt'] as List;
-        for (var item in jagsaalt) {
-          if (item['_id'] == baiguullagiinId) {
-            burtgeliinDugaar = item['register']?.toString() ?? '';
-            print('Found register from baiguullaga: $burtgeliinDugaar');
-            break;
-          }
-        }
-      }
-
-      if (burtgeliinDugaar == null || burtgeliinDugaar.isEmpty) {
-        throw Exception('Байгууллагын регистр олдсонгүй');
-      }
-
-      // Calculate total amount and get first selected invoice ID
       double totalAmount = 0;
       String? selectedInvoiceId;
+      String? burtgeliinDugaar;
 
       for (var invoice in invoices) {
         if (invoice.isSelected) {
           totalAmount += invoice.niitTulbur;
-          // Get the first selected invoice ID if not set yet
+
           if (selectedInvoiceId == null) {
             selectedInvoiceId = invoice.id;
+            // Get register from the first selected invoice
+            burtgeliinDugaar = invoice.register;
           }
         }
       }
@@ -115,18 +85,22 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         throw Exception('Нэхэмжлэх сонгоогүй байна');
       }
 
+      if (burtgeliinDugaar == null || burtgeliinDugaar.isEmpty) {
+        throw Exception('Байгууллагын регистр олдсонгүй');
+      }
+
+      print('Using register from invoice: $burtgeliinDugaar');
+
       print('Total amount: $totalAmount');
       print('Selected count: $selectedCount');
       print('Selected invoice ID: $selectedInvoiceId');
 
-      // Create timestamp for order number
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final orderNumber = 'TEST-$timestamp';
 
       print('Order number: $orderNumber');
       print('Calling QPay API...');
 
-      // Call QPay API
       final response = await ApiService.qpayGargaya(
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,
@@ -177,25 +151,62 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         errorMessage = null;
       });
 
-      final response = await ApiService.fetchNekhemjlekh(
-        khuudasniiDugaar: 1,
-        khuudasniiKhemjee: 10,
-      );
+      // Step 1: Get orshinSuugchId from storage
+      final orshinSuugchId = await StorageService.getUserId();
 
-      if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
-        setState(() {
-          invoices = (response['jagsaalt'] as List)
-              .map((item) => NekhemjlekhItem.fromJson(item))
-              .toList();
-          isLoading = false;
-        });
+      if (orshinSuugchId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      // Step 2: Fetch geree data to get gereeniiDugaar
+      print('Fetching geree data for orshinSuugchId: $orshinSuugchId');
+      final gereeResponse = await ApiService.fetchGeree(orshinSuugchId);
+
+      print('Geree response: $gereeResponse');
+
+      // Step 3: Extract gereeniiDugaar from the first contract in the list
+      if (gereeResponse['jagsaalt'] != null &&
+          gereeResponse['jagsaalt'] is List &&
+          (gereeResponse['jagsaalt'] as List).isNotEmpty) {
+        final firstGeree = (gereeResponse['jagsaalt'] as List)[0];
+        final gereeniiDugaar = firstGeree['gereeniiDugaar'] as String?;
+
+        if (gereeniiDugaar == null || gereeniiDugaar.isEmpty) {
+          throw Exception('Гэрээний дугаар олдсонгүй');
+        }
+
+        print('Using gereeniiDugaar: $gereeniiDugaar');
+
+        // Step 4: Fetch nekhemjlekhiinTuukh using gereeniiDugaar
+        final response = await ApiService.fetchNekhemjlekhiinTuukh(
+          gereeniiDugaar: gereeniiDugaar,
+          khuudasniiDugaar: 1,
+          khuudasniiKhemjee: 10,
+        );
+
+        print('NekhemjlekhiinTuukh response: $response');
+
+        if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+          setState(() {
+            invoices = (response['jagsaalt'] as List)
+                .map((item) => NekhemjlekhItem.fromJson(item))
+                .toList();
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+            errorMessage = 'Мэдээлэл олдсонгүй';
+          });
+        }
       } else {
         setState(() {
           isLoading = false;
-          errorMessage = 'Мэдээлэл олдсонгүй';
+          errorMessage = 'Гэрээний мэдээлэл олдсонгүй';
         });
       }
     } catch (e) {
+      print('Error in _loadNekhemjlekh: $e');
       setState(() {
         isLoading = false;
         errorMessage = 'Алдаа гарлаа: $e';
@@ -339,7 +350,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   void _showSocialPayQRModal() {
-    // Generate QR data with payment information
     final qrData = _generatePaymentQRData();
 
     showDialog(
@@ -393,7 +403,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                // Payment info
+
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -478,21 +488,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   String _generatePaymentQRData() {
-    // Generate payment data for QR code
-    // This format should match Social Pay's expected QR format
-    // You may need to adjust this based on Social Pay's actual requirements
     return 'socialpay://payment?amount=${totalSelectedAmount.replaceAll('₮', '').replaceAll(',', '')}&contracts=$selectedCount&merchant=SUKH_APP';
   }
 
   Future<void> _openSocialPayApp(String qrData) async {
-    // Try to open Social Pay app with deep link
     final Uri socialPayUri = Uri.parse(qrData);
 
     try {
       if (await canLaunchUrl(socialPayUri)) {
         await launchUrl(socialPayUri, mode: LaunchMode.externalApplication);
       } else {
-        // If Social Pay app is not installed, show a message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -596,7 +601,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           Navigator.of(context).pop();
         }
       } else {
-        // App not installed - show options to install or use alternative
         if (mounted) {
           _showBankAppNotInstalledDialog(deepLink);
         }
@@ -663,7 +667,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   void _copyQRCodeToClipboard(String qrData) {
-    // Extract just the QR code part from the deep link
     final qrMatch = RegExp(r'qPay_QRcode=([^&]+)').firstMatch(qrData);
     if (qrMatch != null) {
       final qrCode = Uri.decodeComponent(qrMatch.group(1) ?? '');
@@ -685,18 +688,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   Future<void> _openAppStore() async {
-    // XacBank app store links
-    // You may need to find the actual app IDs for XacBank
     String appStoreUrl = '';
 
     if (Theme.of(context).platform == TargetPlatform.iOS) {
-      // iOS App Store link
-      appStoreUrl =
-          'https://apps.apple.com/mn/app/xacbank/id1234567890'; // Replace with actual ID
+      appStoreUrl = 'https://apps.apple.com/mn/app/xacbank/id1234567890';
     } else {
-      // Android Play Store link
       appStoreUrl =
-          'https://play.google.com/store/apps/details?id=mn.xacbank.mobile'; // Replace with actual package name
+          'https://play.google.com/store/apps/details?id=mn.xacbank.mobile';
     }
 
     try {
@@ -1595,7 +1593,6 @@ class Zardal {
   }
 }
 
-// QPay Bank model
 class QPayBank {
   final String name;
   final String description;
