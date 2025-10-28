@@ -30,17 +30,14 @@ class Geree extends StatefulWidget {
   State<Geree> createState() => _GereeState();
 }
 
-class _GereeState extends State<Geree> with TickerProviderStateMixin {
-  late TabController _tabController;
+class _GereeState extends State<Geree> {
   bool _isLoading = true;
   String? _errorMessage;
   model.GereeResponse? _gereeData;
-  final Map<String, AnimationController> _eyeAnimations = {};
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _fetchGereeData();
   }
 
@@ -67,31 +64,6 @@ class _GereeState extends State<Geree> with TickerProviderStateMixin {
         _isLoading = false;
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    for (var controller in _eyeAnimations.values) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  AnimationController _getEyeAnimationController(String gereeId) {
-    if (!_eyeAnimations.containsKey(gereeId)) {
-      _eyeAnimations[gereeId] = AnimationController(
-        duration: const Duration(milliseconds: 150),
-        vsync: this,
-      );
-    }
-    return _eyeAnimations[gereeId]!;
-  }
-
-  Future<void> _animateEyeIcon(String gereeId) async {
-    final controller = _getEyeAnimationController(gereeId);
-    await controller.forward();
-    await controller.reverse();
   }
 
   @override
@@ -199,21 +171,324 @@ class _GereeState extends State<Geree> with TickerProviderStateMixin {
       );
     }
 
-    return _buildCertificateList();
+    return _buildInvoicePage();
   }
 
-  Widget _buildCertificateList() {
+  Widget _buildInvoicePage() {
     if (_gereeData == null || _gereeData!.jagsaalt.isEmpty) {
       return const SizedBox.shrink();
     }
 
+    // Show full invoice for the first contract
+    final geree = _gereeData!.jagsaalt.first;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var geree in _gereeData!.jagsaalt) ...[
-            _buildCertificateCard(geree: geree),
-            const SizedBox(height: 12),
+          // Invoice Header Section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFe6ff00).withOpacity(0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ГЭРЭЭНИЙ ДУГААР',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFe6ff00),
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          geree.gereeniiDugaar,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFe6ff00),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        geree.turul,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0a0e27),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 14,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Гэрээний огноо: ${_formatDate(geree.gereeniiOgnoo)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Customer Information Section
+          _buildSection(
+            title: 'ХАРИЛЦАГЧИЙН МЭДЭЭЛЭЛ',
+            icon: Icons.person_outline,
+            children: [
+              _buildInvoiceDetailRow(
+                icon: Icons.badge_outlined,
+                label: 'Овог нэр',
+                value: '${geree.ovog} ${geree.ner}',
+              ),
+              const Divider(color: Colors.white10, height: 24),
+              _buildInvoiceDetailRow(
+                icon: Icons.phone_outlined,
+                label: 'Утас',
+                value: geree.utas.isNotEmpty ? geree.utas.join(', ') : '-',
+              ),
+              if (geree.suhUtas.isNotEmpty) ...[
+                const Divider(color: Colors.white10, height: 24),
+                _buildInvoiceDetailRow(
+                  icon: Icons.phone_android_outlined,
+                  label: 'Сүх утас',
+                  value: geree.suhUtas.join(', '),
+                ),
+              ],
+              const Divider(color: Colors.white10, height: 24),
+              _buildInvoiceDetailRow(
+                icon: Icons.email_outlined,
+                label: 'И-мэйл',
+                value: geree.mail.isNotEmpty ? geree.mail : '-',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Property Information Section
+          _buildSection(
+            title: 'БАЙРНЫ МЭДЭЭЛЭЛ',
+            icon: Icons.home_outlined,
+            children: [
+              _buildInvoiceDetailRow(
+                icon: Icons.location_city_outlined,
+                label: 'Байрны нэр',
+                value: geree.bairNer,
+              ),
+              const Divider(color: Colors.white10, height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildInvoiceDetailRow(
+                      icon: Icons.numbers,
+                      label: 'Тоот',
+                      value: geree.toot.toString(),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildInvoiceDetailRow(
+                      icon: Icons.layers_outlined,
+                      label: 'Давхар',
+                      value: geree.davkhar,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          _buildSection(
+            title: 'САНХҮҮГИЙН МЭДЭЭЛЭЛ',
+            icon: Icons.payments_outlined,
+            children: [
+              _buildInvoiceDetailRow(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Нийт төлбөр',
+                value: _formatCurrency(geree.niitTulbur),
+                valueColor: const Color(0xFFe6ff00),
+                isLarge: true,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Additional Information Section
+          _buildSection(
+            title: 'НЭМЭЛТ МЭДЭЭЛЭЛ',
+            icon: Icons.info_outline,
+            children: [
+              if (geree.tulukhOgnoo.isNotEmpty) ...[
+                _buildInvoiceDetailRow(
+                  icon: Icons.event_outlined,
+                  label: 'Төлөх огноо',
+                  value: _formatDate(geree.tulukhOgnoo),
+                ),
+                const Divider(color: Colors.white10, height: 24),
+              ],
+              _buildInvoiceDetailRow(
+                icon: Icons.person_pin_outlined,
+                label: 'Бүртгэсэн ажилтан',
+                // value: geree.burtgesenAjiltan.isNotEmpty
+                //     ? geree.burtgesenAjiltan
+                //     : '-',
+                value: "СӨХ",
+              ),
+              if (geree.orshinSuugchId.isNotEmpty) ...[
+                const Divider(color: Colors.white10, height: 24),
+                _buildInvoiceDetailRow(
+                  icon: Icons.group_outlined,
+                  label: 'Оршин суугчид',
+                  // value: geree.orshinSuugchId,
+                  value: '${geree.ovog} ${geree.ner}',
+                ),
+              ],
+              if (geree.temdeglel.isNotEmpty) ...[
+                const Divider(color: Colors.white10, height: 24),
+                _buildInvoiceDetailRow(
+                  icon: Icons.note_outlined,
+                  label: 'Тэмдэглэл',
+                  value: geree.temdeglel,
+                ),
+              ],
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Footer Information
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Үүсгэсэн огноо',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatDate(geree.createdAt),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Шинэчилсэн огноо',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.5),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatDate(geree.updatedAt),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // If there are multiple contracts, show selector
+          if (_gereeData!.jagsaalt.length > 1) ...[
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFe6ff00).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFe6ff00).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: const Color(0xFFe6ff00),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Таньд ${_gereeData!.jagsaalt.length} гэрээ байна',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),
@@ -234,236 +509,88 @@ class _GereeState extends State<Geree> with TickerProviderStateMixin {
     return '${amount.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}₮';
   }
 
-  Widget _buildCertificateCard({required model.Geree geree}) {
+  Widget _buildSection({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Гэрээний дугаар',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      geree.gereeniiDugaar,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Төрөл',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      geree.turul,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 1.0, end: 0.8).animate(
-                    CurvedAnimation(
-                      parent: _getEyeAnimationController(geree.gereeniiDugaar),
-                      curve: Curves.easeInOut,
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.remove_red_eye_outlined,
-                      color: Color(0xFFe6ff00),
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      _animateEyeIcon(geree.gereeniiDugaar);
-                      _showDetailsModal(context, geree);
-                    },
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: const Color(0xFFe6ff00)),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFe6ff00),
+                    letterSpacing: 1.2,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Байр',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${geree.bairNer}, Тоот: ${geree.toot}, Давхар: ${geree.davkhar}',
-                      style: const TextStyle(fontSize: 13, color: Colors.white),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showDetailsModal(BuildContext context, model.Geree geree) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 40,
-          ),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0a0e27).withOpacity(0.95),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Гэрээний дэлгэрэнгүй',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.of(context).pop(),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                ),
-                // Content
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDetailRow(
-                          'Гэрээний дугаар',
-                          geree.gereeniiDugaar,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Төрөл', geree.turul),
-                        const SizedBox(height: 12),
-                        _buildDetailRow(
-                          'Овог нэр',
-                          '${geree.ovog} ${geree.ner}',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Утас', geree.utas.join(', ')),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('И-мэйл', geree.mail),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Хаяг', geree.bairNer),
-                        const SizedBox(height: 12),
-                        _buildDetailRow(
-                          'Тоот/Давхар',
-                          'Тоот: ${geree.toot}, Давхар: ${geree.davkhar}',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildDetailRow(
-                          'Гэрээний огноо',
-                          _formatDate(geree.gereeniiOgnoo),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Column(
+  Widget _buildInvoiceDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+    bool isLarge = false,
+  }) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6)),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+        Icon(icon, size: 16, color: Colors.white.withOpacity(0.4)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: isLarge ? 18 : 14,
+                  fontWeight: isLarge ? FontWeight.bold : FontWeight.w600,
+                  color: valueColor ?? Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
       ],

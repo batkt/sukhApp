@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:sukh_app/components/Menu/side_menu.dart';
-import 'package:sukh_app/components/Notifications/notification.dart';
+// TODO: Uncomment when notification feature is implemented
+// import 'package:sukh_app/components/Notifications/notification.dart';
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/models/geree_model.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -56,30 +58,54 @@ class _BookingScreenState extends State<NuurKhuudas> {
         return;
       }
 
-      final response = await ApiService.fetchGeree(userId).timeout(
+      // First, fetch geree to get contract details
+      final gereeResponse = await ApiService.fetchGeree(userId).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           throw Exception('Сервертэй холбогдох хугацаа дууслаа');
         },
       );
 
-      if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
-        final List<dynamic> jagsaalt = response['jagsaalt'];
+      if (gereeResponse['jagsaalt'] != null &&
+          gereeResponse['jagsaalt'] is List) {
+        final List<dynamic> gereeJagsaalt = gereeResponse['jagsaalt'];
 
-        if (jagsaalt.isNotEmpty) {
-          final firstContract = jagsaalt[0];
+        if (gereeJagsaalt.isNotEmpty) {
+          final firstContract = gereeJagsaalt[0];
 
           // Parse the geree data first
           final geree = Geree.fromJson(firstContract);
 
-          // Calculate total niitTulbur from all contracts in jagsaalt
+          // Now fetch nekhemjlekhiinTuukh using gereeniiDugaar
+          final nekhemjlekhResponse =
+              await ApiService.fetchNekhemjlekhiinTuukh(
+                gereeniiDugaar: geree.gereeniiDugaar,
+              ).timeout(
+                const Duration(seconds: 10),
+                onTimeout: () {
+                  throw Exception('Сервертэй холбогдох хугацаа дууслаа');
+                },
+              );
+
+          // Calculate total uldegdel from unpaid invoices only
+          // Exclude invoices with tuluv = "Төлсөн"
           double total = 0.0;
-          for (var contract in jagsaalt) {
-            final niitTulbur = contract['niitTulbur'];
-            if (niitTulbur != null) {
-              total += (niitTulbur is int)
-                  ? niitTulbur.toDouble()
-                  : (niitTulbur as double);
+          if (nekhemjlekhResponse['jagsaalt'] != null &&
+              nekhemjlekhResponse['jagsaalt'] is List) {
+            final List<dynamic> nekhemjlekhJagsaalt =
+                nekhemjlekhResponse['jagsaalt'];
+
+            for (var invoice in nekhemjlekhJagsaalt) {
+              final tuluv = invoice['tuluv'];
+              // Only include invoices that are not "Төлсөн" (paid)
+              if (tuluv != 'Төлсөн') {
+                final uldegdel = invoice['uldegdel'];
+                if (uldegdel != null) {
+                  total += (uldegdel is int)
+                      ? uldegdel.toDouble()
+                      : (uldegdel as double);
+                }
+              }
             }
           }
 
@@ -284,110 +310,111 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     ),
                     Row(
                       children: [
-                        Stack(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(100),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.25),
-                                    blurRadius: 12,
-                                    spreadRadius: 0,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    final RenderBox renderBox =
-                                        context.findRenderObject() as RenderBox;
-                                    final position = renderBox.localToGlobal(
-                                      Offset.zero,
-                                    );
-
-                                    showGeneralDialog(
-                                      context: context,
-                                      barrierDismissible: true,
-                                      barrierLabel: '',
-                                      barrierColor: Colors.transparent,
-                                      transitionDuration: const Duration(
-                                        milliseconds: 200,
-                                      ),
-                                      pageBuilder:
-                                          (
-                                            context,
-                                            animation,
-                                            secondaryAnimation,
-                                          ) {
-                                            return Material(
-                                              color: Colors.transparent,
-                                              child: Stack(
-                                                children: [
-                                                  GestureDetector(
-                                                    onTap: () =>
-                                                        Navigator.pop(context),
-                                                    child: Container(
-                                                      color: Colors.transparent,
-                                                    ),
-                                                  ),
-                                                  Positioned(
-                                                    top: position.dy + 60,
-                                                    right: 16,
-                                                    child: FadeTransition(
-                                                      opacity: animation,
-                                                      child:
-                                                          const NotificationDropdown(),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                    );
-                                  },
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(7),
-                                    child: Icon(
-                                      Icons.notifications_rounded,
-                                      color: Colors.white.withOpacity(0.3),
-                                      size: 30,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              right: 8,
-                              top: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 16,
-                                  minHeight: 16,
-                                ),
-                                child: const Text(
-                                  '3',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 20),
+                        // TODO: Notification button - will be developed later
+                        // Stack(
+                        //   children: [
+                        //     Container(
+                        //       decoration: BoxDecoration(
+                        //         color: Colors.white.withOpacity(0.1),
+                        //         borderRadius: BorderRadius.circular(100),
+                        //         boxShadow: [
+                        //           BoxShadow(
+                        //             color: Colors.black.withOpacity(0.25),
+                        //             blurRadius: 12,
+                        //             spreadRadius: 0,
+                        //             offset: const Offset(0, 4),
+                        //           ),
+                        //         ],
+                        //       ),
+                        //       child: Material(
+                        //         color: Colors.transparent,
+                        //         child: InkWell(
+                        //           onTap: () {
+                        //             final RenderBox renderBox =
+                        //                 context.findRenderObject() as RenderBox;
+                        //             final position = renderBox.localToGlobal(
+                        //               Offset.zero,
+                        //             );
+                        //
+                        //             showGeneralDialog(
+                        //               context: context,
+                        //               barrierDismissible: true,
+                        //               barrierLabel: '',
+                        //               barrierColor: Colors.transparent,
+                        //               transitionDuration: const Duration(
+                        //                 milliseconds: 200,
+                        //               ),
+                        //               pageBuilder:
+                        //                   (
+                        //                     context,
+                        //                     animation,
+                        //                     secondaryAnimation,
+                        //                   ) {
+                        //                     return Material(
+                        //                       color: Colors.transparent,
+                        //                       child: Stack(
+                        //                         children: [
+                        //                           GestureDetector(
+                        //                             onTap: () =>
+                        //                                 Navigator.pop(context),
+                        //                             child: Container(
+                        //                               color: Colors.transparent,
+                        //                             ),
+                        //                           ),
+                        //                           Positioned(
+                        //                             top: position.dy + 60,
+                        //                             right: 16,
+                        //                             child: FadeTransition(
+                        //                               opacity: animation,
+                        //                               child:
+                        //                                   const NotificationDropdown(),
+                        //                             ),
+                        //                           ),
+                        //                         ],
+                        //                       ),
+                        //                     );
+                        //                   },
+                        //             );
+                        //           },
+                        //           borderRadius: BorderRadius.circular(100),
+                        //           child: Padding(
+                        //             padding: const EdgeInsets.all(7),
+                        //             child: Icon(
+                        //               Icons.notifications_rounded,
+                        //               color: Colors.white.withOpacity(0.3),
+                        //               size: 30,
+                        //             ),
+                        //           ),
+                        //         ),
+                        //       ),
+                        //     ),
+                        //     Positioned(
+                        //       right: 8,
+                        //       top: 8,
+                        //       child: Container(
+                        //         padding: const EdgeInsets.all(4),
+                        //         decoration: const BoxDecoration(
+                        //           color: Colors.red,
+                        //           shape: BoxShape.circle,
+                        //         ),
+                        //         constraints: const BoxConstraints(
+                        //           minWidth: 16,
+                        //           minHeight: 16,
+                        //         ),
+                        //         child: const Text(
+                        //           '3',
+                        //           style: TextStyle(
+                        //             color: Colors.white,
+                        //             fontSize: 10,
+                        //             fontWeight: FontWeight.bold,
+                        //           ),
+                        //           textAlign: TextAlign.center,
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ],
+                        // ),
+                        // const SizedBox(width: 20),
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.1),
@@ -669,7 +696,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                             child: Text(
                               'Төлөх',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.3),
+                                color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -962,6 +989,18 @@ class _BookingScreenState extends State<NuurKhuudas> {
   }
 
   void _showPaymentModal() {
+    // Check if there's any amount to pay
+    if (totalNiitTulbur <= 0) {
+      showGlassSnackBar(
+        context,
+        message: 'Танд төлөх төлбөр байхгүй байна',
+        icon: Icons.info_outline,
+        iconColor: const Color(0xFFe6ff00),
+        textColor: Colors.white,
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

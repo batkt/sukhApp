@@ -37,12 +37,25 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   final TextEditingController passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _rememberMe = false;
 
   @override
   void initState() {
     super.initState();
     phoneController.addListener(() => setState(() {}));
     passwordController.addListener(() => setState(() {}));
+    _loadSavedPhoneNumber();
+  }
+
+  Future<void> _loadSavedPhoneNumber() async {
+    final savedPhone = await StorageService.getSavedPhoneNumber();
+    final rememberMe = await StorageService.isRememberMeEnabled();
+    if (savedPhone != null && mounted) {
+      setState(() {
+        phoneController.text = savedPhone;
+        _rememberMe = rememberMe;
+      });
+    }
   }
 
   @override
@@ -193,20 +206,74 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: () {
-                                  context.push('/nuutsUg');
-                                },
-                                child: const Text(
-                                  'Нууц кодоо мартсан уу?',
-                                  style: TextStyle(
-                                    color: AppColors.grayColor,
-                                    fontSize: 14,
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _rememberMe = !_rememberMe;
+                                    });
+                                  },
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Transform.scale(
+                                        scale: 0.9,
+                                        child: Checkbox(
+                                          value: _rememberMe,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _rememberMe = value ?? false;
+                                            });
+                                          },
+                                          activeColor: AppColors.grayColor,
+                                          checkColor: Colors.white,
+                                          side: const BorderSide(
+                                            color: AppColors.grayColor,
+                                            width: 1.5,
+                                          ),
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          visualDensity: const VisualDensity(
+                                            horizontal: -4,
+                                            vertical: -4,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        'Намайг сана',
+                                        style: TextStyle(
+                                          color: AppColors.grayColor,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
+                                TextButton(
+                                  onPressed: () {
+                                    context.push('/nuutsUg');
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Нууц кодоо мартсан уу?',
+                                    style: TextStyle(
+                                      color: AppColors.grayColor,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 8),
                             Container(
@@ -255,6 +322,15 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             );
 
                                             if (mounted) {
+                                              // Save or clear phone number based on remember me checkbox
+                                              if (_rememberMe) {
+                                                await StorageService.savePhoneNumber(
+                                                  inputPhone,
+                                                );
+                                              } else {
+                                                await StorageService.clearSavedPhoneNumber();
+                                              }
+
                                               // Check if we should show onboarding
                                               final taniltsuulgaKharakhEsekh =
                                                   await StorageService.getTaniltsuulgaKharakhEsekh();

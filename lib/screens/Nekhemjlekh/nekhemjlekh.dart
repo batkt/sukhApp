@@ -40,6 +40,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   String? errorMessage;
   List<QPayBank> qpayBanks = [];
   bool isLoadingQPay = false;
+  List<Map<String, dynamic>> availableContracts = [];
+  String? selectedGereeniiDugaar;
+  String? selectedContractDisplay;
+  bool showHistoryOnly = false;
 
   @override
   void initState() {
@@ -54,12 +58,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     });
 
     try {
-      // Get user data from storage
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
-
-      print('BaiguullagiinId: $baiguullagiinId');
-      print('BarilgiinId: $barilgiinId');
 
       if (baiguullagiinId == null || barilgiinId == null) {
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
@@ -68,6 +68,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       double totalAmount = 0;
       String? selectedInvoiceId;
       String? burtgeliinDugaar;
+      String? dansniiDugaar;
 
       for (var invoice in invoices) {
         if (invoice.isSelected) {
@@ -75,8 +76,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
           if (selectedInvoiceId == null) {
             selectedInvoiceId = invoice.id;
-            // Get register from the first selected invoice
             burtgeliinDugaar = invoice.register;
+            dansniiDugaar = invoice.dansniiDugaar;
           }
         }
       }
@@ -85,21 +86,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         throw Exception('Нэхэмжлэх сонгоогүй байна');
       }
 
-      if (burtgeliinDugaar == null || burtgeliinDugaar.isEmpty) {
-        throw Exception('Байгууллагын регистр олдсонгүй');
+      if (dansniiDugaar == null || dansniiDugaar.isEmpty) {
+        throw Exception('Дансны дугаар олдсонгүй');
       }
-
-      print('Using register from invoice: $burtgeliinDugaar');
-
-      print('Total amount: $totalAmount');
-      print('Selected count: $selectedCount');
-      print('Selected invoice ID: $selectedInvoiceId');
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final orderNumber = 'TEST-$timestamp';
-
-      print('Order number: $orderNumber');
-      print('Calling QPay API...');
 
       final response = await ApiService.qpayGargaya(
         baiguullagiinId: baiguullagiinId,
@@ -107,14 +99,22 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         dun: totalAmount,
         turul: 'Test Payment',
         zakhialgiinDugaar: orderNumber,
-        dansniiDugaar: '3455153452',
-        burtgeliinDugaar: burtgeliinDugaar,
+        dansniiDugaar: dansniiDugaar,
         nekhemjlekhiinId: selectedInvoiceId,
       );
 
-      print('QPay API Response: $response');
+      // Validate account number from response
+      if (response['invoice_bank_accounts'] != null &&
+          response['invoice_bank_accounts'] is List &&
+          (response['invoice_bank_accounts'] as List).isNotEmpty) {
+        final accountNumber =
+            response['invoice_bank_accounts'][0]['account_number'] as String?;
 
-      // Parse bank URLs from response
+        if (accountNumber != null && accountNumber != dansniiDugaar) {
+          throw Exception('Дансны дугаар буруу байна!');
+        }
+      }
+
       if (response['urls'] != null && response['urls'] is List) {
         print('Found ${response['urls'].length} banks');
         setState(() {
@@ -151,7 +151,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         errorMessage = null;
       });
 
-      // Step 1: Get orshinSuugchId from storage
       final orshinSuugchId = await StorageService.getUserId();
 
       if (orshinSuugchId == null) {
@@ -164,16 +163,31 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
       print('Geree response: $gereeResponse');
 
-      // Step 3: Extract gereeniiDugaar from the first contract in the list
+      // Step 3: Store all available contracts
       if (gereeResponse['jagsaalt'] != null &&
           gereeResponse['jagsaalt'] is List &&
           (gereeResponse['jagsaalt'] as List).isNotEmpty) {
-        final firstGeree = (gereeResponse['jagsaalt'] as List)[0];
-        final gereeniiDugaar = firstGeree['gereeniiDugaar'] as String?;
+        availableContracts = List<Map<String, dynamic>>.from(
+          gereeResponse['jagsaalt'],
+        );
+
+        // Use selected contract or default to first one
+        final gereeToUse = selectedGereeniiDugaar != null
+            ? availableContracts.firstWhere(
+                (c) => c['gereeniiDugaar'] == selectedGereeniiDugaar,
+                orElse: () => availableContracts[0],
+              )
+            : availableContracts[0];
+
+        final gereeniiDugaar = gereeToUse['gereeniiDugaar'] as String?;
 
         if (gereeniiDugaar == null || gereeniiDugaar.isEmpty) {
           throw Exception('Гэрээний дугаар олдсонгүй');
         }
+
+        // Update selected contract info
+        selectedGereeniiDugaar = gereeniiDugaar;
+        selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
 
         print('Using gereeniiDugaar: $gereeniiDugaar');
 
@@ -214,6 +228,137 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
+  void _showContractSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF0a0e27),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Гэрээ сонгох',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Contract list
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  itemCount: availableContracts.length,
+                  itemBuilder: (context, index) {
+                    final contract = availableContracts[index];
+                    final gereeniiDugaar = contract['gereeniiDugaar'] as String;
+                    final bairNer = contract['bairNer'] ?? gereeniiDugaar;
+                    final isSelected = gereeniiDugaar == selectedGereeniiDugaar;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedGereeniiDugaar = gereeniiDugaar;
+                        });
+                        Navigator.pop(context);
+                        _loadNekhemjlekh();
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFe6ff00).withOpacity(0.2)
+                              : Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFe6ff00)
+                                : Colors.white.withOpacity(0.2),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    bairNer,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Гэрээ: $gereeniiDugaar',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.7),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(
+                                Icons.check_circle,
+                                color: Color(0xFFe6ff00),
+                                size: 24,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   bool get allSelected =>
       invoices.isNotEmpty && invoices.every((invoice) => invoice.isSelected);
 
@@ -240,7 +385,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   void _showBankInfoModal() async {
-    // First, create the QPay invoice
+    print('=== _showBankInfoModal called ===');
     await _createQPayInvoice();
 
     if (!mounted) return;
@@ -913,8 +1058,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
+                        // Add a small delay to ensure modal is closed before showing new one
+                        await Future.delayed(const Duration(milliseconds: 100));
                         _showBankInfoModal();
                       },
                       style: ElevatedButton.styleFrom(
@@ -963,13 +1110,68 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       onPressed: () => context.pop(),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Нэхэмжлэх',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Нэхэмжлэх',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (selectedContractDisplay != null &&
+                              availableContracts.length > 1)
+                            GestureDetector(
+                              onTap: _showContractSelectionModal,
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      selectedContractDisplay!,
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 14,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.keyboard_arrow_down,
+                                    color: Colors.white.withOpacity(0.7),
+                                    size: 18,
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
+                    ),
+                    if (availableContracts.length > 1)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.swap_horiz,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        onPressed: _showContractSelectionModal,
+                        tooltip: 'Гэрээ солих',
+                      ),
+                    IconButton(
+                      icon: Icon(
+                        showHistoryOnly ? Icons.receipt : Icons.history,
+                        color: const Color(0xFFe6ff00),
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          showHistoryOnly = !showHistoryOnly;
+                        });
+                      },
+                      tooltip: showHistoryOnly ? 'Бүх нэхэмжлэх' : 'Түүх',
                     ),
                   ],
                 ),
@@ -1005,136 +1207,181 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       )
                     : Column(
                         children: [
-                          // Sticky payment section at top
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0F1119),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.1),
+                          // Sticky payment section at top (hidden in history mode)
+                          if (!showHistoryOnly)
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0F1119),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.1),
+                                  ),
                                 ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    selectedCount > 0
-                                        ? '$selectedCount гэрээ сонгосон байна'
-                                        : 'Гэрээ сонгоно уу',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Төлөх дүн: $totalSelectedAmount',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: selectedCount > 0
-                                              ? _showPaymentModal
-                                              : null,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.white,
-                                            foregroundColor: Colors.black,
-                                            disabledBackgroundColor: Colors
-                                                .white
-                                                .withOpacity(0.3),
-                                            disabledForegroundColor: Colors
-                                                .black
-                                                .withOpacity(0.3),
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 14,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'Төлбөр төлөх',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      selectedCount > 0
+                                          ? '$selectedCount гэрээ сонгосон байна'
+                                          : 'Гэрээ сонгоно уу',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 14,
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Scrollable invoice list
-                          Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: Column(
-                                children: [
-                                  GestureDetector(
-                                    onTap: toggleSelectAll,
-                                    child: Row(
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Төлөх дүн: $totalSelectedAmount',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Row(
                                       children: [
-                                        Container(
-                                          width: 20,
-                                          height: 20,
-                                          decoration: BoxDecoration(
-                                            color: allSelected
-                                                ? Colors.white
-                                                : Colors.transparent,
-                                            border: Border.all(
-                                              color: Colors.white,
-                                              width: 2,
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: selectedCount > 0
+                                                ? _showPaymentModal
+                                                : null,
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.white,
+                                              foregroundColor: Colors.black,
+                                              disabledBackgroundColor: Colors
+                                                  .white
+                                                  .withOpacity(0.3),
+                                              disabledForegroundColor: Colors
+                                                  .black
+                                                  .withOpacity(0.3),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 14,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
+                                            child: const Text(
+                                              'Төлбөр төлөх',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
-                                          ),
-                                          child: allSelected
-                                              ? const Icon(
-                                                  Icons.check,
-                                                  color: Colors.black,
-                                                  size: 14,
-                                                )
-                                              : null,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        const Text(
-                                          'Бүгдийг сонгох',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  ...invoices.map(
-                                    (invoice) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 16,
-                                      ),
-                                      child: _buildInvoiceCard(invoice),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
+                          // Scrollable invoice list
+                          Expanded(
+                            child: () {
+                              final filteredInvoices = invoices
+                                  .where(
+                                    (invoice) => showHistoryOnly
+                                        ? invoice.tuluv == 'Төлсөн'
+                                        : invoice.tuluv != 'Төлсөн',
+                                  )
+                                  .toList();
+
+                              if (filteredInvoices.isEmpty) {
+                                return Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        showHistoryOnly
+                                            ? Icons.history
+                                            : Icons.receipt_long,
+                                        size: 64,
+                                        color: Colors.white.withOpacity(0.5),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        showHistoryOnly
+                                            ? 'Төлөгдсөн нэхэмжлэл байхгүй байна.'
+                                            : 'Одоогоор нэхэмжлэл байхгүй байна.',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.7),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+
+                              return SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: Column(
+                                  children: [
+                                    if (!showHistoryOnly &&
+                                        filteredInvoices.isNotEmpty)
+                                      GestureDetector(
+                                        onTap: toggleSelectAll,
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 20,
+                                              height: 20,
+                                              decoration: BoxDecoration(
+                                                color: allSelected
+                                                    ? Colors.white
+                                                    : Colors.transparent,
+                                                border: Border.all(
+                                                  color: Colors.white,
+                                                  width: 2,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: allSelected
+                                                  ? const Icon(
+                                                      Icons.check,
+                                                      color: Colors.black,
+                                                      size: 14,
+                                                    )
+                                                  : null,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            const Text(
+                                              'Бүгдийг сонгох',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    if (!showHistoryOnly &&
+                                        filteredInvoices.isNotEmpty)
+                                      const SizedBox(height: 16),
+                                    ...filteredInvoices.map(
+                                      (invoice) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 16,
+                                        ),
+                                        child: _buildInvoiceCard(
+                                          invoice,
+                                          isHistory: showHistoryOnly,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }(),
                           ),
                         ],
                       ),
@@ -1146,12 +1393,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     );
   }
 
-  Widget _buildInvoiceCard(NekhemjlekhItem invoice) {
+  Widget _buildInvoiceCard(NekhemjlekhItem invoice, {bool isHistory = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isHistory ? Colors.white.withOpacity(0.95) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black.withOpacity(0.1)),
+        border: Border.all(
+          color: isHistory
+              ? const Color(0xFFe6ff00).withOpacity(0.3)
+              : Colors.black.withOpacity(0.1),
+        ),
       ),
       child: Column(
         children: [
@@ -1169,33 +1420,67 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 children: [
                   Row(
                     children: [
-                      // Checkbox
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            invoice.isSelected = !invoice.isSelected;
-                          });
-                        },
-                        child: Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: invoice.isSelected
-                                ? Colors.black
-                                : Colors.transparent,
-                            border: Border.all(color: Colors.black, width: 2),
-                            borderRadius: BorderRadius.circular(4),
+                      // Checkbox (hidden in history view)
+                      if (!isHistory)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              invoice.isSelected = !invoice.isSelected;
+                            });
+                          },
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: invoice.isSelected
+                                  ? Colors.black
+                                  : Colors.transparent,
+                              border: Border.all(color: Colors.black, width: 2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: invoice.isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 14,
+                                  )
+                                : null,
                           ),
-                          child: invoice.isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  color: Colors.white,
-                                  size: 14,
-                                )
-                              : null,
                         ),
-                      ),
-                      const SizedBox(width: 12),
+                      if (!isHistory) const SizedBox(width: 12),
+                      // Paid status badge for history
+                      if (isHistory)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green, width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Төлсөн',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (isHistory) const SizedBox(width: 12),
                       // Company info
                       Expanded(
                         child: Column(
@@ -1470,6 +1755,8 @@ class NekhemjlekhItem {
   final String nekhemjlekhiinOgnoo;
   final double niitTulbur;
   final List<String> utas;
+  final String dansniiDugaar;
+  final String tuluv;
   final NekhemjlekhMedeelel? medeelel;
   bool isSelected;
   bool isExpanded;
@@ -1485,6 +1772,8 @@ class NekhemjlekhItem {
     required this.nekhemjlekhiinOgnoo,
     required this.niitTulbur,
     required this.utas,
+    required this.dansniiDugaar,
+    required this.tuluv,
     this.medeelel,
     this.isSelected = false,
     this.isExpanded = false,
@@ -1502,6 +1791,8 @@ class NekhemjlekhItem {
       nekhemjlekhiinOgnoo: json['nekhemjlekhiinOgnoo'] ?? json['ognoo'] ?? '',
       niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),
       utas: json['utas'] != null ? List<String>.from(json['utas']) : [],
+      dansniiDugaar: json['dansniiDugaar'] ?? '',
+      tuluv: json['tuluv'] ?? 'Төлөөгүй',
       medeelel: json['medeelel'] != null
           ? NekhemjlekhMedeelel.fromJson(json['medeelel'])
           : null,

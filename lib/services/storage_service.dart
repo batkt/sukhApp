@@ -29,6 +29,8 @@ class StorageService {
   static const String _duusakhOgnooKey = 'duusakh_ognoo';
   static const String _taniltsuulgaKharakhEsekhKey =
       'taniltsuulga_kharakh_esekh';
+  static const String _savedPhoneKey = 'saved_phone_number';
+  static const String _rememberMeKey = 'remember_me';
 
   static Future<bool> saveToken(String token) async {
     try {
@@ -228,6 +230,58 @@ class StorageService {
       return true;
     } catch (e) {
       print('Error clearing auth data: $e');
+      return false;
+    }
+  }
+
+  /// Save phone number when "Remember me" is checked
+  static Future<bool> savePhoneNumber(String phoneNumber) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_savedPhoneKey, phoneNumber);
+      await prefs.setBool(_rememberMeKey, true);
+      return true;
+    } catch (e) {
+      print('Error saving phone number: $e');
+      return false;
+    }
+  }
+
+  /// Get saved phone number
+  static Future<String?> getSavedPhoneNumber() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
+      if (rememberMe) {
+        return prefs.getString(_savedPhoneKey);
+      }
+      return null;
+    } catch (e) {
+      print('Error getting saved phone number: $e');
+      return null;
+    }
+  }
+
+  /// Clear saved phone number
+  static Future<bool> clearSavedPhoneNumber() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_savedPhoneKey);
+      await prefs.setBool(_rememberMeKey, false);
+      return true;
+    } catch (e) {
+      print('Error clearing saved phone number: $e');
+      return false;
+    }
+  }
+
+  /// Check if remember me is enabled
+  static Future<bool> isRememberMeEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_rememberMeKey) ?? false;
+    } catch (e) {
+      print('Error checking remember me: $e');
       return false;
     }
   }

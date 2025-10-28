@@ -470,13 +470,10 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
 
-      final queryObject = json.encode({'gereeniiDugaar': gereeniiDugaar});
-
+      final queryJson = json.encode({'gereeniiDugaar': gereeniiDugaar});
       final uri = Uri.parse(
         '$baseUrl/nekhemjlekhiinTuukh',
-      ).replace(queryParameters: {'query': queryObject});
-
-      print('Fetching nekhemjlekhiinTuukh with URL: $uri');
+      ).replace(queryParameters: {'query': queryJson});
 
       final response = await http.get(uri, headers: headers);
 
@@ -540,7 +537,7 @@ class ApiService {
     required String turul,
     required String zakhialgiinDugaar,
     required String dansniiDugaar,
-    required String burtgeliinDugaar,
+
     required String nekhemjlekhiinId,
   }) async {
     try {
@@ -556,7 +553,7 @@ class ApiService {
           'turul': turul,
           'zakhialgiinDugaar': zakhialgiinDugaar,
           'dansniiDugaar': dansniiDugaar,
-          'burtgeliinDugaar': burtgeliinDugaar,
+
           'nekhemjlekhiinId': nekhemjlekhiinId,
         }),
       );
