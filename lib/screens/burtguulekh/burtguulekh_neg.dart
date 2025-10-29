@@ -47,8 +47,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   String? selectedKhotkhon;
   String? selectedSOKH;
   String? selectedBaiguullagiinId;
-  String? selectedDistrictCode; // Store districtCode for API
-  String? selectedHorooKod; // Store horoo.kod for API
+  String? selectedDistrictCode;
+  String? selectedHorooKod;
 
   bool isDistrictOpen = false;
   bool isKhotkhonOpen = false;
@@ -268,7 +268,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
 
         showGlassSnackBar(
           context,
-          message: 'Бүх мэдээлэл зөв байна!',
+          message: 'Амжилттай!',
           icon: Icons.check_circle,
           iconColor: Colors.green,
         );
@@ -395,6 +395,9 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           color: Colors.redAccent,
                                           fontSize: 14,
                                         ),
+                                        errorMaxLines: 1,
+                                        helperText: '',
+                                        helperStyle: const TextStyle(height: 0),
                                       ),
                                       hint: Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -490,7 +493,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                       },
                                       validator: (value) {
                                         if (value == null || value.isEmpty) {
-                                          return '                                            Дүүрэг сонгоно уу';
+                                          return 'Дүүрэг сонгоно уу';
                                         }
                                         return null;
                                       },
@@ -641,6 +644,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               color: Colors.redAccent,
                                               fontSize: 14,
                                             ),
+                                            errorMaxLines: 1,
+                                            helperText: '',
+                                            helperStyle: const TextStyle(
+                                              height: 0,
+                                            ),
                                           ),
                                           hint: Padding(
                                             padding: const EdgeInsets.symmetric(
@@ -747,7 +755,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           validator: (value) {
                                             if (value == null ||
                                                 value.isEmpty) {
-                                              return '                                           Хороо сонгоно уу';
+                                              return 'Хороо сонгоно уу';
                                             }
                                             return null;
                                           },
@@ -907,7 +915,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               color: Colors.redAccent,
                                               fontSize: 14,
                                             ),
-                                            errorMaxLines: 2,
+                                            errorMaxLines: 1,
+                                            helperText: '',
+                                            helperStyle: const TextStyle(
+                                              height: 0,
+                                            ),
                                           ),
                                           hint: Padding(
                                             padding: const EdgeInsets.symmetric(
@@ -1006,7 +1018,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           validator: (value) {
                                             if (value == null ||
                                                 value.isEmpty) {
-                                              return '                                                СӨХ сонгоно уу';
+                                              return 'СӨХ сонгоно уу';
                                             }
                                             return null;
                                           },

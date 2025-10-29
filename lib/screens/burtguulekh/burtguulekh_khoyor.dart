@@ -216,10 +216,10 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return '                                      Давхар оруулна уу';
+                                      return 'Давхар оруулна уу';
                                     }
                                     if (value.length > 2) {
-                                      return '                                      Давхар 2 оронтой байх ёстой';
+                                      return 'Давхар 2 оронтой байх ёстой';
                                     }
                                     return null;
                                   },
@@ -237,7 +237,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
-                                      ? '                                      Тоот оруулна уу'
+                                      ? 'Тоот оруулна уу'
                                       : null,
                                 ),
                               ),
@@ -253,7 +253,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
-                                      ? '                                      Овог оруулна уу'
+                                      ? 'Овог оруулна уу'
                                       : null,
                                 ),
                               ),
@@ -269,7 +269,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
-                                      ? '                                        Нэр оруулна уу'
+                                      ? 'Нэр оруулна уу'
                                       : null,
                                 ),
                               ),
@@ -285,13 +285,13 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
-                                      return '                        И-Мэйл хаяг оруулна уу';
+                                      return 'И-Мэйл хаяг оруулна уу';
                                     }
                                     final mailRegex = RegExp(
                                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                                     );
                                     if (!mailRegex.hasMatch(value.trim())) {
-                                      return '                                  Зөв И-Мэйл хаяг оруулна уу';
+                                      return 'Зөв И-Мэйл хаяг оруулна уу';
                                     }
                                     return null;
                                   },

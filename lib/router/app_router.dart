@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_neg.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_khoyor.dart';
 import 'package:sukh_app/screens/medegdel/medegdel.dart';
-import 'package:sukh_app/screens/newtrekhKhuudas.dart';
+import 'package:sukh_app/screens/newtrekh/newtrekhKhuudas.dart';
 import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
 import 'package:sukh_app/screens/Home/home.dart';
 import 'package:sukh_app/screens/Tokhirhoo/tokhirgoo.dart';

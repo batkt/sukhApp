@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/notification_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -44,6 +45,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   String? selectedGereeniiDugaar;
   String? selectedContractDisplay;
   bool showHistoryOnly = false;
+  List<String> selectedInvoiceIds = [];
+  String? qpayInvoiceId;
 
   @override
   void initState() {
@@ -69,10 +72,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       String? selectedInvoiceId;
       String? burtgeliinDugaar;
       String? dansniiDugaar;
+      selectedInvoiceIds = [];
 
       for (var invoice in invoices) {
         if (invoice.isSelected) {
           totalAmount += invoice.niitTulbur;
+          selectedInvoiceIds.add(invoice.id);
 
           if (selectedInvoiceId == null) {
             selectedInvoiceId = invoice.id;
@@ -102,6 +107,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         dansniiDugaar: dansniiDugaar,
         nekhemjlekhiinId: selectedInvoiceId,
       );
+
+      // Store QPay invoice ID for later status checking
+      qpayInvoiceId = response['invoice_id']?.toString();
 
       // Validate account number from response
       if (response['invoice_bank_accounts'] != null &&
@@ -359,8 +367,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     );
   }
 
-  bool get allSelected =>
-      invoices.isNotEmpty && invoices.every((invoice) => invoice.isSelected);
+  bool get allSelected {
+    final unpaidInvoices = invoices
+        .where((invoice) => invoice.tuluv == 'Төлөөгүй')
+        .toList();
+    return unpaidInvoices.isNotEmpty &&
+        unpaidInvoices.every((invoice) => invoice.isSelected);
+  }
 
   int get selectedCount =>
       invoices.where((invoice) => invoice.isSelected).length;
@@ -379,7 +392,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     setState(() {
       bool newValue = !allSelected;
       for (var invoice in invoices) {
-        invoice.isSelected = newValue;
+        // Only select/deselect invoices with status "Төлөөгүй" (Unpaid)
+        if (invoice.tuluv == 'Төлөөгүй') {
+          invoice.isSelected = newValue;
+        }
       }
     });
   }
@@ -494,141 +510,294 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     );
   }
 
-  void _showSocialPayQRModal() {
-    final qrData = _generatePaymentQRData();
+  Future<void> _showVATReceiptModal(String invoiceId) async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFe6ff00)),
+        ),
+      );
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0a0e27).withOpacity(0.95),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Row(
+      // Fetch VAT receipts
+      final response = await ApiService.fetchEbarimtJagsaaltAvya(
+        nekhemjlekhiinId: invoiceId,
+      );
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      final receipts = <VATReceipt>[];
+      if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+        for (var item in response['jagsaalt'] as List) {
+          // Match nekhemjlekhiinId with invoice _id
+          if (item['nekhemjlekhiinId'] == invoiceId) {
+            receipts.add(VATReceipt.fromJson(item));
+          }
+        }
+      }
+
+      if (receipts.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Баримт олдсонгүй'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => _buildVATReceiptBottomSheet(receipts[0]),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog if still open
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Алдаа гарлаа: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Widget _buildVATReceiptBottomSheet(VATReceipt receipt) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Color(0xFF0a0e27),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Social Pay QR',
+                      'НӨАТ-ын баримт',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.of(context).pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                // QR Code
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: QrImageView(
-                    data: qrData,
-                    version: QrVersions.auto,
-                    size: 250.0,
-                    backgroundColor: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              ),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Төлөх дүн:',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 14,
-                            ),
+                      // QR Code
+                      if (receipt.qrData.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          Text(
-                            totalSelectedAmount,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: QrImageView(
+                            data: receipt.qrData,
+                            version: QrVersions.auto,
+                            size: 250.0,
+                            backgroundColor: Colors.white,
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      // Receipt Info
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (receipt.lottery != null)
+                              _buildReceiptInfoRow(
+                                'Сугалааны дугаар:',
+                                receipt.lottery!,
+                              ),
+                            _buildReceiptInfoRow(
+                              'Огноо:',
+                              receipt.formattedDate,
+                            ),
+                            _buildReceiptInfoRow(
+                              'Регистр:',
+                              receipt.merchantTin,
+                            ),
+
+                            const Divider(color: Colors.white24, height: 24),
+                            const Text(
+                              'Бараа, үйлчилгээ:',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            ...receipt.receipts
+                                .expand((r) => r.items)
+                                .map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              '${item.qty} ${item.measureUnit} × ${item.unitPrice}₮',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(
+                                                  0.7,
+                                                ),
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${item.totalAmount}₮',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            const Divider(color: Colors.white24, height: 24),
+                            _buildReceiptInfoRow(
+                              'Нийт дүн:',
+                              receipt.formattedAmount,
+                              isBold: true,
+                            ),
+                            _buildReceiptInfoRow(
+                              'НӨАТ:',
+                              '${receipt.totalVAT.toStringAsFixed(2)}₮',
+                            ),
+                            if (receipt.totalCityTax > 0)
+                              _buildReceiptInfoRow(
+                                'Хотын татвар:',
+                                '${receipt.totalCityTax.toStringAsFixed(2)}₮',
+                              ),
+                            const Divider(color: Colors.white24, height: 24),
+                            const Text(
+                              'Төлбөр:',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...receipt.payments.map(
+                              (payment) => _buildReceiptInfoRow(
+                                payment.code,
+                                '${payment.paidAmount}₮ (${payment.status})',
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Гэрээ:',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '$selectedCount гэрээ',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Open Social Pay button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _openSocialPayApp(qrData),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFe6ff00),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Social Pay аппаар төлөх',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceiptInfoRow(
+    String label,
+    String value, {
+    bool isBold = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 14,
             ),
           ),
-        );
-      },
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -744,6 +913,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         print('Bank app launched successfully');
         if (mounted) {
           Navigator.of(context).pop();
+          // Start checking payment status
+          _startPaymentStatusCheck();
         }
       } else {
         if (mounted) {
@@ -759,6 +930,120 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             backgroundColor: Colors.red,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _startPaymentStatusCheck() async {
+    if (qpayInvoiceId == null) {
+      print('No QPay invoice ID to check');
+      return;
+    }
+
+    // Poll payment status every 2 seconds for up to 60 seconds
+    int attempts = 0;
+    const maxAttempts = 30;
+    const checkInterval = Duration(seconds: 2);
+
+    while (attempts < maxAttempts && mounted) {
+      try {
+        await Future.delayed(checkInterval);
+
+        final statusResponse = await ApiService.checkPaymentStatus(
+          invoiceId: qpayInvoiceId!,
+        );
+
+        print('Payment status check: $statusResponse');
+
+        // Check if payment is successful
+        if (statusResponse['paid_amount'] != null &&
+            statusResponse['paid_amount'] > 0) {
+          // Payment successful!
+          if (mounted) {
+            await _handlePaymentSuccess();
+          }
+          break;
+        }
+
+        attempts++;
+      } catch (e) {
+        print('Error checking payment status: $e');
+        attempts++;
+      }
+    }
+  }
+
+  Future<void> _handlePaymentSuccess() async {
+    try {
+      // Update invoice status to "Төлсөн" on the server
+      if (selectedInvoiceIds.isNotEmpty) {
+        await ApiService.updateNekhemjlekhiinTuluv(
+          nekhemjlekhiinIds: selectedInvoiceIds,
+          tuluv: 'Төлсөн',
+        );
+      }
+
+      // Show success notification
+      await NotificationService.showNotification(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: 'Төлбөр амжилттай төлөгдлөө',
+        body: 'Дарж И-баримт аа харна уу!',
+      );
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Төлбөр амжилттай төлөгдлөө'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+
+      // Reload invoices to update the list
+      await _loadNekhemjlekh();
+
+      // Show VAT receipts for all paid invoices
+      if (selectedInvoiceIds.isNotEmpty) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          _showMultipleVATReceipts(selectedInvoiceIds);
+        }
+      }
+    } catch (e) {
+      print('Error updating payment status: $e');
+      // Still reload to show updated data from server
+      await _loadNekhemjlekh();
+    }
+  }
+
+  Future<void> _showMultipleVATReceipts(List<String> invoiceIds) async {
+    for (String invoiceId in invoiceIds) {
+      try {
+        final response = await ApiService.fetchEbarimtJagsaaltAvya(
+          nekhemjlekhiinId: invoiceId,
+        );
+
+        final receipts = <VATReceipt>[];
+        if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+          for (var item in response['jagsaalt'] as List) {
+            if (item['nekhemjlekhiinId'] == invoiceId) {
+              receipts.add(VATReceipt.fromJson(item));
+            }
+          }
+        }
+
+        if (receipts.isNotEmpty && mounted) {
+          await showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => _buildVATReceiptBottomSheet(receipts[0]),
+          );
+        }
+      } catch (e) {
+        print('Error fetching VAT receipt for $invoiceId: $e');
       }
     }
   }
@@ -1530,6 +1815,40 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
+                  // "Баримт харах" button for history view (paid invoices)
+                  if (isHistory) ...[
+                    GestureDetector(
+                      onTap: () => _showVATReceiptModal(invoice.id),
+                      child: Container(
+                        width: double.infinity,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFe6ff00),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(
+                              Icons.receipt_long,
+                              color: Colors.black,
+                              size: 16,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Баримт харах',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   // Review button
                   Container(
                     width: double.infinity,
@@ -1903,6 +2222,185 @@ class QPayBank {
       description: json['description'] ?? '',
       logo: json['logo'] ?? '',
       link: json['link'] ?? '',
+    );
+  }
+}
+
+// VAT Receipt data models
+class VATReceipt {
+  final String id;
+  final String qrData;
+  final String? lottery;
+  final double totalAmount;
+  final double totalVAT;
+  final double totalCityTax;
+  final String districtCode;
+  final String merchantTin;
+  final String branchNo;
+  final String posNo;
+  final String type;
+  final String date;
+  final List<VATReceiptItem> receipts;
+  final List<VATPayment> payments;
+  final String nekhemjlekhiinId;
+  final String gereeniiDugaar;
+  final String utas;
+  final String? receiptId;
+
+  VATReceipt({
+    required this.id,
+    required this.qrData,
+    this.lottery,
+    required this.totalAmount,
+    required this.totalVAT,
+    required this.totalCityTax,
+    required this.districtCode,
+    required this.merchantTin,
+    required this.branchNo,
+    required this.posNo,
+    required this.type,
+    required this.date,
+    required this.receipts,
+    required this.payments,
+    required this.nekhemjlekhiinId,
+    required this.gereeniiDugaar,
+    required this.utas,
+    this.receiptId,
+  });
+
+  factory VATReceipt.fromJson(Map<String, dynamic> json) {
+    return VATReceipt(
+      id: json['_id'] ?? json['id'] ?? '',
+      qrData: json['qrData'] ?? '',
+      lottery: json['lottery'],
+      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
+      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
+      totalCityTax: (json['totalCityTax'] ?? 0).toDouble(),
+      districtCode: json['districtCode'] ?? '',
+      merchantTin: json['merchantTin'] ?? '',
+      branchNo: json['branchNo'] ?? '',
+      posNo: json['posNo'] ?? '',
+      type: json['type'] ?? '',
+      date: json['date'] ?? '',
+      receipts: json['receipts'] != null
+          ? (json['receipts'] as List)
+                .map((r) => VATReceiptItem.fromJson(r))
+                .toList()
+          : [],
+      payments: json['payments'] != null
+          ? (json['payments'] as List)
+                .map((p) => VATPayment.fromJson(p))
+                .toList()
+          : [],
+      nekhemjlekhiinId: json['nekhemjlekhiinId'] ?? '',
+      gereeniiDugaar: json['gereeniiDugaar'] ?? '',
+      utas: json['utas'] ?? '',
+      receiptId: json['receiptId'],
+    );
+  }
+
+  String get formattedAmount {
+    final formatted = totalAmount
+        .toStringAsFixed(2)
+        .replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (match) => '${match[1]},',
+        );
+    return '$formatted₮';
+  }
+
+  String get formattedDate {
+    try {
+      final dateTime = DateTime.parse(date.replaceAll(' ', 'T'));
+      return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return date;
+    }
+  }
+}
+
+class VATReceiptItem {
+  final double totalAmount;
+  final double totalVAT;
+  final double totalCityTax;
+  final String taxType;
+  final String merchantTin;
+  final List<VATItem> items;
+
+  VATReceiptItem({
+    required this.totalAmount,
+    required this.totalVAT,
+    required this.totalCityTax,
+    required this.taxType,
+    required this.merchantTin,
+    required this.items,
+  });
+
+  factory VATReceiptItem.fromJson(Map<String, dynamic> json) {
+    return VATReceiptItem(
+      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
+      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
+      totalCityTax: (json['totalCityTax'] ?? 0).toDouble(),
+      taxType: json['taxType'] ?? '',
+      merchantTin: json['merchantTin'] ?? '',
+      items: json['items'] != null
+          ? (json['items'] as List).map((i) => VATItem.fromJson(i)).toList()
+          : [],
+    );
+  }
+}
+
+class VATItem {
+  final String name;
+  final String barCodeType;
+  final String classificationCode;
+  final String measureUnit;
+  final String qty;
+  final String unitPrice;
+  final String totalCityTax;
+  final String totalAmount;
+
+  VATItem({
+    required this.name,
+    required this.barCodeType,
+    required this.classificationCode,
+    required this.measureUnit,
+    required this.qty,
+    required this.unitPrice,
+    required this.totalCityTax,
+    required this.totalAmount,
+  });
+
+  factory VATItem.fromJson(Map<String, dynamic> json) {
+    return VATItem(
+      name: json['name'] ?? '',
+      barCodeType: json['barCodeType'] ?? '',
+      classificationCode: json['classificationCode'] ?? '',
+      measureUnit: json['measureUnit'] ?? '',
+      qty: json['qty']?.toString() ?? '0',
+      unitPrice: json['unitPrice']?.toString() ?? '0',
+      totalCityTax: json['totalCityTax']?.toString() ?? '0',
+      totalAmount: json['totalAmount']?.toString() ?? '0',
+    );
+  }
+}
+
+class VATPayment {
+  final String code;
+  final String paidAmount;
+  final String status;
+
+  VATPayment({
+    required this.code,
+    required this.paidAmount,
+    required this.status,
+  });
+
+  factory VATPayment.fromJson(Map<String, dynamic> json) {
+    return VATPayment(
+      code: json['code'] ?? '',
+      paidAmount: json['paidAmount']?.toString() ?? '0',
+      status: json['status'] ?? '',
     );
   }
 }

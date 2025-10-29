@@ -501,6 +501,72 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> fetchEbarimtJagsaaltAvya({
+    required String nekhemjlekhiinId,
+    int khuudasniiDugaar = 1,
+    int khuudasniiKhemjee = 10,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final queryJson = json.encode({'nekhemjlekhiinId': nekhemjlekhiinId});
+      final uri = Uri.parse('$baseUrl/ebarimtJagsaaltAvya').replace(
+        queryParameters: {
+          'query': queryJson,
+          'khuudasniiDugaar': khuudasniiDugaar.toString(),
+          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+        },
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        try {
+          final data = json.decode(response.body);
+
+          if (data is String) {
+            print('API returned string instead of JSON: $data');
+            return {'jagsaalt': []};
+          }
+          return data;
+        } catch (e) {
+          print('JSON parsing failed. Response body: ${response.body}');
+          return {'jagsaalt': []};
+        }
+      } else {
+        throw Exception('Баримт татахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching ebarimtJagsaaltAvya: $e');
+      throw Exception('Баримт татахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> checkPaymentStatus({
+    required String invoiceId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final uri = Uri.parse(
+        '$baseUrl/qpayTuluviinShalgakh',
+      ).replace(queryParameters: {'invoiceId': invoiceId});
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Төлбөрийн төлөв шалгахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error checking payment status: $e');
+      throw Exception('Төлбөрийн төлөв шалгахад алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> fetchBaiguullaga({
     int khuudasniiDugaar = 1,
     int khuudasniiKhemjee = 100,
@@ -568,6 +634,35 @@ class ApiService {
     } catch (e) {
       print('Error creating QPay payment: $e');
       throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateNekhemjlekhiinTuluv({
+    required List<String> nekhemjlekhiinIds,
+    required String tuluv,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/nekhemjlekhiinTuukhTuluviinSolikh'),
+        headers: headers,
+        body: json.encode({
+          'nekhemjlekhiinIds': nekhemjlekhiinIds,
+          'tuluv': tuluv,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error updating nekhemjlekh status: $e');
+      throw Exception('Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа: $e');
     }
   }
 }

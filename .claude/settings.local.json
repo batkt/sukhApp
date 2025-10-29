@@ -4,7 +4,9 @@
       "Bash(git checkout:*)",
       "Bash(flutter analyze:*)",
       "Bash(flutter run:*)",
-      "Bash(flutter pub run:*)"
+      "Bash(flutter pub run:*)",
+      "Bash(del \"lib\\services\\socket_service.dart\")",
+      "Bash(flutter pub get:*)"
     ],
     "deny": [],
     "ask": []

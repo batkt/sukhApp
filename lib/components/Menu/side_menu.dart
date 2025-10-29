@@ -142,90 +142,98 @@ class _SideMenuState extends State<SideMenu> {
               endIndent: 16,
             ),
             const SizedBox(height: 10),
-            _buildMenuItem(
-              context,
-              icon: Icons.dashboard_outlined,
-              title: 'Хянах самбар',
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
+            // Wrap menu items in Expanded and SingleChildScrollView
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.dashboard_outlined,
+                      title: 'Хянах самбар',
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                    ),
 
-            _buildMenuItem(
-              context,
-              icon: Icons.history,
-              title: 'Гэрээ',
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/geree');
-              },
-            ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.history,
+                      title: 'Гэрээ',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/geree');
+                      },
+                    ),
 
-            _buildMenuItem(
-              context,
-              icon: Icons.receipt_long_outlined,
-              title: 'Нэхэмжлэх',
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/nekhemjlekh');
-              },
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.receipt_long_outlined,
+                      title: 'Нэхэмжлэх',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/nekhemjlekh');
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.people_alt_outlined,
+                      title: 'Санал хүсэлт',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showDevelopmentModal(context);
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.directions_car_outlined,
+                      title: 'Машин',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showDevelopmentModal(context);
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.phone,
+                      title: 'Дуудлага үйлчилгээ ',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showDevelopmentModal(context);
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.mark_unread_chat_alt,
+                      title: 'Мэдэгдэл',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showDevelopmentModal(context);
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.settings_outlined,
+                      title: 'Тохиргоо',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/tokhirgoo');
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
-            _buildMenuItem(
-              context,
-              icon: Icons.people_alt_outlined,
-              title: 'Санал хүсэлт',
-              onTap: () {
-                Navigator.pop(context);
-                _showDevelopmentModal(context);
-              },
-            ),
-            _buildMenuItem(
-              context,
-              icon: Icons.directions_car_outlined,
-              title: 'Машин',
-              onTap: () {
-                Navigator.pop(context);
-                _showDevelopmentModal(context);
-              },
-            ),
-            _buildMenuItem(
-              context,
-              icon: Icons.phone,
-              title: 'Дуудлага үйлчилгээ ',
-              onTap: () {
-                Navigator.pop(context);
-                _showDevelopmentModal(context);
-              },
-            ),
-            _buildMenuItem(
-              context,
-              icon: Icons.mark_unread_chat_alt,
-              title: 'Мэдэгдэл',
-              onTap: () {
-                Navigator.pop(context);
-                _showDevelopmentModal(context);
-              },
-            ),
-            _buildMenuItem(
-              context,
-              icon: Icons.settings_outlined,
-              title: 'Тохиргоо',
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/tokhirgoo');
-              },
-            ),
-
-            const Spacer(),
+            // Footer stays at the bottom
             const Padding(
-              padding: EdgeInsets.only(bottom: 5),
+              padding: EdgeInsets.only(bottom: 5, top: 10),
               child: Text(
                 'ZevTabs © 2025',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
           ],
         ),
       ),

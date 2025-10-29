@@ -258,7 +258,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                 icon: Icons.error,
                 iconColor: Colors.red,
               );
-              // Clear PIN fields on error
+
               for (var controller in _pinControllers) {
                 controller.clear();
               }

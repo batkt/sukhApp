@@ -36,10 +36,10 @@ class NuurKhuudas extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<NuurKhuudas> {
-  DateTime? paymentDate; // Full payment date from gereeniiOgnoo
+  DateTime? paymentDate;
   bool isLoadingPaymentData = true;
-  Geree? gereeData; // Store full geree contract data
-  double totalNiitTulbur = 0.0; // Total sum of all niitTulbur from jagsaalt
+  Geree? gereeData;
+  double totalNiitTulbur = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -58,7 +58,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
         return;
       }
 
-      // First, fetch geree to get contract details
       final gereeResponse = await ApiService.fetchGeree(userId).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -73,10 +72,8 @@ class _BookingScreenState extends State<NuurKhuudas> {
         if (gereeJagsaalt.isNotEmpty) {
           final firstContract = gereeJagsaalt[0];
 
-          // Parse the geree data first
           final geree = Geree.fromJson(firstContract);
 
-          // Now fetch nekhemjlekhiinTuukh using gereeniiDugaar
           final nekhemjlekhResponse =
               await ApiService.fetchNekhemjlekhiinTuukh(
                 gereeniiDugaar: geree.gereeniiDugaar,
@@ -87,8 +84,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 },
               );
 
-          // Calculate total uldegdel from unpaid invoices only
-          // Exclude invoices with tuluv = "Төлсөн"
           double total = 0.0;
           if (nekhemjlekhResponse['jagsaalt'] != null &&
               nekhemjlekhResponse['jagsaalt'] is List) {
@@ -97,19 +92,18 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
             for (var invoice in nekhemjlekhJagsaalt) {
               final tuluv = invoice['tuluv'];
-              // Only include invoices that are not "Төлсөн" (paid)
-              if (tuluv != 'Төлсөн') {
-                final uldegdel = invoice['uldegdel'];
-                if (uldegdel != null) {
-                  total += (uldegdel is int)
-                      ? uldegdel.toDouble()
-                      : (uldegdel as double);
+              // Only include invoices that are "Төлөөгүй" (unpaid)
+              if (tuluv == 'Төлөөгүй') {
+                final niitTulbur = invoice['niitTulbur'];
+                if (niitTulbur != null) {
+                  total += (niitTulbur is int)
+                      ? niitTulbur.toDouble()
+                      : (niitTulbur as double);
                 }
               }
             }
           }
 
-          // Try to parse date if available
           DateTime? parsedDate;
           final gereeniiOgnoo = firstContract['gereeniiOgnoo'];
           if (gereeniiOgnoo != null && gereeniiOgnoo.toString().isNotEmpty) {
@@ -137,14 +131,13 @@ class _BookingScreenState extends State<NuurKhuudas> {
         });
       }
     } catch (e) {
-      print('Error loading payment data: $e');
+      print('Төлбөрийн мэдээлэл татхад алдаа гарлаа: $e');
       setState(() {
         isLoadingPaymentData = false;
       });
     }
   }
 
-  // Calculate days difference from today
   int _calculateDaysDifference() {
     if (paymentDate == null) return 0;
 
@@ -642,218 +635,256 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 ),
               ),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              Builder(
+                builder: (context) {
+                  final screenHeight = MediaQuery.of(context).size.height;
+                  final isSmallScreen = screenHeight < 700;
+
+                  return Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 16.0 : 24.0,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Нийт үлдэгдэл',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Нийт үлдэгдэл',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: isSmallScreen ? 14 : 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${_formatNumberWithComma(totalNiitTulbur)}₮',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: isSmallScreen ? 22 : 26,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${_formatNumberWithComma(totalNiitTulbur)}₮',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
+                        const Spacer(),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFe6ff00),
+                            borderRadius: BorderRadius.circular(100),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.25),
+                                blurRadius: 12,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _showPaymentModal,
+                              borderRadius: BorderRadius.circular(100),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isSmallScreen ? 16 : 20,
+                                  vertical: isSmallScreen ? 8 : 10,
+                                ),
+                                child: Text(
+                                  'Төлөх',
+                                  style: TextStyle(
+                                    color: const Color(0xFF0a0e27),
+                                    fontSize: isSmallScreen ? 14 : 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const Spacer(),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.25),
-                            blurRadius: 12,
-                            spreadRadius: 0,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _showPaymentModal,
-                          borderRadius: BorderRadius.circular(100),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
-                            ),
-                            child: Text(
-                              'Төлөх',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(
+                height: MediaQuery.of(context).size.height < 700 ? 8 : 12,
+              ),
 
-              // Payment Date Display Section without scrolling
+              // Payment Date Display Section with scrolling
               Expanded(
-                child: Column(
-                  children: [
-                    if (isLoadingPaymentData)
-                      const Expanded(
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFFe6ff00),
-                          ),
-                        ),
-                      )
-                    else if (gereeData == null)
-                      const Expanded(
-                        child: Center(
-                          child: Text(
-                            'Төлбөрийн мэдээлэл олдсонгүй',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      if (isLoadingPaymentData)
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.4,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFe6ff00),
                             ),
                           ),
-                        ),
-                      )
-                    else if (paymentDate == null)
-                      const Expanded(
-                        child: Center(
-                          child: Text(
-                            'Төлбөрийн огноо тохируулаагүй байна',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      Expanded(child: _buildPaymentDisplay()),
-
-                    const SizedBox(height: 12),
-
-                    // Contract Information Container
-                    if (gereeData != null)
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF2D3748), Color(0xFF1A202C)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Гэрээний мэдээлэл',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                _buildInfoRow(
-                                  'Гэрээний дугаар',
-                                  gereeData!.gereeniiDugaar,
-                                ),
-                                const SizedBox(height: 12),
-                                _buildInfoRow(
-                                  'Барилгын нэр',
-                                  gereeData!.bairNer,
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildInfoRow(
-                                        'Давхар',
-                                        gereeData!.davkhar.toString(),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: _buildInfoRow(
-                                        'Тоот',
-                                        gereeData!.toot.toString(),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            Row(
-                              children: List.generate(
-                                150 ~/ 6,
-                                (index) => Expanded(
-                                  child: Container(
-                                    color: index % 2 == 0
-                                        ? Colors.white.withOpacity(0.3)
-                                        : Colors.transparent,
-                                    height: 1,
-                                  ),
-                                ),
+                        )
+                      else if (gereeData == null)
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.4,
+                          child: const Center(
+                            child: Text(
+                              'Төлбөрийн мэдээлэл олдсонгүй',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Text(
-                                  'Төлөх хугацаа:',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Text(
-                                  formatDate(gereeData!.tulukhOgnoo),
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                          ),
+                        )
+                      else if (paymentDate == null)
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.4,
+                          child: const Center(
+                            child: Text(
+                              'Төлбөрийн огноо тохируулаагүй байна',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        )
+                      else
+                        _buildPaymentDisplay(),
 
-                    const SizedBox(height: 12),
-                  ],
+                      const SizedBox(height: 12),
+
+                      // Contract Information Container
+                      if (gereeData != null)
+                        Builder(
+                          builder: (context) {
+                            final screenHeight = MediaQuery.of(
+                              context,
+                            ).size.height;
+                            final isSmallScreen = screenHeight < 700;
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              padding: EdgeInsets.all(isSmallScreen ? 12 : 15),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF2D3748),
+                                    Color(0xFF1A202C),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Гэрээний мэдээлэл',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isSmallScreen ? 16 : 18,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: -0.5,
+                                        ),
+                                      ),
+                                      SizedBox(height: isSmallScreen ? 12 : 16),
+                                      _buildInfoRow(
+                                        'Гэрээний дугаар',
+                                        gereeData!.gereeniiDugaar,
+                                      ),
+                                      SizedBox(height: isSmallScreen ? 8 : 12),
+                                      _buildInfoRow(
+                                        'Барилгын нэр',
+                                        gereeData!.bairNer,
+                                      ),
+                                      SizedBox(height: isSmallScreen ? 8 : 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _buildInfoRow(
+                                              'Давхар',
+                                              gereeData!.davkhar.toString(),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: isSmallScreen ? 12 : 16,
+                                          ),
+                                          Expanded(
+                                            child: _buildInfoRow(
+                                              'Тоот',
+                                              gereeData!.toot.toString(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: isSmallScreen ? 12 : 16),
+
+                                  Row(
+                                    children: List.generate(
+                                      150 ~/ 6,
+                                      (index) => Expanded(
+                                        child: Container(
+                                          color: index % 2 == 0
+                                              ? Colors.white.withOpacity(0.3)
+                                              : Colors.transparent,
+                                          height: 1,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: isSmallScreen ? 12 : 16),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'Төлөх хугацаа:',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: isSmallScreen ? 12 : 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        formatDate(gereeData!.tulukhOgnoo),
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: isSmallScreen ? 14 : 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height < 700
+                            ? 8
+                            : 12,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -868,27 +899,40 @@ class _BookingScreenState extends State<NuurKhuudas> {
     final isOverdue = daysDifference < 0;
     final displayDays = daysDifference.abs();
 
+    // Get screen height to determine if we're on a small screen
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
+
+    // Adjust sizes based on screen height
+    final circleSize = isSmallScreen ? 180.0 : 250.0;
+    final circlePadding = isSmallScreen ? 10.0 : 20.0;
+    final strokeWidth = isSmallScreen ? 14.0 : 18.0;
+    final fontSize = isSmallScreen ? 60.0 : 80.0;
+    final subtitleFontSize = isSmallScreen ? 14.0 : 16.0;
+    final verticalPadding = isSmallScreen ? 10.0 : 20.0;
+    final spacingAfterCircle = isSmallScreen ? 10.0 : 20.0;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: verticalPadding, horizontal: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Circular progress indicator with proper padding
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(circlePadding),
             child: SizedBox(
-              width: 250,
-              height: 250,
+              width: circleSize,
+              height: circleSize,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   // Background circle
                   SizedBox(
-                    width: 280,
-                    height: 280,
+                    width: circleSize,
+                    height: circleSize,
                     child: CircularProgressIndicator(
                       value: 1.0,
-                      strokeWidth: 18,
+                      strokeWidth: strokeWidth,
                       backgroundColor: Colors.transparent,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         Colors.white.withOpacity(0.1),
@@ -897,13 +941,13 @@ class _BookingScreenState extends State<NuurKhuudas> {
                   ),
                   // Progress circle
                   SizedBox(
-                    width: 280,
-                    height: 280,
+                    width: circleSize,
+                    height: circleSize,
                     child: CircularProgressIndicator(
                       value: isOverdue
                           ? 1.0
                           : (displayDays / 30).clamp(0.0, 1.0),
-                      strokeWidth: 18,
+                      strokeWidth: strokeWidth,
                       backgroundColor: Colors.transparent,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isOverdue
@@ -922,17 +966,17 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           color: isOverdue
                               ? const Color(0xFFFF6B6B)
                               : const Color(0xFFe6ff00),
-                          fontSize: 80,
+                          fontSize: fontSize,
                           fontWeight: FontWeight.bold,
                           height: 1,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: isSmallScreen ? 4 : 8),
                       Text(
                         isOverdue ? 'өдөр хэтэрсэн' : 'өдөр үлдсэн',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white70,
-                          fontSize: 16,
+                          fontSize: subtitleFontSize,
                           fontWeight: FontWeight.w500,
                         ),
                         textAlign: TextAlign.center,
@@ -944,11 +988,14 @@ class _BookingScreenState extends State<NuurKhuudas> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: spacingAfterCircle),
 
           // Payment date info
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 16 : 20,
+              vertical: isSmallScreen ? 10 : 12,
+            ),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(50),
@@ -959,14 +1006,14 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 Icon(
                   Icons.calendar_today,
                   color: isOverdue ? const Color(0xFFFF6B6B) : Colors.white70,
-                  size: 18,
+                  size: isSmallScreen ? 16 : 18,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Төлбөрийн огноо: ${_formatPaymentDate()}',
                   style: TextStyle(
                     color: isOverdue ? const Color(0xFFFF6B6B) : Colors.white,
-                    fontSize: 14,
+                    fontSize: isSmallScreen ? 12 : 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

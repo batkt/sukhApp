@@ -232,15 +232,15 @@ class _GereeState extends State<Geree> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFe6ff00),
+                        color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         geree.turul,
                         style: const TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0a0e27),
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
                         ),
                       ),
                     ),

@@ -44,7 +44,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       SessionService.checkAndHandleSession().then((isValid) {
         if (!isValid && mounted) {
-          // Session expired, force refresh router to redirect to login
           appRouter.refresh();
         }
       });
