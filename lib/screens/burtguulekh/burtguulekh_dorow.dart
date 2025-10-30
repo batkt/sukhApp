@@ -16,16 +16,7 @@ class AppBackground extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: double.infinity,
-      child: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('lib/assets/img/background_image.png'),
-            fit: BoxFit.none,
-            scale: 3,
-          ),
-        ),
-        child: child,
-      ),
+      child: child,
     );
   }
 }
@@ -101,6 +92,8 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         final registrationPayload = {
           'utas': widget.registrationData?['utas'] ?? '',
           'nuutsUg': _passwordController.text,
+          'bairniiNer': widget.registrationData?['bairniiNer'] ?? '',
+          'orts': widget.registrationData?['orts'] ?? '',
           'davkhar': widget.registrationData?['davkhar'] ?? '',
           'toot': widget.registrationData?['toot'] ?? '',
           'ovog': widget.registrationData?['ovog'] ?? '',

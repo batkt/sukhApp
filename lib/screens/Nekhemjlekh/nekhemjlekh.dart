@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -15,16 +16,7 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('lib/assets/img/background_image.png'),
-          fit: BoxFit.none,
-          scale: 3,
-        ),
-      ),
-      child: child,
-    );
+    return Container(child: child);
   }
 }
 
@@ -209,10 +201,24 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         print('NekhemjlekhiinTuukh response: $response');
 
         if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+          // Store previously selected invoice IDs to preserve selection
+          final previouslySelectedIds = invoices
+              .where((inv) => inv.isSelected)
+              .map((inv) => inv.id)
+              .toSet();
+
           setState(() {
             invoices = (response['jagsaalt'] as List)
                 .map((item) => NekhemjlekhItem.fromJson(item))
                 .toList();
+
+            // Restore selection state for previously selected invoices
+            for (var invoice in invoices) {
+              if (previouslySelectedIds.contains(invoice.id)) {
+                invoice.isSelected = true;
+              }
+            }
+
             isLoading = false;
           });
         } else {
@@ -835,7 +841,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
   Widget _buildQPayBankItem(QPayBank bank) {
     return GestureDetector(
-      onTap: () => _openBankApp(bank.link),
+      onTap: () => _openBankAppAndShowCheckModal(bank),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
@@ -888,6 +894,306 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openBankAppAndShowCheckModal(QPayBank bank) async {
+    try {
+      final Uri bankUri = Uri.parse(bank.link);
+
+      print('Attempting to launch bank app with URL: ${bank.link}');
+
+      // Close the bank selection modal
+      Navigator.of(context).pop();
+
+      // Try to launch the bank app
+      bool launched = false;
+      try {
+        launched = await launchUrl(
+          bankUri,
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (e) {
+        print('Error launching bank app: $e');
+        launched = false;
+      }
+
+      if (launched) {
+        // Successfully opened the app
+        print('Bank app launched successfully');
+
+        // Wait a moment for the app to open, then show the check modal
+        await Future.delayed(const Duration(seconds: 1));
+
+        if (mounted) {
+          _showPaymentCheckModal(bank);
+        }
+      } else {
+        // Bank app not installed
+        if (mounted) {
+          _showBankAppNotInstalledDialog(bank.link);
+        }
+      }
+    } catch (e) {
+      print('Error in _openBankAppAndShowCheckModal: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Алдаа гарлаа: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showPaymentCheckModal(QPayBank bank) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.5,
+          decoration: const BoxDecoration(
+            color: Color(0xFF0a0e27),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: const Text(
+                            'Төлбөр баталгаажуулах',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Bank logo and info
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                bank.logo,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.account_balance,
+                                    color: Colors.grey,
+                                    size: 30,
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              bank.description,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Check payment button
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _checkPaymentStatus(bank),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFe6ff00),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Төлбөр шалгах',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _checkPaymentStatus(QPayBank bank) async {
+    // Close the payment check modal first
+    Navigator.pop(context);
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFFe6ff00)),
+      ),
+    );
+
+    try {
+      // Reload invoice data to get latest status
+      await _loadNekhemjlekh();
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Check if the selected invoice(s) are paid
+      final selectedInvoices = invoices
+          .where((inv) => selectedInvoiceIds.contains(inv.id))
+          .toList();
+
+      if (selectedInvoices.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Сонгосон нэхэмжлэл олдсонгүй'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          _showBankInfoModal();
+        }
+        return;
+      }
+
+      // Check if all selected invoices are paid
+      final allPaid = selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн');
+
+      if (allPaid) {
+        // Payment successful - show success snackbar
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Төлбөр амжилттай төлөгдлөө',
+            icon: Icons.check_circle_outline,
+            iconColor: Colors.green,
+            textColor: Colors.white,
+            opacity: 0.3,
+            blur: 15,
+          );
+
+          // Wait a bit then reload invoice data to refresh the list
+          await Future.delayed(const Duration(seconds: 2));
+
+          // Reload invoice data to get the latest status from server
+          await _loadNekhemjlekh();
+
+          // Show VAT receipts for all paid invoices
+          for (var invoice in selectedInvoices) {
+            await _showVATReceiptModal(invoice.id);
+          }
+
+          // Navigate back to home page to refresh the data
+          context.go('/nuur');
+        }
+      } else {
+        // Payment not completed - show error snackbar and return to bank list
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Төлбөр төлөгдөөгүй байна',
+            icon: Icons.error_outline,
+            iconColor: Colors.red,
+            textColor: Colors.white,
+            opacity: 0.3,
+            blur: 15,
+          );
+
+          // Wait a bit then show bank list again
+          await Future.delayed(const Duration(seconds: 2));
+          _showBankInfoModal();
+        }
+      }
+    } catch (e) {
+      print('Error checking payment status: $e');
+
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Алдаа гарлаа: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+
+        // Show bank list again
+        _showBankInfoModal();
+      }
+    }
   }
 
   Future<void> _openBankApp(String deepLink) async {
@@ -1612,41 +1918,46 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                   children: [
                                     if (!showHistoryOnly &&
                                         filteredInvoices.isNotEmpty)
-                                      GestureDetector(
-                                        onTap: toggleSelectAll,
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 20,
-                                              height: 20,
-                                              decoration: BoxDecoration(
-                                                color: allSelected
-                                                    ? Colors.white
-                                                    : Colors.transparent,
-                                                border: Border.all(
-                                                  color: Colors.white,
-                                                  width: 2,
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: 18,
+                                        ),
+                                        child: GestureDetector(
+                                          onTap: toggleSelectAll,
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 20,
+                                                height: 20,
+                                                decoration: BoxDecoration(
+                                                  color: allSelected
+                                                      ? Colors.white
+                                                      : Colors.transparent,
+                                                  border: Border.all(
+                                                    color: Colors.white,
+                                                    width: 2,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
+                                                child: allSelected
+                                                    ? const Icon(
+                                                        Icons.check,
+                                                        color: Colors.black,
+                                                        size: 14,
+                                                      )
+                                                    : null,
                                               ),
-                                              child: allSelected
-                                                  ? const Icon(
-                                                      Icons.check,
-                                                      color: Colors.black,
-                                                      size: 14,
-                                                    )
-                                                  : null,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Text(
-                                              'Бүгдийг сонгох',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
+                                              const SizedBox(width: 12),
+                                              const Text(
+                                                'Бүгдийг сонгох',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     if (!showHistoryOnly &&

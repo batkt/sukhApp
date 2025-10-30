@@ -125,6 +125,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> verifyPhoneNumber({
     required String baiguullagiinId,
+    required String purpose,
     required String utas,
     required String duureg,
     required String horoo,
@@ -136,6 +137,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'baiguullagiinId': baiguullagiinId,
+          'purpose': purpose,
           'utas': utas,
           'duureg': duureg,
           'horoo': horoo,
@@ -159,6 +161,7 @@ class ApiService {
     required String utas,
     required String code,
     required String baiguullagiinId,
+    required String purpose,
   }) async {
     try {
       final response = await http.post(
@@ -168,6 +171,7 @@ class ApiService {
           'utas': utas,
           'code': code,
           'baiguullagiinId': baiguullagiinId,
+          'purpose': purpose,
         }),
       );
 
@@ -663,6 +667,59 @@ class ApiService {
     } catch (e) {
       print('Error updating nekhemjlekh status: $e');
       throw Exception('Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchNekhemjlekhCron({
+    required String baiguullagiinId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/nekhemjlekh/Cron/$baiguullagiinId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Нэхэмжлэхийн Cron мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching nekhemjlekh cron: $e');
+      throw Exception('Нэхэмжлэхийн Cron мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> changePassword({
+    required String odoogiinNuutsUg,
+    required String shineNuutsUg,
+    required String davtahNuutsUg,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/orshinSuugchNuutsUgSoliyo'),
+        headers: headers,
+        body: json.encode({
+          'odoogiinNuutsUg': odoogiinNuutsUg,
+          'shineNuutsUg': shineNuutsUg,
+          'davtahNuutsUg': davtahNuutsUg,
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      // Return the response data regardless of status code
+      // The UI will check the 'success' field
+      return data;
+    } catch (e) {
+      print('Error changing password: $e');
+      throw Exception('Нууц үг солиход алдаа гарлаа: $e');
     }
   }
 }

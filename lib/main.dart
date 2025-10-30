@@ -7,10 +7,8 @@ import 'package:sukh_app/services/session_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize notification service
   await NotificationService.initialize();
 
-  // Check session on app startup
   await SessionService.checkAndHandleSession();
 
   runApp(const MyApp());
@@ -40,7 +38,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    // Check session when app comes to foreground
     if (state == AppLifecycleState.resumed) {
       SessionService.checkAndHandleSession().then((isValid) {
         if (!isValid && mounted) {
@@ -52,27 +49,47 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(440, 956),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return GestureDetector(
-          onTap: () {
-            FocusManager.instance.primaryFocus?.unfocus();
-          },
-          behavior: HitTestBehavior.translucent,
-          child: MaterialApp.router(
-            debugShowCheckedModeBanner: false,
-            routerConfig: appRouter,
-            theme: ThemeData(
-              scaffoldBackgroundColor: Colors.black,
-              textTheme: const TextTheme(
-                bodyMedium: TextStyle(fontWeight: FontWeight.w400),
-              ),
-              fontFamily: 'Inter',
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ScreenUtilInit(
+          designSize: Size(
+            MediaQueryData.fromView(
+              WidgetsBinding.instance.platformDispatcher.views.first,
+            ).size.width,
+            MediaQueryData.fromView(
+              WidgetsBinding.instance.platformDispatcher.views.first,
+            ).size.height,
           ),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
+            return GestureDetector(
+              onTap: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              behavior: HitTestBehavior.translucent,
+              child: Container(
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('lib/assets/img/background_image.png'),
+                    fit: BoxFit.none,
+                    scale: 3,
+                  ),
+                ),
+                child: MaterialApp.router(
+                  debugShowCheckedModeBanner: false,
+                  routerConfig: appRouter,
+                  theme: ThemeData(
+                    scaffoldBackgroundColor: Colors.transparent,
+                    textTheme: const TextTheme(
+                      bodyMedium: TextStyle(fontWeight: FontWeight.w400),
+                    ),
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );

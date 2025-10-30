@@ -16,16 +16,7 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('lib/assets/img/background_image.png'),
-          fit: BoxFit.none,
-          scale: 3,
-        ),
-      ),
-      child: child,
-    );
+    return Container(decoration: const BoxDecoration(), child: child);
   }
 }
 
@@ -316,418 +307,219 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                           minHeight: constraints.maxHeight,
                         ),
                         child: IntrinsicHeight(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 50,
-                              vertical: 40,
-                            ),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const AppLogo(),
-                                  const SizedBox(height: 30),
-                                  const Text(
-                                    'Бүртгэл',
-                                    style: TextStyle(
-                                      color: AppColors.grayColor,
-                                      fontSize: 36,
-                                    ),
-                                    maxLines: 1,
-                                    softWrap: false,
-                                  ),
+                          child: Builder(
+                            builder: (context) {
+                              final screenHeight = MediaQuery.of(
+                                context,
+                              ).size.height;
+                              final screenWidth = MediaQuery.of(
+                                context,
+                              ).size.width;
+                              final isSmallScreen = screenHeight < 700;
+                              final isNarrowScreen = screenWidth < 380;
 
-                                  const SizedBox(height: 20),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(100),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          offset: const Offset(0, 10),
-                                          blurRadius: 8,
+                              return Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isNarrowScreen
+                                      ? 24
+                                      : (isSmallScreen ? 30 : 40),
+                                  vertical: isSmallScreen ? 12 : 24,
+                                ),
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const AppLogo(),
+                                      SizedBox(height: isSmallScreen ? 12 : 20),
+                                      Text(
+                                        'Бүртгэл',
+                                        style: TextStyle(
+                                          color: AppColors.grayColor,
+                                          fontSize: isSmallScreen ? 22 : 28,
                                         ),
-                                      ],
-                                    ),
-                                    child: DropdownButtonFormField2<String>(
-                                      key: _districtFieldKey,
-                                      isExpanded: true,
-                                      decoration: InputDecoration(
-                                        contentPadding: EdgeInsets.zero,
-                                        filled: true,
-                                        fillColor: AppColors.inputGrayColor
-                                            .withOpacity(0.5),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: AppColors.grayColor,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        errorBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Colors.redAccent,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        focusedErrorBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                          borderSide: const BorderSide(
-                                            color: Colors.redAccent,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        errorStyle: const TextStyle(
-                                          color: Colors.redAccent,
-                                          fontSize: 14,
-                                        ),
-                                        errorMaxLines: 1,
-                                        helperText: '',
-                                        helperStyle: const TextStyle(height: 0),
+                                        maxLines: 1,
+                                        softWrap: false,
                                       ),
-                                      hint: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.location_city_rounded,
-                                              size: 20,
-                                              color: Colors.white.withOpacity(
-                                                0.5,
+
+                                      SizedBox(height: isSmallScreen ? 14 : 18),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            100,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.3,
                                               ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            const Text(
-                                              'Дүүрэг сонгох',
-                                              style: TextStyle(
-                                                color: Colors.white70,
-                                                fontSize: 15,
-                                              ),
+                                              offset: const Offset(0, 10),
+                                              blurRadius: 8,
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      items: districts
-                                          .map(
-                                            (
-                                              district,
-                                            ) => DropdownMenuItem<String>(
-                                              value: district,
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.location_city_rounded,
-                                                    size: 20,
-                                                    color: Colors.white
-                                                        .withOpacity(0.7),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Text(
-                                                    district,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ],
+                                        child: DropdownButtonFormField2<String>(
+                                          key: _districtFieldKey,
+                                          isExpanded: true,
+                                          decoration: InputDecoration(
+                                            contentPadding: EdgeInsets.zero,
+                                            filled: true,
+                                            fillColor: AppColors.inputGrayColor
+                                                .withOpacity(0.5),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                              borderSide: const BorderSide(
+                                                color: AppColors.grayColor,
+                                                width: 1.5,
                                               ),
                                             ),
-                                          )
-                                          .toList(),
-                                      selectedItemBuilder: (context) {
-                                        return districts.map((district) {
-                                          return Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
+                                            errorBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                              borderSide: const BorderSide(
+                                                color: Colors.redAccent,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            focusedErrorBorder:
+                                                OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        100,
+                                                      ),
+                                                  borderSide: const BorderSide(
+                                                    color: Colors.redAccent,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                            errorStyle: TextStyle(
+                                              color: Colors.redAccent,
+                                              fontSize: isSmallScreen ? 11 : 13,
+                                            ),
+                                            errorMaxLines: 1,
+                                            helperText: '',
+                                            helperStyle: const TextStyle(
+                                              height: 0,
+                                            ),
+                                          ),
+                                          hint: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: isSmallScreen
+                                                  ? 14
+                                                  : 16,
                                             ),
                                             child: Row(
                                               children: [
                                                 Icon(
                                                   Icons.location_city_rounded,
-                                                  size: 20,
-                                                  color: Colors.white
-                                                      .withOpacity(0.7),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Text(
-                                                  district,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList();
-                                      },
-                                      value: selectedDistrict,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          selectedDistrict = value;
-                                        });
-                                        _districtFieldKey.currentState
-                                            ?.validate();
-                                        if (value != null) {
-                                          _loadKhotkhons(value);
-                                        }
-                                      },
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Дүүрэг сонгоно уу';
-                                        }
-                                        return null;
-                                      },
-                                      buttonStyleData: const ButtonStyleData(
-                                        height: 56,
-                                        padding: EdgeInsets.only(right: 11),
-                                      ),
-                                      dropdownStyleData: DropdownStyleData(
-                                        maxHeight: 300,
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.inputGrayColor
-                                              .withOpacity(0.95),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(
-                                              0.2,
-                                            ),
-                                            width: 1,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.3,
-                                              ),
-                                              offset: const Offset(0, 8),
-                                              blurRadius: 24,
-                                              spreadRadius: 0,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      menuItemStyleData: MenuItemStyleData(
-                                        height: 48,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        overlayColor:
-                                            WidgetStateProperty.resolveWith<
-                                              Color?
-                                            >((Set<WidgetState> states) {
-                                              if (states.contains(
-                                                WidgetState.hovered,
-                                              )) {
-                                                return Colors.white.withOpacity(
-                                                  0.1,
-                                                );
-                                              }
-                                              if (states.contains(
-                                                WidgetState.focused,
-                                              )) {
-                                                return Colors.white.withOpacity(
-                                                  0.15,
-                                                );
-                                              }
-                                              return null;
-                                            }),
-                                      ),
-                                      iconStyleData: IconStyleData(
-                                        icon: Icon(
-                                          isDistrictOpen
-                                              ? Icons.arrow_drop_up
-                                              : Icons.arrow_drop_down,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      onMenuStateChange: (isOpen) {
-                                        setState(() {
-                                          isDistrictOpen = isOpen;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (selectedDistrict == null) {
-                                        _districtFieldKey.currentState
-                                            ?.validate();
-                                        _districtFieldKey.currentState
-                                            ?.didChange(selectedDistrict);
-                                        setState(() {});
-                                      }
-                                    },
-                                    child: AbsorbPointer(
-                                      absorbing: selectedDistrict == null,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.3,
-                                              ),
-                                              offset: const Offset(0, 10),
-                                              blurRadius: 8,
-                                            ),
-                                          ],
-                                        ),
-                                        child: DropdownButtonFormField2<String>(
-                                          key: _khotkhonFieldKey,
-                                          isExpanded: true,
-                                          decoration: InputDecoration(
-                                            contentPadding: EdgeInsets.zero,
-                                            filled: true,
-                                            fillColor: AppColors.inputGrayColor
-                                                .withOpacity(0.5),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              borderSide: BorderSide.none,
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              borderSide: const BorderSide(
-                                                color: Colors.white,
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            errorBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              borderSide: const BorderSide(
-                                                color: Colors.redAccent,
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            focusedErrorBorder:
-                                                OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        100,
-                                                      ),
-                                                  borderSide: const BorderSide(
-                                                    color: Colors.redAccent,
-                                                    width: 1.5,
-                                                  ),
-                                                ),
-                                            errorStyle: const TextStyle(
-                                              color: Colors.redAccent,
-                                              fontSize: 14,
-                                            ),
-                                            errorMaxLines: 1,
-                                            helperText: '',
-                                            helperStyle: const TextStyle(
-                                              height: 0,
-                                            ),
-                                          ),
-                                          hint: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  isLoadingKhotkhon
-                                                      ? Icons
-                                                            .hourglass_empty_rounded
-                                                      : Icons.home_work_rounded,
-                                                  size: 20,
+                                                  size: isSmallScreen ? 18 : 20,
                                                   color: Colors.white
                                                       .withOpacity(0.5),
                                                 ),
-                                                const SizedBox(width: 12),
+                                                SizedBox(
+                                                  width: isSmallScreen
+                                                      ? 10
+                                                      : 12,
+                                                ),
                                                 Text(
-                                                  isLoadingKhotkhon
-                                                      ? 'Уншиж байна...'
-                                                      : 'Хороо сонгох',
-                                                  style: const TextStyle(
+                                                  'Дүүрэг сонгох',
+                                                  style: TextStyle(
                                                     color: Colors.white70,
-                                                    fontSize: 15,
+                                                    fontSize: isSmallScreen
+                                                        ? 13
+                                                        : 15,
                                                   ),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                          items: khotkhons
+                                          items: districts
                                               .map(
                                                 (
-                                                  khotkhon,
+                                                  district,
                                                 ) => DropdownMenuItem<String>(
-                                                  value: khotkhon['ner'],
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.home_work_rounded,
-                                                        size: 20,
-                                                        color: Colors.white
-                                                            .withOpacity(0.7),
-                                                      ),
-                                                      const SizedBox(width: 12),
-                                                      Text(
-                                                        khotkhon['ner']!,
-                                                        style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 15,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ],
+                                                  value: district,
+                                                  child: Builder(
+                                                    builder: (context) {
+                                                      final isSmall =
+                                                          MediaQuery.of(
+                                                            context,
+                                                          ).size.height <
+                                                          700;
+                                                      return Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons
+                                                                .location_city_rounded,
+                                                            size: isSmall
+                                                                ? 18
+                                                                : 20,
+                                                            color: Colors.white
+                                                                .withOpacity(
+                                                                  0.7,
+                                                                ),
+                                                          ),
+                                                          SizedBox(
+                                                            width: isSmall
+                                                                ? 10
+                                                                : 12,
+                                                          ),
+                                                          Text(
+                                                            district,
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: isSmall
+                                                                  ? 13
+                                                                  : 15,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      );
+                                                    },
                                                   ),
                                                 ),
                                               )
                                               .toList(),
                                           selectedItemBuilder: (context) {
-                                            return khotkhons.map((khotkhon) {
+                                            final isSmall =
+                                                MediaQuery.of(
+                                                  context,
+                                                ).size.height <
+                                                700;
+                                            return districts.map((district) {
                                               return Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                    ),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: isSmall ? 14 : 16,
+                                                ),
                                                 child: Row(
                                                   children: [
                                                     Icon(
-                                                      Icons.home_work_rounded,
-                                                      size: 20,
+                                                      Icons
+                                                          .location_city_rounded,
+                                                      size: isSmall ? 18 : 20,
                                                       color: Colors.white
                                                           .withOpacity(0.7),
                                                     ),
-                                                    const SizedBox(width: 12),
+                                                    SizedBox(
+                                                      width: isSmall ? 10 : 12,
+                                                    ),
                                                     Text(
-                                                      khotkhon['ner']!,
-                                                      style: const TextStyle(
+                                                      district,
+                                                      style: TextStyle(
                                                         color: Colors.white,
-                                                        fontSize: 15,
+                                                        fontSize: isSmall
+                                                            ? 13
+                                                            : 15,
                                                         fontWeight:
                                                             FontWeight.w500,
                                                       ),
@@ -737,37 +529,34 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               );
                                             }).toList();
                                           },
-                                          value: selectedKhotkhon,
-                                          onChanged:
-                                              (selectedDistrict == null ||
-                                                  isLoadingKhotkhon)
-                                              ? null
-                                              : (value) {
-                                                  setState(() {
-                                                    selectedKhotkhon = value;
-                                                  });
-                                                  _khotkhonFieldKey.currentState
-                                                      ?.validate();
-                                                  if (value != null) {
-                                                    _loadSOKHs(value);
-                                                  }
-                                                },
+                                          value: selectedDistrict,
+                                          onChanged: (value) {
+                                            setState(() {
+                                              selectedDistrict = value;
+                                            });
+                                            _districtFieldKey.currentState
+                                                ?.validate();
+                                            if (value != null) {
+                                              _loadKhotkhons(value);
+                                            }
+                                          },
                                           validator: (value) {
                                             if (value == null ||
                                                 value.isEmpty) {
-                                              return 'Хороо сонгоно уу';
+                                              return 'Дүүрэг сонгоно уу';
                                             }
                                             return null;
                                           },
-                                          buttonStyleData:
-                                              const ButtonStyleData(
-                                                height: 56,
-                                                padding: EdgeInsets.only(
-                                                  right: 11,
-                                                ),
-                                              ),
+                                          buttonStyleData: ButtonStyleData(
+                                            height: isSmallScreen ? 48 : 52,
+                                            padding: EdgeInsets.only(
+                                              right: isSmallScreen ? 8 : 11,
+                                            ),
+                                          ),
                                           dropdownStyleData: DropdownStyleData(
-                                            maxHeight: 300,
+                                            maxHeight: isSmallScreen
+                                                ? 250
+                                                : 300,
                                             padding: const EdgeInsets.symmetric(
                                               vertical: 8,
                                             ),
@@ -794,9 +583,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                             ),
                                           ),
                                           menuItemStyleData: MenuItemStyleData(
-                                            height: 48,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
+                                            height: isSmallScreen ? 42 : 46,
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: isSmallScreen
+                                                  ? 12
+                                                  : 16,
                                             ),
                                             overlayColor:
                                                 WidgetStateProperty.resolveWith<
@@ -819,7 +610,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           ),
                                           iconStyleData: IconStyleData(
                                             icon: Icon(
-                                              isKhotkhonOpen
+                                              isDistrictOpen
                                                   ? Icons.arrow_drop_up
                                                   : Icons.arrow_drop_down,
                                               color: Colors.white,
@@ -827,37 +618,689 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           ),
                                           onMenuStateChange: (isOpen) {
                                             setState(() {
-                                              isKhotkhonOpen = isOpen;
+                                              isDistrictOpen = isOpen;
                                             });
                                           },
                                         ),
                                       ),
-                                    ),
-                                  ),
+                                      SizedBox(height: isSmallScreen ? 12 : 14),
 
-                                  const SizedBox(height: 16),
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (selectedDistrict == null) {
+                                            _districtFieldKey.currentState
+                                                ?.validate();
+                                            _districtFieldKey.currentState
+                                                ?.didChange(selectedDistrict);
+                                            setState(() {});
+                                          }
+                                        },
+                                        child: AbsorbPointer(
+                                          absorbing: selectedDistrict == null,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.3),
+                                                  offset: const Offset(0, 10),
+                                                  blurRadius: 8,
+                                                ),
+                                              ],
+                                            ),
+                                            child: DropdownButtonFormField2<String>(
+                                              key: _khotkhonFieldKey,
+                                              isExpanded: true,
+                                              decoration: InputDecoration(
+                                                contentPadding: EdgeInsets.zero,
+                                                filled: true,
+                                                fillColor: AppColors
+                                                    .inputGrayColor
+                                                    .withOpacity(0.5),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            100,
+                                                          ),
+                                                      borderSide:
+                                                          BorderSide.none,
+                                                    ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            100,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors.white,
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                errorBorder: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        100,
+                                                      ),
+                                                  borderSide: const BorderSide(
+                                                    color: Colors.redAccent,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                focusedErrorBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            100,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors
+                                                                .redAccent,
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                errorStyle: TextStyle(
+                                                  color: Colors.redAccent,
+                                                  fontSize: isSmallScreen
+                                                      ? 11
+                                                      : 13,
+                                                ),
+                                                errorMaxLines: 1,
+                                                helperText: '',
+                                                helperStyle: const TextStyle(
+                                                  height: 0,
+                                                ),
+                                              ),
+                                              hint: Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: isSmallScreen
+                                                      ? 14
+                                                      : 16,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      isLoadingKhotkhon
+                                                          ? Icons
+                                                                .hourglass_empty_rounded
+                                                          : Icons
+                                                                .home_work_rounded,
+                                                      size: isSmallScreen
+                                                          ? 18
+                                                          : 20,
+                                                      color: Colors.white
+                                                          .withOpacity(0.5),
+                                                    ),
+                                                    SizedBox(
+                                                      width: isSmallScreen
+                                                          ? 10
+                                                          : 12,
+                                                    ),
+                                                    Text(
+                                                      isLoadingKhotkhon
+                                                          ? 'Уншиж байна...'
+                                                          : 'Хороо сонгох',
+                                                      style: TextStyle(
+                                                        color: Colors.white70,
+                                                        fontSize: isSmallScreen
+                                                            ? 13
+                                                            : 15,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              items: khotkhons
+                                                  .map(
+                                                    (
+                                                      khotkhon,
+                                                    ) => DropdownMenuItem<String>(
+                                                      value: khotkhon['ner'],
+                                                      child: Builder(
+                                                        builder: (context) {
+                                                          final isSmall =
+                                                              MediaQuery.of(
+                                                                context,
+                                                              ).size.height <
+                                                              700;
+                                                          return Row(
+                                                            children: [
+                                                              Icon(
+                                                                Icons
+                                                                    .home_work_rounded,
+                                                                size: isSmall
+                                                                    ? 18
+                                                                    : 20,
+                                                                color: Colors
+                                                                    .white
+                                                                    .withOpacity(
+                                                                      0.7,
+                                                                    ),
+                                                              ),
+                                                              SizedBox(
+                                                                width: isSmall
+                                                                    ? 10
+                                                                    : 12,
+                                                              ),
+                                                              Text(
+                                                                khotkhon['ner']!,
+                                                                style: TextStyle(
+                                                                  color: Colors
+                                                                      .white,
+                                                                  fontSize:
+                                                                      isSmall
+                                                                      ? 13
+                                                                      : 15,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          );
+                                                        },
+                                                      ),
+                                                    ),
+                                                  )
+                                                  .toList(),
+                                              selectedItemBuilder: (context) {
+                                                final isSmall =
+                                                    MediaQuery.of(
+                                                      context,
+                                                    ).size.height <
+                                                    700;
+                                                return khotkhons.map((
+                                                  khotkhon,
+                                                ) {
+                                                  return Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: isSmall
+                                                              ? 14
+                                                              : 16,
+                                                        ),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .home_work_rounded,
+                                                          size: isSmall
+                                                              ? 18
+                                                              : 20,
+                                                          color: Colors.white
+                                                              .withOpacity(0.7),
+                                                        ),
+                                                        SizedBox(
+                                                          width: isSmall
+                                                              ? 10
+                                                              : 12,
+                                                        ),
+                                                        Text(
+                                                          khotkhon['ner']!,
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: isSmall
+                                                                ? 13
+                                                                : 15,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }).toList();
+                                              },
+                                              value: selectedKhotkhon,
+                                              onChanged:
+                                                  (selectedDistrict == null ||
+                                                      isLoadingKhotkhon)
+                                                  ? null
+                                                  : (value) {
+                                                      setState(() {
+                                                        selectedKhotkhon =
+                                                            value;
+                                                      });
+                                                      _khotkhonFieldKey
+                                                          .currentState
+                                                          ?.validate();
+                                                      if (value != null) {
+                                                        _loadSOKHs(value);
+                                                      }
+                                                    },
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.isEmpty) {
+                                                  return 'Хороо сонгоно уу';
+                                                }
+                                                return null;
+                                              },
+                                              buttonStyleData: ButtonStyleData(
+                                                height: isSmallScreen ? 48 : 52,
+                                                padding: EdgeInsets.only(
+                                                  right: isSmallScreen ? 8 : 11,
+                                                ),
+                                              ),
+                                              dropdownStyleData: DropdownStyleData(
+                                                maxHeight: isSmallScreen
+                                                    ? 250
+                                                    : 300,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 8,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors
+                                                      .inputGrayColor
+                                                      .withOpacity(0.95),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  border: Border.all(
+                                                    color: Colors.white
+                                                        .withOpacity(0.2),
+                                                    width: 1,
+                                                  ),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black
+                                                          .withOpacity(0.3),
+                                                      offset: const Offset(
+                                                        0,
+                                                        8,
+                                                      ),
+                                                      blurRadius: 24,
+                                                      spreadRadius: 0,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              menuItemStyleData: MenuItemStyleData(
+                                                height: isSmallScreen ? 42 : 46,
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: isSmallScreen
+                                                      ? 12
+                                                      : 16,
+                                                ),
+                                                overlayColor:
+                                                    WidgetStateProperty.resolveWith<
+                                                      Color?
+                                                    >((
+                                                      Set<WidgetState> states,
+                                                    ) {
+                                                      if (states.contains(
+                                                        WidgetState.hovered,
+                                                      )) {
+                                                        return Colors.white
+                                                            .withOpacity(0.1);
+                                                      }
+                                                      if (states.contains(
+                                                        WidgetState.focused,
+                                                      )) {
+                                                        return Colors.white
+                                                            .withOpacity(0.15);
+                                                      }
+                                                      return null;
+                                                    }),
+                                              ),
+                                              iconStyleData: IconStyleData(
+                                                icon: Icon(
+                                                  isKhotkhonOpen
+                                                      ? Icons.arrow_drop_up
+                                                      : Icons.arrow_drop_down,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              onMenuStateChange: (isOpen) {
+                                                setState(() {
+                                                  isKhotkhonOpen = isOpen;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
 
-                                  GestureDetector(
-                                    onTap: () {
-                                      if (selectedDistrict == null) {
-                                        _districtFieldKey.currentState
-                                            ?.validate();
-                                        _districtFieldKey.currentState
-                                            ?.didChange(selectedDistrict);
-                                        setState(() {});
-                                      } else if (selectedKhotkhon == null) {
-                                        _khotkhonFieldKey.currentState
-                                            ?.validate();
-                                        _khotkhonFieldKey.currentState
-                                            ?.didChange(selectedKhotkhon);
-                                        setState(() {});
-                                      }
-                                    },
-                                    child: AbsorbPointer(
-                                      absorbing:
-                                          selectedDistrict == null ||
-                                          selectedKhotkhon == null,
-                                      child: Container(
+                                      SizedBox(height: isSmallScreen ? 12 : 14),
+
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (selectedDistrict == null) {
+                                            _districtFieldKey.currentState
+                                                ?.validate();
+                                            _districtFieldKey.currentState
+                                                ?.didChange(selectedDistrict);
+                                            setState(() {});
+                                          } else if (selectedKhotkhon == null) {
+                                            _khotkhonFieldKey.currentState
+                                                ?.validate();
+                                            _khotkhonFieldKey.currentState
+                                                ?.didChange(selectedKhotkhon);
+                                            setState(() {});
+                                          }
+                                        },
+                                        child: AbsorbPointer(
+                                          absorbing:
+                                              selectedDistrict == null ||
+                                              selectedKhotkhon == null,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.3),
+                                                  offset: const Offset(0, 10),
+                                                  blurRadius: 8,
+                                                ),
+                                              ],
+                                            ),
+                                            child: DropdownButtonFormField2<String>(
+                                              isExpanded: true,
+                                              decoration: InputDecoration(
+                                                contentPadding: EdgeInsets.zero,
+                                                filled: true,
+                                                fillColor: AppColors
+                                                    .inputGrayColor
+                                                    .withOpacity(0.5),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            100,
+                                                          ),
+                                                      borderSide:
+                                                          BorderSide.none,
+                                                    ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            100,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors.white,
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                errorBorder: OutlineInputBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        100,
+                                                      ),
+                                                  borderSide: const BorderSide(
+                                                    color: Colors.redAccent,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                focusedErrorBorder:
+                                                    OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            100,
+                                                          ),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                            color: Colors
+                                                                .redAccent,
+                                                            width: 1.5,
+                                                          ),
+                                                    ),
+                                                errorStyle: TextStyle(
+                                                  color: Colors.redAccent,
+                                                  fontSize: isSmallScreen
+                                                      ? 11
+                                                      : 13,
+                                                ),
+                                                errorMaxLines: 1,
+                                                helperText: '',
+                                                helperStyle: const TextStyle(
+                                                  height: 0,
+                                                ),
+                                              ),
+                                              hint: Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: isSmallScreen
+                                                      ? 14
+                                                      : 16,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      isLoadingSOKH
+                                                          ? Icons
+                                                                .hourglass_empty_rounded
+                                                          : Icons
+                                                                .apartment_rounded,
+                                                      size: isSmallScreen
+                                                          ? 18
+                                                          : 20,
+                                                      color: Colors.white
+                                                          .withOpacity(0.5),
+                                                    ),
+                                                    SizedBox(
+                                                      width: isSmallScreen
+                                                          ? 10
+                                                          : 12,
+                                                    ),
+                                                    Text(
+                                                      isLoadingSOKH
+                                                          ? 'Уншиж байна...'
+                                                          : 'СӨХ сонгох',
+                                                      style: TextStyle(
+                                                        color: Colors.white70,
+                                                        fontSize: isSmallScreen
+                                                            ? 13
+                                                            : 15,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              items: sokhs.map((sokh) {
+                                                return DropdownMenuItem<String>(
+                                                  value: sokh,
+                                                  child: Builder(
+                                                    builder: (context) {
+                                                      final isSmall =
+                                                          MediaQuery.of(
+                                                            context,
+                                                          ).size.height <
+                                                          700;
+                                                      return Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons
+                                                                .apartment_rounded,
+                                                            size: isSmall
+                                                                ? 18
+                                                                : 20,
+                                                            color: Colors.white
+                                                                .withOpacity(
+                                                                  0.7,
+                                                                ),
+                                                          ),
+                                                          SizedBox(
+                                                            width: isSmall
+                                                                ? 10
+                                                                : 12,
+                                                          ),
+                                                          Text(
+                                                            sokh,
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: isSmall
+                                                                  ? 13
+                                                                  : 15,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      );
+                                                    },
+                                                  ),
+                                                );
+                                              }).toList(),
+                                              selectedItemBuilder: (context) {
+                                                final isSmall =
+                                                    MediaQuery.of(
+                                                      context,
+                                                    ).size.height <
+                                                    700;
+                                                return sokhs.map((sokh) {
+                                                  return Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: isSmall
+                                                              ? 14
+                                                              : 16,
+                                                        ),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .apartment_rounded,
+                                                          size: isSmall
+                                                              ? 18
+                                                              : 20,
+                                                          color: Colors.white
+                                                              .withOpacity(0.7),
+                                                        ),
+                                                        SizedBox(
+                                                          width: isSmall
+                                                              ? 10
+                                                              : 12,
+                                                        ),
+                                                        Text(
+                                                          sokh,
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: isSmall
+                                                                ? 13
+                                                                : 15,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }).toList();
+                                              },
+                                              value: selectedSOKH,
+                                              onChanged:
+                                                  (selectedDistrict == null ||
+                                                      isLoadingSOKH)
+                                                  ? null
+                                                  : (value) {
+                                                      setState(() {
+                                                        selectedSOKH = value;
+                                                      });
+                                                      _updateBaiguullagiinId();
+                                                    },
+                                              validator: (value) {
+                                                if (value == null ||
+                                                    value.isEmpty) {
+                                                  return 'СӨХ сонгоно уу';
+                                                }
+                                                return null;
+                                              },
+                                              buttonStyleData: ButtonStyleData(
+                                                height: isSmallScreen ? 48 : 52,
+                                                padding: EdgeInsets.only(
+                                                  right: isSmallScreen ? 8 : 11,
+                                                ),
+                                              ),
+                                              dropdownStyleData: DropdownStyleData(
+                                                maxHeight: isSmallScreen
+                                                    ? 250
+                                                    : 300,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 8,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors
+                                                      .inputGrayColor
+                                                      .withOpacity(0.95),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  border: Border.all(
+                                                    color: Colors.white
+                                                        .withOpacity(0.2),
+                                                    width: 1,
+                                                  ),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black
+                                                          .withOpacity(0.3),
+                                                      offset: const Offset(
+                                                        0,
+                                                        8,
+                                                      ),
+                                                      blurRadius: 24,
+                                                      spreadRadius: 0,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              menuItemStyleData: MenuItemStyleData(
+                                                height: isSmallScreen ? 42 : 46,
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: isSmallScreen
+                                                      ? 12
+                                                      : 16,
+                                                ),
+                                                overlayColor:
+                                                    WidgetStateProperty.resolveWith<
+                                                      Color?
+                                                    >((
+                                                      Set<WidgetState> states,
+                                                    ) {
+                                                      if (states.contains(
+                                                        WidgetState.hovered,
+                                                      )) {
+                                                        return Colors.white
+                                                            .withOpacity(0.1);
+                                                      }
+                                                      if (states.contains(
+                                                        WidgetState.focused,
+                                                      )) {
+                                                        return Colors.white
+                                                            .withOpacity(0.15);
+                                                      }
+                                                      return null;
+                                                    }),
+                                              ),
+                                              iconStyleData: IconStyleData(
+                                                icon: Icon(
+                                                  isSOKHOpen
+                                                      ? Icons.arrow_drop_up
+                                                      : Icons.arrow_drop_down,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              onMenuStateChange: (isOpen) {
+                                                setState(() {
+                                                  isSOKHOpen = isOpen;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      SizedBox(height: isSmallScreen ? 12 : 14),
+
+                                      Container(
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(
                                             100,
@@ -869,283 +1312,50 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               ),
                                               offset: const Offset(0, 10),
                                               blurRadius: 8,
+                                              spreadRadius: 0,
                                             ),
                                           ],
                                         ),
-                                        child: DropdownButtonFormField2<String>(
-                                          isExpanded: true,
-                                          decoration: InputDecoration(
-                                            contentPadding: EdgeInsets.zero,
-                                            filled: true,
-                                            fillColor: AppColors.inputGrayColor
-                                                .withOpacity(0.5),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              borderSide: BorderSide.none,
+                                        child: SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton(
+                                            onPressed: () =>
+                                                _validateAndSubmit(context),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(
+                                                0xFFCAD2DB,
+                                              ),
+                                              foregroundColor: Colors.black,
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: isSmallScreen
+                                                    ? 11
+                                                    : 14,
+                                                horizontal: 10,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(100),
+                                              ),
+                                              shadowColor: Colors.black
+                                                  .withOpacity(0.3),
+                                              elevation: 8,
                                             ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              borderSide: const BorderSide(
-                                                color: Colors.white,
-                                                width: 1.5,
+                                            child: Text(
+                                              'Үргэлжлүүлэх',
+                                              style: TextStyle(
+                                                fontSize: isSmallScreen
+                                                    ? 13
+                                                    : 15,
                                               ),
                                             ),
-                                            errorBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(100),
-                                              borderSide: const BorderSide(
-                                                color: Colors.redAccent,
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            focusedErrorBorder:
-                                                OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        100,
-                                                      ),
-                                                  borderSide: const BorderSide(
-                                                    color: Colors.redAccent,
-                                                    width: 1.5,
-                                                  ),
-                                                ),
-                                            errorStyle: const TextStyle(
-                                              color: Colors.redAccent,
-                                              fontSize: 14,
-                                            ),
-                                            errorMaxLines: 1,
-                                            helperText: '',
-                                            helperStyle: const TextStyle(
-                                              height: 0,
-                                            ),
                                           ),
-                                          hint: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  isLoadingSOKH
-                                                      ? Icons
-                                                            .hourglass_empty_rounded
-                                                      : Icons.apartment_rounded,
-                                                  size: 20,
-                                                  color: Colors.white
-                                                      .withOpacity(0.5),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Text(
-                                                  isLoadingSOKH
-                                                      ? 'Уншиж байна...'
-                                                      : 'СӨХ сонгох',
-                                                  style: const TextStyle(
-                                                    color: Colors.white70,
-                                                    fontSize: 15,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          items: sokhs.map((sokh) {
-                                            return DropdownMenuItem<String>(
-                                              value: sokh,
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.apartment_rounded,
-                                                    size: 20,
-                                                    color: Colors.white
-                                                        .withOpacity(0.7),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Text(
-                                                    sokh,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                          selectedItemBuilder: (context) {
-                                            return sokhs.map((sokh) {
-                                              return Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 16,
-                                                    ),
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.apartment_rounded,
-                                                      size: 20,
-                                                      color: Colors.white
-                                                          .withOpacity(0.7),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    Text(
-                                                      sokh,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 15,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            }).toList();
-                                          },
-                                          value: selectedSOKH,
-                                          onChanged:
-                                              (selectedDistrict == null ||
-                                                  isLoadingSOKH)
-                                              ? null
-                                              : (value) {
-                                                  setState(() {
-                                                    selectedSOKH = value;
-                                                  });
-                                                  _updateBaiguullagiinId();
-                                                },
-                                          validator: (value) {
-                                            if (value == null ||
-                                                value.isEmpty) {
-                                              return 'СӨХ сонгоно уу';
-                                            }
-                                            return null;
-                                          },
-                                          buttonStyleData:
-                                              const ButtonStyleData(
-                                                height: 56,
-                                                padding: EdgeInsets.only(
-                                                  right: 11,
-                                                ),
-                                              ),
-                                          dropdownStyleData: DropdownStyleData(
-                                            maxHeight: 300,
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.inputGrayColor
-                                                  .withOpacity(0.95),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              border: Border.all(
-                                                color: Colors.white.withOpacity(
-                                                  0.2,
-                                                ),
-                                                width: 1,
-                                              ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withOpacity(0.3),
-                                                  offset: const Offset(0, 8),
-                                                  blurRadius: 24,
-                                                  spreadRadius: 0,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          menuItemStyleData: MenuItemStyleData(
-                                            height: 48,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                            ),
-                                            overlayColor:
-                                                WidgetStateProperty.resolveWith<
-                                                  Color?
-                                                >((Set<WidgetState> states) {
-                                                  if (states.contains(
-                                                    WidgetState.hovered,
-                                                  )) {
-                                                    return Colors.white
-                                                        .withOpacity(0.1);
-                                                  }
-                                                  if (states.contains(
-                                                    WidgetState.focused,
-                                                  )) {
-                                                    return Colors.white
-                                                        .withOpacity(0.15);
-                                                  }
-                                                  return null;
-                                                }),
-                                          ),
-                                          iconStyleData: IconStyleData(
-                                            icon: Icon(
-                                              isSOKHOpen
-                                                  ? Icons.arrow_drop_up
-                                                  : Icons.arrow_drop_down,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          onMenuStateChange: (isOpen) {
-                                            setState(() {
-                                              isSOKHOpen = isOpen;
-                                            });
-                                          },
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-
-                                  const SizedBox(height: 16),
-
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(100),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          offset: const Offset(0, 10),
-                                          blurRadius: 8,
-                                          spreadRadius: 0,
-                                        ),
-                                      ],
-                                    ),
-                                    child: SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        onPressed: () =>
-                                            _validateAndSubmit(context),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(
-                                            0xFFCAD2DB,
-                                          ),
-                                          foregroundColor: Colors.black,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 16,
-                                            horizontal: 10,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              100,
-                                            ),
-                                          ),
-                                          shadowColor: Colors.black.withOpacity(
-                                            0.3,
-                                          ),
-                                          elevation: 8,
-                                        ),
-                                        child: const Text(
-                                          'Үргэлжлүүлэх',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),

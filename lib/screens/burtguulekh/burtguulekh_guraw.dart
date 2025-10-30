@@ -18,16 +18,7 @@ class AppBackground extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: double.infinity,
-      child: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('lib/assets/img/background_image.png'),
-            fit: BoxFit.none,
-            scale: 3,
-          ),
-        ),
-        child: child,
-      ),
+      child: child,
     );
   }
 }
@@ -97,6 +88,73 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
     });
   }
 
+  Future<void> _resendCode() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final baiguullagiinId = widget.locationData?['baiguullagiinId'];
+
+      if (baiguullagiinId == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: 'Байгууллагын мэдээлэл олдсонгүй',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+        return;
+      }
+
+      await ApiService.verifyPhoneNumber(
+        baiguullagiinId: baiguullagiinId,
+        purpose: "registration",
+        utas: _phoneController.text,
+        duureg: widget.locationData?['duureg'] ?? '',
+        horoo: widget.locationData?['horoo'] ?? '',
+        soh: widget.locationData?['soh'] ?? '',
+      );
+
+      if (mounted) {
+        // Clear all PIN boxes
+        for (var controller in _pinControllers) {
+          controller.clear();
+        }
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        showGlassSnackBar(
+          context,
+          message: "Баталгаажуулах код дахин илгээлээ",
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+
+        _startResendTimer();
+        _pinFocusNodes[0].requestFocus();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: "Алдаа гарлаа: $e",
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
   Future<void> _validateAndSubmit() async {
     if (_formKey.currentState!.validate()) {
       if (!_isPhoneSubmitted) {
@@ -123,38 +181,10 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             return;
           }
 
-          // Also initialize AuthConfig for consistency
-          await AuthConfig.instance.initialize(
-            duureg: widget.locationData?['duureg'],
-            districtCode: widget.locationData?['horoo'],
-            sohCode: widget.locationData?['soh'],
-          );
-
-          // Check if phone number already exists using orshinSuugchBatalgaajuulya
-          final phoneCheckResult =
-              await ApiService.validatePhoneForPasswordReset(
-                utas: _phoneController.text,
-              );
-
-          if (!mounted) return;
-
-          if (phoneCheckResult['success'] == true) {
-            // Phone already registered - show error and stop
-            setState(() {
-              _isLoading = false;
-            });
-            showGlassSnackBar(
-              context,
-              message: 'Бүртгэлтэй дугаар байна',
-              icon: Icons.error,
-              iconColor: Colors.red,
-            );
-            return;
-          }
-
           await ApiService.verifyPhoneNumber(
             baiguullagiinId: baiguullagiinId,
             utas: _phoneController.text,
+            purpose: "registration",
             duureg: widget.locationData?['duureg'] ?? '',
             horoo: widget.locationData?['horoo'] ?? '',
             soh: widget.locationData?['soh'] ?? '',
@@ -199,7 +229,6 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           });
 
           try {
-            // Get baiguullagiinId from locationData passed from previous screen
             final baiguullagiinId = widget.locationData?['baiguullagiinId'];
 
             if (baiguullagiinId == null) {
@@ -221,6 +250,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
               utas: _phoneController.text,
               code: pin,
               baiguullagiinId: baiguullagiinId,
+              purpose: "registration",
             );
 
             if (mounted) {
@@ -282,6 +312,10 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
               SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
+                    final screenHeight = MediaQuery.of(context).size.height;
+                    final screenWidth = MediaQuery.of(context).size.width;
+                    final isSmallScreen = screenHeight < 700;
+                    final isNarrowScreen = screenWidth < 380;
                     final keyboardHeight = MediaQuery.of(
                       context,
                     ).viewInsets.bottom;
@@ -289,10 +323,14 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                       physics: const ClampingScrollPhysics(),
                       child: Padding(
                         padding: EdgeInsets.only(
-                          left: 50,
-                          right: 50,
-                          top: 40,
-                          bottom: keyboardHeight > 0 ? keyboardHeight + 20 : 40,
+                          left: isNarrowScreen ? 24 : (isSmallScreen ? 30 : 40),
+                          right: isNarrowScreen
+                              ? 24
+                              : (isSmallScreen ? 30 : 40),
+                          top: isSmallScreen ? 12 : 24,
+                          bottom: keyboardHeight > 0
+                              ? keyboardHeight + 20
+                              : (isSmallScreen ? 12 : 24),
                         ),
                         child: Form(
                           key: _formKey,
@@ -300,31 +338,31 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const AppLogo(),
-                              const SizedBox(height: 30),
-                              const Text(
+                              SizedBox(height: isSmallScreen ? 12 : 20),
+                              Text(
                                 'Бүртгэл',
                                 style: TextStyle(
                                   color: AppColors.grayColor,
-                                  fontSize: 36,
+                                  fontSize: isSmallScreen ? 22 : 28,
                                 ),
                                 maxLines: 1,
                                 softWrap: false,
                               ),
 
-                              const SizedBox(height: 20),
+                              SizedBox(height: isSmallScreen ? 14 : 18),
                               if (!_isPhoneSubmitted)
-                                _buildPhoneNumberField()
+                                _buildPhoneNumberField(isSmallScreen)
                               else
-                                _buildSecretCodeField(),
-                              const SizedBox(height: 16),
+                                _buildSecretCodeField(isSmallScreen),
+                              SizedBox(height: isSmallScreen ? 12 : 14),
                               if (_phoneController.text.length == 8 &&
                                   !_isPhoneSubmitted)
-                                _buildContinueButton(),
+                                _buildContinueButton(isSmallScreen),
                               if (_isPhoneSubmitted &&
                                   _pinControllers.every(
                                     (c) => c.text.isNotEmpty,
                                   ))
-                                _buildContinueButton(),
+                                _buildContinueButton(isSmallScreen),
                             ],
                           ),
                         ),
@@ -370,31 +408,46 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
     );
   }
 
-  Widget _buildPhoneNumberField() {
-    return Container(
-      decoration: _boxShadowDecoration(),
-      child: TextFormField(
-        controller: _phoneController,
-        style: const TextStyle(color: Colors.white),
-        decoration: _inputDecoration("Утасны дугаар", _phoneController),
-        keyboardType: TextInputType.number,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(8),
-        ],
-        validator: (value) => value == null || value.trim().isEmpty
-            ? '                            Утасны дугаар оруулна уу'
-            : null,
+  Widget _buildPhoneNumberField(bool isSmallScreen) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: isSmallScreen ? 280 : 320),
+        child: Container(
+          decoration: _boxShadowDecoration(),
+          child: TextFormField(
+            controller: _phoneController,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: isSmallScreen ? 13 : 15,
+            ),
+            decoration: _inputDecoration(
+              "Утасны дугаар",
+              _phoneController,
+              isSmallScreen,
+            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(8),
+            ],
+            validator: (value) => value == null || value.trim().isEmpty
+                ? 'Утасны дугаар оруулна уу'
+                : null,
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildSecretCodeField() {
+  Widget _buildSecretCodeField(bool isSmallScreen) {
     return Column(
       children: [
         // Display phone number
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 18),
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 16 : 20,
+            vertical: isSmallScreen ? 13 : 16,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(100),
             color: AppColors.inputGrayColor.withOpacity(0.5),
@@ -410,47 +463,35 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             children: [
               Text(
                 _phoneController.text,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isSmallScreen ? 14 : 16,
+                ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: isSmallScreen ? 14 : 18),
         // PIN Input boxes
         AutofillGroup(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(4, (index) {
-              return _buildPinBox(index);
+              return _buildPinBox(index, isSmallScreen);
             }),
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: isSmallScreen ? 8 : 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             TextButton(
-              onPressed: _canResend
-                  ? () {
-                      // Clear all PIN boxes
-                      for (var controller in _pinControllers) {
-                        controller.clear();
-                      }
-                      showGlassSnackBar(
-                        context,
-                        message: "Баталгаажуулах код дахин илгээлээ",
-                        icon: Icons.check_circle,
-                        iconColor: Colors.green,
-                      );
-                      _startResendTimer();
-                      _pinFocusNodes[0].requestFocus();
-                    }
-                  : null,
+              onPressed: _canResend ? _resendCode : null,
               child: Text(
                 _canResend ? 'Дахин илгээх' : 'Дахин илгээх ($_resendSeconds)',
                 style: TextStyle(
                   color: _canResend ? Colors.blue : Colors.grey,
-                  fontSize: 14,
+                  fontSize: isSmallScreen ? 12 : 14,
                 ),
               ),
             ),
@@ -460,10 +501,10 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
     );
   }
 
-  Widget _buildPinBox(int index) {
+  Widget _buildPinBox(int index, bool isSmallScreen) {
     return Container(
-      width: 60,
-      height: 70,
+      width: isSmallScreen ? 52 : 60,
+      height: isSmallScreen ? 60 : 70,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
@@ -492,9 +533,9 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           controller: _pinControllers[index],
           focusNode: _pinFocusNodes[index],
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 24,
+            fontSize: isSmallScreen ? 20 : 24,
             fontWeight: FontWeight.bold,
           ),
           keyboardType: TextInputType.number,
@@ -568,7 +609,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
     );
   }
 
-  Widget _buildContinueButton() {
+  Widget _buildContinueButton(bool isSmallScreen) {
     bool isValid = !_isPhoneSubmitted
         ? _phoneController.text.length == 8
         : _pinControllers.every((c) => c.text.isNotEmpty);
@@ -592,7 +633,10 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+            padding: EdgeInsets.symmetric(
+              vertical: isSmallScreen ? 11 : 14,
+              horizontal: 10,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(100),
             ),
@@ -600,15 +644,18 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             elevation: 8,
           ),
           child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
+              ? SizedBox(
+                  height: isSmallScreen ? 16 : 18,
+                  width: isSmallScreen ? 16 : 18,
+                  child: const CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                   ),
                 )
-              : const Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 14)),
+              : Text(
+                  'Үргэлжлүүлэх',
+                  style: TextStyle(fontSize: isSmallScreen ? 13 : 15),
+                ),
         ),
       ),
     );
@@ -630,13 +677,20 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
   InputDecoration _inputDecoration(
     String hint,
     TextEditingController controller,
+    bool isSmallScreen,
   ) {
     return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 16 : 20,
+        vertical: isSmallScreen ? 11 : 14,
+      ),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white70),
+      hintStyle: TextStyle(
+        color: Colors.white70,
+        fontSize: isSmallScreen ? 13 : 15,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(100),
         borderSide: BorderSide.none,
@@ -653,7 +707,10 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
         borderRadius: BorderRadius.circular(100),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
-      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
+      errorStyle: TextStyle(
+        color: Colors.redAccent,
+        fontSize: isSmallScreen ? 11 : 13,
+      ),
     );
   }
 }

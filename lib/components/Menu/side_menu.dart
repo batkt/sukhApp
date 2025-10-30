@@ -42,7 +42,6 @@ class _SideMenuState extends State<SideMenu> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Animated Icon
                 const _BouncingRocket(),
                 const SizedBox(height: 24),
 
@@ -228,7 +227,7 @@ class _SideMenuState extends State<SideMenu> {
             const Padding(
               padding: EdgeInsets.only(bottom: 5, top: 10),
               child: Text(
-                'ZevTabs © 2025',
+                '© 2025 Powered by Zevtabs LLC',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),

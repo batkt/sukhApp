@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:sukh_app/components/Menu/side_menu.dart';
 // TODO: Uncomment when notification feature is implemented
 // import 'package:sukh_app/components/Notifications/notification.dart';
-import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/models/geree_model.dart';
+import 'package:sukh_app/models/nekhemjlekh_cron_model.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class AppBackground extends StatelessWidget {
@@ -15,16 +15,7 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('lib/assets/img/background_image.png'),
-          fit: BoxFit.none,
-          scale: 3,
-        ),
-      ),
-      child: child,
-    );
+    return Container(child: child);
   }
 }
 
@@ -42,15 +33,29 @@ class _BookingScreenState extends State<NuurKhuudas> {
   double totalNiitTulbur = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // New variables for invoice tracking
+  int? nekhemjlekhUusgekhOgnoo;
+  DateTime? oldestUnpaidInvoiceDate;
+  bool hasUnpaidInvoice = false;
+
   @override
   void initState() {
     super.initState();
     _loadPaymentData();
   }
 
+  @override
+  void didUpdateWidget(NuurKhuudas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reload data when widget is updated
+    _loadPaymentData();
+  }
+
   Future<void> _loadPaymentData() async {
     try {
       final userId = await StorageService.getUserId();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
       if (userId == null) {
         setState(() {
           isLoadingPaymentData = false;
@@ -74,6 +79,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
           final geree = Geree.fromJson(firstContract);
 
+          // Fetch invoice history
           final nekhemjlekhResponse =
               await ApiService.fetchNekhemjlekhiinTuukh(
                 gereeniiDugaar: geree.gereeniiDugaar,
@@ -85,6 +91,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
               );
 
           double total = 0.0;
+          DateTime? unpaidInvoiceDate;
+          bool foundUnpaid = false;
+
           if (nekhemjlekhResponse['jagsaalt'] != null &&
               nekhemjlekhResponse['jagsaalt'] is List) {
             final List<dynamic> nekhemjlekhJagsaalt =
@@ -94,13 +103,58 @@ class _BookingScreenState extends State<NuurKhuudas> {
               final tuluv = invoice['tuluv'];
               // Only include invoices that are "Төлөөгүй" (unpaid)
               if (tuluv == 'Төлөөгүй') {
+                foundUnpaid = true;
                 final niitTulbur = invoice['niitTulbur'];
                 if (niitTulbur != null) {
                   total += (niitTulbur is int)
                       ? niitTulbur.toDouble()
                       : (niitTulbur as double);
                 }
+
+                // Get the oldest unpaid invoice date
+                final nekhemjlekhiinOgnoo = invoice['nekhemjlekhiinOgnoo'];
+                if (nekhemjlekhiinOgnoo != null) {
+                  try {
+                    final invoiceDate = DateTime.parse(
+                      nekhemjlekhiinOgnoo.toString(),
+                    );
+                    if (unpaidInvoiceDate == null ||
+                        invoiceDate.isBefore(unpaidInvoiceDate)) {
+                      unpaidInvoiceDate = invoiceDate;
+                    }
+                  } catch (e) {
+                    print('Error parsing invoice date: $e');
+                  }
+                }
               }
+            }
+          }
+
+          // Fetch Cron data for next invoice calculation
+          int? cronDay;
+          if (baiguullagiinId != null) {
+            try {
+              final cronResponse =
+                  await ApiService.fetchNekhemjlekhCron(
+                    baiguullagiinId: baiguullagiinId,
+                  ).timeout(
+                    const Duration(seconds: 10),
+                    onTimeout: () {
+                      throw Exception('Сервертэй холбогдох хугацаа дууслаа');
+                    },
+                  );
+
+              if (cronResponse['success'] == true &&
+                  cronResponse['data'] != null &&
+                  cronResponse['data'] is List &&
+                  (cronResponse['data'] as List).isNotEmpty) {
+                final cronData = NekhemjlekhCron.fromJson(
+                  cronResponse['data'][0],
+                );
+                cronDay = cronData.nekhemjlekhUusgekhOgnoo;
+              }
+            } catch (e) {
+              print('Error fetching cron data: $e');
             }
           }
 
@@ -118,6 +172,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
             paymentDate = parsedDate;
             gereeData = geree;
             totalNiitTulbur = total;
+            hasUnpaidInvoice = foundUnpaid;
+            oldestUnpaidInvoiceDate = unpaidInvoiceDate;
+            nekhemjlekhUusgekhOgnoo = cronDay;
             isLoadingPaymentData = false;
           });
         } else {
@@ -139,17 +196,65 @@ class _BookingScreenState extends State<NuurKhuudas> {
   }
 
   int _calculateDaysDifference() {
-    if (paymentDate == null) return 0;
-
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final payment = DateTime(
-      paymentDate!.year,
-      paymentDate!.month,
-      paymentDate!.day,
-    );
 
-    return payment.difference(today).inDays;
+    // Scenario 1: Has unpaid invoice - show days overdue
+    if (hasUnpaidInvoice && oldestUnpaidInvoiceDate != null) {
+      final invoiceDate = DateTime(
+        oldestUnpaidInvoiceDate!.year,
+        oldestUnpaidInvoiceDate!.month,
+        oldestUnpaidInvoiceDate!.day,
+      );
+      return today.difference(invoiceDate).inDays; // Positive = overdue
+    }
+
+    // Scenario 2: No unpaid invoice - calculate days until next invoice
+    if (nekhemjlekhUusgekhOgnoo != null) {
+      // Calculate next invoice date based on the day of month
+      DateTime nextInvoiceDate;
+
+      // If the invoice day hasn't occurred this month yet, use this month
+      if (today.day < nekhemjlekhUusgekhOgnoo!) {
+        nextInvoiceDate = DateTime(
+          today.year,
+          today.month,
+          nekhemjlekhUusgekhOgnoo!,
+        );
+      } else {
+        // Otherwise, use next month
+        int nextMonth = today.month + 1;
+        int nextYear = today.year;
+
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear++;
+        }
+
+        // Handle cases where the day doesn't exist in the month (e.g., Feb 30)
+        int daysInNextMonth = DateTime(nextYear, nextMonth + 1, 0).day;
+        int invoiceDay = nekhemjlekhUusgekhOgnoo!;
+        if (invoiceDay > daysInNextMonth) {
+          invoiceDay = daysInNextMonth;
+        }
+
+        nextInvoiceDate = DateTime(nextYear, nextMonth, invoiceDay);
+      }
+
+      return nextInvoiceDate.difference(today).inDays; // Negative = days left
+    }
+
+    // Fallback to old logic if no cron data
+    if (paymentDate != null) {
+      final payment = DateTime(
+        paymentDate!.year,
+        paymentDate!.month,
+        paymentDate!.day,
+      );
+      return payment.difference(today).inDays;
+    }
+
+    return 0;
   }
 
   // Format number with comma separator
@@ -642,7 +747,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
                   return Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 16.0 : 24.0,
+                      horizontal: isSmallScreen ? 16.0 : 16,
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -834,44 +939,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                     ],
                                   ),
                                   SizedBox(height: isSmallScreen ? 12 : 16),
-
-                                  Row(
-                                    children: List.generate(
-                                      150 ~/ 6,
-                                      (index) => Expanded(
-                                        child: Container(
-                                          color: index % 2 == 0
-                                              ? Colors.white.withOpacity(0.3)
-                                              : Colors.transparent,
-                                          height: 1,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: isSmallScreen ? 12 : 16),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        'Төлөх хугацаа:',
-                                        style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: isSmallScreen ? 12 : 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      Text(
-                                        formatDate(gereeData!.tulukhOgnoo),
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.9),
-                                          fontSize: isSmallScreen ? 14 : 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
                                 ],
                               ),
                             );
@@ -896,7 +963,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
   Widget _buildPaymentDisplay() {
     final daysDifference = _calculateDaysDifference();
-    final isOverdue = daysDifference < 0;
+    final isOverdue = hasUnpaidInvoice && daysDifference > 0;
     final displayDays = daysDifference.abs();
 
     // Get screen height to determine if we're on a small screen
@@ -911,6 +978,16 @@ class _BookingScreenState extends State<NuurKhuudas> {
     final subtitleFontSize = isSmallScreen ? 14.0 : 16.0;
     final verticalPadding = isSmallScreen ? 10.0 : 20.0;
     final spacingAfterCircle = isSmallScreen ? 10.0 : 20.0;
+
+    // Determine subtitle text
+    String subtitleText;
+    if (isOverdue) {
+      subtitleText = 'өдөр хэтэрсэн';
+    } else if (hasUnpaidInvoice) {
+      subtitleText = 'өдөр үлдсэн';
+    } else {
+      subtitleText = 'өдрийн дараа';
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: verticalPadding, horizontal: 16),
@@ -961,7 +1038,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        isOverdue ? '-$displayDays' : displayDays.toString(),
+                        displayDays.toString(),
                         style: TextStyle(
                           color: isOverdue
                               ? const Color(0xFFFF6B6B)
@@ -973,7 +1050,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       ),
                       SizedBox(height: isSmallScreen ? 4 : 8),
                       Text(
-                        isOverdue ? 'өдөр хэтэрсэн' : 'өдөр үлдсэн',
+                        subtitleText,
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: subtitleFontSize,
@@ -1010,7 +1087,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Төлбөрийн огноо: ${_formatPaymentDate()}',
+                  _getPaymentDateLabel(),
                   style: TextStyle(
                     color: isOverdue ? const Color(0xFFFF6B6B) : Colors.white,
                     fontSize: isSmallScreen ? 12 : 14,
@@ -1025,14 +1102,58 @@ class _BookingScreenState extends State<NuurKhuudas> {
     );
   }
 
-  String _formatPaymentDate() {
-    if (paymentDate == null) return '';
+  String _getPaymentDateLabel() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-    final year = paymentDate!.year;
-    final month = paymentDate!.month;
-    final day = paymentDate!.day;
+    // If has unpaid invoice, show the unpaid invoice date
+    if (hasUnpaidInvoice && oldestUnpaidInvoiceDate != null) {
+      final year = oldestUnpaidInvoiceDate!.year;
+      final month = oldestUnpaidInvoiceDate!.month;
+      final day = oldestUnpaidInvoiceDate!.day;
+      return 'Төлөх ёстой огноо: $year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    }
 
-    return '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    // If no unpaid invoice, show next invoice date
+    if (nekhemjlekhUusgekhOgnoo != null) {
+      DateTime nextInvoiceDate;
+
+      if (today.day < nekhemjlekhUusgekhOgnoo!) {
+        nextInvoiceDate = DateTime(
+          today.year,
+          today.month,
+          nekhemjlekhUusgekhOgnoo!,
+        );
+      } else {
+        int nextMonth = today.month + 1;
+        int nextYear = today.year;
+
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear++;
+        }
+
+        int daysInNextMonth = DateTime(nextYear, nextMonth + 1, 0).day;
+        int invoiceDay = nekhemjlekhUusgekhOgnoo!;
+        if (invoiceDay > daysInNextMonth) {
+          invoiceDay = daysInNextMonth;
+        }
+
+        nextInvoiceDate = DateTime(nextYear, nextMonth, invoiceDay);
+      }
+
+      return 'Дараагийн нэхэмжлэх: ${nextInvoiceDate.year}-${nextInvoiceDate.month.toString().padLeft(2, '0')}-${nextInvoiceDate.day.toString().padLeft(2, '0')}';
+    }
+
+    // Fallback to payment date
+    if (paymentDate != null) {
+      final year = paymentDate!.year;
+      final month = paymentDate!.month;
+      final day = paymentDate!.day;
+      return 'Төлбөрийн огноо: $year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    }
+
+    return '';
   }
 
   void _showPaymentModal() {

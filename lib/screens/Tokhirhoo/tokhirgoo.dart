@@ -10,16 +10,7 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('lib/assets/img/background_image.png'),
-          fit: BoxFit.none,
-          scale: 3,
-        ),
-      ),
-      child: child,
-    );
+    return Container(child: child);
   }
 }
 
@@ -47,6 +38,7 @@ class _TokhirgooState extends State<Tokhirgoo>
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = true;
+  bool _isChangingPassword = false;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -129,6 +121,61 @@ class _TokhirgooState extends State<Tokhirgoo>
           icon: Icons.error,
           iconColor: Colors.red,
         );
+      }
+    }
+  }
+
+  Future<void> _handleChangePassword() async {
+    if (!_passwordFormKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isChangingPassword = true;
+    });
+
+    try {
+      final response = await ApiService.changePassword(
+        odoogiinNuutsUg: _currentPasswordController.text,
+        shineNuutsUg: _newPasswordController.text,
+        davtahNuutsUg: _confirmPasswordController.text,
+      );
+
+      if (mounted) {
+        if (response['success'] == true) {
+          showGlassSnackBar(
+            context,
+            message: response['message'] ?? 'Нууц код амжилттай солигдлоо',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+          _currentPasswordController.clear();
+          _newPasswordController.clear();
+          _confirmPasswordController.clear();
+          _passwordFormKey.currentState?.reset();
+        } else {
+          showGlassSnackBar(
+            context,
+            message: response['message'] ?? 'Нууц код солихад алдаа гарлаа',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Нууц код солихад алдаа гарлаа',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isChangingPassword = false;
+        });
       }
     }
   }
@@ -319,23 +366,9 @@ class _TokhirgooState extends State<Tokhirgoo>
                                       width: double.infinity,
                                       height: 50,
                                       child: ElevatedButton(
-                                        onPressed: () {
-                                          if (_passwordFormKey.currentState!
-                                              .validate()) {
-                                            showGlassSnackBar(
-                                              context,
-                                              message:
-                                                  'Нууц код амжилттай солигдлоо',
-                                              icon: Icons.check_circle,
-                                              iconColor: Colors.green,
-                                            );
-                                            _currentPasswordController.clear();
-                                            _newPasswordController.clear();
-                                            _confirmPasswordController.clear();
-                                            _passwordFormKey.currentState
-                                                ?.reset();
-                                          }
-                                        },
+                                        onPressed: _isChangingPassword
+                                            ? null
+                                            : _handleChangePassword,
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(
                                             0xFFe6ff00,
@@ -348,13 +381,23 @@ class _TokhirgooState extends State<Tokhirgoo>
                                           ),
                                           elevation: 0,
                                         ),
-                                        child: const Text(
-                                          'Нууц код солих',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                        child: _isChangingPassword
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: Colors.black,
+                                                      strokeWidth: 2,
+                                                    ),
+                                              )
+                                            : const Text(
+                                                'Нууц код солих',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
                                       ),
                                     ),
                                   ],

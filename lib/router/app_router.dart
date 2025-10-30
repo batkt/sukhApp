@@ -49,7 +49,10 @@ final GoRouter appRouter = GoRouter(
   },
   routes: [
     GoRoute(path: '/', builder: (context, state) => const Newtrekhkhuudas()),
-    GoRoute(path: '/nuur', builder: (context, state) => const NuurKhuudas()),
+    GoRoute(
+      path: '/nuur',
+      builder: (context, state) => NuurKhuudas(key: UniqueKey()),
+    ),
     GoRoute(
       path: '/newtrekh',
       builder: (context, state) => const Newtrekhkhuudas(),

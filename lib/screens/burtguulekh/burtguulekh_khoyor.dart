@@ -17,16 +17,7 @@ class AppBackground extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: double.infinity,
-      child: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('lib/assets/img/background_image.png'),
-            fit: BoxFit.none,
-            scale: 3,
-          ),
-        ),
-        child: child,
-      ),
+      child: Container(child: child),
     );
   }
 }
@@ -46,6 +37,8 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   bool _isLoading = false;
 
+  final TextEditingController bairController = TextEditingController();
+  final TextEditingController ortsController = TextEditingController();
   final TextEditingController davkharController = TextEditingController();
   final TextEditingController tootController = TextEditingController();
   final TextEditingController ovogController = TextEditingController();
@@ -55,6 +48,8 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   @override
   void initState() {
     super.initState();
+    bairController.addListener(() => setState(() {}));
+    ortsController.addListener(() => setState(() {}));
     davkharController.addListener(() => setState(() {}));
     tootController.addListener(() => setState(() {}));
     ovogController.addListener(() => setState(() {}));
@@ -64,6 +59,8 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
 
   @override
   void dispose() {
+    bairController.dispose();
+    ortsController.dispose();
     davkharController.dispose();
     tootController.dispose();
     ovogController.dispose();
@@ -92,6 +89,8 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
           'baiguullagiinId':
               widget.locationData?['baiguullagiinId'] ??
               AuthConfig.instance.baiguullagiinId,
+          'bairniiNer': bairController.text,
+          'orts': ortsController.text,
           'davkhar': davkharController.text,
           'toot': tootController.text,
           'ovog': ovogController.text,
@@ -129,13 +128,20 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   InputDecoration _inputDecoration(
     String hint,
     TextEditingController controller,
+    bool isSmallScreen,
   ) {
     return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 16 : 20,
+        vertical: isSmallScreen ? 11 : 14,
+      ),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white70),
+      hintStyle: TextStyle(
+        color: Colors.white70,
+        fontSize: isSmallScreen ? 13 : 15,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(100),
         borderSide: BorderSide.none,
@@ -152,7 +158,10 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
         borderRadius: BorderRadius.circular(100),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
-      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
+      errorStyle: TextStyle(
+        color: Colors.redAccent,
+        fontSize: isSmallScreen ? 11 : 13,
+      ),
     );
   }
 
@@ -168,6 +177,10 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
               SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
+                    final screenHeight = MediaQuery.of(context).size.height;
+                    final screenWidth = MediaQuery.of(context).size.width;
+                    final isSmallScreen = screenHeight < 700;
+                    final isNarrowScreen = screenWidth < 380;
                     final keyboardHeight = MediaQuery.of(
                       context,
                     ).viewInsets.bottom;
@@ -175,10 +188,14 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       physics: const ClampingScrollPhysics(),
                       child: Padding(
                         padding: EdgeInsets.only(
-                          left: 50,
-                          right: 50,
-                          top: 40,
-                          bottom: keyboardHeight > 0 ? keyboardHeight + 20 : 40,
+                          left: isNarrowScreen ? 24 : (isSmallScreen ? 30 : 40),
+                          right: isNarrowScreen
+                              ? 24
+                              : (isSmallScreen ? 30 : 40),
+                          top: isSmallScreen ? 12 : 24,
+                          bottom: keyboardHeight > 0
+                              ? keyboardHeight + 20
+                              : (isSmallScreen ? 12 : 24),
                         ),
                         child: Form(
                           key: _formKey,
@@ -187,69 +204,145 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const AppLogo(),
-                              const SizedBox(height: 30),
-                              const Text(
+                              SizedBox(height: isSmallScreen ? 12 : 20),
+                              Text(
                                 'Бүртгэл',
                                 style: TextStyle(
                                   color: AppColors.grayColor,
-                                  fontSize: 36,
+                                  fontSize: isSmallScreen ? 22 : 28,
                                 ),
                                 maxLines: 1,
                                 softWrap: false,
                               ),
-                              const SizedBox(height: 20),
+                              SizedBox(height: isSmallScreen ? 14 : 18),
 
-                              const SizedBox(height: 20),
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: TextFormField(
-                                  controller: davkharController,
-                                  style: const TextStyle(color: Colors.white),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(2),
-                                  ],
-                                  decoration: _inputDecoration(
-                                    'Давхар',
-                                    davkharController,
+                              // Row for Байр and Орц
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      decoration: _boxShadowDecoration(),
+                                      child: TextFormField(
+                                        controller: bairController,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isSmallScreen ? 13 : 15,
+                                        ),
+                                        decoration: _inputDecoration(
+                                          'Байр',
+                                          bairController,
+                                          isSmallScreen,
+                                        ),
+                                        validator: (value) =>
+                                            value == null ||
+                                                value.trim().isEmpty
+                                            ? 'Байр оруулна уу'
+                                            : null,
+                                      ),
+                                    ),
                                   ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Давхар оруулна уу';
-                                    }
-                                    if (value.length > 2) {
-                                      return 'Давхар 2 оронтой байх ёстой';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: TextFormField(
-                                  controller: tootController,
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: _inputDecoration(
-                                    'Тоот',
-                                    tootController,
+                                  SizedBox(width: isSmallScreen ? 8 : 12),
+                                  Expanded(
+                                    child: Container(
+                                      decoration: _boxShadowDecoration(),
+                                      child: TextFormField(
+                                        controller: ortsController,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isSmallScreen ? 13 : 15,
+                                        ),
+                                        decoration: _inputDecoration(
+                                          'Орц',
+                                          ortsController,
+                                          isSmallScreen,
+                                        ),
+                                        validator: (value) =>
+                                            value == null ||
+                                                value.trim().isEmpty
+                                            ? 'Орц оруулна уу'
+                                            : null,
+                                      ),
+                                    ),
                                   ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                      ? 'Тоот оруулна уу'
-                                      : null,
-                                ),
+                                ],
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: isSmallScreen ? 10 : 14),
+
+                              // Row for Давхар and Тоот
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      decoration: _boxShadowDecoration(),
+                                      child: TextFormField(
+                                        controller: davkharController,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isSmallScreen ? 13 : 15,
+                                        ),
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
+                                          LengthLimitingTextInputFormatter(2),
+                                        ],
+                                        decoration: _inputDecoration(
+                                          'Давхар',
+                                          davkharController,
+                                          isSmallScreen,
+                                        ),
+                                        validator: (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return 'Давхар оруулна уу';
+                                          }
+                                          if (value.length > 2) {
+                                            return 'Давхар 2 оронтой байх ёстой';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: isSmallScreen ? 8 : 12),
+                                  Expanded(
+                                    child: Container(
+                                      decoration: _boxShadowDecoration(),
+                                      child: TextFormField(
+                                        controller: tootController,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: isSmallScreen ? 13 : 15,
+                                        ),
+                                        decoration: _inputDecoration(
+                                          'Тоот',
+                                          tootController,
+                                          isSmallScreen,
+                                        ),
+                                        validator: (value) =>
+                                            value == null ||
+                                                value.trim().isEmpty
+                                            ? 'Тоот оруулна уу'
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: isSmallScreen ? 10 : 14),
+
                               Container(
                                 decoration: _boxShadowDecoration(),
                                 child: TextFormField(
                                   controller: ovogController,
-                                  style: const TextStyle(color: Colors.white),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: isSmallScreen ? 13 : 15,
+                                  ),
                                   decoration: _inputDecoration(
                                     'Овог',
                                     ovogController,
+                                    isSmallScreen,
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
@@ -257,15 +350,19 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       : null,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: isSmallScreen ? 10 : 14),
                               Container(
                                 decoration: _boxShadowDecoration(),
                                 child: TextFormField(
                                   controller: nerController,
-                                  style: const TextStyle(color: Colors.white),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: isSmallScreen ? 13 : 15,
+                                  ),
                                   decoration: _inputDecoration(
                                     'Нэр',
                                     nerController,
+                                    isSmallScreen,
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
@@ -273,15 +370,19 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       : null,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: isSmallScreen ? 10 : 14),
                               Container(
                                 decoration: _boxShadowDecoration(),
                                 child: TextFormField(
                                   controller: mailController,
-                                  style: const TextStyle(color: Colors.white),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: isSmallScreen ? 13 : 15,
+                                  ),
                                   decoration: _inputDecoration(
                                     'И-Мэйл хаяг',
                                     mailController,
+                                    isSmallScreen,
                                   ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
@@ -297,7 +398,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   },
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: isSmallScreen ? 12 : 14),
                               Container(
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(100),
@@ -319,8 +420,8 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFFCAD2DB),
                                       foregroundColor: Colors.black,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: isSmallScreen ? 11 : 14,
                                         horizontal: 10,
                                       ),
                                       shape: RoundedRectangleBorder(
@@ -334,20 +435,23 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       elevation: 8,
                                     ),
                                     child: _isLoading
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                    Colors.black,
-                                                  ),
-                                            ),
+                                        ? SizedBox(
+                                            height: isSmallScreen ? 16 : 18,
+                                            width: isSmallScreen ? 16 : 18,
+                                            child:
+                                                const CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.black),
+                                                ),
                                           )
-                                        : const Text(
+                                        : Text(
                                             'Үргэлжлүүлэх',
-                                            style: TextStyle(fontSize: 14),
+                                            style: TextStyle(
+                                              fontSize: isSmallScreen ? 13 : 15,
+                                            ),
                                           ),
                                   ),
                                 ),
