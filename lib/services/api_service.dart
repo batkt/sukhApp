@@ -6,6 +6,27 @@ import 'package:sukh_app/services/session_service.dart';
 class ApiService {
   static const String baseUrl = 'http://103.143.40.46:8084';
 
+  // Helper method to wrap HTTP calls with better error handling
+  static Future<T> _handleHttpRequest<T>(
+    Future<T> Function() request,
+    String errorMessage,
+  ) async {
+    try {
+      return await request();
+    } catch (e) {
+      // Check if it's a network/connection error
+      if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('SocketException') ||
+          e.toString().contains('No address associated with hostname') ||
+          e.toString().contains('NetworkException') ||
+          e.toString().contains('Connection') ||
+          e.toString().contains('Network is unreachable')) {
+        throw Exception('Интернэт холболт тасарсан байна');
+      }
+      throw Exception('$errorMessage: $e');
+    }
+  }
+
   static List<Map<String, dynamic>>? _cachedLocationData;
 
   static Future<List<Map<String, dynamic>>> fetchLocationData() async {
@@ -77,9 +98,9 @@ class ApiService {
 
       for (var item in data) {
         if (item['districtCode'] == khotkhonCode &&
-            item['sohCode'] != null &&
-            item['sohCode'].toString().isNotEmpty) {
-          sokhCodes.add(item['sohCode'].toString());
+            item['sohNer'] != null &&
+            item['sohNer'].toString().isNotEmpty) {
+          sokhCodes.add(item['sohNer'].toString());
         }
       }
 
@@ -92,7 +113,7 @@ class ApiService {
   static Future<String?> getBaiguullagiinId({
     String? duureg,
     String? districtCode,
-    String? sohCode,
+    String? sohNer,
   }) async {
     try {
       final data = await fetchLocationData();
@@ -108,7 +129,7 @@ class ApiService {
           matches = false;
         }
 
-        if (sohCode != null && item['sohCode'] != sohCode) {
+        if (sohNer != null && item['sohNer'] != sohNer) {
           matches = false;
         }
 
@@ -147,13 +168,15 @@ class ApiService {
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 409) {
+        throw Exception('409');
       } else {
         throw Exception(
           'Утасны дугаар баталгаажуулахад алдаа гарлаа: ${response.statusCode}',
         );
       }
     } catch (e) {
-      throw Exception('Утасны дугаар баталгаажуулахад алдаа гарлаа: $e');
+      rethrow;
     }
   }
 

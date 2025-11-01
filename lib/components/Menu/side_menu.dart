@@ -24,10 +24,7 @@ class _SideMenuState extends State<SideMenu> {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1a1a2e), // App dark background
-                  Color(0xFF252547), // Lighter shade
-                ],
+                colors: [Color(0xFF1a1a2e), Color(0xFF252547)],
               ),
               border: Border.all(color: const Color(0xFFe6ff00), width: 2),
               borderRadius: BorderRadius.circular(24),

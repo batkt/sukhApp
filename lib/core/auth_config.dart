@@ -13,7 +13,7 @@ import 'package:sukh_app/services/storage_service.dart';
 /// await AuthConfig.instance.initialize(
 ///   duureg: 'Баянгол',
 ///   districtCode: '10201',
-///   sohCode: '001',
+///   sohNer: '001',
 /// );
 ///
 /// // Get baiguullagiinId anywhere in the app
@@ -37,7 +37,7 @@ class AuthConfig {
   // Store location data
   String? _duureg;
   String? _districtCode;
-  String? _sohCode;
+  String? _sohNer;
 
   /// Get the current baiguullagiinId
   String? get baiguullagiinId => _baiguullagiinId;
@@ -48,8 +48,8 @@ class AuthConfig {
   /// Get the current districtCode (horoo/khotkhon)
   String? get districtCode => _districtCode;
 
-  /// Get the current sohCode
-  String? get sohCode => _sohCode;
+  /// Get the current sohNer
+  String? get sohNer => _sohNer;
 
   /// Check if AuthConfig has been initialized
   bool get isInitialized => _baiguullagiinId != null;
@@ -61,7 +61,7 @@ class AuthConfig {
   /// Parameters:
   /// - [duureg]: District name (optional)
   /// - [districtCode]: Khotkhon/Horoo code (optional)
-  /// - [sohCode]: SOH code (optional)
+  /// - [sohNer]: SOH code (optional)
   ///
   /// Returns the fetched baiguullagiinId or null if not found
   ///
@@ -69,17 +69,17 @@ class AuthConfig {
   Future<String?> initialize({
     String? duureg,
     String? districtCode,
-    String? sohCode,
+    String? sohNer,
   }) async {
     try {
       _duureg = duureg;
       _districtCode = districtCode;
-      _sohCode = sohCode;
+      _sohNer = sohNer;
 
       _baiguullagiinId = await ApiService.getBaiguullagiinId(
         duureg: duureg,
         districtCode: districtCode,
-        sohCode: sohCode,
+        sohNer: sohNer,
       );
 
       return _baiguullagiinId;
@@ -94,12 +94,12 @@ class AuthConfig {
   Future<String?> updateLocation({
     String? duureg,
     String? districtCode,
-    String? sohCode,
+    String? sohNer,
   }) async {
     return await initialize(
       duureg: duureg,
       districtCode: districtCode,
-      sohCode: sohCode,
+      sohNer: sohNer,
     );
   }
 
@@ -120,7 +120,7 @@ class AuthConfig {
     _baiguullagiinId = null;
     _duureg = null;
     _districtCode = null;
-    _sohCode = null;
+    _sohNer = null;
   }
 
   Map<String, String?> getLocationData() {
@@ -128,7 +128,7 @@ class AuthConfig {
       'baiguullagiinId': _baiguullagiinId,
       'duureg': _duureg,
       'districtCode': _districtCode,
-      'sohCode': _sohCode,
+      'sohNer': _sohNer,
     };
   }
 

@@ -179,14 +179,13 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                 item['duuregNer'] == selectedDistrict &&
                 item['horoo'] != null &&
                 item['horoo']['ner'] == horooNer &&
-                item['sohCode'] != null &&
-                item['sohCode'].toString().isNotEmpty,
+                item['sohNer'] != null &&
+                item['sohNer'].toString().isNotEmpty,
           )
           .toList();
 
-      // Extract unique SOKHs (sohCode)
       final uniqueSOKHs = filteredData
-          .map((item) => item['sohCode'].toString())
+          .map((item) => item['sohNer'].toString())
           .toSet()
           .toList();
 
@@ -222,7 +221,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
             item['duuregNer'] == selectedDistrict &&
             item['horoo'] != null &&
             item['horoo']['ner'] == selectedKhotkhon &&
-            item['sohCode'] == selectedSOKH,
+            item['sohNer'] == selectedSOKH,
         orElse: () => {},
       );
 
@@ -245,7 +244,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
           duureg: selectedDistrict,
           districtCode:
               selectedHorooKod, // Use horoo.kod (may be null if not selected yet)
-          sohCode: selectedSOKH,
+          sohNer: selectedSOKH,
         );
 
         // Store location data to pass to next screen

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'router/app_router.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/services/session_service.dart';
+import 'package:sukh_app/services/connectivity_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,14 +23,21 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  final ConnectivityService _connectivityService = ConnectivityService();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Connectivity service will be initialized after first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectivityService.initialize(context);
+    });
   }
 
   @override
   void dispose() {
+    _connectivityService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

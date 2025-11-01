@@ -85,7 +85,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
               widget.locationData?['duureg'] ?? AuthConfig.instance.duureg,
           'horoo':
               widget.locationData?['horoo'] ?? AuthConfig.instance.districtCode,
-          'soh': widget.locationData?['soh'] ?? AuthConfig.instance.sohCode,
+          'soh': widget.locationData?['soh'] ?? AuthConfig.instance.sohNer,
           'baiguullagiinId':
               widget.locationData?['baiguullagiinId'] ??
               AuthConfig.instance.baiguullagiinId,

@@ -212,9 +212,15 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             setState(() {
               _isLoading = false;
             });
+
+            String errorMessage = "Алдаа гарлаа: $e";
+            if (e.toString().contains('409')) {
+              errorMessage = "Дугаар бүртгэлтэй байна";
+            }
+
             showGlassSnackBar(
               context,
-              message: "Алдаа гарлаа: $e",
+              message: errorMessage,
               icon: Icons.error,
               iconColor: Colors.red,
             );

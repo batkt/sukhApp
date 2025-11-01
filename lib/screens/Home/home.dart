@@ -192,6 +192,23 @@ class _BookingScreenState extends State<NuurKhuudas> {
       setState(() {
         isLoadingPaymentData = false;
       });
+
+      // Show error snackbar
+      if (mounted) {
+        final errorMessage = e.toString().contains('Интернэт холболт')
+            ? 'Интернэт холболт тасарсан байна'
+            : e.toString().contains('хугацаа дууслаа')
+            ? 'Сервертэй холбогдох хугацаа дууслаа'
+            : 'Төлбөрийн мэдээлэл татахад алдаа гарлаа';
+
+        showGlassSnackBar(
+          context,
+          message: errorMessage,
+          icon: Icons.error_outline,
+          iconColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
     }
   }
 
