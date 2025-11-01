@@ -47,7 +47,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
   @override
   void didUpdateWidget(NuurKhuudas oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Reload data when widget is updated
     _loadPaymentData();
   }
 
@@ -79,7 +78,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
           final geree = Geree.fromJson(firstContract);
 
-          // Fetch invoice history
           final nekhemjlekhResponse =
               await ApiService.fetchNekhemjlekhiinTuukh(
                 gereeniiDugaar: geree.gereeniiDugaar,
@@ -101,7 +99,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
             for (var invoice in nekhemjlekhJagsaalt) {
               final tuluv = invoice['tuluv'];
-              // Only include invoices that are "Төлөөгүй" (unpaid)
+
               if (tuluv == 'Төлөөгүй') {
                 foundUnpaid = true;
                 final niitTulbur = invoice['niitTulbur'];
@@ -111,7 +109,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       : (niitTulbur as double);
                 }
 
-                // Get the oldest unpaid invoice date
                 final nekhemjlekhiinOgnoo = invoice['nekhemjlekhiinOgnoo'];
                 if (nekhemjlekhiinOgnoo != null) {
                   try {
@@ -130,7 +127,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
             }
           }
 
-          // Fetch Cron data for next invoice calculation
           int? cronDay;
           if (baiguullagiinId != null) {
             try {
@@ -193,7 +189,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
         isLoadingPaymentData = false;
       });
 
-      // Show error snackbar
       if (mounted) {
         final errorMessage = e.toString().contains('Интернэт холболт')
             ? 'Интернэт холболт тасарсан байна'
@@ -216,22 +211,18 @@ class _BookingScreenState extends State<NuurKhuudas> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // Scenario 1: Has unpaid invoice - show days overdue
     if (hasUnpaidInvoice && oldestUnpaidInvoiceDate != null) {
       final invoiceDate = DateTime(
         oldestUnpaidInvoiceDate!.year,
         oldestUnpaidInvoiceDate!.month,
         oldestUnpaidInvoiceDate!.day,
       );
-      return today.difference(invoiceDate).inDays; // Positive = overdue
+      return today.difference(invoiceDate).inDays;
     }
 
-    // Scenario 2: No unpaid invoice - calculate days until next invoice
     if (nekhemjlekhUusgekhOgnoo != null) {
-      // Calculate next invoice date based on the day of month
       DateTime nextInvoiceDate;
 
-      // If the invoice day hasn't occurred this month yet, use this month
       if (today.day < nekhemjlekhUusgekhOgnoo!) {
         nextInvoiceDate = DateTime(
           today.year,
@@ -239,7 +230,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
           nekhemjlekhUusgekhOgnoo!,
         );
       } else {
-        // Otherwise, use next month
         int nextMonth = today.month + 1;
         int nextYear = today.year;
 
@@ -248,7 +238,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
           nextYear++;
         }
 
-        // Handle cases where the day doesn't exist in the month (e.g., Feb 30)
         int daysInNextMonth = DateTime(nextYear, nextMonth + 1, 0).day;
         int invoiceDay = nekhemjlekhUusgekhOgnoo!;
         if (invoiceDay > daysInNextMonth) {
@@ -258,10 +247,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
         nextInvoiceDate = DateTime(nextYear, nextMonth, invoiceDay);
       }
 
-      return nextInvoiceDate.difference(today).inDays; // Negative = days left
+      return nextInvoiceDate.difference(today).inDays;
     }
 
-    // Fallback to old logic if no cron data
     if (paymentDate != null) {
       final payment = DateTime(
         paymentDate!.year,
@@ -274,7 +262,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
     return 0;
   }
 
-  // Format number with comma separator
   String _formatNumberWithComma(double number) {
     final parts = number.toStringAsFixed(0).split('.');
     final integerPart = parts[0];
