@@ -27,7 +27,7 @@ class _TokhirgooState extends State<Tokhirgoo>
   final _passwordFormKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
-  final _mailController = TextEditingController();
+
   final _phoneController = TextEditingController();
 
   final _currentPasswordController = TextEditingController();
@@ -61,7 +61,7 @@ class _TokhirgooState extends State<Tokhirgoo>
   void dispose() {
     _animationController.dispose();
     _nameController.dispose();
-    _mailController.dispose();
+
     _phoneController.dispose();
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
@@ -95,10 +95,6 @@ class _TokhirgooState extends State<Tokhirgoo>
             }
           }
           _nameController.text = fullName;
-
-          if (userData['mail'] != null) {
-            _mailController.text = userData['mail'].toString();
-          }
 
           if (userData['utas'] != null) {
             _phoneController.text = userData['utas'].toString();
@@ -293,14 +289,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                       icon: Icons.person_outline,
                                       enabled: false,
                                     ),
-                                    const SizedBox(height: 16),
-                                    _buildTextField(
-                                      controller: _mailController,
-                                      label: 'И-мэйл',
-                                      icon: Icons.email_outlined,
-                                      enabled: false,
-                                      keyboardType: TextInputType.emailAddress,
-                                    ),
+
                                     const SizedBox(height: 16),
                                     _buildTextField(
                                       controller: _phoneController,

@@ -103,7 +103,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
           'horoo': widget.registrationData?['horoo'] ?? '',
           'soh': widget.registrationData?['soh'] ?? '',
           'register': widget.registrationData?['register'] ?? '',
-          'mail': widget.registrationData?['mail'] ?? '',
+          
         };
 
         await ApiService.registerUser(registrationPayload);

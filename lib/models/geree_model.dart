@@ -36,7 +36,7 @@ class Geree {
   final String ner;
   final List<String> suhUtas;
   final List<String> utas;
-  final String mail;
+  
   final String tulukhOgnoo;
   final double ashiglaltiinZardal;
   final double niitTulbur;
@@ -62,7 +62,7 @@ class Geree {
     required this.ner,
     required this.suhUtas,
     required this.utas,
-    required this.mail,
+    
     required this.tulukhOgnoo,
     required this.ashiglaltiinZardal,
     required this.niitTulbur,
@@ -95,7 +95,7 @@ class Geree {
       utas:
           (json['utas'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
               [],
-      mail: json['mail'] ?? '',
+     
       tulukhOgnoo: json['tulukhOgnoo'] ?? '',
       ashiglaltiinZardal: (json['ashiglaltiinZardal'] ?? 0).toDouble(),
       niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),

@@ -273,13 +273,41 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
               // Navigate to password page with all registration data
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => Burtguulekh_Dorow(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      Burtguulekh_Dorow(
                     registrationData: {
                       ...?widget.locationData,
                       'utas': _phoneController.text,
                     },
                   ),
+                  transitionDuration: const Duration(milliseconds: 300),
+                  reverseTransitionDuration: const Duration(milliseconds: 300),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    // Fade out the old page
+                    final fadeOut = Tween<double>(begin: 1.0, end: 0.0).animate(
+                      CurvedAnimation(
+                        parent: secondaryAnimation,
+                        curve: Curves.easeOut,
+                      ),
+                    );
+
+                    // Fade in the new page
+                    final fadeIn = Tween<double>(begin: 0.0, end: 1.0).animate(
+                      CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeIn,
+                      ),
+                    );
+
+                    return FadeTransition(
+                      opacity: animation.status == AnimationStatus.reverse
+                          ? fadeOut
+                          : fadeIn,
+                      child: child,
+                    );
+                  },
                 ),
               );
             }

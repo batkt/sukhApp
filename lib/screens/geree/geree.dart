@@ -285,12 +285,7 @@ class _GereeState extends State<Geree> {
                   value: geree.suhUtas.join(', '),
                 ),
               ],
-              const Divider(color: Colors.white10, height: 24),
-              _buildInvoiceDetailRow(
-                icon: Icons.email_outlined,
-                label: 'И-мэйл',
-                value: geree.mail.isNotEmpty ? geree.mail : '-',
-              ),
+              
             ],
           ),
 

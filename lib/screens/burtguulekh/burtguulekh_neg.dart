@@ -73,15 +73,20 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         setState(() {
           locationData = data;
 
-          districts = data
-              .where(
-                (item) =>
-                    item['duuregNer'] != null &&
-                    item['duuregNer'].toString().isNotEmpty,
-              )
-              .map((item) => item['duuregNer'].toString())
-              .toSet()
-              .toList();
+          // Flatten barilguud from all baiguullaga objects
+          final Set<String> districtSet = {};
+          for (var baiguullaga in data) {
+            if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+              for (var barilga in baiguullaga['barilguud']) {
+                if (barilga is Map &&
+                    barilga['duuregNer'] != null &&
+                    barilga['duuregNer'].toString().isNotEmpty) {
+                  districtSet.add(barilga['duuregNer'].toString());
+                }
+              }
+            }
+          }
+          districts = districtSet.toList();
           isLoadingDistricts = false;
         });
       }
@@ -112,29 +117,29 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     });
 
     try {
-      // Filter location data by selected district using duuregNer
-      final filteredData = locationData
-          .where(
-            (item) =>
-                item['duuregNer'] == district &&
-                item['horoo'] != null &&
-                item['horoo']['ner'] != null,
-          )
-          .toList();
-
-      // Get baiguullagiinId from the first matching record for this district
-      String? districtBaiguullagiinId;
-      if (filteredData.isNotEmpty &&
-          filteredData[0]['baiguullagiinId'] != null) {
-        districtBaiguullagiinId = filteredData[0]['baiguullagiinId'].toString();
-      }
-
-      // Extract unique horoos (ner and kod)
+      // Flatten and filter barilguud by district
       final uniqueHoroos = <String, String>{};
-      for (var item in filteredData) {
-        final horooNer = item['horoo']['ner'].toString();
-        final horooKod = item['horoo']['kod'].toString();
-        uniqueHoroos[horooNer] = horooKod;
+      String? districtBaiguullagiinId;
+
+      for (var baiguullaga in locationData) {
+        if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+          for (var barilga in baiguullaga['barilguud']) {
+            if (barilga is Map &&
+                barilga['duuregNer'] == district &&
+                barilga['horoo'] != null &&
+                barilga['horoo']['ner'] != null) {
+              final horooNer = barilga['horoo']['ner'].toString();
+              final horooKod = barilga['horoo']['kod'].toString();
+              uniqueHoroos[horooNer] = horooKod;
+
+              // Get baiguullagiinId from the first matching record
+              if (districtBaiguullagiinId == null &&
+                  baiguullaga['baiguullagiinId'] != null) {
+                districtBaiguullagiinId = baiguullaga['baiguullagiinId'].toString();
+              }
+            }
+          }
+        }
       }
 
       final horooList = uniqueHoroos.entries
@@ -172,26 +177,27 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     });
 
     try {
-      // Filter location data by selected district and horoo
-      final filteredData = locationData
-          .where(
-            (item) =>
-                item['duuregNer'] == selectedDistrict &&
-                item['horoo'] != null &&
-                item['horoo']['ner'] == horooNer &&
-                item['sohNer'] != null &&
-                item['sohNer'].toString().isNotEmpty,
-          )
-          .toList();
+      // Flatten and filter barilguud by district and horoo
+      final Set<String> uniqueSOKHs = {};
 
-      final uniqueSOKHs = filteredData
-          .map((item) => item['sohNer'].toString())
-          .toSet()
-          .toList();
+      for (var baiguullaga in locationData) {
+        if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+          for (var barilga in baiguullaga['barilguud']) {
+            if (barilga is Map &&
+                barilga['duuregNer'] == selectedDistrict &&
+                barilga['horoo'] != null &&
+                barilga['horoo']['ner'] == horooNer &&
+                barilga['sohNer'] != null &&
+                barilga['sohNer'].toString().isNotEmpty) {
+              uniqueSOKHs.add(barilga['sohNer'].toString());
+            }
+          }
+        }
+      }
 
       if (mounted) {
         setState(() {
-          sokhs = uniqueSOKHs;
+          sokhs = uniqueSOKHs.toList();
           isLoadingSOKH = false;
         });
       }
@@ -215,22 +221,24 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     if (selectedDistrict != null &&
         selectedKhotkhon != null &&
         selectedSOKH != null) {
-      // Find matching location data using new structure
-      final matchingData = locationData.firstWhere(
-        (item) =>
-            item['duuregNer'] == selectedDistrict &&
-            item['horoo'] != null &&
-            item['horoo']['ner'] == selectedKhotkhon &&
-            item['sohNer'] == selectedSOKH,
-        orElse: () => {},
-      );
-
-      if (matchingData.isNotEmpty && matchingData['baiguullagiinId'] != null) {
-        setState(() {
-          selectedBaiguullagiinId = matchingData['baiguullagiinId'].toString();
-          selectedDistrictCode = matchingData['districtCode']?.toString();
-          selectedHorooKod = matchingData['horoo']['kod']?.toString();
-        });
+      // Find matching barilga in the nested structure
+      for (var baiguullaga in locationData) {
+        if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+          for (var barilga in baiguullaga['barilguud']) {
+            if (barilga is Map &&
+                barilga['duuregNer'] == selectedDistrict &&
+                barilga['horoo'] != null &&
+                barilga['horoo']['ner'] == selectedKhotkhon &&
+                barilga['sohNer'] == selectedSOKH) {
+              setState(() {
+                selectedBaiguullagiinId = baiguullaga['baiguullagiinId']?.toString();
+                selectedDistrictCode = barilga['districtCode']?.toString();
+                selectedHorooKod = barilga['horoo']['kod']?.toString();
+              });
+              return; // Found the match, exit
+            }
+          }
+        }
       }
     }
   }

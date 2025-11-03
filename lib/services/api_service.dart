@@ -745,4 +745,29 @@ class ApiService {
       throw Exception('Нууц үг солиход алдаа гарлаа: $e');
     }
   }
+
+  // Fetch building details (bair, orts, davkhar) based on location
+  static Future<Map<String, dynamic>> fetchBuildingDetails({
+    required String baiguullagiinId,
+  }) async {
+    try {
+      final data = await fetchLocationData();
+
+      // Find the matching baiguullaga by baiguullagiinId
+      final matchingBaiguullaga = data.firstWhere(
+        (item) => item['baiguullagiinId'] == baiguullagiinId,
+        orElse: () => {},
+      );
+
+      if (matchingBaiguullaga.isEmpty ||
+          matchingBaiguullaga['barilguud'] == null) {
+        return {'barilguud': <Map<String, dynamic>>[]};
+      }
+
+      return {'barilguud': matchingBaiguullaga['barilguud'] as List};
+    } catch (e) {
+      print('Error fetching building details: $e');
+      throw Exception('Барилгын мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
 }
