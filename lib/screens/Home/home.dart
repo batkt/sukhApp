@@ -56,9 +56,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
 
       if (userId == null) {
-        setState(() {
-          isLoadingPaymentData = false;
-        });
+        if (mounted) {
+          setState(() {
+            isLoadingPaymentData = false;
+          });
+        }
         return;
       }
 
@@ -164,32 +166,38 @@ class _BookingScreenState extends State<NuurKhuudas> {
             }
           }
 
-          setState(() {
-            paymentDate = parsedDate;
-            gereeData = geree;
-            totalNiitTulbur = total;
-            hasUnpaidInvoice = foundUnpaid;
-            oldestUnpaidInvoiceDate = unpaidInvoiceDate;
-            nekhemjlekhUusgekhOgnoo = cronDay;
-            isLoadingPaymentData = false;
-          });
+          if (mounted) {
+            setState(() {
+              paymentDate = parsedDate;
+              gereeData = geree;
+              totalNiitTulbur = total;
+              hasUnpaidInvoice = foundUnpaid;
+              oldestUnpaidInvoiceDate = unpaidInvoiceDate;
+              nekhemjlekhUusgekhOgnoo = cronDay;
+              isLoadingPaymentData = false;
+            });
+          }
         } else {
+          if (mounted) {
+            setState(() {
+              isLoadingPaymentData = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
           setState(() {
             isLoadingPaymentData = false;
           });
         }
-      } else {
-        setState(() {
-          isLoadingPaymentData = false;
-        });
       }
     } catch (e) {
       print('Төлбөрийн мэдээлэл татхад алдаа гарлаа: $e');
-      setState(() {
-        isLoadingPaymentData = false;
-      });
-
       if (mounted) {
+        setState(() {
+          isLoadingPaymentData = false;
+        });
+
         final errorMessage = e.toString().contains('Интернэт холболт')
             ? 'Интернэт холболт тасарсан байна'
             : e.toString().contains('хугацаа дууслаа')

@@ -700,7 +700,7 @@ class ApiService {
       final headers = await getAuthHeaders();
 
       final response = await http.get(
-        Uri.parse('$baseUrl/nekhemjlekh/Cron/$baiguullagiinId'),
+        Uri.parse('$baseUrl/nekhemjlekhCron/$baiguullagiinId'),
         headers: headers,
       );
 
