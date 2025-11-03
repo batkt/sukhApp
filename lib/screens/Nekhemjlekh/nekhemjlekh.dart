@@ -61,6 +61,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
       double totalAmount = 0;
       String? dansniiDugaar;
+      String? turul;
+
       selectedInvoiceIds = [];
 
       for (var invoice in invoices) {
@@ -69,6 +71,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           selectedInvoiceIds.add(invoice.id);
 
           dansniiDugaar ??= invoice.dansniiDugaar;
+          turul ??= invoice.gereeniiDugaar;
         }
       }
 
@@ -80,6 +83,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         throw Exception('Дансны дугаар олдсонгүй');
       }
 
+      if (turul == null || turul.isEmpty) {
+        throw Exception('Гэрээний дугаар олдсонгүй');
+      }
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final orderNumber = 'TEST-$timestamp';
 
@@ -87,7 +94,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,
         dun: totalAmount,
-        turul: 'Test Payment',
+        turul: turul,
         zakhialgiinDugaar: orderNumber,
         dansniiDugaar: dansniiDugaar,
         nekhemjlekhiinTuukh: selectedInvoiceIds,
