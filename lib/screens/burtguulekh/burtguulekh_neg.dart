@@ -76,7 +76,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
           // Flatten barilguud from all baiguullaga objects
           final Set<String> districtSet = {};
           for (var baiguullaga in data) {
-            if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+            if (baiguullaga['barilguud'] != null &&
+                baiguullaga['barilguud'] is List) {
               for (var barilga in baiguullaga['barilguud']) {
                 if (barilga is Map &&
                     barilga['duuregNer'] != null &&
@@ -122,7 +123,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       String? districtBaiguullagiinId;
 
       for (var baiguullaga in locationData) {
-        if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+        if (baiguullaga['barilguud'] != null &&
+            baiguullaga['barilguud'] is List) {
           for (var barilga in baiguullaga['barilguud']) {
             if (barilga is Map &&
                 barilga['duuregNer'] == district &&
@@ -135,7 +137,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
               // Get baiguullagiinId from the first matching record
               if (districtBaiguullagiinId == null &&
                   baiguullaga['baiguullagiinId'] != null) {
-                districtBaiguullagiinId = baiguullaga['baiguullagiinId'].toString();
+                districtBaiguullagiinId = baiguullaga['baiguullagiinId']
+                    .toString();
               }
             }
           }
@@ -181,7 +184,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       final Set<String> uniqueSOKHs = {};
 
       for (var baiguullaga in locationData) {
-        if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+        if (baiguullaga['barilguud'] != null &&
+            baiguullaga['barilguud'] is List) {
           for (var barilga in baiguullaga['barilguud']) {
             if (barilga is Map &&
                 barilga['duuregNer'] == selectedDistrict &&
@@ -223,7 +227,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         selectedSOKH != null) {
       // Find matching barilga in the nested structure
       for (var baiguullaga in locationData) {
-        if (baiguullaga['barilguud'] != null && baiguullaga['barilguud'] is List) {
+        if (baiguullaga['barilguud'] != null &&
+            baiguullaga['barilguud'] is List) {
           for (var barilga in baiguullaga['barilguud']) {
             if (barilga is Map &&
                 barilga['duuregNer'] == selectedDistrict &&
@@ -231,7 +236,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                 barilga['horoo']['ner'] == selectedKhotkhon &&
                 barilga['sohNer'] == selectedSOKH) {
               setState(() {
-                selectedBaiguullagiinId = baiguullaga['baiguullagiinId']?.toString();
+                selectedBaiguullagiinId = baiguullaga['baiguullagiinId']
+                    ?.toString();
                 selectedDistrictCode = barilga['districtCode']?.toString();
                 selectedHorooKod = barilga['horoo']['kod']?.toString();
               });
@@ -322,15 +328,21 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                               final screenWidth = MediaQuery.of(
                                 context,
                               ).size.width;
-                              final isSmallScreen = screenHeight < 700;
-                              final isNarrowScreen = screenWidth < 380;
+                              // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
+                              final isSmallScreen =
+                                  screenHeight < 900 || screenWidth < 400;
+                              final isVerySmallScreen =
+                                  screenHeight < 700 || screenWidth < 380;
+                              final isNarrowScreen = screenWidth < 400;
 
                               return Padding(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: isNarrowScreen
-                                      ? 24
-                                      : (isSmallScreen ? 30 : 40),
-                                  vertical: isSmallScreen ? 12 : 24,
+                                      ? 20
+                                      : (isSmallScreen ? 28 : 40),
+                                  vertical: isVerySmallScreen
+                                      ? 8
+                                      : (isSmallScreen ? 12 : 24),
                                 ),
                                 child: Form(
                                   key: _formKey,
@@ -338,18 +350,28 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       const AppLogo(),
-                                      SizedBox(height: isSmallScreen ? 12 : 20),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 8
+                                            : (isSmallScreen ? 12 : 20),
+                                      ),
                                       Text(
                                         'Бүртгэл',
                                         style: TextStyle(
                                           color: AppColors.grayColor,
-                                          fontSize: isSmallScreen ? 22 : 28,
+                                          fontSize: isVerySmallScreen
+                                              ? 20
+                                              : (isSmallScreen ? 22 : 28),
                                         ),
                                         maxLines: 1,
                                         softWrap: false,
                                       ),
 
-                                      SizedBox(height: isSmallScreen ? 14 : 18),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 10
+                                            : (isSmallScreen ? 14 : 18),
+                                      ),
                                       Container(
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(
@@ -407,7 +429,9 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                 ),
                                             errorStyle: TextStyle(
                                               color: Colors.redAccent,
-                                              fontSize: isSmallScreen ? 11 : 13,
+                                              fontSize: isVerySmallScreen
+                                                  ? 10
+                                                  : (isSmallScreen ? 11 : 13),
                                             ),
                                             errorMaxLines: 1,
                                             helperText: '',
@@ -417,30 +441,38 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           ),
                                           hint: Padding(
                                             padding: EdgeInsets.symmetric(
-                                              horizontal: isSmallScreen
-                                                  ? 14
-                                                  : 16,
+                                              horizontal: isVerySmallScreen
+                                                  ? 12
+                                                  : (isSmallScreen ? 14 : 16),
                                             ),
                                             child: Row(
                                               children: [
                                                 Icon(
                                                   Icons.location_city_rounded,
-                                                  size: isSmallScreen ? 18 : 20,
+                                                  size: isVerySmallScreen
+                                                      ? 16
+                                                      : (isSmallScreen
+                                                            ? 18
+                                                            : 20),
                                                   color: Colors.white
                                                       .withOpacity(0.5),
                                                 ),
                                                 SizedBox(
-                                                  width: isSmallScreen
-                                                      ? 10
-                                                      : 12,
+                                                  width: isVerySmallScreen
+                                                      ? 8
+                                                      : (isSmallScreen
+                                                            ? 10
+                                                            : 12),
                                                 ),
                                                 Text(
                                                   'Дүүрэг сонгох',
                                                   style: TextStyle(
                                                     color: Colors.white70,
-                                                    fontSize: isSmallScreen
-                                                        ? 13
-                                                        : 15,
+                                                    fontSize: isVerySmallScreen
+                                                        ? 12
+                                                        : (isSmallScreen
+                                                              ? 13
+                                                              : 15),
                                                   ),
                                                 ),
                                               ],
@@ -555,15 +587,19 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                             return null;
                                           },
                                           buttonStyleData: ButtonStyleData(
-                                            height: isSmallScreen ? 48 : 52,
+                                            height: isVerySmallScreen
+                                                ? 44
+                                                : (isSmallScreen ? 48 : 52),
                                             padding: EdgeInsets.only(
-                                              right: isSmallScreen ? 8 : 11,
+                                              right: isVerySmallScreen
+                                                  ? 6
+                                                  : (isSmallScreen ? 8 : 11),
                                             ),
                                           ),
                                           dropdownStyleData: DropdownStyleData(
-                                            maxHeight: isSmallScreen
-                                                ? 250
-                                                : 300,
+                                            maxHeight: isVerySmallScreen
+                                                ? 200
+                                                : (isSmallScreen ? 250 : 300),
                                             padding: const EdgeInsets.symmetric(
                                               vertical: 8,
                                             ),
@@ -590,11 +626,13 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                             ),
                                           ),
                                           menuItemStyleData: MenuItemStyleData(
-                                            height: isSmallScreen ? 42 : 46,
+                                            height: isVerySmallScreen
+                                                ? 38
+                                                : (isSmallScreen ? 42 : 46),
                                             padding: EdgeInsets.symmetric(
-                                              horizontal: isSmallScreen
-                                                  ? 12
-                                                  : 16,
+                                              horizontal: isVerySmallScreen
+                                                  ? 10
+                                                  : (isSmallScreen ? 12 : 16),
                                             ),
                                             overlayColor:
                                                 WidgetStateProperty.resolveWith<
@@ -630,7 +668,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           },
                                         ),
                                       ),
-                                      SizedBox(height: isSmallScreen ? 12 : 14),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 8
+                                            : (isSmallScreen ? 12 : 14),
+                                      ),
 
                                       GestureDetector(
                                         onTap: () {
@@ -712,9 +754,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                     ),
                                                 errorStyle: TextStyle(
                                                   color: Colors.redAccent,
-                                                  fontSize: isSmallScreen
-                                                      ? 11
-                                                      : 13,
+                                                  fontSize: isVerySmallScreen
+                                                      ? 10
+                                                      : (isSmallScreen
+                                                            ? 11
+                                                            : 13),
                                                 ),
                                                 errorMaxLines: 1,
                                                 helperText: '',
@@ -724,9 +768,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               ),
                                               hint: Padding(
                                                 padding: EdgeInsets.symmetric(
-                                                  horizontal: isSmallScreen
-                                                      ? 14
-                                                      : 16,
+                                                  horizontal: isVerySmallScreen
+                                                      ? 12
+                                                      : (isSmallScreen
+                                                            ? 14
+                                                            : 16),
                                                 ),
                                                 child: Row(
                                                   children: [
@@ -736,16 +782,20 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                                 .hourglass_empty_rounded
                                                           : Icons
                                                                 .home_work_rounded,
-                                                      size: isSmallScreen
-                                                          ? 18
-                                                          : 20,
+                                                      size: isVerySmallScreen
+                                                          ? 16
+                                                          : (isSmallScreen
+                                                                ? 18
+                                                                : 20),
                                                       color: Colors.white
                                                           .withOpacity(0.5),
                                                     ),
                                                     SizedBox(
-                                                      width: isSmallScreen
-                                                          ? 10
-                                                          : 12,
+                                                      width: isVerySmallScreen
+                                                          ? 8
+                                                          : (isSmallScreen
+                                                                ? 10
+                                                                : 12),
                                                     ),
                                                     Text(
                                                       isLoadingKhotkhon
@@ -753,9 +803,12 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                           : 'Хороо сонгох',
                                                       style: TextStyle(
                                                         color: Colors.white70,
-                                                        fontSize: isSmallScreen
-                                                            ? 13
-                                                            : 15,
+                                                        fontSize:
+                                                            isVerySmallScreen
+                                                            ? 12
+                                                            : (isSmallScreen
+                                                                  ? 13
+                                                                  : 15),
                                                       ),
                                                     ),
                                                   ],
@@ -887,15 +940,23 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                 return null;
                                               },
                                               buttonStyleData: ButtonStyleData(
-                                                height: isSmallScreen ? 48 : 52,
+                                                height: isVerySmallScreen
+                                                    ? 44
+                                                    : (isSmallScreen ? 48 : 52),
                                                 padding: EdgeInsets.only(
-                                                  right: isSmallScreen ? 8 : 11,
+                                                  right: isVerySmallScreen
+                                                      ? 6
+                                                      : (isSmallScreen
+                                                            ? 8
+                                                            : 11),
                                                 ),
                                               ),
                                               dropdownStyleData: DropdownStyleData(
-                                                maxHeight: isSmallScreen
-                                                    ? 250
-                                                    : 300,
+                                                maxHeight: isVerySmallScreen
+                                                    ? 200
+                                                    : (isSmallScreen
+                                                          ? 250
+                                                          : 300),
                                                 padding:
                                                     const EdgeInsets.symmetric(
                                                       vertical: 8,
@@ -926,11 +987,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                 ),
                                               ),
                                               menuItemStyleData: MenuItemStyleData(
-                                                height: isSmallScreen ? 42 : 46,
+                                                height: isVerySmallScreen
+                                                    ? 38
+                                                    : (isSmallScreen ? 42 : 46),
                                                 padding: EdgeInsets.symmetric(
-                                                  horizontal: isSmallScreen
-                                                      ? 12
-                                                      : 16,
+                                                  horizontal: isVerySmallScreen
+                                                      ? 10
+                                                      : (isSmallScreen
+                                                            ? 12
+                                                            : 16),
                                                 ),
                                                 overlayColor:
                                                     WidgetStateProperty.resolveWith<
@@ -971,7 +1036,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                         ),
                                       ),
 
-                                      SizedBox(height: isSmallScreen ? 12 : 14),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 8
+                                            : (isSmallScreen ? 12 : 14),
+                                      ),
 
                                       GestureDetector(
                                         onTap: () {
@@ -1060,9 +1129,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                     ),
                                                 errorStyle: TextStyle(
                                                   color: Colors.redAccent,
-                                                  fontSize: isSmallScreen
-                                                      ? 11
-                                                      : 13,
+                                                  fontSize: isVerySmallScreen
+                                                      ? 10
+                                                      : (isSmallScreen
+                                                            ? 11
+                                                            : 13),
                                                 ),
                                                 errorMaxLines: 1,
                                                 helperText: '',
@@ -1072,9 +1143,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               ),
                                               hint: Padding(
                                                 padding: EdgeInsets.symmetric(
-                                                  horizontal: isSmallScreen
-                                                      ? 14
-                                                      : 16,
+                                                  horizontal: isVerySmallScreen
+                                                      ? 12
+                                                      : (isSmallScreen
+                                                            ? 14
+                                                            : 16),
                                                 ),
                                                 child: Row(
                                                   children: [
@@ -1084,16 +1157,20 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                                 .hourglass_empty_rounded
                                                           : Icons
                                                                 .apartment_rounded,
-                                                      size: isSmallScreen
-                                                          ? 18
-                                                          : 20,
+                                                      size: isVerySmallScreen
+                                                          ? 16
+                                                          : (isSmallScreen
+                                                                ? 18
+                                                                : 20),
                                                       color: Colors.white
                                                           .withOpacity(0.5),
                                                     ),
                                                     SizedBox(
-                                                      width: isSmallScreen
-                                                          ? 10
-                                                          : 12,
+                                                      width: isVerySmallScreen
+                                                          ? 8
+                                                          : (isSmallScreen
+                                                                ? 10
+                                                                : 12),
                                                     ),
                                                     Text(
                                                       isLoadingSOKH
@@ -1101,9 +1178,12 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                           : 'СӨХ сонгох',
                                                       style: TextStyle(
                                                         color: Colors.white70,
-                                                        fontSize: isSmallScreen
-                                                            ? 13
-                                                            : 15,
+                                                        fontSize:
+                                                            isVerySmallScreen
+                                                            ? 12
+                                                            : (isSmallScreen
+                                                                  ? 13
+                                                                  : 15),
                                                       ),
                                                     ),
                                                   ],
@@ -1221,15 +1301,23 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                 return null;
                                               },
                                               buttonStyleData: ButtonStyleData(
-                                                height: isSmallScreen ? 48 : 52,
+                                                height: isVerySmallScreen
+                                                    ? 44
+                                                    : (isSmallScreen ? 48 : 52),
                                                 padding: EdgeInsets.only(
-                                                  right: isSmallScreen ? 8 : 11,
+                                                  right: isVerySmallScreen
+                                                      ? 6
+                                                      : (isSmallScreen
+                                                            ? 8
+                                                            : 11),
                                                 ),
                                               ),
                                               dropdownStyleData: DropdownStyleData(
-                                                maxHeight: isSmallScreen
-                                                    ? 250
-                                                    : 300,
+                                                maxHeight: isVerySmallScreen
+                                                    ? 200
+                                                    : (isSmallScreen
+                                                          ? 250
+                                                          : 300),
                                                 padding:
                                                     const EdgeInsets.symmetric(
                                                       vertical: 8,
@@ -1260,11 +1348,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                                 ),
                                               ),
                                               menuItemStyleData: MenuItemStyleData(
-                                                height: isSmallScreen ? 42 : 46,
+                                                height: isVerySmallScreen
+                                                    ? 38
+                                                    : (isSmallScreen ? 42 : 46),
                                                 padding: EdgeInsets.symmetric(
-                                                  horizontal: isSmallScreen
-                                                      ? 12
-                                                      : 16,
+                                                  horizontal: isVerySmallScreen
+                                                      ? 10
+                                                      : (isSmallScreen
+                                                            ? 12
+                                                            : 16),
                                                 ),
                                                 overlayColor:
                                                     WidgetStateProperty.resolveWith<
@@ -1305,7 +1397,11 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                         ),
                                       ),
 
-                                      SizedBox(height: isSmallScreen ? 12 : 14),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 8
+                                            : (isSmallScreen ? 12 : 14),
+                                      ),
 
                                       Container(
                                         decoration: BoxDecoration(
@@ -1334,9 +1430,9 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               ),
                                               foregroundColor: Colors.black,
                                               padding: EdgeInsets.symmetric(
-                                                vertical: isSmallScreen
-                                                    ? 11
-                                                    : 14,
+                                                vertical: isVerySmallScreen
+                                                    ? 9
+                                                    : (isSmallScreen ? 11 : 14),
                                                 horizontal: 10,
                                               ),
                                               shape: RoundedRectangleBorder(
@@ -1350,9 +1446,9 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                             child: Text(
                                               'Үргэлжлүүлэх',
                                               style: TextStyle(
-                                                fontSize: isSmallScreen
-                                                    ? 13
-                                                    : 15,
+                                                fontSize: isVerySmallScreen
+                                                    ? 12
+                                                    : (isSmallScreen ? 13 : 15),
                                               ),
                                             ),
                                           ),

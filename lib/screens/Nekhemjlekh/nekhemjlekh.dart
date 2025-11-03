@@ -1682,33 +1682,47 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
+    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
+
     return Scaffold(
       body: AppBackground(
         child: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(
+                  isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
+                ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: 28,
+                        size: isVerySmallScreen
+                            ? 22
+                            : (isSmallScreen ? 24 : 28),
                       ),
                       onPressed: () => context.pop(),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Нэхэмжлэх',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
+                              fontSize: isVerySmallScreen
+                                  ? 18
+                                  : (isSmallScreen ? 20 : 24),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1723,16 +1737,20 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                       selectedContractDisplay!,
                                       style: TextStyle(
                                         color: Colors.white.withOpacity(0.7),
-                                        fontSize: 14,
+                                        fontSize: isVerySmallScreen
+                                            ? 11
+                                            : (isSmallScreen ? 12 : 14),
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const SizedBox(width: 4),
+                                  SizedBox(width: isVerySmallScreen ? 2 : 4),
                                   Icon(
                                     Icons.keyboard_arrow_down,
                                     color: Colors.white.withOpacity(0.7),
-                                    size: 18,
+                                    size: isVerySmallScreen
+                                        ? 14
+                                        : (isSmallScreen ? 16 : 18),
                                   ),
                                 ],
                               ),
@@ -1742,10 +1760,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ),
                     if (availableContracts.length > 1)
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.swap_horiz,
                           color: Colors.white,
-                          size: 28,
+                          size: isVerySmallScreen
+                              ? 22
+                              : (isSmallScreen ? 24 : 28),
                         ),
                         onPressed: _showContractSelectionModal,
                         tooltip: 'Гэрээ солих',
@@ -1754,7 +1774,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       icon: Icon(
                         showHistoryOnly ? Icons.receipt : Icons.history,
                         color: const Color(0xFFe6ff00),
-                        size: 28,
+                        size: isVerySmallScreen
+                            ? 22
+                            : (isSmallScreen ? 24 : 28),
                       ),
                       onPressed: () {
                         setState(() {
@@ -1800,9 +1822,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           // Sticky payment section at top (hidden in history mode)
                           if (!showHistoryOnly)
                             Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: EdgeInsets.all(
+                                isVerySmallScreen
+                                    ? 12
+                                    : (isSmallScreen ? 14 : 16),
+                              ),
                               child: Container(
-                                padding: const EdgeInsets.all(20),
+                                padding: EdgeInsets.all(
+                                  isVerySmallScreen
+                                      ? 12
+                                      : (isSmallScreen ? 16 : 20),
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF0F1119),
                                   borderRadius: BorderRadius.circular(16),
@@ -1817,21 +1847,33 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                       selectedCount > 0
                                           ? '$selectedCount гэрээ сонгосон байна'
                                           : 'Гэрээ сонгоно уу',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: 14,
+                                        fontSize: isVerySmallScreen
+                                            ? 11
+                                            : (isSmallScreen ? 12 : 14),
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      height: isVerySmallScreen
+                                          ? 6
+                                          : (isSmallScreen ? 7 : 8),
+                                    ),
                                     Text(
                                       'Төлөх дүн: $totalSelectedAmount',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 20,
+                                        fontSize: isVerySmallScreen
+                                            ? 16
+                                            : (isSmallScreen ? 18 : 20),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      height: isVerySmallScreen
+                                          ? 10
+                                          : (isSmallScreen ? 12 : 16),
+                                    ),
                                     Row(
                                       children: [
                                         Expanded(
@@ -1848,19 +1890,27 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               disabledForegroundColor: Colors
                                                   .black
                                                   .withOpacity(0.3),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 14,
-                                                  ),
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: isVerySmallScreen
+                                                    ? 10
+                                                    : (isSmallScreen ? 12 : 14),
+                                              ),
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
-                                                    BorderRadius.circular(12),
+                                                    BorderRadius.circular(
+                                                      isVerySmallScreen
+                                                          ? 10
+                                                          : 12,
+                                                    ),
                                               ),
                                             ),
-                                            child: const Text(
+                                            child: Text(
                                               'Төлбөр төлөх',
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w600,
+                                                fontSize: isVerySmallScreen
+                                                    ? 13
+                                                    : (isSmallScreen ? 14 : 16),
                                               ),
                                             ),
                                           ),
@@ -1910,24 +1960,32 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               }
 
                               return SingleChildScrollView(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isVerySmallScreen
+                                      ? 12
+                                      : (isSmallScreen ? 14 : 16),
                                 ),
                                 child: Column(
                                   children: [
                                     if (!showHistoryOnly &&
                                         filteredInvoices.isNotEmpty)
                                       Padding(
-                                        padding: const EdgeInsets.only(
-                                          left: 18,
+                                        padding: EdgeInsets.only(
+                                          left: isVerySmallScreen
+                                              ? 14
+                                              : (isSmallScreen ? 16 : 18),
                                         ),
                                         child: GestureDetector(
                                           onTap: toggleSelectAll,
                                           child: Row(
                                             children: [
                                               Container(
-                                                width: 20,
-                                                height: 20,
+                                                width: isVerySmallScreen
+                                                    ? 16
+                                                    : (isSmallScreen ? 18 : 20),
+                                                height: isVerySmallScreen
+                                                    ? 16
+                                                    : (isSmallScreen ? 18 : 20),
                                                 decoration: BoxDecoration(
                                                   color: allSelected
                                                       ? Colors.white
@@ -1940,19 +1998,31 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                       BorderRadius.circular(4),
                                                 ),
                                                 child: allSelected
-                                                    ? const Icon(
+                                                    ? Icon(
                                                         Icons.check,
                                                         color: Colors.black,
-                                                        size: 14,
+                                                        size: isVerySmallScreen
+                                                            ? 10
+                                                            : (isSmallScreen
+                                                                  ? 12
+                                                                  : 14),
                                                       )
                                                     : null,
                                               ),
-                                              const SizedBox(width: 12),
-                                              const Text(
+                                              SizedBox(
+                                                width: isVerySmallScreen
+                                                    ? 8
+                                                    : (isSmallScreen ? 10 : 12),
+                                              ),
+                                              Text(
                                                 'Бүгдийг сонгох',
                                                 style: TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 16,
+                                                  fontSize: isVerySmallScreen
+                                                      ? 13
+                                                      : (isSmallScreen
+                                                            ? 14
+                                                            : 16),
                                                 ),
                                               ),
                                             ],
@@ -1961,15 +2031,23 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                       ),
                                     if (!showHistoryOnly &&
                                         filteredInvoices.isNotEmpty)
-                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 10
+                                            : (isSmallScreen ? 12 : 16),
+                                      ),
                                     ...filteredInvoices.map(
                                       (invoice) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 16,
+                                        padding: EdgeInsets.only(
+                                          bottom: isVerySmallScreen
+                                              ? 10
+                                              : (isSmallScreen ? 12 : 16),
                                         ),
                                         child: _buildInvoiceCard(
                                           invoice,
                                           isHistory: showHistoryOnly,
+                                          isSmallScreen: isSmallScreen,
+                                          isVerySmallScreen: isVerySmallScreen,
                                         ),
                                       ),
                                     ),
@@ -1988,7 +2066,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     );
   }
 
-  Widget _buildInvoiceCard(NekhemjlekhItem invoice, {bool isHistory = false}) {
+  Widget _buildInvoiceCard(
+    NekhemjlekhItem invoice, {
+    bool isHistory = false,
+    bool isSmallScreen = false,
+    bool isVerySmallScreen = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: isHistory ? Colors.white.withOpacity(0.95) : Colors.white,
@@ -2008,9 +2091,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 invoice.isExpanded = !invoice.isExpanded;
               });
             },
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(isVerySmallScreen ? 12 : 16),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(
+                isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
+              ),
               child: Column(
                 children: [
                   Row(
@@ -2024,8 +2109,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             });
                           },
                           child: Container(
-                            width: 20,
-                            height: 20,
+                            width: isVerySmallScreen
+                                ? 16
+                                : (isSmallScreen ? 18 : 20),
+                            height: isVerySmallScreen
+                                ? 16
+                                : (isSmallScreen ? 18 : 20),
                             decoration: BoxDecoration(
                               color: invoice.isSelected
                                   ? Colors.black
@@ -2034,21 +2123,30 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: invoice.isSelected
-                                ? const Icon(
+                                ? Icon(
                                     Icons.check,
                                     color: Colors.white,
-                                    size: 14,
+                                    size: isVerySmallScreen
+                                        ? 10
+                                        : (isSmallScreen ? 12 : 14),
                                   )
                                 : null,
                           ),
                         ),
-                      if (!isHistory) const SizedBox(width: 12),
+                      if (!isHistory)
+                        SizedBox(
+                          width: isVerySmallScreen
+                              ? 8
+                              : (isSmallScreen ? 10 : 12),
+                        ),
                       // Paid status badge for history
                       if (isHistory)
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isVerySmallScreen
+                                ? 6
+                                : (isSmallScreen ? 7 : 8),
+                            vertical: isVerySmallScreen ? 3 : 4,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.green.withOpacity(0.2),
@@ -2061,21 +2159,30 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               Icon(
                                 Icons.check_circle,
                                 color: Colors.green,
-                                size: 16,
+                                size: isVerySmallScreen
+                                    ? 12
+                                    : (isSmallScreen ? 14 : 16),
                               ),
-                              const SizedBox(width: 4),
+                              SizedBox(width: isVerySmallScreen ? 3 : 4),
                               Text(
                                 'Төлсөн',
                                 style: TextStyle(
                                   color: Colors.green,
-                                  fontSize: 12,
+                                  fontSize: isVerySmallScreen
+                                      ? 10
+                                      : (isSmallScreen ? 11 : 12),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      if (isHistory) const SizedBox(width: 12),
+                      if (isHistory)
+                        SizedBox(
+                          width: isVerySmallScreen
+                              ? 8
+                              : (isSmallScreen ? 10 : 12),
+                        ),
                       // Company info
                       Expanded(
                         child: Column(
@@ -2083,18 +2190,22 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           children: [
                             Text(
                               invoice.displayName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.black,
-                                fontSize: 16,
+                                fontSize: isVerySmallScreen
+                                    ? 13
+                                    : (isSmallScreen ? 14 : 16),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: isVerySmallScreen ? 3 : 4),
                             Text(
                               'Гэрээ: ${invoice.gereeniiDugaar}',
                               style: TextStyle(
                                 color: Colors.black.withOpacity(0.6),
-                                fontSize: 12,
+                                fontSize: isVerySmallScreen
+                                    ? 10
+                                    : (isSmallScreen ? 11 : 12),
                               ),
                             ),
                           ],
@@ -2106,50 +2217,66 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         children: [
                           Text(
                             invoice.formattedAmount,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.black,
-                              fontSize: 16,
+                              fontSize: isVerySmallScreen
+                                  ? 13
+                                  : (isSmallScreen ? 14 : 16),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: isVerySmallScreen ? 3 : 4),
                           Text(
                             invoice.formattedDate,
                             style: TextStyle(
                               color: Colors.black.withOpacity(0.6),
-                              fontSize: 12,
+                              fontSize: isVerySmallScreen
+                                  ? 10
+                                  : (isSmallScreen ? 11 : 12),
                             ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
+                  ),
                   // "Баримт харах" button for history view (paid invoices)
                   if (isHistory) ...[
                     GestureDetector(
                       onTap: () => _showVATReceiptModal(invoice.id),
                       child: Container(
                         width: double.infinity,
-                        height: 32,
+                        height: isVerySmallScreen
+                            ? 28
+                            : (isSmallScreen ? 30 : 32),
                         decoration: BoxDecoration(
                           color: const Color(0xFFe6ff00),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.receipt_long,
                               color: Colors.black,
-                              size: 16,
+                              size: isVerySmallScreen
+                                  ? 13
+                                  : (isSmallScreen ? 14 : 16),
                             ),
-                            SizedBox(width: 6),
+                            SizedBox(
+                              width: isVerySmallScreen
+                                  ? 4
+                                  : (isSmallScreen ? 5 : 6),
+                            ),
                             Text(
                               'Баримт харах',
                               style: TextStyle(
                                 color: Colors.black,
-                                fontSize: 13,
+                                fontSize: isVerySmallScreen
+                                    ? 11
+                                    : (isSmallScreen ? 12 : 13),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -2157,12 +2284,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+                    ),
                   ],
                   // Review button
                   Container(
                     width: double.infinity,
-                    height: 36,
+                    height: isVerySmallScreen ? 30 : (isSmallScreen ? 33 : 36),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(8),
@@ -2172,19 +2301,23 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       children: [
                         Text(
                           invoice.isExpanded ? 'Хураах' : 'Дэлгэрэнгүй',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.black87,
-                            fontSize: 14,
+                            fontSize: isVerySmallScreen
+                                ? 12
+                                : (isSmallScreen ? 13 : 14),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: isVerySmallScreen ? 3 : 4),
                         Icon(
                           invoice.isExpanded
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
                           color: Colors.black87,
-                          size: 20,
+                          size: isVerySmallScreen
+                              ? 16
+                              : (isSmallScreen ? 18 : 20),
                         ),
                       ],
                     ),
@@ -2197,7 +2330,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           if (invoice.isExpanded) ...[
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(
+                isVerySmallScreen ? 12 : (isSmallScreen ? 16 : 20),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2318,13 +2453,20 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   Widget _buildInfoTitle(String title) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(
+        bottom: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
+      ),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.black,
-          fontSize: 16,
+          fontSize: isVerySmallScreen ? 13 : (isSmallScreen ? 14 : 16),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -2332,13 +2474,20 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   Widget _buildInfoText(String text) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(
+        bottom: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+      ),
       child: Text(
         text,
         style: TextStyle(
           color: Colors.black.withOpacity(0.8),
-          fontSize: 13,
+          fontSize: isVerySmallScreen ? 11 : (isSmallScreen ? 12 : 13),
           height: 1.4,
         ),
       ),
@@ -2346,8 +2495,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   Widget _buildPriceRow(String label, String amount) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(
+        vertical: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -2355,14 +2511,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             label,
             style: TextStyle(
               color: Colors.black.withOpacity(0.8),
-              fontSize: 14,
+              fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
             ),
           ),
           Text(
             amount,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.black,
-              fontSize: 14,
+              fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
               fontWeight: FontWeight.w500,
             ),
           ),

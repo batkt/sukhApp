@@ -79,29 +79,45 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                             context,
                           ).size.height;
                           final screenWidth = MediaQuery.of(context).size.width;
-                          final isSmallScreen = screenHeight < 700;
-                          final isNarrowScreen = screenWidth < 380;
+                          // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
+                          final isSmallScreen =
+                              screenHeight < 900 || screenWidth < 400;
+                          final isVerySmallScreen =
+                              screenHeight < 700 || screenWidth < 380;
+                          final isNarrowScreen = screenWidth < 400;
 
                           return Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: isNarrowScreen
-                                  ? 24
-                                  : (isSmallScreen ? 30 : 40),
-                              vertical: isSmallScreen ? 12 : 24,
+                                  ? 20
+                                  : (isSmallScreen ? 28 : 40),
+                              vertical: isVerySmallScreen
+                                  ? 8
+                                  : (isSmallScreen ? 12 : 24),
                             ),
                             child: Column(
                               children: [
                                 const Spacer(),
                                 const AppLogo(),
-                                SizedBox(height: isSmallScreen ? 12 : 20),
+                                SizedBox(
+                                  height: isVerySmallScreen
+                                      ? 8
+                                      : (isSmallScreen ? 12 : 20),
+                                ),
                                 Text(
                                   'Тавтай морил',
                                   style: TextStyle(
                                     color: AppColors.grayColor,
-                                    fontSize: isSmallScreen ? 22 : 28,
+                                    fontSize: isVerySmallScreen
+                                        ? 20
+                                        : (isSmallScreen ? 22 : 28),
                                   ),
                                 ),
-                                SizedBox(height: isSmallScreen ? 14 : 20),
+                                SizedBox(
+                                  height: isVerySmallScreen
+                                      ? 10
+                                      : (isSmallScreen ? 14 : 20),
+                                ),
                                 Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(100),
@@ -119,20 +135,28 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     autofocus: false,
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: isSmallScreen ? 13 : 15,
+                                      fontSize: isVerySmallScreen
+                                          ? 12
+                                          : (isSmallScreen ? 13 : 15),
                                     ),
                                     decoration: InputDecoration(
                                       hintText: 'Утасны дугаар',
                                       hintStyle: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: isSmallScreen ? 13 : 15,
+                                        fontSize: isVerySmallScreen
+                                            ? 12
+                                            : (isSmallScreen ? 13 : 15),
                                       ),
                                       filled: true,
                                       fillColor: AppColors.inputGrayColor
                                           .withOpacity(0.5),
                                       contentPadding: EdgeInsets.symmetric(
-                                        horizontal: isSmallScreen ? 16 : 20,
-                                        vertical: isSmallScreen ? 11 : 14,
+                                        horizontal: isVerySmallScreen
+                                            ? 14
+                                            : (isSmallScreen ? 16 : 20),
+                                        vertical: isVerySmallScreen
+                                            ? 9
+                                            : (isSmallScreen ? 11 : 14),
                                       ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(
@@ -163,7 +187,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: isSmallScreen ? 10 : 14),
+                                SizedBox(
+                                  height: isVerySmallScreen
+                                      ? 8
+                                      : (isSmallScreen ? 10 : 14),
+                                ),
                                 Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(100),
@@ -182,20 +210,28 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     autofocus: false,
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: isSmallScreen ? 13 : 15,
+                                      fontSize: isVerySmallScreen
+                                          ? 12
+                                          : (isSmallScreen ? 13 : 15),
                                     ),
                                     decoration: InputDecoration(
                                       hintText: 'Нууц код',
                                       hintStyle: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: isSmallScreen ? 13 : 15,
+                                        fontSize: isVerySmallScreen
+                                            ? 12
+                                            : (isSmallScreen ? 13 : 15),
                                       ),
                                       filled: true,
                                       fillColor: AppColors.inputGrayColor
                                           .withOpacity(0.5),
                                       contentPadding: EdgeInsets.symmetric(
-                                        horizontal: isSmallScreen ? 16 : 20,
-                                        vertical: isSmallScreen ? 11 : 14,
+                                        horizontal: isVerySmallScreen
+                                            ? 14
+                                            : (isSmallScreen ? 16 : 20),
+                                        vertical: isVerySmallScreen
+                                            ? 9
+                                            : (isSmallScreen ? 11 : 14),
                                       ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(
@@ -232,7 +268,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: isSmallScreen ? 4 : 6),
+                                SizedBox(
+                                  height: isVerySmallScreen
+                                      ? 2
+                                      : (isSmallScreen ? 4 : 6),
+                                ),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -247,7 +287,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Transform.scale(
-                                            scale: isSmallScreen ? 0.75 : 0.85,
+                                            scale: isVerySmallScreen
+                                                ? 0.65
+                                                : (isSmallScreen ? 0.75 : 0.85),
                                             child: Checkbox(
                                               value: _rememberMe,
                                               onChanged: (value) {
@@ -276,7 +318,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             'Намайг сана',
                                             style: TextStyle(
                                               color: AppColors.grayColor,
-                                              fontSize: isSmallScreen ? 11 : 13,
+                                              fontSize: isVerySmallScreen
+                                                  ? 10
+                                                  : (isSmallScreen ? 11 : 13),
                                             ),
                                           ),
                                         ],
@@ -288,8 +332,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                       },
                                       style: TextButton.styleFrom(
                                         padding: EdgeInsets.symmetric(
-                                          horizontal: isSmallScreen ? 4 : 6,
-                                          vertical: isSmallScreen ? 1 : 3,
+                                          horizontal: isVerySmallScreen
+                                              ? 2
+                                              : (isSmallScreen ? 4 : 6),
+                                          vertical: isVerySmallScreen
+                                              ? 0
+                                              : (isSmallScreen ? 1 : 3),
                                         ),
                                         minimumSize: Size.zero,
                                         tapTargetSize:
@@ -299,13 +347,19 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         'Нууц кодоо мартсан уу?',
                                         style: TextStyle(
                                           color: AppColors.grayColor,
-                                          fontSize: isSmallScreen ? 11 : 13,
+                                          fontSize: isVerySmallScreen
+                                              ? 10
+                                              : (isSmallScreen ? 11 : 13),
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: isSmallScreen ? 4 : 6),
+                                SizedBox(
+                                  height: isVerySmallScreen
+                                      ? 2
+                                      : (isSmallScreen ? 4 : 6),
+                                ),
                                 Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(100),
@@ -404,7 +458,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         ),
                                         foregroundColor: Colors.black,
                                         padding: EdgeInsets.symmetric(
-                                          vertical: isSmallScreen ? 11 : 14,
+                                          vertical: isVerySmallScreen
+                                              ? 9
+                                              : (isSmallScreen ? 11 : 14),
                                         ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
@@ -414,8 +470,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                       ),
                                       child: _isLoading
                                           ? SizedBox(
-                                              height: isSmallScreen ? 16 : 18,
-                                              width: isSmallScreen ? 16 : 18,
+                                              height: isVerySmallScreen
+                                                  ? 14
+                                                  : (isSmallScreen ? 16 : 18),
+                                              width: isVerySmallScreen
+                                                  ? 14
+                                                  : (isSmallScreen ? 16 : 18),
                                               child:
                                                   const CircularProgressIndicator(
                                                     strokeWidth: 2,
@@ -428,16 +488,20 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                           : Text(
                                               'Нэвтрэх',
                                               style: TextStyle(
-                                                fontSize: isSmallScreen
-                                                    ? 13
-                                                    : 15,
+                                                fontSize: isVerySmallScreen
+                                                    ? 12
+                                                    : (isSmallScreen ? 13 : 15),
                                               ),
                                             ),
                                     ),
                                   ),
                                 ),
 
-                                SizedBox(height: isSmallScreen ? 10 : 16),
+                                SizedBox(
+                                  height: isVerySmallScreen
+                                      ? 8
+                                      : (isSmallScreen ? 10 : 16),
+                                ),
                                 Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(100),
@@ -465,7 +529,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                       ),
                                       child: Container(
                                         padding: EdgeInsets.symmetric(
-                                          vertical: isSmallScreen ? 11 : 14,
+                                          vertical: isVerySmallScreen
+                                              ? 9
+                                              : (isSmallScreen ? 11 : 14),
                                           horizontal: 20,
                                         ),
                                         alignment: Alignment.center,
@@ -480,7 +546,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                           'Бүртгүүлэх',
                                           style: TextStyle(
                                             color: Colors.white,
-                                            fontSize: isSmallScreen ? 13 : 15,
+                                            fontSize: isVerySmallScreen
+                                                ? 12
+                                                : (isSmallScreen ? 13 : 15),
                                           ),
                                           textAlign: TextAlign.center,
                                         ),
@@ -492,16 +560,24 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 Text(
                                   '© 2025 Powered by Zevtabs LLC',
                                   style: TextStyle(
-                                    fontSize: isSmallScreen ? 11 : 13,
+                                    fontSize: isVerySmallScreen
+                                        ? 10
+                                        : (isSmallScreen ? 11 : 13),
                                     color: Colors.grey,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
-                                SizedBox(height: isSmallScreen ? 8 : 12),
+                                SizedBox(
+                                  height: isVerySmallScreen
+                                      ? 6
+                                      : (isSmallScreen ? 8 : 12),
+                                ),
                                 Text(
                                   'Version 1.0',
                                   style: TextStyle(
-                                    fontSize: isSmallScreen ? 11 : 13,
+                                    fontSize: isVerySmallScreen
+                                        ? 10
+                                        : (isSmallScreen ? 11 : 13),
                                     color: Colors.grey,
                                   ),
                                   textAlign: TextAlign.center,

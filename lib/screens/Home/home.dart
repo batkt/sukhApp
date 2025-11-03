@@ -755,11 +755,17 @@ class _BookingScreenState extends State<NuurKhuudas> {
               Builder(
                 builder: (context) {
                   final screenHeight = MediaQuery.of(context).size.height;
-                  final isSmallScreen = screenHeight < 700;
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
+                  final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+                  final isVerySmallScreen =
+                      screenHeight < 700 || screenWidth < 380;
 
                   return Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 16.0 : 16,
+                      horizontal: isVerySmallScreen
+                          ? 12
+                          : (isSmallScreen ? 16 : 16),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -772,7 +778,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: isSmallScreen ? 14 : 16,
+                                fontSize: isVerySmallScreen
+                                    ? 12
+                                    : (isSmallScreen ? 14 : 16),
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -780,7 +788,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               '${_formatNumberWithComma(totalNiitTulbur)}₮',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: isSmallScreen ? 22 : 26,
+                                fontSize: isVerySmallScreen
+                                    ? 20
+                                    : (isSmallScreen ? 22 : 26),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -807,14 +817,20 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               borderRadius: BorderRadius.circular(100),
                               child: Container(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: isSmallScreen ? 16 : 20,
-                                  vertical: isSmallScreen ? 8 : 10,
+                                  horizontal: isVerySmallScreen
+                                      ? 14
+                                      : (isSmallScreen ? 16 : 20),
+                                  vertical: isVerySmallScreen
+                                      ? 6
+                                      : (isSmallScreen ? 8 : 10),
                                 ),
                                 child: Text(
                                   'Төлөх',
                                   style: TextStyle(
                                     color: const Color(0xFF0a0e27),
-                                    fontSize: isSmallScreen ? 14 : 16,
+                                    fontSize: isVerySmallScreen
+                                        ? 12
+                                        : (isSmallScreen ? 14 : 16),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -884,13 +900,23 @@ class _BookingScreenState extends State<NuurKhuudas> {
                             final screenHeight = MediaQuery.of(
                               context,
                             ).size.height;
-                            final isSmallScreen = screenHeight < 700;
+                            final screenWidth = MediaQuery.of(
+                              context,
+                            ).size.width;
+                            final isSmallScreen =
+                                screenHeight < 900 || screenWidth < 400;
+                            final isVerySmallScreen =
+                                screenHeight < 700 || screenWidth < 380;
 
                             return Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 16,
+                              margin: EdgeInsets.symmetric(
+                                horizontal: isVerySmallScreen ? 12 : 16,
                               ),
-                              padding: EdgeInsets.all(isSmallScreen ? 12 : 15),
+                              padding: EdgeInsets.all(
+                                isVerySmallScreen
+                                    ? 10
+                                    : (isSmallScreen ? 12 : 15),
+                              ),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
                                   colors: [
@@ -913,22 +939,36 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                         'Гэрээний мэдээлэл',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: isSmallScreen ? 16 : 18,
+                                          fontSize: isVerySmallScreen
+                                              ? 14
+                                              : (isSmallScreen ? 16 : 18),
                                           fontWeight: FontWeight.w600,
                                           letterSpacing: -0.5,
                                         ),
                                       ),
-                                      SizedBox(height: isSmallScreen ? 12 : 16),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 10
+                                            : (isSmallScreen ? 12 : 16),
+                                      ),
                                       _buildInfoRow(
                                         'Гэрээний дугаар',
                                         gereeData!.gereeniiDugaar,
                                       ),
-                                      SizedBox(height: isSmallScreen ? 8 : 12),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 6
+                                            : (isSmallScreen ? 8 : 12),
+                                      ),
                                       _buildInfoRow(
                                         'Барилгын нэр',
                                         gereeData!.bairNer,
                                       ),
-                                      SizedBox(height: isSmallScreen ? 8 : 12),
+                                      SizedBox(
+                                        height: isVerySmallScreen
+                                            ? 6
+                                            : (isSmallScreen ? 8 : 12),
+                                      ),
                                       Row(
                                         children: [
                                           Expanded(
@@ -938,7 +978,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                             ),
                                           ),
                                           SizedBox(
-                                            width: isSmallScreen ? 12 : 16,
+                                            width: isVerySmallScreen
+                                                ? 10
+                                                : (isSmallScreen ? 12 : 16),
                                           ),
                                           Expanded(
                                             child: _buildInfoRow(
@@ -950,7 +992,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: isSmallScreen ? 12 : 16),
+                                  SizedBox(
+                                    height: isVerySmallScreen
+                                        ? 10
+                                        : (isSmallScreen ? 12 : 16),
+                                  ),
                                 ],
                               ),
                             );
@@ -978,18 +1024,32 @@ class _BookingScreenState extends State<NuurKhuudas> {
     final isOverdue = hasUnpaidInvoice && daysDifference > 0;
     final displayDays = daysDifference.abs();
 
-    // Get screen height to determine if we're on a small screen
+    // Get screen dimensions to determine if we're on a small screen
     final screenHeight = MediaQuery.of(context).size.height;
-    final isSmallScreen = screenHeight < 700;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
 
     // Adjust sizes based on screen height
-    final circleSize = isSmallScreen ? 180.0 : 250.0;
-    final circlePadding = isSmallScreen ? 10.0 : 20.0;
-    final strokeWidth = isSmallScreen ? 14.0 : 18.0;
-    final fontSize = isSmallScreen ? 60.0 : 80.0;
-    final subtitleFontSize = isSmallScreen ? 14.0 : 16.0;
-    final verticalPadding = isSmallScreen ? 10.0 : 20.0;
-    final spacingAfterCircle = isSmallScreen ? 10.0 : 20.0;
+    final circleSize = isVerySmallScreen
+        ? 160.0
+        : (isSmallScreen ? 180.0 : 250.0);
+    final circlePadding = isVerySmallScreen
+        ? 8.0
+        : (isSmallScreen ? 10.0 : 20.0);
+    final strokeWidth = isVerySmallScreen
+        ? 12.0
+        : (isSmallScreen ? 14.0 : 18.0);
+    final fontSize = isVerySmallScreen ? 50.0 : (isSmallScreen ? 60.0 : 80.0);
+    final subtitleFontSize = isVerySmallScreen
+        ? 12.0
+        : (isSmallScreen ? 14.0 : 16.0);
+    final verticalPadding = isVerySmallScreen
+        ? 8.0
+        : (isSmallScreen ? 10.0 : 20.0);
+    final spacingAfterCircle = isVerySmallScreen
+        ? 8.0
+        : (isSmallScreen ? 10.0 : 20.0);
 
     // Determine subtitle text
     String subtitleText;
@@ -1060,7 +1120,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           height: 1,
                         ),
                       ),
-                      SizedBox(height: isSmallScreen ? 4 : 8),
+                      SizedBox(
+                        height: isVerySmallScreen ? 2 : (isSmallScreen ? 4 : 8),
+                      ),
                       Text(
                         subtitleText,
                         style: TextStyle(
@@ -1082,8 +1144,8 @@ class _BookingScreenState extends State<NuurKhuudas> {
           // Payment date info
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: isSmallScreen ? 16 : 20,
-              vertical: isSmallScreen ? 10 : 12,
+              horizontal: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 20),
+              vertical: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
             ),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
@@ -1095,14 +1157,16 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 Icon(
                   Icons.calendar_today,
                   color: isOverdue ? const Color(0xFFFF6B6B) : Colors.white70,
-                  size: isSmallScreen ? 16 : 18,
+                  size: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   _getPaymentDateLabel(),
                   style: TextStyle(
                     color: isOverdue ? const Color(0xFFFF6B6B) : Colors.white,
-                    fontSize: isSmallScreen ? 12 : 14,
+                    fontSize: isVerySmallScreen
+                        ? 11
+                        : (isSmallScreen ? 12 : 14),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1173,7 +1237,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
     if (totalNiitTulbur <= 0) {
       showGlassSnackBar(
         context,
-        message: 'Танд төлөх төлбөр байхгүй байна',
+        message: 'Нэхэмжлэл үүсээгүй байна',
         icon: Icons.info_outline,
         iconColor: const Color(0xFFe6ff00),
         textColor: Colors.white,

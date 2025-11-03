@@ -311,18 +311,19 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
     String hint,
     TextEditingController controller,
     bool isSmallScreen,
+    bool isVerySmallScreen,
   ) {
     return InputDecoration(
       contentPadding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 16 : 20,
-        vertical: isSmallScreen ? 11 : 14,
+        horizontal: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 20),
+        vertical: isVerySmallScreen ? 9 : (isSmallScreen ? 11 : 14),
       ),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
       hintStyle: TextStyle(
         color: Colors.white70,
-        fontSize: isSmallScreen ? 13 : 15,
+        fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 15),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(100),
@@ -342,7 +343,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
       ),
       errorStyle: TextStyle(
         color: Colors.redAccent,
-        fontSize: isSmallScreen ? 11 : 13,
+        fontSize: isVerySmallScreen ? 10 : (isSmallScreen ? 11 : 13),
       ),
     );
   }
@@ -361,8 +362,12 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                   builder: (context, constraints) {
                     final screenHeight = MediaQuery.of(context).size.height;
                     final screenWidth = MediaQuery.of(context).size.width;
-                    final isSmallScreen = screenHeight < 700;
-                    final isNarrowScreen = screenWidth < 380;
+                    // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
+                    final isSmallScreen =
+                        screenHeight < 900 || screenWidth < 400;
+                    final isVerySmallScreen =
+                        screenHeight < 700 || screenWidth < 380;
+                    final isNarrowScreen = screenWidth < 400;
                     final keyboardHeight = MediaQuery.of(
                       context,
                     ).viewInsets.bottom;
@@ -370,14 +375,18 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                       physics: const ClampingScrollPhysics(),
                       child: Padding(
                         padding: EdgeInsets.only(
-                          left: isNarrowScreen ? 24 : (isSmallScreen ? 30 : 40),
+                          left: isNarrowScreen ? 20 : (isSmallScreen ? 28 : 40),
                           right: isNarrowScreen
-                              ? 24
-                              : (isSmallScreen ? 30 : 40),
-                          top: isSmallScreen ? 12 : 24,
+                              ? 20
+                              : (isSmallScreen ? 28 : 40),
+                          top: isVerySmallScreen
+                              ? 8
+                              : (isSmallScreen ? 12 : 24),
                           bottom: keyboardHeight > 0
                               ? keyboardHeight + 20
-                              : (isSmallScreen ? 12 : 24),
+                              : (isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 12 : 24)),
                         ),
                         child: Form(
                           key: _formKey,
@@ -386,17 +395,27 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const AppLogo(),
-                              SizedBox(height: isSmallScreen ? 12 : 20),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 12 : 20),
+                              ),
                               Text(
                                 'Бүртгэл',
                                 style: TextStyle(
                                   color: AppColors.grayColor,
-                                  fontSize: isSmallScreen ? 22 : 28,
+                                  fontSize: isVerySmallScreen
+                                      ? 20
+                                      : (isSmallScreen ? 22 : 28),
                                 ),
                                 maxLines: 1,
                                 softWrap: false,
                               ),
-                              SizedBox(height: isSmallScreen ? 14 : 18),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 10
+                                    : (isSmallScreen ? 14 : 18),
+                              ),
 
                               // Байр dropdown
                               Container(
@@ -435,12 +454,16 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ),
                                     errorStyle: TextStyle(
                                       color: Colors.redAccent,
-                                      fontSize: isSmallScreen ? 11 : 13,
+                                      fontSize: isVerySmallScreen
+                                          ? 10
+                                          : (isSmallScreen ? 11 : 13),
                                     ),
                                   ),
                                   hint: Padding(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: isSmallScreen ? 14 : 16,
+                                      horizontal: isVerySmallScreen
+                                          ? 12
+                                          : (isSmallScreen ? 14 : 5),
                                     ),
                                     child: Text(
                                       isLoadingBuildingDetails
@@ -448,7 +471,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                           : 'Байр сонгох',
                                       style: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: isSmallScreen ? 13 : 15,
+                                        fontSize: isVerySmallScreen
+                                            ? 12
+                                            : (isSmallScreen ? 13 : 15),
                                       ),
                                     ),
                                   ),
@@ -460,7 +485,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                             bair,
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: isSmallScreen ? 13 : 15,
+                                              fontSize: isVerySmallScreen
+                                                  ? 12
+                                                  : (isSmallScreen ? 13 : 15),
                                             ),
                                           ),
                                         ),
@@ -500,13 +527,19 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     return null;
                                   },
                                   buttonStyleData: ButtonStyleData(
-                                    height: isSmallScreen ? 48 : 52,
+                                    height: isVerySmallScreen
+                                        ? 44
+                                        : (isSmallScreen ? 48 : 52),
                                     padding: EdgeInsets.only(
-                                      right: isSmallScreen ? 8 : 11,
+                                      right: isVerySmallScreen
+                                          ? 6
+                                          : (isSmallScreen ? 8 : 11),
                                     ),
                                   ),
                                   dropdownStyleData: DropdownStyleData(
-                                    maxHeight: isSmallScreen ? 250 : 300,
+                                    maxHeight: isVerySmallScreen
+                                        ? 200
+                                        : (isSmallScreen ? 250 : 300),
                                     decoration: BoxDecoration(
                                       color: AppColors.inputGrayColor
                                           .withOpacity(0.95),
@@ -514,7 +547,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ),
                                   ),
                                   menuItemStyleData: MenuItemStyleData(
-                                    height: isSmallScreen ? 42 : 46,
+                                    height: isVerySmallScreen
+                                        ? 38
+                                        : (isSmallScreen ? 42 : 46),
                                   ),
                                   iconStyleData: IconStyleData(
                                     icon: Icon(
@@ -531,7 +566,11 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   },
                                 ),
                               ),
-                              SizedBox(height: isSmallScreen ? 10 : 14),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 10 : 14),
+                              ),
 
                               // Орц dropdown
                               Container(
@@ -570,18 +609,24 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ),
                                     errorStyle: TextStyle(
                                       color: Colors.redAccent,
-                                      fontSize: isSmallScreen ? 11 : 13,
+                                      fontSize: isVerySmallScreen
+                                          ? 10
+                                          : (isSmallScreen ? 11 : 13),
                                     ),
                                   ),
                                   hint: Padding(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: isSmallScreen ? 14 : 16,
+                                      horizontal: isVerySmallScreen
+                                          ? 12
+                                          : (isSmallScreen ? 14 : 5),
                                     ),
                                     child: Text(
                                       'Орц сонгох',
                                       style: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: isSmallScreen ? 13 : 15,
+                                        fontSize: isVerySmallScreen
+                                            ? 12
+                                            : (isSmallScreen ? 13 : 15),
                                       ),
                                     ),
                                   ),
@@ -637,13 +682,19 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     return null;
                                   },
                                   buttonStyleData: ButtonStyleData(
-                                    height: isSmallScreen ? 48 : 52,
+                                    height: isVerySmallScreen
+                                        ? 44
+                                        : (isSmallScreen ? 48 : 52),
                                     padding: EdgeInsets.only(
-                                      right: isSmallScreen ? 8 : 11,
+                                      right: isVerySmallScreen
+                                          ? 6
+                                          : (isSmallScreen ? 8 : 11),
                                     ),
                                   ),
                                   dropdownStyleData: DropdownStyleData(
-                                    maxHeight: isSmallScreen ? 250 : 300,
+                                    maxHeight: isVerySmallScreen
+                                        ? 200
+                                        : (isSmallScreen ? 250 : 300),
                                     decoration: BoxDecoration(
                                       color: AppColors.inputGrayColor
                                           .withOpacity(0.95),
@@ -651,7 +702,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ),
                                   ),
                                   menuItemStyleData: MenuItemStyleData(
-                                    height: isSmallScreen ? 42 : 46,
+                                    height: isVerySmallScreen
+                                        ? 38
+                                        : (isSmallScreen ? 42 : 46),
                                   ),
                                   iconStyleData: IconStyleData(
                                     icon: Icon(
@@ -668,7 +721,11 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   },
                                 ),
                               ),
-                              SizedBox(height: isSmallScreen ? 10 : 14),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 10 : 14),
+                              ),
 
                               // Давхар dropdown
                               Container(
@@ -707,18 +764,24 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ),
                                     errorStyle: TextStyle(
                                       color: Colors.redAccent,
-                                      fontSize: isSmallScreen ? 11 : 13,
+                                      fontSize: isVerySmallScreen
+                                          ? 10
+                                          : (isSmallScreen ? 11 : 13),
                                     ),
                                   ),
                                   hint: Padding(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: isSmallScreen ? 14 : 16,
+                                      horizontal: isVerySmallScreen
+                                          ? 12
+                                          : (isSmallScreen ? 14 : 5),
                                     ),
                                     child: Text(
                                       'Давхар сонгох',
                                       style: TextStyle(
                                         color: Colors.white70,
-                                        fontSize: isSmallScreen ? 13 : 15,
+                                        fontSize: isVerySmallScreen
+                                            ? 12
+                                            : (isSmallScreen ? 13 : 15),
                                       ),
                                     ),
                                   ),
@@ -767,13 +830,19 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     return null;
                                   },
                                   buttonStyleData: ButtonStyleData(
-                                    height: isSmallScreen ? 48 : 52,
+                                    height: isVerySmallScreen
+                                        ? 44
+                                        : (isSmallScreen ? 48 : 52),
                                     padding: EdgeInsets.only(
-                                      right: isSmallScreen ? 8 : 11,
+                                      right: isVerySmallScreen
+                                          ? 6
+                                          : (isSmallScreen ? 8 : 11),
                                     ),
                                   ),
                                   dropdownStyleData: DropdownStyleData(
-                                    maxHeight: isSmallScreen ? 250 : 300,
+                                    maxHeight: isVerySmallScreen
+                                        ? 200
+                                        : (isSmallScreen ? 250 : 300),
                                     decoration: BoxDecoration(
                                       color: AppColors.inputGrayColor
                                           .withOpacity(0.95),
@@ -781,7 +850,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ),
                                   ),
                                   menuItemStyleData: MenuItemStyleData(
-                                    height: isSmallScreen ? 42 : 46,
+                                    height: isVerySmallScreen
+                                        ? 38
+                                        : (isSmallScreen ? 42 : 46),
                                   ),
                                   iconStyleData: IconStyleData(
                                     icon: Icon(
@@ -798,7 +869,11 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   },
                                 ),
                               ),
-                              SizedBox(height: isSmallScreen ? 10 : 14),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 10 : 14),
+                              ),
 
                               // Тоот input
                               Container(
@@ -814,12 +889,15 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   },
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: isSmallScreen ? 13 : 15,
+                                    fontSize: isVerySmallScreen
+                                        ? 12
+                                        : (isSmallScreen ? 13 : 15),
                                   ),
                                   decoration: _inputDecoration(
                                     'Тоот',
                                     tootController,
                                     isSmallScreen,
+                                    isVerySmallScreen,
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
@@ -827,7 +905,11 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       : null,
                                 ),
                               ),
-                              SizedBox(height: isSmallScreen ? 10 : 14),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 10 : 14),
+                              ),
 
                               Container(
                                 decoration: _boxShadowDecoration(),
@@ -842,12 +924,15 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                   },
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: isSmallScreen ? 13 : 15,
+                                    fontSize: isVerySmallScreen
+                                        ? 12
+                                        : (isSmallScreen ? 13 : 15),
                                   ),
                                   decoration: _inputDecoration(
                                     'Овог',
                                     ovogController,
                                     isSmallScreen,
+                                    isVerySmallScreen,
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
@@ -855,7 +940,11 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       : null,
                                 ),
                               ),
-                              SizedBox(height: isSmallScreen ? 10 : 14),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 10 : 14),
+                              ),
                               Container(
                                 decoration: _boxShadowDecoration(),
                                 child: TextFormField(
@@ -865,12 +954,15 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
 
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: isSmallScreen ? 13 : 15,
+                                    fontSize: isVerySmallScreen
+                                        ? 12
+                                        : (isSmallScreen ? 13 : 15),
                                   ),
                                   decoration: _inputDecoration(
                                     'Нэр',
                                     nerController,
                                     isSmallScreen,
+                                    isVerySmallScreen,
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
@@ -878,7 +970,11 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       : null,
                                 ),
                               ),
-                              SizedBox(height: isSmallScreen ? 10 : 14),
+                              SizedBox(
+                                height: isVerySmallScreen
+                                    ? 8
+                                    : (isSmallScreen ? 10 : 14),
+                              ),
 
                               Container(
                                 decoration: BoxDecoration(
@@ -902,7 +998,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                       backgroundColor: const Color(0xFFCAD2DB),
                                       foregroundColor: Colors.black,
                                       padding: EdgeInsets.symmetric(
-                                        vertical: isSmallScreen ? 11 : 14,
+                                        vertical: isVerySmallScreen
+                                            ? 9
+                                            : (isSmallScreen ? 11 : 14),
                                         horizontal: 10,
                                       ),
                                       shape: RoundedRectangleBorder(
@@ -917,8 +1015,12 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ),
                                     child: _isLoading
                                         ? SizedBox(
-                                            height: isSmallScreen ? 16 : 18,
-                                            width: isSmallScreen ? 16 : 18,
+                                            height: isVerySmallScreen
+                                                ? 14
+                                                : (isSmallScreen ? 16 : 18),
+                                            width: isVerySmallScreen
+                                                ? 14
+                                                : (isSmallScreen ? 16 : 18),
                                             child:
                                                 const CircularProgressIndicator(
                                                   strokeWidth: 2,
@@ -931,7 +1033,9 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                         : Text(
                                             'Үргэлжлүүлэх',
                                             style: TextStyle(
-                                              fontSize: isSmallScreen ? 13 : 15,
+                                              fontSize: isVerySmallScreen
+                                                  ? 12
+                                                  : (isSmallScreen ? 13 : 15),
                                             ),
                                           ),
                                   ),
