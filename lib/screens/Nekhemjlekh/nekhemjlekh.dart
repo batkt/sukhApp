@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
-import 'package:sukh_app/constants/constants.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sukh_app/services/api_service.dart';
@@ -61,8 +60,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       }
 
       double totalAmount = 0;
-      String? selectedInvoiceId;
-      String? burtgeliinDugaar;
       String? dansniiDugaar;
       selectedInvoiceIds = [];
 
@@ -71,15 +68,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           totalAmount += invoice.niitTulbur;
           selectedInvoiceIds.add(invoice.id);
 
-          if (selectedInvoiceId == null) {
-            selectedInvoiceId = invoice.id;
-            burtgeliinDugaar = invoice.register;
-            dansniiDugaar = invoice.dansniiDugaar;
-          }
+          dansniiDugaar ??= invoice.dansniiDugaar;
         }
       }
 
-      if (selectedInvoiceId == null || selectedInvoiceId.isEmpty) {
+      if (selectedInvoiceIds.isEmpty) {
         throw Exception('Нэхэмжлэх сонгоогүй байна');
       }
 
@@ -97,13 +90,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         turul: 'Test Payment',
         zakhialgiinDugaar: orderNumber,
         dansniiDugaar: dansniiDugaar,
-        nekhemjlekhiinId: selectedInvoiceId,
+        nekhemjlekhiinTuukh: selectedInvoiceIds,
       );
 
       // Store QPay invoice ID for later status checking
       qpayInvoiceId = response['invoice_id']?.toString();
 
-      // Validate account number from response
       if (response['invoice_bank_accounts'] != null &&
           response['invoice_bank_accounts'] is List &&
           (response['invoice_bank_accounts'] as List).isNotEmpty) {

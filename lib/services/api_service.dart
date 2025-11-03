@@ -631,7 +631,7 @@ class ApiService {
     required String zakhialgiinDugaar,
     required String dansniiDugaar,
 
-    required String nekhemjlekhiinId,
+    required List<String> nekhemjlekhiinTuukh,
   }) async {
     try {
       final headers = await getAuthHeaders();
@@ -647,7 +647,7 @@ class ApiService {
           'zakhialgiinDugaar': zakhialgiinDugaar,
           'dansniiDugaar': dansniiDugaar,
 
-          'nekhemjlekhiinId': nekhemjlekhiinId,
+          'nekhemjlekhiinTuukh': nekhemjlekhiinTuukh,
         }),
       );
 
