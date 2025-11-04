@@ -185,7 +185,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           throw Exception('Гэрээний дугаар олдсонгүй');
         }
 
-        // Update selected contract info
         selectedGereeniiDugaar = gereeniiDugaar;
         selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
 
@@ -2630,7 +2629,7 @@ class NekhemjlekhItem {
 
 class NekhemjlekhMedeelel {
   final List<Zardal> zardluud;
-  final double toot;
+  final String toot;
   final String temdeglel;
 
   NekhemjlekhMedeelel({
@@ -2644,7 +2643,7 @@ class NekhemjlekhMedeelel {
       zardluud: json['zardluud'] != null
           ? (json['zardluud'] as List).map((z) => Zardal.fromJson(z)).toList()
           : [],
-      toot: (json['toot'] ?? 0).toDouble(),
+      toot: (json['toot'] ?? ''),
       temdeglel: json['temdeglel'] ?? '',
     );
   }

@@ -17,7 +17,8 @@ class GereeResponse {
     return GereeResponse(
       khuudasniiDugaar: json['khuudasniiDugaar'] ?? 0,
       khuudasniiKhemjee: json['khuudasniiKhemjee'] ?? 0,
-      jagsaalt: (json['jagsaalt'] as List<dynamic>?)
+      jagsaalt:
+          (json['jagsaalt'] as List<dynamic>?)
               ?.map((e) => Geree.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -36,12 +37,12 @@ class Geree {
   final String ner;
   final List<String> suhUtas;
   final List<String> utas;
-  
+
   final String tulukhOgnoo;
   final double ashiglaltiinZardal;
   final double niitTulbur;
   final String bairNer;
-  final int toot;
+  final String toot;
   final String davkhar;
   final String burtgesenAjiltan;
   final String orshinSuugchId;
@@ -62,7 +63,7 @@ class Geree {
     required this.ner,
     required this.suhUtas,
     required this.utas,
-    
+
     required this.tulukhOgnoo,
     required this.ashiglaltiinZardal,
     required this.niitTulbur,
@@ -88,14 +89,15 @@ class Geree {
       turul: json['turul'] ?? '',
       ovog: json['ovog'] ?? '',
       ner: json['ner'] ?? '',
-      suhUtas: (json['suhUtas'] as List<dynamic>?)
+      suhUtas:
+          (json['suhUtas'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
       utas:
           (json['utas'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-              [],
-     
+          [],
+
       tulukhOgnoo: json['tulukhOgnoo'] ?? '',
       ashiglaltiinZardal: (json['ashiglaltiinZardal'] ?? 0).toDouble(),
       niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
@@ -121,7 +122,6 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
       );
 
       if (mounted) {
-        // Clear all PIN boxes
         for (var controller in _pinControllers) {
           controller.clear();
         }
@@ -359,14 +359,12 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                       physics: const ClampingScrollPhysics(),
                       child: Padding(
                         padding: EdgeInsets.only(
-                          left: isNarrowScreen ? 24 : (isSmallScreen ? 30 : 40),
-                          right: isNarrowScreen
-                              ? 24
-                              : (isSmallScreen ? 30 : 40),
-                          top: isSmallScreen ? 12 : 24,
+                          left: 40.w,
+                          right: 40.w,
+                          top: 24.h,
                           bottom: keyboardHeight > 0
                               ? keyboardHeight + 20
-                              : (isSmallScreen ? 12 : 24),
+                              : 24.h,
                         ),
                         child: Form(
                           key: _formKey,
@@ -446,30 +444,24 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
 
   Widget _buildPhoneNumberField(bool isSmallScreen) {
     return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: isSmallScreen ? 280 : 320),
-        child: Container(
-          decoration: _boxShadowDecoration(),
-          child: TextFormField(
-            controller: _phoneController,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: isSmallScreen ? 13 : 15,
-            ),
-            decoration: _inputDecoration(
-              "Утасны дугаар",
-              _phoneController,
-              isSmallScreen,
-            ),
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(8),
-            ],
-            validator: (value) => value == null || value.trim().isEmpty
-                ? 'Утасны дугаар оруулна уу'
-                : null,
+      child: Container(
+        decoration: _boxShadowDecoration(),
+        child: TextFormField(
+          controller: _phoneController,
+          style: TextStyle(color: Colors.white, fontSize: 15.sp),
+          decoration: _inputDecoration(
+            "Утасны дугаар",
+            _phoneController,
+            isSmallScreen,
           ),
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(8),
+          ],
+          validator: (value) => value == null || value.trim().isEmpty
+              ? 'Утасны дугаар оруулна уу'
+              : null,
         ),
       ),
     );
@@ -499,10 +491,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             children: [
               Text(
                 _phoneController.text,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: isSmallScreen ? 14 : 16,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 16.sp),
               ),
             ],
           ),
@@ -517,7 +506,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             }),
           ),
         ),
-        SizedBox(height: isSmallScreen ? 8 : 10),
+        SizedBox(height: 10.sp),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -527,7 +516,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                 _canResend ? 'Дахин илгээх' : 'Дахин илгээх ($_resendSeconds)',
                 style: TextStyle(
                   color: _canResend ? Colors.blue : Colors.grey,
-                  fontSize: isSmallScreen ? 12 : 14,
+                  fontSize: 14.sp,
                 ),
               ),
             ),
@@ -669,10 +658,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
-            padding: EdgeInsets.symmetric(
-              vertical: isSmallScreen ? 11 : 14,
-              horizontal: 10,
-            ),
+            padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 10),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(100),
             ),
@@ -681,17 +667,14 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           ),
           child: _isLoading
               ? SizedBox(
-                  height: isSmallScreen ? 16 : 18,
-                  width: isSmallScreen ? 16 : 18,
+                  height: 18.h,
+                  width: 18.w,
                   child: const CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                   ),
                 )
-              : Text(
-                  'Үргэлжлүүлэх',
-                  style: TextStyle(fontSize: isSmallScreen ? 13 : 15),
-                ),
+              : Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 18.sp)),
         ),
       ),
     );
@@ -716,17 +699,11 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
     bool isSmallScreen,
   ) {
     return InputDecoration(
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 16 : 20,
-        vertical: isSmallScreen ? 11 : 14,
-      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
-      hintStyle: TextStyle(
-        color: Colors.white70,
-        fontSize: isSmallScreen ? 13 : 15,
-      ),
+      hintStyle: TextStyle(color: Colors.white70, fontSize: 15.sp),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(100),
         borderSide: BorderSide.none,

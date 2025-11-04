@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
@@ -248,7 +249,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
       child: TextFormField(
         controller: _passwordController,
         obscureText: _obscurePassword,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(color: Colors.white, fontSize: 16.sp),
         keyboardType: TextInputType.number,
         maxLength: 4,
         inputFormatters: [
@@ -293,7 +294,10 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
       child: TextFormField(
         controller: _confirmPasswordController,
         obscureText: _obscureConfirmPassword,
-        style: const TextStyle(color: Colors.white),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16.sp, // 👈 use .sp for responsive font size
+        ),
         keyboardType: TextInputType.number,
         maxLength: 4,
         inputFormatters: [
@@ -371,7 +375,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                   ),
                 )
-              : const Text('Бүртгүүлэх', style: TextStyle(fontSize: 14)),
+              : Text('Бүртгүүлэх', style: TextStyle(fontSize: 14.sp)),
         ),
       ),
     );

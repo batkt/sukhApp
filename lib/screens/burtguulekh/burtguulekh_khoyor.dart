@@ -782,7 +782,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                                     ).requestFocus(ovogFocus);
                                   },
                                   style: TextStyle(
-                                    color: Colors.white70,
+                                    color: Colors.white,
                                     fontSize: 15.sp,
                                     fontWeight: FontWeight.w500,
                                   ),

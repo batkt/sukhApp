@@ -317,6 +317,16 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               iconColor: Colors.red,
                                             );
                                             return;
+                                          } else if (!RegExp(
+                                            r'^\d+$',
+                                          ).hasMatch(inputPhone)) {
+                                            showGlassSnackBar(
+                                              context,
+                                              message: "Зөвхөн тоо оруулна уу!",
+                                              icon: Icons.error,
+                                              iconColor: Colors.red,
+                                            );
+                                            return;
                                           }
 
                                           setState(() {
