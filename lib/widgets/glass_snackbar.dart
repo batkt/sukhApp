@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 void showGlassSnackBar(
@@ -16,26 +17,26 @@ void showGlassSnackBar(
     Material(
       color: Colors.transparent,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.w),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(opacity),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16.w),
               border: Border.all(color: Colors.white.withOpacity(0.3)),
             ),
             child: Row(
               children: [
-                Icon(icon, color: iconColor, size: 28),
-                const SizedBox(width: 12),
+                Icon(icon, color: iconColor, size: 32.sp),
+                SizedBox(width: 16.w),
                 Expanded(
                   child: Text(
                     message,
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 16,
+                      fontSize: 15.sp,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

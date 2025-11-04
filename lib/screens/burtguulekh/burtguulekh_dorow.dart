@@ -103,7 +103,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
           'horoo': widget.registrationData?['horoo'] ?? '',
           'soh': widget.registrationData?['soh'] ?? '',
           'register': widget.registrationData?['register'] ?? '',
-          
         };
 
         await ApiService.registerUser(registrationPayload);
@@ -274,13 +273,13 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return '                            Нууц код оруулна уу';
+            return 'Нууц код оруулна уу';
           }
           if (value.length != 4) {
-            return '                            Нууц код 4 оронтой байх ёстой';
+            return 'Нууц код 4 оронтой байх ёстой';
           }
           if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-            return '                            Зөвхөн тоо оруулна уу';
+            return 'Зөвхөн тоо оруулна уу';
           }
           return null;
         },
@@ -319,16 +318,16 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
-            return '                            Нууц код давтан оруулна уу';
+            return 'Нууц код давтан оруулна уу';
           }
           if (value.length != 4) {
-            return '                            Нууц код 4 оронтой байх ёстой';
+            return 'Нууц код 4 оронтой байх ёстой';
           }
           if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-            return '                            Зөвхөн тоо оруулна уу';
+            return 'Зөвхөн тоо оруулна уу';
           }
           if (value != _passwordController.text) {
-            return '                            Нууц код таарахгүй байна';
+            return 'Нууц код таарахгүй байна';
           }
           return null;
         },

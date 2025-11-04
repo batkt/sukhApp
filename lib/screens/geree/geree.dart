@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
@@ -65,30 +66,30 @@ class _GereeState extends State<Geree> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(16.w),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: 28,
+                        size: 28.sp,
                       ),
                       onPressed: () => context.pop(),
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
+                    SizedBox(width: 12.w),
+                    Text(
                       'Гэрээ',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               Expanded(child: _buildContent()),
             ],
           ),
@@ -114,25 +115,26 @@ class _GereeState extends State<Geree> {
             Icon(
               Icons.error_outline,
               color: Colors.white.withOpacity(0.6),
-              size: 48,
+              size: 48.sp,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               _errorMessage!,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.8),
-                fontSize: 14,
+                fontSize: 14.sp,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
             ElevatedButton(
               onPressed: _fetchGereeData,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFe6ff00),
                 foregroundColor: const Color(0xFF0a0e27),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
               ),
-              child: const Text('Дахин оролдох'),
+              child: Text('Дахин оролдох', style: TextStyle(fontSize: 14.sp)),
             ),
           ],
         ),
@@ -147,14 +149,14 @@ class _GereeState extends State<Geree> {
             Icon(
               Icons.description_outlined,
               color: Colors.white.withOpacity(0.6),
-              size: 48,
+              size: 48.sp,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               'Гэрээний мэдээлэл олдсонгүй',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.8),
-                fontSize: 14,
+                fontSize: 14.sp,
               ),
             ),
           ],
@@ -174,16 +176,16 @@ class _GereeState extends State<Geree> {
     final geree = _gereeData!.jagsaalt.first;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Invoice Header Section
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(20.w),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.w),
               border: Border.all(
                 color: const Color(0xFFe6ff00).withOpacity(0.3),
               ),
@@ -200,17 +202,17 @@ class _GereeState extends State<Geree> {
                         Text(
                           'ГЭРЭЭНИЙ ДУГААР',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 11.sp,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFFe6ff00),
                             letterSpacing: 1.2,
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6.h),
                         Text(
                           geree.gereeniiDugaar,
-                          style: const TextStyle(
-                            fontSize: 20,
+                          style: TextStyle(
+                            fontSize: 20.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -218,18 +220,18 @@ class _GereeState extends State<Geree> {
                       ],
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 8.h,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20.w),
                       ),
                       child: Text(
                         geree.turul,
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: TextStyle(
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
                         ),
@@ -237,19 +239,19 @@ class _GereeState extends State<Geree> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 Row(
                   children: [
                     Icon(
                       Icons.calendar_today,
-                      size: 14,
+                      size: 14.sp,
                       color: Colors.white.withOpacity(0.6),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8.w),
                     Text(
                       'Гэрээний огноо: ${_formatDate(geree.gereeniiOgnoo)}',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 13.sp,
                         color: Colors.white.withOpacity(0.8),
                       ),
                     ),
@@ -259,7 +261,7 @@ class _GereeState extends State<Geree> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // Customer Information Section
           _buildSection(
@@ -271,25 +273,24 @@ class _GereeState extends State<Geree> {
                 label: 'Овог нэр',
                 value: '${geree.ovog} ${geree.ner}',
               ),
-              const Divider(color: Colors.white10, height: 24),
+              Divider(color: Colors.white10, height: 24.h),
               _buildInvoiceDetailRow(
                 icon: Icons.phone_outlined,
                 label: 'Утас',
                 value: geree.utas.isNotEmpty ? geree.utas.join(', ') : '-',
               ),
               if (geree.suhUtas.isNotEmpty) ...[
-                const Divider(color: Colors.white10, height: 24),
+                Divider(color: Colors.white10, height: 24.h),
                 _buildInvoiceDetailRow(
                   icon: Icons.phone_android_outlined,
                   label: 'Сүх утас',
                   value: geree.suhUtas.join(', '),
                 ),
               ],
-              
             ],
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // Property Information Section
           _buildSection(
@@ -301,7 +302,7 @@ class _GereeState extends State<Geree> {
                 label: 'Байрны нэр',
                 value: geree.bairNer,
               ),
-              const Divider(color: Colors.white10, height: 24),
+              Divider(color: Colors.white10, height: 24.h),
               Row(
                 children: [
                   Expanded(
@@ -311,7 +312,7 @@ class _GereeState extends State<Geree> {
                       value: geree.toot.toString(),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16.w),
                   Expanded(
                     child: _buildInvoiceDetailRow(
                       icon: Icons.layers_outlined,
@@ -324,7 +325,7 @@ class _GereeState extends State<Geree> {
             ],
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           _buildSection(
             title: 'САНХҮҮГИЙН МЭДЭЭЛЭЛ',
@@ -340,7 +341,7 @@ class _GereeState extends State<Geree> {
             ],
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // Additional Information Section
           _buildSection(
@@ -353,7 +354,7 @@ class _GereeState extends State<Geree> {
                   label: 'Төлөх огноо',
                   value: _formatDate(geree.tulukhOgnoo),
                 ),
-                const Divider(color: Colors.white10, height: 24),
+                Divider(color: Colors.white10, height: 24.h),
               ],
               _buildInvoiceDetailRow(
                 icon: Icons.person_pin_outlined,
@@ -364,7 +365,7 @@ class _GereeState extends State<Geree> {
                 value: "СӨХ",
               ),
               if (geree.orshinSuugchId.isNotEmpty) ...[
-                const Divider(color: Colors.white10, height: 24),
+                Divider(color: Colors.white10, height: 24.h),
                 _buildInvoiceDetailRow(
                   icon: Icons.group_outlined,
                   label: 'Оршин суугчид',
@@ -373,7 +374,7 @@ class _GereeState extends State<Geree> {
                 ),
               ],
               if (geree.temdeglel.isNotEmpty) ...[
-                const Divider(color: Colors.white10, height: 24),
+                Divider(color: Colors.white10, height: 24.h),
                 _buildInvoiceDetailRow(
                   icon: Icons.note_outlined,
                   label: 'Тэмдэглэл',
@@ -383,14 +384,14 @@ class _GereeState extends State<Geree> {
             ],
           ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // Footer Information
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(8.w),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -402,15 +403,15 @@ class _GereeState extends State<Geree> {
                       Text(
                         'Үүсгэсэн огноо',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 11.sp,
                           color: Colors.white.withOpacity(0.5),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.h),
                       Text(
                         _formatDate(geree.createdAt),
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 12.sp,
                           color: Colors.white.withOpacity(0.7),
                         ),
                       ),
@@ -424,15 +425,15 @@ class _GereeState extends State<Geree> {
                       Text(
                         'Шинэчилсэн огноо',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 11.sp,
                           color: Colors.white.withOpacity(0.5),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.h),
                       Text(
                         _formatDate(geree.updatedAt),
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 12.sp,
                           color: Colors.white.withOpacity(0.7),
                         ),
                       ),
@@ -445,12 +446,12 @@ class _GereeState extends State<Geree> {
 
           // If there are multiple contracts, show selector
           if (_gereeData!.jagsaalt.length > 1) ...[
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
                 color: const Color(0xFFe6ff00).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.w),
                 border: Border.all(
                   color: const Color(0xFFe6ff00).withOpacity(0.3),
                 ),
@@ -460,15 +461,15 @@ class _GereeState extends State<Geree> {
                   Icon(
                     Icons.info_outline,
                     color: const Color(0xFFe6ff00),
-                    size: 20,
+                    size: 20.sp,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
                       'Таньд ${_gereeData!.jagsaalt.length} гэрээ байна',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
-                        fontSize: 13,
+                        fontSize: 13.sp,
                       ),
                     ),
                   ),
@@ -503,14 +504,14 @@ class _GereeState extends State<Geree> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.w),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
@@ -518,14 +519,14 @@ class _GereeState extends State<Geree> {
             ),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: const Color(0xFFe6ff00)),
-                const SizedBox(width: 10),
+                Icon(icon, size: 18.sp, color: const Color(0xFFe6ff00)),
+                SizedBox(width: 10.w),
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: TextStyle(
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFe6ff00),
+                    color: const Color(0xFFe6ff00),
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -533,7 +534,7 @@ class _GereeState extends State<Geree> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
@@ -554,8 +555,8 @@ class _GereeState extends State<Geree> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: Colors.white.withOpacity(0.4)),
-        const SizedBox(width: 12),
+        Icon(icon, size: 16.sp, color: Colors.white.withOpacity(0.4)),
+        SizedBox(width: 12.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,15 +564,15 @@ class _GereeState extends State<Geree> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 12.sp,
                   color: Colors.white.withOpacity(0.6),
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4.h),
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: isLarge ? 18 : 14,
+                  fontSize: isLarge ? 18.sp : 14.sp,
                   fontWeight: isLarge ? FontWeight.bold : FontWeight.w600,
                   color: valueColor ?? Colors.white,
                 ),

@@ -57,47 +57,36 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return ScreenUtilInit(
-          designSize: Size(
-            MediaQueryData.fromView(
-              WidgetsBinding.instance.platformDispatcher.views.first,
-            ).size.width,
-            MediaQueryData.fromView(
-              WidgetsBinding.instance.platformDispatcher.views.first,
-            ).size.height,
-          ),
-          minTextAdapt: true,
-          splitScreenMode: true,
-          builder: (context, child) {
-            return GestureDetector(
-              onTap: () {
-                FocusManager.instance.primaryFocus?.unfocus();
-              },
-              behavior: HitTestBehavior.translucent,
-              child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('lib/assets/img/background_image.png'),
-                    fit: BoxFit.none,
-                    scale: 3,
-                  ),
-                ),
-                child: MaterialApp.router(
-                  debugShowCheckedModeBanner: false,
-                  routerConfig: appRouter,
-                  theme: ThemeData(
-                    scaffoldBackgroundColor: Colors.transparent,
-                    textTheme: const TextTheme(
-                      bodyMedium: TextStyle(fontWeight: FontWeight.w400),
-                    ),
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            );
+    return ScreenUtilInit(
+      designSize: const Size(375, 812), // Standard design size that works well for all phones
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return GestureDetector(
+          onTap: () {
+            FocusManager.instance.primaryFocus?.unfocus();
           },
+          behavior: HitTestBehavior.translucent,
+          child: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('lib/assets/img/background_image.png'),
+                fit: BoxFit.none,
+                scale: 3,
+              ),
+            ),
+            child: MaterialApp.router(
+              debugShowCheckedModeBanner: false,
+              routerConfig: appRouter,
+              theme: ThemeData(
+                scaffoldBackgroundColor: Colors.transparent,
+                textTheme: const TextTheme(
+                  bodyMedium: TextStyle(fontWeight: FontWeight.w400),
+                ),
+                fontFamily: 'Inter',
+              ),
+            ),
+          ),
         );
       },
     );

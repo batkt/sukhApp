@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
@@ -317,15 +318,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
               SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final screenHeight = MediaQuery.of(context).size.height;
-                    final screenWidth = MediaQuery.of(context).size.width;
-                    // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
-                    final isSmallScreen =
-                        screenHeight < 900 || screenWidth < 400;
-                    final isVerySmallScreen =
-                        screenHeight < 700 || screenWidth < 380;
-                    final isNarrowScreen = screenWidth < 400;
-
                     return SingleChildScrollView(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
@@ -334,64 +326,34 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                         child: IntrinsicHeight(
                           child: Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: isNarrowScreen
-                                  ? 20
-                                  : (isSmallScreen ? 28 : 50),
-                              vertical: isVerySmallScreen
-                                  ? 20
-                                  : (isSmallScreen ? 28 : 40),
+                              horizontal: 50.w,
+                              vertical: 40.h,
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const AppLogo(),
-                                SizedBox(
-                                  height: isVerySmallScreen
-                                      ? 16
-                                      : (isSmallScreen ? 22 : 30),
-                                ),
+                                SizedBox(height: 30.h),
                                 Text(
                                   'Нууц код сэргээх',
                                   style: TextStyle(
                                     color: AppColors.grayColor,
-                                    fontSize: isVerySmallScreen
-                                        ? 18
-                                        : (isSmallScreen ? 20 : 24),
+                                    fontSize: 24.sp,
                                   ),
                                 ),
-                                SizedBox(
-                                  height: isVerySmallScreen
-                                      ? 12
-                                      : (isSmallScreen ? 16 : 20),
-                                ),
+                                SizedBox(height: 20.h),
                                 if (!_isPhoneSubmitted)
-                                  _buildPhoneNumberField(
-                                    isSmallScreen: isSmallScreen,
-                                    isVerySmallScreen: isVerySmallScreen,
-                                  )
+                                  _buildPhoneNumberField()
                                 else if (!_isPinVerified)
-                                  _buildSecretCodeField(
-                                    isSmallScreen: isSmallScreen,
-                                    isVerySmallScreen: isVerySmallScreen,
-                                  )
+                                  _buildSecretCodeField()
                                 else
-                                  _buildPasswordFields(
-                                    isSmallScreen: isSmallScreen,
-                                    isVerySmallScreen: isVerySmallScreen,
-                                  ),
-                                SizedBox(
-                                  height: isVerySmallScreen
-                                      ? 10
-                                      : (isSmallScreen ? 12 : 16),
-                                ),
+                                  _buildPasswordFields(),
+                                SizedBox(height: 16.h),
                                 if (_shouldShowContinueButton())
                                   AnimatedOpacity(
                                     opacity: _isButtonValid() ? 1.0 : 0.0,
                                     duration: const Duration(milliseconds: 200),
-                                    child: _buildContinueButton(
-                                      isSmallScreen: isSmallScreen,
-                                      isVerySmallScreen: isVerySmallScreen,
-                                    ),
+                                    child: _buildContinueButton(),
                                   ),
                               ],
                             ),
@@ -406,42 +368,29 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                 top: 16,
                 left: 16,
                 child: SafeArea(
-                  child: Builder(
-                    builder: (context) {
-                      final screenHeight = MediaQuery.of(context).size.height;
-                      final screenWidth = MediaQuery.of(context).size.width;
-                      final isSmallScreen =
-                          screenHeight < 900 || screenWidth < 400;
-                      final isVerySmallScreen =
-                          screenHeight < 700 || screenWidth < 380;
-
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(100),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: IconButton(
-                              padding: const EdgeInsets.only(left: 7),
-                              constraints: const BoxConstraints(),
-                              icon: Icon(
-                                Icons.arrow_back_ios,
-                                color: Colors.white,
-                                size: isVerySmallScreen
-                                    ? 16
-                                    : (isSmallScreen ? 18 : 20),
-                              ),
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                            ),
-                          ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      );
-                    },
+                        child: IconButton(
+                          padding: const EdgeInsets.only(left: 7),
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -475,10 +424,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     }
   }
 
-  Widget _buildPhoneNumberField({
-    required bool isSmallScreen,
-    required bool isVerySmallScreen,
-  }) {
+  Widget _buildPhoneNumberField() {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(100),
@@ -495,7 +441,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
         keyboardType: TextInputType.phone,
         style: TextStyle(
           color: Colors.white,
-          fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 15),
+          fontSize: 15.sp,
         ),
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
@@ -505,13 +451,13 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           hintText: 'Утасны дугаар',
           hintStyle: TextStyle(
             color: Colors.white70,
-            fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 15),
+            fontSize: 15.sp,
           ),
           filled: true,
           fillColor: AppColors.inputGrayColor.withOpacity(0.5),
           contentPadding: EdgeInsets.symmetric(
-            horizontal: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 25),
-            vertical: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 16),
+            horizontal: 25.w,
+            vertical: 16.h,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(100),
@@ -535,17 +481,14 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     );
   }
 
-  Widget _buildSecretCodeField({
-    required bool isSmallScreen,
-    required bool isVerySmallScreen,
-  }) {
+  Widget _buildSecretCodeField() {
     return Column(
       children: [
         // Display phone number with edit button
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 25),
-            vertical: isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 18),
+            horizontal: 25.w,
+            vertical: 18.h,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(100),
@@ -565,7 +508,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                 _phoneController.text,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: isVerySmallScreen ? 13 : (isSmallScreen ? 14 : 16),
+                  fontSize: 16.sp,
                 ),
               ),
               GestureDetector(
@@ -584,9 +527,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                   'Солих',
                   style: TextStyle(
                     color: Colors.blue,
-                    fontSize: isVerySmallScreen
-                        ? 12
-                        : (isSmallScreen ? 13 : 14),
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -594,21 +535,17 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             ],
           ),
         ),
-        SizedBox(height: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 20)),
+        SizedBox(height: 20.h),
 
         AutofillGroup(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(4, (index) {
-              return _buildPinBox(
-                index,
-                isSmallScreen: isSmallScreen,
-                isVerySmallScreen: isVerySmallScreen,
-              );
+              return _buildPinBox(index);
             }),
           ),
         ),
-        SizedBox(height: isVerySmallScreen ? 8 : (isSmallScreen ? 9 : 10)),
+        SizedBox(height: 10.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -663,7 +600,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                 _canResend ? 'Дахин илгээх' : 'Дахин илгээх ($_resendSeconds)',
                 style: TextStyle(
                   color: _canResend ? Colors.blue : Colors.grey,
-                  fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
+                  fontSize: 14.sp,
                 ),
               ),
             ),
@@ -673,14 +610,10 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     );
   }
 
-  Widget _buildPinBox(
-    int index, {
-    required bool isSmallScreen,
-    required bool isVerySmallScreen,
-  }) {
+  Widget _buildPinBox(int index) {
     return Container(
-      width: isVerySmallScreen ? 50 : (isSmallScreen ? 55 : 60),
-      height: isVerySmallScreen ? 58 : (isSmallScreen ? 64 : 70),
+      width: 60.w,
+      height: 70.h,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
@@ -711,7 +644,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontSize: isVerySmallScreen ? 18 : (isSmallScreen ? 20 : 24),
+            fontSize: 24.sp,
             fontWeight: FontWeight.bold,
           ),
           keyboardType: TextInputType.number,
@@ -802,10 +735,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     );
   }
 
-  Widget _buildPasswordFields({
-    required bool isSmallScreen,
-    required bool isVerySmallScreen,
-  }) {
+  Widget _buildPasswordFields() {
     return Column(
       children: [
         Container(
@@ -825,7 +755,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             keyboardType: TextInputType.number,
             style: TextStyle(
               color: Colors.white,
-              fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 15),
+              fontSize: 15.sp,
             ),
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
@@ -835,13 +765,13 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
               hintText: 'Шинэ нууц код (4 орон)',
               hintStyle: TextStyle(
                 color: Colors.white70,
-                fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 15),
+                fontSize: 15.sp,
               ),
               filled: true,
               fillColor: AppColors.inputGrayColor.withOpacity(0.5),
               contentPadding: EdgeInsets.symmetric(
-                horizontal: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 25),
-                vertical: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 16),
+                horizontal: 25.w,
+                vertical: 16.h,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(100),
@@ -880,7 +810,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             ),
           ),
         ),
-        SizedBox(height: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 16)),
+        SizedBox(height: 16.h),
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(100),
@@ -898,7 +828,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             keyboardType: TextInputType.number,
             style: TextStyle(
               color: Colors.white,
-              fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 15),
+              fontSize: 15.sp,
             ),
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
@@ -908,13 +838,13 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
               hintText: 'Нууц код давтах',
               hintStyle: TextStyle(
                 color: Colors.white70,
-                fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 15),
+                fontSize: 15.sp,
               ),
               filled: true,
               fillColor: AppColors.inputGrayColor.withOpacity(0.5),
               contentPadding: EdgeInsets.symmetric(
-                horizontal: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 25),
-                vertical: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 16),
+                horizontal: 25.w,
+                vertical: 16.h,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(100),
@@ -957,10 +887,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     );
   }
 
-  Widget _buildContinueButton({
-    required bool isSmallScreen,
-    required bool isVerySmallScreen,
-  }) {
+  Widget _buildContinueButton() {
     bool isValid = false;
 
     if (!_isPhoneSubmitted) {
@@ -992,17 +919,15 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
-            padding: EdgeInsets.symmetric(
-              vertical: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 16),
-            ),
+            padding: EdgeInsets.symmetric(vertical: 16.h),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(100),
             ),
           ),
           child: _isLoading
               ? SizedBox(
-                  height: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 20),
-                  width: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 20),
+                  height: 20.h,
+                  width: 20.w,
                   child: const CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
@@ -1010,11 +935,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                 )
               : Text(
                   'Үргэлжлүүлэх',
-                  style: TextStyle(
-                    fontSize: isVerySmallScreen
-                        ? 13
-                        : (isSmallScreen ? 14 : 16),
-                  ),
+                  style: TextStyle(fontSize: 16.sp),
                 ),
         ),
       ),

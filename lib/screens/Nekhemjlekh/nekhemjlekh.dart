@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
@@ -247,11 +248,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF0a0e27),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0e27),
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
             ),
           ),
           child: Column(
@@ -259,30 +260,30 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             children: [
               // Handle bar
               Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(2.w),
                 ),
               ),
               // Header
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20.w),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Гэрээ сонгох',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -292,9 +293,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               Flexible(
                 child: ListView.builder(
                   shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
                   ),
                   itemCount: availableContracts.length,
                   itemBuilder: (context, index) {
@@ -312,13 +313,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         _loadNekhemjlekh();
                       },
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.all(16.w),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? const Color(0xFFe6ff00).withOpacity(0.2)
                               : Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16.w),
                           border: Border.all(
                             color: isSelected
                                 ? const Color(0xFFe6ff00)
@@ -334,28 +335,28 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 children: [
                                   Text(
                                     bairNer,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 16,
+                                      fontSize: 16.sp,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: 4.h),
                                   Text(
                                     'Гэрээ: $gereeniiDugaar',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.7),
-                                      fontSize: 14,
+                                      fontSize: 14.sp,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                             if (isSelected)
-                              const Icon(
+                              Icon(
                                 Icons.check_circle,
-                                color: Color(0xFFe6ff00),
-                                size: 24,
+                                color: const Color(0xFFe6ff00),
+                                size: 24.sp,
                               ),
                           ],
                         ),
@@ -364,7 +365,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   },
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20.h),
             ],
           ),
         );
@@ -420,17 +421,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           builder: (context, setModalState) {
             return Container(
               height: MediaQuery.of(context).size.height * 0.7,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0a0e27),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0a0e27),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+                  topLeft: Radius.circular(30.w),
+                  topRight: Radius.circular(30.w),
                 ),
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30.w),
+                  topRight: Radius.circular(30.w),
                 ),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -438,32 +439,33 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     children: [
                       // Handle bar
                       Container(
-                        margin: const EdgeInsets.only(top: 12),
-                        width: 40,
-                        height: 4,
+                        margin: EdgeInsets.only(top: 12.h),
+                        width: 40.w,
+                        height: 4.h,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(2.w),
                         ),
                       ),
                       // Header
                       Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding: EdgeInsets.all(20.w),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Банк сонгох',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 24,
+                                fontSize: 24.sp,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.close,
                                 color: Colors.white,
+                                size: 24.sp,
                               ),
                               onPressed: () => Navigator.pop(context),
                             ),
@@ -479,22 +481,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 ),
                               )
                             : qpayBanks.isEmpty
-                            ? const Center(
+                            ? Center(
                                 child: Text(
                                   'Банкны мэдээлэл олдсонгүй',
-                                  style: TextStyle(color: Colors.white),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16.sp,
+                                  ),
                                 ),
                               )
                             : GridView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 10,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20.w,
+                                  vertical: 10.h,
                                 ),
                                 gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                    SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 3,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
+                                      crossAxisSpacing: 12.w,
+                                      mainAxisSpacing: 12.h,
                                       childAspectRatio: 0.85,
                                     ),
                                 itemCount: qpayBanks.length,
@@ -580,17 +585,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   Widget _buildVATReceiptBottomSheet(VATReceipt receipt) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0a0e27),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0a0e27),
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
+          topLeft: Radius.circular(30.w),
+          topRight: Radius.circular(30.w),
         ),
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30.w),
+          topRight: Radius.circular(30.w),
         ),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -598,30 +603,30 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             children: [
               // Handle bar
               Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(2.w),
                 ),
               ),
               // Header
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20.w),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'НӨАТ-ын баримт',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -630,32 +635,32 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               // Content
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
                   child: Column(
                     children: [
                       // QR Code
                       if (receipt.qrData.isNotEmpty) ...[
                         Container(
-                          padding: const EdgeInsets.all(20),
+                          padding: EdgeInsets.all(20.w),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(20.w),
                           ),
                           child: QrImageView(
                             data: receipt.qrData,
                             version: QrVersions.auto,
-                            size: 250.0,
+                            size: 250.w,
                             backgroundColor: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                       ],
                       // Receipt Info
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: EdgeInsets.all(20.w),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16.w),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -674,35 +679,35 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               receipt.merchantTin,
                             ),
 
-                            const Divider(color: Colors.white24, height: 24),
-                            const Text(
+                            Divider(color: Colors.white24, height: 24.h),
+                            Text(
                               'Бараа, үйлчилгээ:',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12.h),
 
                             ...receipt.receipts
                                 .expand((r) => r.items)
                                 .map(
                                   (item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
+                                    padding: EdgeInsets.only(bottom: 12.h),
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           item.name,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: Colors.white,
-                                            fontSize: 14,
+                                            fontSize: 14.sp,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
+                                        SizedBox(height: 4.h),
                                         Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
@@ -713,14 +718,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                 color: Colors.white.withOpacity(
                                                   0.7,
                                                 ),
-                                                fontSize: 12,
+                                                fontSize: 12.sp,
                                               ),
                                             ),
                                             Text(
                                               '${item.totalAmount}₮',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 14,
+                                                fontSize: 14.sp,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
@@ -730,7 +735,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                     ),
                                   ),
                                 ),
-                            const Divider(color: Colors.white24, height: 24),
+                            Divider(color: Colors.white24, height: 24.h),
                             _buildReceiptInfoRow(
                               'Нийт дүн:',
                               receipt.formattedAmount,
@@ -745,16 +750,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 'Хотын татвар:',
                                 '${receipt.totalCityTax.toStringAsFixed(2)}₮',
                               ),
-                            const Divider(color: Colors.white24, height: 24),
-                            const Text(
+                            Divider(color: Colors.white24, height: 24.h),
+                            Text(
                               'Төлбөр:',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8.h),
                             ...receipt.payments.map(
                               (payment) => _buildReceiptInfoRow(
                                 payment.code,
@@ -764,7 +769,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.h),
                     ],
                   ),
                 ),
@@ -782,7 +787,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     bool isBold = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -790,14 +795,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             label,
             style: TextStyle(
               color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
+              fontSize: 14.sp,
             ),
           ),
           Text(
             value,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: 14.sp,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -844,7 +849,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.w),
           border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
         ),
         child: Column(
@@ -852,36 +857,36 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           children: [
             // Bank logo
             Container(
-              width: 60,
-              height: 60,
+              width: 60.w,
+              height: 60.w,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.w),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.w),
                 child: Image.network(
                   bank.logo,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
+                    return Icon(
                       Icons.account_balance,
                       color: Colors.grey,
-                      size: 30,
+                      size: 30.sp,
                     );
                   },
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             // Bank name
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: EdgeInsets.symmetric(horizontal: 4.w),
               child: Text(
                 bank.description,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
@@ -953,17 +958,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       builder: (BuildContext context) {
         return Container(
           height: MediaQuery.of(context).size.height * 0.5,
-          decoration: const BoxDecoration(
-            color: Color(0xFF0a0e27),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0e27),
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
             ),
           ),
           child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
             ),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -971,32 +976,36 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 children: [
                   // Handle bar
                   Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    width: 40,
-                    height: 4,
+                    margin: EdgeInsets.only(top: 12.h),
+                    width: 40.w,
+                    height: 4.h,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(2.w),
                     ),
                   ),
                   // Header
                   Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20.w),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: const Text(
+                          child: Text(
                             'Төлбөр баталгаажуулах',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
+                              fontSize: 24.sp,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white),
+                          icon: Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 24.sp,
+                          ),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
@@ -1004,12 +1013,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   ),
                   // Bank logo and info
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
                     child: Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(20.w),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(16.w),
                         border: Border.all(
                           color: Colors.white.withOpacity(0.2),
                           width: 1,
@@ -1018,34 +1027,34 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       child: Row(
                         children: [
                           Container(
-                            width: 60,
-                            height: 60,
+                            width: 60.w,
+                            height: 60.w,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(8.w),
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(8.w),
                               child: Image.network(
                                 bank.logo,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(
+                                  return Icon(
                                     Icons.account_balance,
                                     color: Colors.grey,
-                                    size: 30,
+                                    size: 30.sp,
                                   );
                                 },
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          SizedBox(width: 16.w),
                           Expanded(
                             child: Text(
                               bank.description,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1057,7 +1066,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   const Spacer(),
                   // Check payment button
                   Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20.w),
                     child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -1065,15 +1074,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFe6ff00),
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12.w),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Төлбөр шалгах',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1459,60 +1468,60 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     VoidCallback? onTap,
   }) {
     final content = Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.w),
         border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
               color: const Color(0xFF1a1f3a),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.w),
             ),
             child: logoImage != null
                 ? Image.asset(
                     logoImage,
-                    width: iconSize,
-                    height: iconSize,
+                    width: iconSize.w,
+                    height: iconSize.w,
                     fit: BoxFit.contain,
                   )
                 : Icon(
                     logo ?? Icons.account_balance,
                     color: Colors.white,
-                    size: iconSize,
+                    size: iconSize.sp,
                   ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   bankName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   'Данс: $accountNumber',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
+                    fontSize: 14.sp,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2.h),
                 Text(
                   'Нэр: $accountName',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
-                    fontSize: 12,
+                    fontSize: 12.sp,
                   ),
                 ),
               ],
@@ -1525,7 +1534,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.w),
         child: content,
       );
     }
@@ -1541,9 +1550,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       builder: (context) => Container(
         decoration: BoxDecoration(
           color: const Color(0xFF0a0e27),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16.w),
+            topRight: Radius.circular(16.w),
           ),
           border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
@@ -1552,7 +1561,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
@@ -1561,16 +1570,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Төлбөрийн мэдээлэл',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
                     onPressed: () => Navigator.of(context).pop(),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -1580,16 +1589,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             ),
             // Content
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.w),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Price information panel
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: EdgeInsets.all(14.w),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.w),
                       border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
                     child: Row(
@@ -1598,14 +1607,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         Text(
                           'Төлөх дүн',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             color: Colors.white.withOpacity(0.6),
                           ),
                         ),
                         Text(
                           totalSelectedAmount,
-                          style: const TextStyle(
-                            fontSize: 18,
+                          style: TextStyle(
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -1613,13 +1622,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10.h),
                   // Contract information panel
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: EdgeInsets.all(14.w),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.w),
                       border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
                     child: Row(
@@ -1628,14 +1637,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         Text(
                           'Гэрээ',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             color: Colors.white.withOpacity(0.6),
                           ),
                         ),
                         Text(
                           '$selectedCount гэрээ',
-                          style: const TextStyle(
-                            fontSize: 16,
+                          style: TextStyle(
+                            fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -1643,7 +1652,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   // Payment button
                   SizedBox(
                     width: double.infinity,
@@ -1657,15 +1666,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.w),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Банкны аппликешнээр төлөх',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1796,22 +1805,31 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     : errorMessage != null
                     ? Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.all(16.w),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 errorMessage!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 16.sp,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16.h),
                               ElevatedButton(
                                 onPressed: _loadNekhemjlekh,
-                                child: const Text('Дахин оролдох'),
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20.w,
+                                    vertical: 12.h,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Дахин оролдох',
+                                  style: TextStyle(fontSize: 14.sp),
+                                ),
                               ),
                             ],
                           ),
@@ -1941,17 +1959,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                         showHistoryOnly
                                             ? Icons.history
                                             : Icons.receipt_long,
-                                        size: 64,
+                                        size: 64.sp,
                                         color: Colors.white.withOpacity(0.5),
                                       ),
-                                      const SizedBox(height: 16),
+                                      SizedBox(height: 16.h),
                                       Text(
                                         showHistoryOnly
                                             ? 'Төлөгдсөн нэхэмжлэл байхгүй байна.'
                                             : 'Одоогоор нэхэмжлэл байхгүй байна.',
                                         style: TextStyle(
                                           color: Colors.white.withOpacity(0.7),
-                                          fontSize: 16,
+                                          fontSize: 16.sp,
                                         ),
                                       ),
                                     ],
@@ -2370,7 +2388,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -2380,6 +2398,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           'Зардал',
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.7),
+                            fontSize: 14.sp,
                             decoration: TextDecoration.underline,
                           ),
                         ),
@@ -2390,53 +2409,54 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           'Үнэ төлбөр',
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.7),
+                            fontSize: 14.sp,
                             decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   // Display expenses (zardluud)
                   if (invoice.medeelel != null &&
                       invoice.medeelel!.zardluud.isNotEmpty) ...[
-                    const Text(
+                    Text(
                       'Зардлын жагсаалт:',
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 14,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     ...invoice.medeelel!.zardluud.map(
                       (zardal) =>
                           _buildPriceRow(zardal.ner, zardal.formattedTariff),
                     ),
                   ],
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.w),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Нийт дүн:',
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 18,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
                           invoice.formattedAmount,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.black,
-                            fontSize: 18,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

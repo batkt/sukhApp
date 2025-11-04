@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Notification Dropdown Widget
 class NotificationDropdown extends StatelessWidget {
@@ -7,8 +8,8 @@ class NotificationDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 320,
-      constraints: const BoxConstraints(maxHeight: 400),
+      width: 320.w,
+      constraints: BoxConstraints(maxHeight: 400.h),
       decoration: BoxDecoration(
         color: const Color(0xFF1a1a2e),
         borderRadius: BorderRadius.circular(16),
@@ -29,14 +30,14 @@ class NotificationDropdown extends StatelessWidget {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'Мэдэгдэл',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -45,9 +46,9 @@ class NotificationDropdown extends StatelessWidget {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text(
+                  child: Text(
                     'Бүгдийг унших',
-                    style: TextStyle(color: Color(0xFFe6ff00), fontSize: 12),
+                    style: TextStyle(color: const Color(0xFFe6ff00), fontSize: 12.sp),
                   ),
                 ),
               ],
@@ -59,7 +60,7 @@ class NotificationDropdown extends StatelessWidget {
           Flexible(
             child: ListView(
               shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.symmetric(vertical: 8.h),
               children: [
                 _buildNotificationItem(
                   context,
@@ -96,13 +97,13 @@ class NotificationDropdown extends StatelessWidget {
               Navigator.pop(context);
             },
             child: Container(
-              padding: const EdgeInsets.all(12),
-              child: const Center(
+              padding: EdgeInsets.all(12.w),
+              child: Center(
                 child: Text(
                   'Бүх мэдэгдлийг харах',
                   style: TextStyle(
-                    color: Color(0xFFe6ff00),
-                    fontSize: 14,
+                    color: const Color(0xFFe6ff00),
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -128,7 +129,7 @@ class NotificationDropdown extends StatelessWidget {
         // Handle notification tap
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
           color: isUnread
               ? const Color(0xFFe6ff00).withOpacity(0.05)
@@ -138,14 +139,14 @@ class NotificationDropdown extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFFFF).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: const Color(0xFFe6ff00), size: 20),
+              child: Icon(icon, color: const Color(0xFFe6ff00), size: 20.sp),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,9 +156,9 @@ class NotificationDropdown extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
@@ -166,8 +167,8 @@ class NotificationDropdown extends StatelessWidget {
                       ),
                       if (isUnread)
                         Container(
-                          width: 6,
-                          height: 6,
+                          width: 6.w,
+                          height: 6.w,
                           decoration: const BoxDecoration(
                             color: Color(0xFFe6ff00),
                             shape: BoxShape.circle,
@@ -175,22 +176,22 @@ class NotificationDropdown extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.h),
                   Text(
                     message,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.6),
-                      fontSize: 12,
+                      fontSize: 12.sp,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.h),
                   Text(
                     time,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.4),
-                      fontSize: 11,
+                      fontSize: 11.sp,
                     ),
                   ),
                 ],
@@ -216,7 +217,7 @@ class NotificationsPage extends StatelessWidget {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16.w),
               child: Row(
                 children: [
                   Container(
@@ -225,18 +226,18 @@ class NotificationsPage extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: Colors.white, size: 24.sp),
                       onPressed: () {
                         Navigator.pop(context);
                       },
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  const Text(
+                  SizedBox(width: 16.w),
+                  Text(
                     'Мэдэгдэл',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 24.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -245,9 +246,9 @@ class NotificationsPage extends StatelessWidget {
                     onPressed: () {
                       // Mark all as read
                     },
-                    child: const Text(
+                    child: Text(
                       'Бүгдийг унших',
-                      style: TextStyle(color: Color(0xFFe6ff00), fontSize: 14),
+                      style: TextStyle(color: const Color(0xFFe6ff00), fontSize: 14.sp),
                     ),
                   ),
                 ],
@@ -257,7 +258,7 @@ class NotificationsPage extends StatelessWidget {
             // Notifications List
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 children: [
                   _buildNotificationItem(
                     icon: Icons.payment,
@@ -311,8 +312,8 @@ class NotificationsPage extends StatelessWidget {
     required bool isUnread,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: isUnread
             ? const Color(0xFFe6ff00).withOpacity(0.1)
@@ -329,14 +330,14 @@ class NotificationsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
               color: const Color(0xFFe6ff00).withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFFe6ff00), size: 24),
+            child: Icon(icon, color: const Color(0xFFe6ff00), size: 24.sp),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,17 +347,17 @@ class NotificationsPage extends StatelessWidget {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     if (isUnread)
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: 8.w,
+                        height: 8.w,
                         decoration: const BoxDecoration(
                           color: Color(0xFFe6ff00),
                           shape: BoxShape.circle,
@@ -364,20 +365,20 @@ class NotificationsPage extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   message,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
+                    fontSize: 14.sp,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   time,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.5),
-                    fontSize: 12,
+                    fontSize: 12.sp,
                   ),
                 ),
               ],

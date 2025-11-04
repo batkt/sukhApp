@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
@@ -184,23 +185,23 @@ class _TokhirgooState extends State<Tokhirgoo>
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16.w),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: 28,
+                        size: 28.sp,
                       ),
                       onPressed: () => context.pop(),
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
+                    SizedBox(width: 12.w),
+                    Text(
                       'Тохиргоо',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 24,
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -213,7 +214,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                     : FadeTransition(
                         opacity: _fadeAnimation,
                         child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.all(16.w),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -221,8 +222,8 @@ class _TokhirgooState extends State<Tokhirgoo>
                                 child: Stack(
                                   children: [
                                     Container(
-                                      width: 100,
-                                      height: 100,
+                                      width: 100.w,
+                                      height: 100.w,
                                       decoration: BoxDecoration(
                                         color: const Color(
                                           0xFFe6ff00,
@@ -233,10 +234,10 @@ class _TokhirgooState extends State<Tokhirgoo>
                                           width: 2,
                                         ),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.person,
-                                        size: 50,
-                                        color: Color(0xFFe6ff00),
+                                        size: 50.sp,
+                                        color: const Color(0xFFe6ff00),
                                       ),
                                     ),
                                     Positioned(
@@ -257,10 +258,10 @@ class _TokhirgooState extends State<Tokhirgoo>
                                           ],
                                         ),
                                         child: IconButton(
-                                          icon: const Icon(
+                                          icon: Icon(
                                             Icons.camera_alt,
                                             color: Colors.black,
-                                            size: 20,
+                                            size: 20.sp,
                                           ),
                                           onPressed: () {},
                                         ),
@@ -269,16 +270,16 @@ class _TokhirgooState extends State<Tokhirgoo>
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 32),
-                              const Text(
+                              SizedBox(height: 32.h),
+                              Text(
                                 'Хэрэглэгчийн мэдээлэл',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 18,
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16.h),
                               Form(
                                 key: _formKey,
                                 child: Column(
@@ -290,7 +291,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                       enabled: false,
                                     ),
 
-                                    const SizedBox(height: 16),
+                                    SizedBox(height: 16.h),
                                     _buildTextField(
                                       controller: _phoneController,
                                       label: 'Утас',
@@ -301,16 +302,16 @@ class _TokhirgooState extends State<Tokhirgoo>
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 32),
-                              const Text(
+                              SizedBox(height: 32.h),
+                              Text(
                                 'Нэвтрэх нууц код солих',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 18,
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16.h),
                               Form(
                                 key: _passwordFormKey,
                                 child: Column(
@@ -326,7 +327,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                         });
                                       },
                                     ),
-                                    const SizedBox(height: 16),
+                                    SizedBox(height: 16.h),
                                     _buildPasswordField(
                                       controller: _newPasswordController,
                                       label: 'Шинэ нууц код',
@@ -338,7 +339,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                         });
                                       },
                                     ),
-                                    const SizedBox(height: 16),
+                                    SizedBox(height: 16.h),
                                     _buildPasswordField(
                                       controller: _confirmPasswordController,
                                       label: 'Нууц код давтах',
@@ -350,10 +351,10 @@ class _TokhirgooState extends State<Tokhirgoo>
                                         });
                                       },
                                     ),
-                                    const SizedBox(height: 24),
+                                    SizedBox(height: 24.h),
                                     SizedBox(
                                       width: double.infinity,
-                                      height: 50,
+                                      height: 50.h,
                                       child: ElevatedButton(
                                         onPressed: _isChangingPassword
                                             ? null
@@ -371,19 +372,19 @@ class _TokhirgooState extends State<Tokhirgoo>
                                           elevation: 0,
                                         ),
                                         child: _isChangingPassword
-                                            ? const SizedBox(
-                                                height: 20,
-                                                width: 20,
+                                            ? SizedBox(
+                                                height: 20.h,
+                                                width: 20.w,
                                                 child:
-                                                    CircularProgressIndicator(
+                                                    const CircularProgressIndicator(
                                                       color: Colors.black,
                                                       strokeWidth: 2,
                                                     ),
                                               )
-                                            : const Text(
+                                            : Text(
                                                 'Нууц код солих',
                                                 style: TextStyle(
-                                                  fontSize: 16,
+                                                  fontSize: 16.sp,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -392,7 +393,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 32),
+                              SizedBox(height: 32.h),
                             ],
                           ),
                         ),
@@ -407,15 +408,15 @@ class _TokhirgooState extends State<Tokhirgoo>
 
   Widget _buildLoadingSkeleton() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Profile avatar skeleton
           Center(
             child: Container(
-              width: 100,
-              height: 100,
+              width: 100.w,
+              height: 100.w,
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
@@ -428,44 +429,44 @@ class _TokhirgooState extends State<Tokhirgoo>
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
           // User info section title
           Container(
-            height: 24,
-            width: 180,
+            height: 24.h,
+            width: 180.w,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           // Loading shimmer fields
           _buildSkeletonField(),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _buildSkeletonField(),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _buildSkeletonField(),
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
           // Password section title
           Container(
-            height: 24,
-            width: 200,
+            height: 24.h,
+            width: 200.w,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _buildSkeletonField(),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _buildSkeletonField(),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _buildSkeletonField(),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.h),
           // Button skeleton
           Container(
             width: double.infinity,
-            height: 50,
+            height: 50.h,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
@@ -478,33 +479,33 @@ class _TokhirgooState extends State<Tokhirgoo>
 
   Widget _buildSkeletonField() {
     return Container(
-      height: 60,
+      height: 60.h,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.w),
         child: Row(
           children: [
             Container(
-              width: 24,
-              height: 24,
+              width: 24.w,
+              height: 24.w,
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    height: 12,
-                    width: 80,
+                    height: 12.h,
+                    width: 80.w,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),

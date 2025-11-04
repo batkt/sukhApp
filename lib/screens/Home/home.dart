@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/components/Menu/side_menu.dart';
 // TODO: Uncomment when notification feature is implemented
 // import 'package:sukh_app/components/Notifications/notification.dart';
@@ -302,7 +303,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
   Widget _buildInfoRow(String label, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 12.w),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
@@ -316,16 +317,16 @@ class _BookingScreenState extends State<NuurKhuudas> {
             label,
             style: TextStyle(
               color: Colors.white.withOpacity(0.6),
-              fontSize: 13,
+              fontSize: 13.sp,
               fontWeight: FontWeight.w500,
             ),
           ),
           Flexible(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 14,
+                fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.right,
@@ -347,20 +348,20 @@ class _BookingScreenState extends State<NuurKhuudas> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Row(
           children: [
             Icon(
               icon,
               color: isLogout ? Colors.red : const Color(0xFFe6ff00),
-              size: 22,
+              size: 22.sp,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Text(
               title,
               style: TextStyle(
                 color: isLogout ? Colors.red : Colors.white,
-                fontSize: 15,
+                fontSize: 15.sp,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -380,10 +381,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12.0,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -408,11 +406,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           },
                           borderRadius: BorderRadius.circular(100),
                           child: Padding(
-                            padding: const EdgeInsets.all(10),
+                            padding: EdgeInsets.all(10.w),
                             child: Icon(
                               Icons.menu_rounded,
                               color: Colors.white.withOpacity(0.3),
-                              size: 26,
+                              size: 26.sp,
                             ),
                           ),
                         ),
@@ -420,111 +418,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     ),
                     Row(
                       children: [
-                        // TODO: Notification button - will be developed later
-                        // Stack(
-                        //   children: [
-                        //     Container(
-                        //       decoration: BoxDecoration(
-                        //         color: Colors.white.withOpacity(0.1),
-                        //         borderRadius: BorderRadius.circular(100),
-                        //         boxShadow: [
-                        //           BoxShadow(
-                        //             color: Colors.black.withOpacity(0.25),
-                        //             blurRadius: 12,
-                        //             spreadRadius: 0,
-                        //             offset: const Offset(0, 4),
-                        //           ),
-                        //         ],
-                        //       ),
-                        //       child: Material(
-                        //         color: Colors.transparent,
-                        //         child: InkWell(
-                        //           onTap: () {
-                        //             final RenderBox renderBox =
-                        //                 context.findRenderObject() as RenderBox;
-                        //             final position = renderBox.localToGlobal(
-                        //               Offset.zero,
-                        //             );
-                        //
-                        //             showGeneralDialog(
-                        //               context: context,
-                        //               barrierDismissible: true,
-                        //               barrierLabel: '',
-                        //               barrierColor: Colors.transparent,
-                        //               transitionDuration: const Duration(
-                        //                 milliseconds: 200,
-                        //               ),
-                        //               pageBuilder:
-                        //                   (
-                        //                     context,
-                        //                     animation,
-                        //                     secondaryAnimation,
-                        //                   ) {
-                        //                     return Material(
-                        //                       color: Colors.transparent,
-                        //                       child: Stack(
-                        //                         children: [
-                        //                           GestureDetector(
-                        //                             onTap: () =>
-                        //                                 Navigator.pop(context),
-                        //                             child: Container(
-                        //                               color: Colors.transparent,
-                        //                             ),
-                        //                           ),
-                        //                           Positioned(
-                        //                             top: position.dy + 60,
-                        //                             right: 16,
-                        //                             child: FadeTransition(
-                        //                               opacity: animation,
-                        //                               child:
-                        //                                   const NotificationDropdown(),
-                        //                             ),
-                        //                           ),
-                        //                         ],
-                        //                       ),
-                        //                     );
-                        //                   },
-                        //             );
-                        //           },
-                        //           borderRadius: BorderRadius.circular(100),
-                        //           child: Padding(
-                        //             padding: const EdgeInsets.all(7),
-                        //             child: Icon(
-                        //               Icons.notifications_rounded,
-                        //               color: Colors.white.withOpacity(0.3),
-                        //               size: 30,
-                        //             ),
-                        //           ),
-                        //         ),
-                        //       ),
-                        //     ),
-                        //     Positioned(
-                        //       right: 8,
-                        //       top: 8,
-                        //       child: Container(
-                        //         padding: const EdgeInsets.all(4),
-                        //         decoration: const BoxDecoration(
-                        //           color: Colors.red,
-                        //           shape: BoxShape.circle,
-                        //         ),
-                        //         constraints: const BoxConstraints(
-                        //           minWidth: 16,
-                        //           minHeight: 16,
-                        //         ),
-                        //         child: const Text(
-                        //           '3',
-                        //           style: TextStyle(
-                        //             color: Colors.white,
-                        //             fontSize: 10,
-                        //             fontWeight: FontWeight.bold,
-                        //           ),
-                        //           textAlign: TextAlign.center,
-                        //         ),
-                        //       ),
-                        //     ),
-                        //   ],
-                        // ),
-                        // const SizedBox(width: 20),
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.1),
@@ -569,11 +462,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                           ),
                                           Positioned(
                                             top: position.dy + 120,
-                                            right: 16,
+                                            right: 16.w,
                                             child: FadeTransition(
                                               opacity: animation,
                                               child: Container(
-                                                width: 200,
+                                                width: 200.w,
                                                 decoration: BoxDecoration(
                                                   color: const Color(
                                                     0xFF1a1a2e,
@@ -736,11 +629,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               },
                               borderRadius: BorderRadius.circular(100),
                               child: Padding(
-                                padding: const EdgeInsets.all(10),
+                                padding: EdgeInsets.all(10.w),
                                 child: Icon(
                                   Icons.person_rounded,
                                   color: Colors.white.withOpacity(0.3),
-                                  size: 26,
+                                  size: 26.sp,
                                 ),
                               ),
                             ),
@@ -752,101 +645,74 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 ),
               ),
 
-              Builder(
-                builder: (context) {
-                  final screenHeight = MediaQuery.of(context).size.height;
-                  final screenWidth = MediaQuery.of(context).size.width;
-                  // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
-                  final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-                  final isVerySmallScreen =
-                      screenHeight < 700 || screenWidth < 380;
-
-                  return Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isVerySmallScreen
-                          ? 12
-                          : (isSmallScreen ? 16 : 16),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Нийт үлдэгдэл',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: isVerySmallScreen
-                                    ? 12
-                                    : (isSmallScreen ? 14 : 16),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${_formatNumberWithComma(totalNiitTulbur)}₮',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: isVerySmallScreen
-                                    ? 20
-                                    : (isSmallScreen ? 22 : 26),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFe6ff00),
-                            borderRadius: BorderRadius.circular(100),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.25),
-                                blurRadius: 12,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                        Text(
+                          'Нийт үлдэгдэл',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.sp,
                           ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: _showPaymentModal,
-                              borderRadius: BorderRadius.circular(100),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isVerySmallScreen
-                                      ? 14
-                                      : (isSmallScreen ? 16 : 20),
-                                  vertical: isVerySmallScreen
-                                      ? 6
-                                      : (isSmallScreen ? 8 : 10),
-                                ),
-                                child: Text(
-                                  'Төлөх',
-                                  style: TextStyle(
-                                    color: const Color(0xFF0a0e27),
-                                    fontSize: isVerySmallScreen
-                                        ? 12
-                                        : (isSmallScreen ? 14 : 16),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Text(
+                          '${_formatNumberWithComma(totalNiitTulbur)}₮',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24.sp,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
+                    const Spacer(),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFe6ff00),
+                        borderRadius: BorderRadius.circular(100),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.25),
+                            blurRadius: 12,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _showPaymentModal,
+                          borderRadius: BorderRadius.circular(100),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 18.w,
+                              vertical: 8.h,
+                            ),
+                            child: Text(
+                              'Төлөх',
+                              style: TextStyle(
+                                color: const Color(0xFF0a0e27),
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
-              SizedBox(
-                height: MediaQuery.of(context).size.height < 700 ? 8 : 12,
-              ),
+              SizedBox(height: 12.h),
 
               // Payment Date Display Section with scrolling
               Expanded(
@@ -855,7 +721,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     children: [
                       if (isLoadingPaymentData)
                         SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.4,
+                          height: 300.h,
                           child: const Center(
                             child: CircularProgressIndicator(
                               color: Color(0xFFe6ff00),
@@ -864,26 +730,26 @@ class _BookingScreenState extends State<NuurKhuudas> {
                         )
                       else if (gereeData == null)
                         SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.4,
-                          child: const Center(
+                          height: 300.h,
+                          child: Center(
                             child: Text(
                               'Төлбөрийн мэдээлэл олдсонгүй',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: 16,
+                                fontSize: 16.sp,
                               ),
                             ),
                           ),
                         )
                       else if (paymentDate == null)
                         SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.4,
-                          child: const Center(
+                          height: 300.h,
+                          child: Center(
                             child: Text(
                               'Төлбөрийн огноо тохируулаагүй байна',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: 16,
+                                fontSize: 16.sp,
                               ),
                             ),
                           ),
@@ -891,123 +757,63 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       else
                         _buildPaymentDisplay(),
 
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12.h),
 
                       // Contract Information Container
                       if (gereeData != null)
-                        Builder(
-                          builder: (context) {
-                            final screenHeight = MediaQuery.of(
-                              context,
-                            ).size.height;
-                            final screenWidth = MediaQuery.of(
-                              context,
-                            ).size.width;
-                            final isSmallScreen =
-                                screenHeight < 900 || screenWidth < 400;
-                            final isVerySmallScreen =
-                                screenHeight < 700 || screenWidth < 380;
-
-                            return Container(
-                              margin: EdgeInsets.symmetric(
-                                horizontal: isVerySmallScreen ? 12 : 16,
-                              ),
-                              padding: EdgeInsets.all(
-                                isVerySmallScreen
-                                    ? 10
-                                    : (isSmallScreen ? 12 : 15),
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF2D3748),
-                                    Color(0xFF1A202C),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                        Container(
+                          margin: EdgeInsets.symmetric(horizontal: 16.w),
+                          padding: EdgeInsets.all(14.w),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF2D3748), Color(0xFF1A202C)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Гэрээний мэдээлэл',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17.sp,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.5,
                                 ),
-                                borderRadius: BorderRadius.circular(16),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              SizedBox(height: 12.h),
+                              _buildInfoRow(
+                                'Гэрээний дугаар',
+                                gereeData!.gereeniiDugaar,
+                              ),
+                              SizedBox(height: 8.h),
+                              _buildInfoRow('Барилгын нэр', gereeData!.bairNer),
+                              SizedBox(height: 8.h),
+                              Row(
                                 children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Гэрээний мэдээлэл',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: isVerySmallScreen
-                                              ? 14
-                                              : (isSmallScreen ? 16 : 18),
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: -0.5,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        height: isVerySmallScreen
-                                            ? 10
-                                            : (isSmallScreen ? 12 : 16),
-                                      ),
-                                      _buildInfoRow(
-                                        'Гэрээний дугаар',
-                                        gereeData!.gereeniiDugaar,
-                                      ),
-                                      SizedBox(
-                                        height: isVerySmallScreen
-                                            ? 6
-                                            : (isSmallScreen ? 8 : 12),
-                                      ),
-                                      _buildInfoRow(
-                                        'Барилгын нэр',
-                                        gereeData!.bairNer,
-                                      ),
-                                      SizedBox(
-                                        height: isVerySmallScreen
-                                            ? 6
-                                            : (isSmallScreen ? 8 : 12),
-                                      ),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: _buildInfoRow(
-                                              'Давхар',
-                                              gereeData!.davkhar.toString(),
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: isVerySmallScreen
-                                                ? 10
-                                                : (isSmallScreen ? 12 : 16),
-                                          ),
-                                          Expanded(
-                                            child: _buildInfoRow(
-                                              'Тоот',
-                                              gereeData!.toot.toString(),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                  Expanded(
+                                    child: _buildInfoRow(
+                                      'Давхар',
+                                      gereeData!.davkhar.toString(),
+                                    ),
                                   ),
-                                  SizedBox(
-                                    height: isVerySmallScreen
-                                        ? 10
-                                        : (isSmallScreen ? 12 : 16),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: _buildInfoRow(
+                                      'Тоот',
+                                      gereeData!.toot.toString(),
+                                    ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         ),
 
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height < 700
-                            ? 8
-                            : 12,
-                      ),
+                      SizedBox(height: 12.h),
                     ],
                   ),
                 ),
@@ -1024,33 +830,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
     final isOverdue = hasUnpaidInvoice && daysDifference > 0;
     final displayDays = daysDifference.abs();
 
-    // Get screen dimensions to determine if we're on a small screen
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
-
-    // Adjust sizes based on screen height
-    final circleSize = isVerySmallScreen
-        ? 160.0
-        : (isSmallScreen ? 180.0 : 250.0);
-    final circlePadding = isVerySmallScreen
-        ? 8.0
-        : (isSmallScreen ? 10.0 : 20.0);
-    final strokeWidth = isVerySmallScreen
-        ? 12.0
-        : (isSmallScreen ? 14.0 : 18.0);
-    final fontSize = isVerySmallScreen ? 50.0 : (isSmallScreen ? 60.0 : 80.0);
-    final subtitleFontSize = isVerySmallScreen
-        ? 12.0
-        : (isSmallScreen ? 14.0 : 16.0);
-    final verticalPadding = isVerySmallScreen
-        ? 8.0
-        : (isSmallScreen ? 10.0 : 20.0);
-    final spacingAfterCircle = isVerySmallScreen
-        ? 8.0
-        : (isSmallScreen ? 10.0 : 20.0);
-
     // Determine subtitle text
     String subtitleText;
     if (isOverdue) {
@@ -1062,26 +841,26 @@ class _BookingScreenState extends State<NuurKhuudas> {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: verticalPadding, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Circular progress indicator with proper padding
           Padding(
-            padding: EdgeInsets.all(circlePadding),
+            padding: EdgeInsets.all(10.w),
             child: SizedBox(
-              width: circleSize,
-              height: circleSize,
+              width: 200.w,
+              height: 200.w,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   // Background circle
                   SizedBox(
-                    width: circleSize,
-                    height: circleSize,
+                    width: 200.w,
+                    height: 200.w,
                     child: CircularProgressIndicator(
                       value: 1.0,
-                      strokeWidth: strokeWidth,
+                      strokeWidth: 15.w,
                       backgroundColor: Colors.transparent,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         Colors.white.withOpacity(0.1),
@@ -1090,13 +869,13 @@ class _BookingScreenState extends State<NuurKhuudas> {
                   ),
                   // Progress circle
                   SizedBox(
-                    width: circleSize,
-                    height: circleSize,
+                    width: 200.w,
+                    height: 200.w,
                     child: CircularProgressIndicator(
                       value: isOverdue
                           ? 1.0
                           : (displayDays / 30).clamp(0.0, 1.0),
-                      strokeWidth: strokeWidth,
+                      strokeWidth: 15.w,
                       backgroundColor: Colors.transparent,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isOverdue
@@ -1115,19 +894,17 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           color: isOverdue
                               ? const Color(0xFFFF6B6B)
                               : const Color(0xFFe6ff00),
-                          fontSize: fontSize,
+                          fontSize: 65.sp,
                           fontWeight: FontWeight.bold,
                           height: 1,
                         ),
                       ),
-                      SizedBox(
-                        height: isVerySmallScreen ? 2 : (isSmallScreen ? 4 : 8),
-                      ),
+                      SizedBox(height: 6.h),
                       Text(
                         subtitleText,
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: subtitleFontSize,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.w500,
                         ),
                         textAlign: TextAlign.center,
@@ -1139,14 +916,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
             ),
           ),
 
-          SizedBox(height: spacingAfterCircle),
+          SizedBox(height: 12.h),
 
           // Payment date info
           Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 20),
-              vertical: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(50),
@@ -1157,16 +931,14 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 Icon(
                   Icons.calendar_today,
                   color: isOverdue ? const Color(0xFFFF6B6B) : Colors.white70,
-                  size: isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18),
+                  size: 16.sp,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 Text(
                   _getPaymentDateLabel(),
                   style: TextStyle(
                     color: isOverdue ? const Color(0xFFFF6B6B) : Colors.white,
-                    fontSize: isVerySmallScreen
-                        ? 11
-                        : (isSmallScreen ? 12 : 14),
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1263,7 +1035,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
@@ -1272,16 +1044,16 @@ class _BookingScreenState extends State<NuurKhuudas> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Төлбөр төлөх',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
                     onPressed: () => Navigator.of(context).pop(),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -1291,13 +1063,13 @@ class _BookingScreenState extends State<NuurKhuudas> {
             ),
             // Content
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.w),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Price information panel
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: EdgeInsets.all(14.w),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
@@ -1309,14 +1081,14 @@ class _BookingScreenState extends State<NuurKhuudas> {
                         Text(
                           'Төлөх дүн',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             color: Colors.white.withOpacity(0.6),
                           ),
                         ),
                         Text(
                           '${_formatNumberWithComma(totalNiitTulbur)}₮',
-                          style: const TextStyle(
-                            fontSize: 18,
+                          style: TextStyle(
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -1324,7 +1096,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   // Payment button
                   SizedBox(
                     width: double.infinity,
@@ -1336,15 +1108,15 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFe6ff00),
                         foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Төлбөр төлөх',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

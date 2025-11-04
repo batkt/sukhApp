@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/router/app_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
@@ -19,7 +20,7 @@ class _SideMenuState extends State<SideMenu> {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24.w),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
@@ -40,31 +41,31 @@ class _SideMenuState extends State<SideMenu> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const _BouncingRocket(),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
 
                 // Title
-                const Text(
+                Text(
                   'Хөгжүүлэлт явагдаж байна',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
 
                 // Description
-                const Text(
+                Text(
                   'Энэ хуудас хөгжүүлэлт хийгдэж байгаа тул одоогоор ашиглах боломжгүй байна. Удахгүй ашиглах боломжтой болно.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
 
                 // Button
                 SizedBox(
@@ -76,16 +77,16 @@ class _SideMenuState extends State<SideMenu> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFe6ff00),
                       foregroundColor: const Color(0xFF1a1a2e),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
+                    child: Text(
                       'Ойлголоо',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -106,38 +107,38 @@ class _SideMenuState extends State<SideMenu> {
       child: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
             // Logo and App Name Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
               child: Row(
                 children: [
-                  const AppLogo(
-                    minHeight: 50,
-                    maxHeight: 50,
-                    minWidth: 50,
-                    maxWidth: 50,
+                  AppLogo(
+                    minHeight: 50.w,
+                    maxHeight: 50.w,
+                    minWidth: 50.w,
+                    maxWidth: 50.w,
                     showImage: true,
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
+                  SizedBox(width: 12.w),
+                  Text(
                     'Amarhome',
                     style: TextStyle(
-                      color: Color(0xFFe6ff00),
-                      fontSize: 20,
+                      color: const Color(0xFFe6ff00),
+                      fontSize: 20.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(
+            Divider(
               color: Colors.grey,
               thickness: 0.5,
-              indent: 16,
-              endIndent: 16,
+              indent: 16.w,
+              endIndent: 16.w,
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             // Wrap menu items in Expanded and SingleChildScrollView
             Expanded(
               child: SingleChildScrollView(
@@ -221,15 +222,15 @@ class _SideMenuState extends State<SideMenu> {
               ),
             ),
             // Footer stays at the bottom
-            const Padding(
-              padding: EdgeInsets.only(bottom: 5, top: 10),
+            Padding(
+              padding: EdgeInsets.only(bottom: 5.h, top: 10.h),
               child: Text(
                 '© 2025 Powered by Zevtabs LLC',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
           ],
         ),
       ),
@@ -247,19 +248,19 @@ class _SideMenuState extends State<SideMenu> {
       leading: Icon(
         icon,
         color: isLogout ? Colors.red : const Color(0xFFe6ff00),
-        size: 24,
+        size: 24.sp,
       ),
       title: Text(
         title,
         style: TextStyle(
           color: isLogout ? Colors.red : Colors.white,
-          fontSize: 16,
+          fontSize: 14.sp,
           fontWeight: FontWeight.w500,
         ),
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      contentPadding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
     );
   }
 }
@@ -307,15 +308,15 @@ class _BouncingRocketState extends State<_BouncingRocket>
         return Transform.translate(
           offset: Offset(0, _animation.value),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               color: const Color(0xFFe6ff00).withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.rocket_launch,
-              color: Color(0xFFe6ff00),
-              size: 48,
+              color: const Color(0xFFe6ff00),
+              size: 48.sp,
             ),
           ),
         );
