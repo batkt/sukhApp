@@ -8,8 +8,8 @@ import 'package:sukh_app/core/auth_config.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_guraw.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/utils/page_transitions.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -48,10 +48,6 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
   List<String> bairOptions = [];
   List<String> ortsOptions = [];
   List<String> davkharOptions = [];
-
-  bool isBairOpen = false;
-  bool isOrtsOpen = false;
-  bool isDavkharOpen = false;
 
   final TextEditingController tootController = TextEditingController();
   final TextEditingController ovogController = TextEditingController();
@@ -226,6 +222,373 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
     }
   }
 
+  void _showBairSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0e27),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2.w),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Байр сонгох',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
+                  itemCount: bairOptions.length,
+                  itemBuilder: (context, index) {
+                    final bair = bairOptions[index];
+                    final isSelected = bair == selectedBair;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedBair = bair;
+                        });
+                        Navigator.pop(context);
+                        _loadOrtsOptions(bair);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFe6ff00).withOpacity(0.2)
+                              : Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16.w),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFe6ff00)
+                                : Colors.white.withOpacity(0.2),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.apartment,
+                              size: 24.sp,
+                              color: isSelected
+                                  ? const Color(0xFFe6ff00)
+                                  : Colors.white.withOpacity(0.7),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
+                                bair,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(
+                                Icons.check_circle,
+                                color: const Color(0xFFe6ff00),
+                                size: 24.sp,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 20.h),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOrtsSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0e27),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2.w),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Орц сонгох',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
+                  itemCount: ortsOptions.length,
+                  itemBuilder: (context, index) {
+                    final orts = ortsOptions[index];
+                    final isSelected = orts == selectedOrts;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedOrts = orts;
+                        });
+                        Navigator.pop(context);
+                        if (selectedBair != null) {
+                          _loadDavkharOptions(selectedBair!, orts);
+                        }
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFe6ff00).withOpacity(0.2)
+                              : Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16.w),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFe6ff00)
+                                : Colors.white.withOpacity(0.2),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.meeting_room,
+                              size: 24.sp,
+                              color: isSelected
+                                  ? const Color(0xFFe6ff00)
+                                  : Colors.white.withOpacity(0.7),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
+                                orts,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(
+                                Icons.check_circle,
+                                color: const Color(0xFFe6ff00),
+                                size: 24.sp,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 20.h),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDavkharSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0e27),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2.w),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Давхар сонгох',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
+                  itemCount: davkharOptions.length,
+                  itemBuilder: (context, index) {
+                    final davkhar = davkharOptions[index];
+                    final isSelected = davkhar == selectedDavkhar;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedDavkhar = davkhar;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFe6ff00).withOpacity(0.2)
+                              : Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16.w),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFe6ff00)
+                                : Colors.white.withOpacity(0.2),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.stairs,
+                              size: 24.sp,
+                              color: isSelected
+                                  ? const Color(0xFFe6ff00)
+                                  : Colors.white.withOpacity(0.7),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
+                                davkhar,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(
+                                Icons.check_circle,
+                                color: const Color(0xFFe6ff00),
+                                size: 24.sp,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 20.h),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _validateAndSubmit() async {
     // Force validation mode to show all errors immediately
     setState(() {
@@ -270,19 +633,7 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
 
       Navigator.push(
         context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              Burtguulekh_Guraw(locationData: allData),
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final fadeIn = Tween<double>(
-              begin: 0.0,
-              end: 1.0,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeIn));
-            return FadeTransition(opacity: fadeIn, child: child);
-          },
-        ),
+        PageTransitions.createRoute(Burtguulekh_Guraw(locationData: allData)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -373,537 +724,409 @@ class _BurtguulekhState extends State<Burtguulekh_Khoyor> {
                               ),
                               SizedBox(height: 18.h),
 
-                              // Байр dropdown
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: DropdownButtonFormField2<String>(
-                                  isExpanded: true,
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.zero,
-                                    filled: true,
-                                    fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.5),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: BorderSide.none,
+                              // Bair field - Always visible
+                              GestureDetector(
+                                onTap: isLoadingBuildingDetails
+                                    ? null
+                                    : _showBairSelectionModal,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(100),
+                                    color: AppColors.inputGrayColor.withOpacity(
+                                      0.5,
                                     ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.grayColor,
-                                        width: 1.5,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        offset: const Offset(0, 10),
+                                        blurRadius: 8,
                                       ),
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    errorStyle: TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 13.sp,
-                                    ),
+                                    ],
                                   ),
-                                  hint: Padding(
+                                  child: Padding(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: 5.w,
+                                      horizontal: 20.w,
+                                      vertical: 14.h,
                                     ),
-                                    child: Text(
-                                      isLoadingBuildingDetails
-                                          ? 'Уншиж байна...'
-                                          : 'Байр сонгох',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 15.sp,
-                                      ),
-                                    ),
-                                  ),
-                                  items: bairOptions
-                                      .map(
-                                        (bair) => DropdownMenuItem<String>(
-                                          value: bair,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.apartment,
+                                          size: 20.sp,
+                                          color: selectedBair != null
+                                              ? Colors.white.withOpacity(0.7)
+                                              : Colors.white.withOpacity(0.5),
+                                        ),
+                                        SizedBox(width: 12.w),
+                                        Expanded(
                                           child: Text(
-                                            bair,
+                                            isLoadingBuildingDetails
+                                                ? 'Уншиж байна...'
+                                                : (selectedBair ??
+                                                      'Байр сонгох'),
                                             style: TextStyle(
-                                              color: Colors.white,
                                               fontSize: 15.sp,
+                                              color: selectedBair != null
+                                                  ? Colors.white
+                                                  : Colors.white70,
+                                              fontWeight: selectedBair != null
+                                                  ? FontWeight.w500
+                                                  : FontWeight.normal,
                                             ),
                                           ),
                                         ),
-                                      )
-                                      .toList(),
-                                  selectedItemBuilder: (context) {
-                                    return bairOptions.map((bair) {
-                                      return Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 16.w,
+                                        Icon(
+                                          Icons.arrow_drop_down,
+                                          color: Colors.white,
+                                          size: 24.sp,
                                         ),
-                                        child: Text(
-                                          bair,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15.sp,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                  value: selectedBair,
-                                  onChanged: isLoadingBuildingDetails
-                                      ? null
-                                      : (value) {
-                                          setState(() {
-                                            selectedBair = value;
-                                          });
-                                          if (value != null) {
-                                            _loadOrtsOptions(value);
-                                          }
-                                        },
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Байр сонгоно уу';
-                                    }
-                                    return null;
-                                  },
-                                  buttonStyleData: ButtonStyleData(
-                                    height: 52.h,
-                                    padding: EdgeInsets.only(right: 11.w),
+                                      ],
+                                    ),
                                   ),
-                                  dropdownStyleData: DropdownStyleData(
-                                    maxHeight: 300.h,
+                                ),
+                              ),
+
+                              // Orts field - Show only after bair selected
+                              if (selectedBair != null) ...[
+                                SizedBox(height: 14.h),
+                                GestureDetector(
+                                  onTap: _showOrtsSelectionModal,
+                                  child: Container(
                                     decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(100),
                                       color: AppColors.inputGrayColor
-                                          .withOpacity(0.95),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  menuItemStyleData: MenuItemStyleData(
-                                    height: 46.h,
-                                  ),
-                                  iconStyleData: IconStyleData(
-                                    icon: Icon(
-                                      isBairOpen
-                                          ? Icons.arrow_drop_up
-                                          : Icons.arrow_drop_down,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  onMenuStateChange: (isOpen) {
-                                    setState(() {
-                                      isBairOpen = isOpen;
-                                    });
-                                  },
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
-
-                              // Орц dropdown
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: DropdownButtonFormField2<String>(
-                                  isExpanded: true,
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.zero,
-                                    filled: true,
-                                    fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.5),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.grayColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    errorStyle: TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 13.sp,
-                                    ),
-                                  ),
-                                  hint: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 5.w,
-                                    ),
-                                    child: Text(
-                                      'Орц сонгох',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 15.sp,
-                                      ),
-                                    ),
-                                  ),
-                                  items: ortsOptions
-                                      .map(
-                                        (orts) => DropdownMenuItem<String>(
-                                          value: orts,
-                                          child: Text(
-                                            orts,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 15.sp,
-                                            ),
-                                          ),
+                                          .withOpacity(0.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          offset: const Offset(0, 10),
+                                          blurRadius: 8,
                                         ),
-                                      )
-                                      .toList(),
-                                  selectedItemBuilder: (context) {
-                                    return ortsOptions.map((orts) {
-                                      return Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 16.w,
-                                        ),
-                                        child: Text(
-                                          orts,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15.sp,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                  value: selectedOrts,
-                                  onChanged: selectedBair == null
-                                      ? null
-                                      : (value) {
-                                          setState(() {
-                                            selectedOrts = value;
-                                          });
-                                          if (value != null &&
-                                              selectedBair != null) {
-                                            _loadDavkharOptions(
-                                              selectedBair!,
-                                              value,
-                                            );
-                                          }
-                                        },
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Орц сонгоно уу';
-                                    }
-                                    return null;
-                                  },
-                                  buttonStyleData: ButtonStyleData(
-                                    height: 52.h,
-                                    padding: EdgeInsets.only(right: 11.w),
-                                  ),
-                                  dropdownStyleData: DropdownStyleData(
-                                    maxHeight: 300.h,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.inputGrayColor
-                                          .withOpacity(0.95),
-                                      borderRadius: BorderRadius.circular(20),
+                                      ],
                                     ),
-                                  ),
-                                  menuItemStyleData: MenuItemStyleData(
-                                    height: 46.h,
-                                  ),
-                                  iconStyleData: IconStyleData(
-                                    icon: Icon(
-                                      isOrtsOpen
-                                          ? Icons.arrow_drop_up
-                                          : Icons.arrow_drop_down,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  onMenuStateChange: (isOpen) {
-                                    setState(() {
-                                      isOrtsOpen = isOpen;
-                                    });
-                                  },
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
-
-                              // Давхар dropdown
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: DropdownButtonFormField2<String>(
-                                  isExpanded: true,
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.zero,
-                                    filled: true,
-                                    fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.5),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.grayColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: Colors.redAccent,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    errorStyle: TextStyle(
-                                      color: Colors.redAccent,
-                                      fontSize: 13.sp,
-                                    ),
-                                  ),
-                                  hint: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 5.w,
-                                    ),
-                                    child: Text(
-                                      'Давхар сонгох',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 15.sp,
-                                      ),
-                                    ),
-                                  ),
-                                  items: davkharOptions
-                                      .map(
-                                        (davkhar) => DropdownMenuItem<String>(
-                                          value: davkhar,
-                                          child: Text(
-                                            davkhar,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 15.sp,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  selectedItemBuilder: (context) {
-                                    return davkharOptions.map((davkhar) {
-                                      return Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 16.w,
-                                        ),
-                                        child: Text(
-                                          davkhar,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15.sp,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                  value: selectedDavkhar,
-                                  onChanged: selectedOrts == null
-                                      ? null
-                                      : (value) {
-                                          setState(() {
-                                            selectedDavkhar = value;
-                                          });
-                                        },
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Давхар сонгоно уу';
-                                    }
-                                    return null;
-                                  },
-                                  buttonStyleData: ButtonStyleData(
-                                    height: 52.h,
-                                    padding: EdgeInsets.only(right: 11.w),
-                                  ),
-                                  dropdownStyleData: DropdownStyleData(
-                                    maxHeight: 300.h,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.inputGrayColor
-                                          .withOpacity(0.95),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  menuItemStyleData: MenuItemStyleData(
-                                    height: 46.h,
-                                  ),
-                                  iconStyleData: IconStyleData(
-                                    icon: Icon(
-                                      isDavkharOpen
-                                          ? Icons.arrow_drop_up
-                                          : Icons.arrow_drop_down,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  onMenuStateChange: (isOpen) {
-                                    setState(() {
-                                      isDavkharOpen = isOpen;
-                                    });
-                                  },
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
-
-                              // Тоот input
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: TextFormField(
-                                  controller: tootController,
-                                  focusNode: tootFocus,
-                                  textInputAction: TextInputAction.next,
-                                  onFieldSubmitted: (_) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(ovogFocus);
-                                  },
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: _inputDecoration(
-                                    'Тоот',
-                                    tootController,
-                                  ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                      ? 'Тоот оруулна уу'
-                                      : null,
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
-
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: TextFormField(
-                                  controller: ovogController,
-                                  focusNode: ovogFocus,
-                                  textInputAction: TextInputAction.next,
-                                  onFieldSubmitted: (_) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(nerFocus);
-                                  },
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: _inputDecoration(
-                                    'Овог',
-                                    ovogController,
-                                  ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                      ? 'Овог оруулна уу'
-                                      : null,
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
-                              Container(
-                                decoration: _boxShadowDecoration(),
-                                child: TextFormField(
-                                  controller: nerController,
-                                  focusNode: nerFocus,
-                                  textInputAction: TextInputAction.next,
-
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: _inputDecoration(
-                                    'Нэр',
-                                    nerController,
-                                  ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                      ? 'Нэр оруулна уу'
-                                      : null,
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
-
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
-                                      spreadRadius: 0,
-                                    ),
-                                  ],
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading
-                                        ? null
-                                        : _validateAndSubmit,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFCAD2DB),
-                                      foregroundColor: Colors.black,
+                                    child: Padding(
                                       padding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
                                         vertical: 14.h,
-                                        horizontal: 10,
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          100,
-                                        ),
-                                      ),
-                                      shadowColor: Colors.black.withOpacity(
-                                        0.3,
-                                      ),
-                                      elevation: 8,
-                                    ),
-                                    child: _isLoading
-                                        ? SizedBox(
-                                            height: 18.h,
-                                            width: 18.w,
-                                            child:
-                                                const CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(Colors.black),
-                                                ),
-                                          )
-                                        : Text(
-                                            'Үргэлжлүүлэх',
-                                            style: TextStyle(fontSize: 15.sp),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.meeting_room,
+                                            size: 20.sp,
+                                            color: selectedOrts != null
+                                                ? Colors.white.withOpacity(0.7)
+                                                : Colors.white.withOpacity(0.5),
                                           ),
+                                          SizedBox(width: 12.w),
+                                          Expanded(
+                                            child: Text(
+                                              selectedOrts ?? 'Орц сонгох',
+                                              style: TextStyle(
+                                                fontSize: 15.sp,
+                                                color: selectedOrts != null
+                                                    ? Colors.white
+                                                    : Colors.white70,
+                                                fontWeight: selectedOrts != null
+                                                    ? FontWeight.w500
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.arrow_drop_down,
+                                            color: Colors.white,
+                                            size: 24.sp,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
+
+                              // Davkhar field - Show only after orts selected
+                              if (selectedOrts != null) ...[
+                                SizedBox(height: 14.h),
+                                GestureDetector(
+                                  onTap: _showDavkharSelectionModal,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(100),
+                                      color: AppColors.inputGrayColor
+                                          .withOpacity(0.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          offset: const Offset(0, 10),
+                                          blurRadius: 8,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
+                                        vertical: 14.h,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.stairs,
+                                            size: 20.sp,
+                                            color: selectedDavkhar != null
+                                                ? Colors.white.withOpacity(0.7)
+                                                : Colors.white.withOpacity(0.5),
+                                          ),
+                                          SizedBox(width: 12.w),
+                                          Expanded(
+                                            child: Text(
+                                              selectedDavkhar ??
+                                                  'Давхар сонгох',
+                                              style: TextStyle(
+                                                fontSize: 15.sp,
+                                                color: selectedDavkhar != null
+                                                    ? Colors.white
+                                                    : Colors.white70,
+                                                fontWeight:
+                                                    selectedDavkhar != null
+                                                    ? FontWeight.w500
+                                                    : FontWeight.normal,
+                                              ),
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.arrow_drop_down,
+                                            color: Colors.white,
+                                            size: 24.sp,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              // Last 3 inputs - Show only when all 3 selections made
+                              if (selectedBair != null &&
+                                  selectedOrts != null &&
+                                  selectedDavkhar != null) ...[
+                                SizedBox(height: 14.h),
+                                // Тоот input
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(100),
+                                    color: AppColors.inputGrayColor.withOpacity(
+                                      0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        offset: const Offset(0, 10),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  child: TextFormField(
+                                    controller: tootController,
+                                    focusNode: tootFocus,
+                                    textInputAction: TextInputAction.next,
+                                    onFieldSubmitted: (_) {
+                                      FocusScope.of(
+                                        context,
+                                      ).requestFocus(ovogFocus);
+                                    },
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
+                                        vertical: 14.h,
+                                      ),
+                                      hintText: 'Тоот',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 15.sp,
+                                      ),
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                    ),
+                                    validator: (value) =>
+                                        value == null || value.trim().isEmpty
+                                        ? 'Тоот оруулна уу'
+                                        : null,
+                                  ),
+                                ),
+                                SizedBox(height: 14.h),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(100),
+                                    color: AppColors.inputGrayColor.withOpacity(
+                                      0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        offset: const Offset(0, 10),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  child: TextFormField(
+                                    controller: ovogController,
+                                    focusNode: ovogFocus,
+                                    textInputAction: TextInputAction.next,
+                                    onFieldSubmitted: (_) {
+                                      FocusScope.of(
+                                        context,
+                                      ).requestFocus(nerFocus);
+                                    },
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
+                                        vertical: 14.h,
+                                      ),
+                                      hintText: 'Овог',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 15.sp,
+                                      ),
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                    ),
+                                    validator: (value) =>
+                                        value == null || value.trim().isEmpty
+                                        ? 'Овог оруулна уу'
+                                        : null,
+                                  ),
+                                ),
+                                SizedBox(height: 14.h),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(100),
+                                    color: AppColors.inputGrayColor.withOpacity(
+                                      0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        offset: const Offset(0, 10),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                  child: TextFormField(
+                                    controller: nerController,
+                                    focusNode: nerFocus,
+                                    textInputAction: TextInputAction.next,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
+                                        vertical: 14.h,
+                                      ),
+                                      hintText: 'Нэр',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 15.sp,
+                                      ),
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      errorBorder: InputBorder.none,
+                                      focusedErrorBorder: InputBorder.none,
+                                    ),
+                                    validator: (value) =>
+                                        value == null || value.trim().isEmpty
+                                        ? 'Нэр оруулна уу'
+                                        : null,
+                                  ),
+                                ),
+                              ],
+
+                              // Continue button - Show only when all fields filled
+                              if (selectedBair != null &&
+                                  selectedOrts != null &&
+                                  selectedDavkhar != null &&
+                                  tootController.text.isNotEmpty &&
+                                  ovogController.text.isNotEmpty &&
+                                  nerController.text.isNotEmpty) ...[
+                                SizedBox(height: 14.h),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(100),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        offset: const Offset(0, 10),
+                                        blurRadius: 8,
+                                        spreadRadius: 0,
+                                      ),
+                                    ],
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: _isLoading
+                                          ? null
+                                          : _validateAndSubmit,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFCAD2DB,
+                                        ),
+                                        foregroundColor: Colors.black,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 14.h,
+                                          horizontal: 10,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            100,
+                                          ),
+                                        ),
+                                        shadowColor: Colors.black.withOpacity(
+                                          0.3,
+                                        ),
+                                        elevation: 8,
+                                      ),
+                                      child: _isLoading
+                                          ? SizedBox(
+                                              height: 18.h,
+                                              width: 18.w,
+                                              child:
+                                                  const CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(Colors.black),
+                                                  ),
+                                            )
+                                          : Text(
+                                              'Үргэлжлүүлэх',
+                                              style: TextStyle(fontSize: 15.sp),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

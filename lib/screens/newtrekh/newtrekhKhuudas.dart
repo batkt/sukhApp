@@ -212,7 +212,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 ),
                               ),
                             ),
-                            SizedBox(height: 4.h),
+                            SizedBox(height: 10.h),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -283,7 +283,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 4.h),
+                            SizedBox(height: 10.h),
                             Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(100),
@@ -390,6 +390,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     foregroundColor: Colors.black,
                                     padding: EdgeInsets.symmetric(
                                       vertical: 11.h,
+                                      horizontal: 16.w,
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(100),
@@ -439,8 +440,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   highlightColor: Colors.white.withOpacity(0.1),
                                   child: Container(
                                     padding: EdgeInsets.symmetric(
-                                      vertical: 14.h,
-                                      horizontal: 20.w,
+                                      vertical: 11.h,
+                                      horizontal: 16.w,
                                     ),
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(

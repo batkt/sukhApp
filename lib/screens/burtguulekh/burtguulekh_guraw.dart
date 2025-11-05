@@ -9,6 +9,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/core/auth_config.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_dorow.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/utils/page_transitions.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -273,43 +274,13 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
               // Navigate to password page with all registration data
               Navigator.push(
                 context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      Burtguulekh_Dorow(
-                        registrationData: {
-                          ...?widget.locationData,
-                          'utas': _phoneController.text,
-                        },
-                      ),
-                  transitionDuration: const Duration(milliseconds: 300),
-                  reverseTransitionDuration: const Duration(milliseconds: 300),
-                  transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) {
-                        // Fade out the old page
-                        final fadeOut = Tween<double>(begin: 1.0, end: 0.0)
-                            .animate(
-                              CurvedAnimation(
-                                parent: secondaryAnimation,
-                                curve: Curves.easeOut,
-                              ),
-                            );
-
-                        // Fade in the new page
-                        final fadeIn = Tween<double>(begin: 0.0, end: 1.0)
-                            .animate(
-                              CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeIn,
-                              ),
-                            );
-
-                        return FadeTransition(
-                          opacity: animation.status == AnimationStatus.reverse
-                              ? fadeOut
-                              : fadeIn,
-                          child: child,
-                        );
-                      },
+                PageTransitions.createRoute(
+                  Burtguulekh_Dorow(
+                    registrationData: {
+                      ...?widget.locationData,
+                      'utas': _phoneController.text,
+                    },
+                  ),
                 ),
               );
             }
@@ -372,23 +343,23 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const AppLogo(),
-                              SizedBox(height: isSmallScreen ? 12 : 20),
+                              SizedBox(height: isSmallScreen ? 12.h : 20.h),
                               Text(
                                 'Бүртгэл',
                                 style: TextStyle(
                                   color: AppColors.grayColor,
-                                  fontSize: isSmallScreen ? 22 : 28,
+                                  fontSize: isSmallScreen ? 22.sp : 28.sp,
                                 ),
                                 maxLines: 1,
                                 softWrap: false,
                               ),
 
-                              SizedBox(height: isSmallScreen ? 14 : 18),
+                              SizedBox(height: isSmallScreen ? 14.h : 18.h),
                               if (!_isPhoneSubmitted)
                                 _buildPhoneNumberField(isSmallScreen)
                               else
                                 _buildSecretCodeField(isSmallScreen),
-                              SizedBox(height: isSmallScreen ? 12 : 14),
+                              SizedBox(height: isSmallScreen ? 12.h : 14.h),
                               if (_phoneController.text.length == 8 &&
                                   !_isPhoneSubmitted)
                                 _buildContinueButton(isSmallScreen),
@@ -406,25 +377,25 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
                 ),
               ),
               Positioned(
-                top: 16,
-                left: 16,
+                top: 16.h,
+                left: 16.w,
                 child: SafeArea(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
+                    borderRadius: BorderRadius.circular(100.r),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16.r),
                         ),
                         child: IconButton(
-                          padding: const EdgeInsets.only(left: 7),
+                          padding: EdgeInsets.only(left: 7.w),
                           constraints: const BoxConstraints(),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.arrow_back_ios,
                             color: Colors.white,
-                            size: 20,
+                            size: 20.sp,
                           ),
                           onPressed: () {
                             Navigator.pop(context);
@@ -448,7 +419,11 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
         decoration: _boxShadowDecoration(),
         child: TextFormField(
           controller: _phoneController,
-          style: TextStyle(color: Colors.white, fontSize: 15.sp),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w500,
+          ),
           decoration: _inputDecoration(
             "Утасны дугаар",
             _phoneController,
@@ -473,17 +448,17 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
         // Display phone number
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 16 : 20,
-            vertical: isSmallScreen ? 13 : 16,
+            horizontal: isSmallScreen ? 16.w : 20.w,
+            vertical: isSmallScreen ? 13.h : 16.h,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(100),
+            borderRadius: BorderRadius.circular(100.r),
             color: AppColors.inputGrayColor.withOpacity(0.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.3),
-                offset: const Offset(0, 10),
-                blurRadius: 8,
+                offset: Offset(0, 10.h),
+                blurRadius: 8.r,
               ),
             ],
           ),
@@ -496,7 +471,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             ],
           ),
         ),
-        SizedBox(height: isSmallScreen ? 14 : 18),
+        SizedBox(height: isSmallScreen ? 14.h : 18.h),
         // PIN Input boxes
         AutofillGroup(
           child: Row(
@@ -528,15 +503,15 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
 
   Widget _buildPinBox(int index, bool isSmallScreen) {
     return Container(
-      width: isSmallScreen ? 52 : 60,
-      height: isSmallScreen ? 60 : 70,
+      width: isSmallScreen ? 52.w : 60.w,
+      height: isSmallScreen ? 60.h : 70.h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
-            offset: const Offset(0, 10),
-            blurRadius: 8,
+            offset: Offset(0, 10.h),
+            blurRadius: 8.r,
           ),
         ],
       ),
@@ -560,7 +535,7 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontSize: isSmallScreen ? 20 : 24,
+            fontSize: isSmallScreen ? 20.sp : 24.sp,
             fontWeight: FontWeight.bold,
           ),
           keyboardType: TextInputType.number,
@@ -571,15 +546,12 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
             filled: true,
             fillColor: AppColors.inputGrayColor.withOpacity(0.5),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: AppColors.grayColor,
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: AppColors.grayColor, width: 1.5.w),
             ),
             contentPadding: EdgeInsets.zero,
           ),
@@ -641,12 +613,12 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(100.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
-            offset: const Offset(0, 10),
-            blurRadius: 8,
+            offset: Offset(0, 10.h),
+            blurRadius: 8.r,
             spreadRadius: 0,
           ),
         ],
@@ -658,9 +630,9 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
-            padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 10),
+            padding: EdgeInsets.symmetric(vertical: 11.h, horizontal: 16.w),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100),
+              borderRadius: BorderRadius.circular(100.r),
             ),
             shadowColor: Colors.black.withOpacity(0.3),
             elevation: 8,
@@ -669,12 +641,14 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
               ? SizedBox(
                   height: 18.h,
                   width: 18.w,
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.w,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.black,
+                    ),
                   ),
                 )
-              : Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 18.sp)),
+              : Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 16.sp)),
         ),
       ),
     );
@@ -682,12 +656,12 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
 
   BoxDecoration _boxShadowDecoration() {
     return BoxDecoration(
-      borderRadius: BorderRadius.circular(100),
+      borderRadius: BorderRadius.circular(100.r),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(0.3),
-          offset: const Offset(0, 10),
-          blurRadius: 8,
+          offset: Offset(0, 10.h),
+          blurRadius: 8.r,
         ),
       ],
     );
@@ -699,30 +673,30 @@ class _Burtguulekh_guraw_state extends State<Burtguulekh_Guraw> {
     bool isSmallScreen,
   ) {
     return InputDecoration(
-      contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 11.h),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
       hintStyle: TextStyle(color: Colors.white70, fontSize: 15.sp),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
+        borderRadius: BorderRadius.circular(100.r),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: AppColors.grayColor, width: 1.5),
+        borderRadius: BorderRadius.circular(100.r),
+        borderSide: BorderSide(color: AppColors.grayColor, width: 1.5.w),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        borderRadius: BorderRadius.circular(100.r),
+        borderSide: BorderSide(color: Colors.redAccent, width: 1.5.w),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        borderRadius: BorderRadius.circular(100.r),
+        borderSide: BorderSide(color: Colors.redAccent, width: 1.5.w),
       ),
       errorStyle: TextStyle(
         color: Colors.redAccent,
-        fontSize: isSmallScreen ? 11 : 13,
+        fontSize: isSmallScreen ? 11.sp : 13.sp,
       ),
     );
   }
