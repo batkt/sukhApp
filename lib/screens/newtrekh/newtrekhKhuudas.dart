@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
@@ -103,7 +104,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ),
                                 ],
                               ),
-                              child: TextField(
+                              child: TextFormField(
                                 controller: phoneController,
                                 keyboardType: TextInputType.phone,
                                 autofocus: false,
@@ -146,6 +147,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         )
                                       : null,
                                 ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(8),
+                                ],
                               ),
                             ),
                             SizedBox(height: 10.h),
@@ -160,7 +165,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ),
                                 ],
                               ),
-                              child: TextField(
+                              child: TextFormField(
                                 controller: passwordController,
                                 keyboardType: TextInputType.number,
                                 obscureText: !_isPasswordVisible,
@@ -210,6 +215,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         )
                                       : null,
                                 ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(4),
+                                ],
                               ),
                             ),
                             SizedBox(height: 10.h),
