@@ -624,43 +624,58 @@ class _TokhirgooState extends State<Tokhirgoo>
                                               ),
                                       ),
                                     ),
-                                    SizedBox(height: 24.h),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 50.h,
-                                      child: ElevatedButton(
-                                        onPressed: _isDeletingAccount
-                                            ? null
-                                            : _handleDeleteAccount,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(
-                                            0xFFCAD2DB,
-                                          ),
-                                          foregroundColor: Colors.black,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
+                                    SizedBox(height: 32.h),
+                                    Divider(
+                                      color: Colors.white.withOpacity(0.1),
+                                      height: 1,
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 24.h),
+                                      child: Align(
+                                        alignment: Alignment.center,
+                                        child: TextButton(
+                                          onPressed: _isDeletingAccount
+                                              ? null
+                                              : _handleDeleteAccount,
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 8.w,
+                                              vertical: 4.h,
+                                            ),
+                                            foregroundColor: Colors.redAccent,
+                                            textStyle: TextStyle(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                          elevation: 0,
-                                        ),
-                                        child: _isDeletingAccount
-                                            ? SizedBox(
-                                                height: 20.h,
-                                                width: 20.w,
-                                                child:
-                                                    const CircularProgressIndicator(
-                                                      color: Colors.black,
-                                                      strokeWidth: 2,
+                                          child: _isDeletingAccount
+                                              ? Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    SizedBox(
+                                                      height: 16.h,
+                                                      width: 16.h,
+                                                      child:
+                                                          const CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                            color: Colors
+                                                                .redAccent,
+                                                          ),
                                                     ),
-                                              )
-                                            : Text(
-                                                'Бүртгэл устгах',
-                                                style: TextStyle(
-                                                  fontSize: 16.sp,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
+                                                    SizedBox(width: 8.w),
+                                                    Text(
+                                                      'Устгаж байна...',
+                                                      style: TextStyle(
+                                                        fontSize: 14.sp,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                )
+                                              : const Text('Бүртгэл устгах'),
+                                        ),
                                       ),
                                     ),
                                   ],
