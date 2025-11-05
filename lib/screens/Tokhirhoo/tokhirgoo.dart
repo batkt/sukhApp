@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
@@ -34,12 +35,15 @@ class _TokhirgooState extends State<Tokhirgoo>
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _deletePasswordController = TextEditingController();
 
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _obscureDeletePassword = true;
   bool _isLoading = true;
   bool _isChangingPassword = false;
+  bool _isDeletingAccount = false;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -67,6 +71,7 @@ class _TokhirgooState extends State<Tokhirgoo>
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
+    _deletePasswordController.dispose();
     super.dispose();
   }
 
@@ -172,6 +177,235 @@ class _TokhirgooState extends State<Tokhirgoo>
       if (mounted) {
         setState(() {
           _isChangingPassword = false;
+        });
+      }
+    }
+  }
+
+  Future<String?> _showPasswordInputDialog() async {
+    _deletePasswordController.clear();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1a1a2e),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Нууц үг оруулах',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Бүртгэл устгахын тулд одоогийн нууц үгээ оруулна уу',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  SizedBox(height: 16.h),
+                  TextFormField(
+                    controller: _deletePasswordController,
+                    obscureText: _obscureDeletePassword,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Нууц үг',
+                      labelStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: Color(0xFFe6ff00),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureDeletePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: Colors.white.withOpacity(0.6),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureDeletePassword = !_obscureDeletePassword;
+                          });
+                        },
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.white.withOpacity(0.1),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFe6ff00),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(null);
+                  },
+                  child: const Text(
+                    'Цуцлах',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (_deletePasswordController.text.isEmpty) {
+                      return;
+                    }
+                    Navigator.of(
+                      dialogContext,
+                    ).pop(_deletePasswordController.text);
+                  },
+                  child: const Text(
+                    'Устгах',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _handleDeleteAccount() async {
+    final router = GoRouter.of(context);
+
+    // First confirmation dialog
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1a1a2e),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Бүртгэл устгах',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'Та өөрийн бүртгэлтэй хаягийг устгах хүсэлтэй байна уу?',
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text(
+                'Үгүй',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text(
+                'Тийм',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    // Show password input dialog
+    final password = await _showPasswordInputDialog();
+
+    if (password == null || password.isEmpty) {
+      return;
+    }
+
+    // Show loading state
+    setState(() {
+      _isDeletingAccount = true;
+    });
+
+    try {
+      final response = await ApiService.deleteUser(nuutsUg: password);
+
+      if (mounted) {
+        if (response['success'] == true) {
+          // Success - logout and navigate to login
+          await StorageService.clearAuthData();
+          showGlassSnackBar(
+            context,
+            message: 'Бүртгэл амжилттай устгагдлаа',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+
+          // Wait a moment for the snackbar to show
+          await Future.delayed(const Duration(milliseconds: 500));
+          router.go('/newtrekh');
+        } else {
+          // Error - show error message
+          showGlassSnackBar(
+            context,
+            message: response['aldaa'] ?? 'Бүртгэл устгахад алдаа гарлаа',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Бүртгэл устгахад алдаа гарлаа',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeletingAccount = false;
         });
       }
     }
@@ -383,6 +617,45 @@ class _TokhirgooState extends State<Tokhirgoo>
                                               )
                                             : Text(
                                                 'Нууц код солих',
+                                                style: TextStyle(
+                                                  fontSize: 16.sp,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 24.h),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 50.h,
+                                      child: ElevatedButton(
+                                        onPressed: _isDeletingAccount
+                                            ? null
+                                            : _handleDeleteAccount,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFFCAD2DB,
+                                          ),
+                                          foregroundColor: Colors.black,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        child: _isDeletingAccount
+                                            ? SizedBox(
+                                                height: 20.h,
+                                                width: 20.w,
+                                                child:
+                                                    const CircularProgressIndicator(
+                                                      color: Colors.black,
+                                                      strokeWidth: 2,
+                                                    ),
+                                              )
+                                            : Text(
+                                                'Бүртгэл устгах',
                                                 style: TextStyle(
                                                   fontSize: 16.sp,
                                                   fontWeight: FontWeight.bold,

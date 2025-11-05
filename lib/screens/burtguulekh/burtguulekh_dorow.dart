@@ -94,7 +94,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Dorow> {
           'utas': widget.registrationData?['utas'] ?? '',
           'nuutsUg': _passwordController.text,
           'bairniiNer': widget.registrationData?['bairniiNer'] ?? '',
-          'orts': widget.registrationData?['orts'] ?? '',
           'davkhar': widget.registrationData?['davkhar'] ?? '',
           'toot': widget.registrationData?['toot'] ?? '',
           'ovog': widget.registrationData?['ovog'] ?? '',

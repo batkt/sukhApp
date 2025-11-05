@@ -11,6 +11,7 @@ import 'package:sukh_app/widgets/app_logo.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
+
   const AppBackground({super.key, required this.child});
 
   @override
@@ -32,6 +33,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   String? selectedDistrict;
   String? selectedKhotkhon;
   String? selectedSOKH;
+  String? selectedBair;
+  String? selectedDavkhar;
   String? selectedBaiguullagiinId;
   String? selectedDistrictCode;
   String? selectedHorooKod;
@@ -43,12 +46,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   List<String> districts = [];
   List<Map<String, String>> khotkhons = [];
   List<String> sokhs = [];
+  List<String> bairOptions = [];
+  List<String> davkharOptions = [];
 
   List<Map<String, dynamic>> locationData = [];
 
   bool isLoadingDistricts = false;
   bool isLoadingKhotkhon = false;
   bool isLoadingSOKH = false;
+  bool isLoadingBuildingDetails = false;
 
   @override
   void initState() {
@@ -70,6 +76,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
 
           // Flatten barilguud from all baiguullaga objects
           final Set<String> districtSet = {};
+
           for (var baiguullaga in data) {
             if (baiguullaga['barilguud'] != null &&
                 baiguullaga['barilguud'] is List) {
@@ -82,6 +89,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
               }
             }
           }
+
           districts = districtSet.toList();
           isLoadingDistricts = false;
         });
@@ -113,7 +121,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     });
 
     try {
-      // Flatten and filter barilguud by district
+      // Filter: Only show Хороо that contain at least one СӨХ that has Байр data
       final uniqueHoroos = <String, String>{};
       String? districtBaiguullagiinId;
 
@@ -124,16 +132,22 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
             if (barilga is Map &&
                 barilga['duuregNer'] == district &&
                 barilga['horoo'] != null &&
-                barilga['horoo']['ner'] != null) {
-              final horooNer = barilga['horoo']['ner'].toString();
-              final horooKod = barilga['horoo']['kod'].toString();
-              uniqueHoroos[horooNer] = horooKod;
+                barilga['horoo']['ner'] != null &&
+                barilga['sohNer'] != null &&
+                barilga['sohNer'].toString().isNotEmpty) {
+              // NEW: Check if this СӨХ has Байр data (bairniiNer must exist and be non-empty)
+              if (barilga['bairniiNer'] != null &&
+                  barilga['bairniiNer'].toString().isNotEmpty) {
+                final horooNer = barilga['horoo']['ner'].toString();
+                final horooKod = barilga['horoo']['kod'].toString();
+                uniqueHoroos[horooNer] = horooKod;
 
-              // Get baiguullagiinId from the first matching record
-              if (districtBaiguullagiinId == null &&
-                  baiguullaga['baiguullagiinId'] != null) {
-                districtBaiguullagiinId = baiguullaga['baiguullagiinId']
-                    .toString();
+                // Get baiguullagiinId from the first matching record
+                if (districtBaiguullagiinId == null &&
+                    baiguullaga['baiguullagiinId'] != null) {
+                  districtBaiguullagiinId = baiguullaga['baiguullagiinId']
+                      .toString();
+                }
               }
             }
           }
@@ -175,7 +189,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     });
 
     try {
-      // Flatten and filter barilguud by district and horoo
+      // Filter: Only show СӨХ that contain at least one Байр that has Давхар data
       final Set<String> uniqueSOKHs = {};
 
       for (var baiguullaga in locationData) {
@@ -188,7 +202,16 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                 barilga['horoo']['ner'] == horooNer &&
                 barilga['sohNer'] != null &&
                 barilga['sohNer'].toString().isNotEmpty) {
-              uniqueSOKHs.add(barilga['sohNer'].toString());
+              // NEW: Check if this СӨХ has Байр with Давхар data
+              // Байр must exist (bairniiNer) and have at least one Давхар
+              if (barilga['bairniiNer'] != null &&
+                  barilga['bairniiNer'].toString().isNotEmpty) {
+                final davkhar = barilga['davkhar'];
+                if (davkhar != null && davkhar is List && davkhar.isNotEmpty) {
+                  // This СӨХ has Байр with Давхар, so include it
+                  uniqueSOKHs.add(barilga['sohNer'].toString());
+                }
+              }
             }
           }
         }
@@ -236,6 +259,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                 selectedDistrictCode = barilga['districtCode']?.toString();
                 selectedHorooKod = barilga['horoo']['kod']?.toString();
               });
+
+              _loadBuildingDetails(); // Load building details after getting ID
               return; // Found the match, exit
             }
           }
@@ -244,11 +269,359 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     }
   }
 
+  Future<void> _loadBuildingDetails() async {
+    if (selectedBaiguullagiinId == null) {
+      return;
+    }
+
+    setState(() {
+      isLoadingBuildingDetails = true;
+      selectedBair = null;
+      bairOptions = [];
+    });
+
+    try {
+      final buildingDetails = await ApiService.fetchBuildingDetails(
+        baiguullagiinId: selectedBaiguullagiinId!,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (buildingDetails['barilguud'] != null &&
+              buildingDetails['barilguud'] is List) {
+            final bairSet = <String>{};
+
+            for (var barilga in buildingDetails['barilguud']) {
+              if (barilga is Map &&
+                  barilga['bairniiNer'] != null &&
+                  barilga['bairniiNer'].toString().isNotEmpty) {
+                // NEW: Only show Байр that have at least one Давхар
+                final davkhar = barilga['davkhar'];
+                if (davkhar != null && davkhar is List && davkhar.isNotEmpty) {
+                  bairSet.add(barilga['bairniiNer'].toString());
+                }
+              }
+            }
+
+            bairOptions = bairSet.toList()..sort();
+          }
+          isLoadingBuildingDetails = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoadingBuildingDetails = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: 'Барилгын мэдээлэл татахад алдаа гарлаа: $e',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
+  Future<void> _loadDavkharOptions(String bairNer) async {
+    if (selectedBaiguullagiinId == null) {
+      return;
+    }
+
+    setState(() {
+      selectedDavkhar = null;
+      davkharOptions = [];
+    });
+
+    try {
+      final buildingDetails = await ApiService.fetchBuildingDetails(
+        baiguullagiinId: selectedBaiguullagiinId!,
+      );
+
+      if (mounted) {
+        setState(() {
+          // Find the barilga matching the selected bair
+          if (buildingDetails['barilguud'] != null &&
+              buildingDetails['barilguud'] is List) {
+            for (var barilga in buildingDetails['barilguud']) {
+              if (barilga is Map && barilga['bairniiNer'] == bairNer) {
+                // Extract davkhar array from this barilga
+                if (barilga['davkhar'] != null && barilga['davkhar'] is List) {
+                  davkharOptions =
+                      (barilga['davkhar'] as List)
+                          .map((e) => e.toString())
+                          .where((e) => e.isNotEmpty)
+                          .toList()
+                        ..sort();
+                }
+                break; // Found the matching barilga
+              }
+            }
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Давхарын мэдээлэл татахад алдаа гарлаа: $e',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
+  void _showBairSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0e27),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2.w),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Байр сонгох',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
+                  itemCount: bairOptions.length,
+                  itemBuilder: (context, index) {
+                    final bair = bairOptions[index];
+                    final isSelected = bair == selectedBair;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedBair = bair;
+                        });
+                        Navigator.pop(context);
+                        _loadDavkharOptions(bair);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFe6ff00).withOpacity(0.2)
+                              : Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16.w),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFe6ff00)
+                                : Colors.white.withOpacity(0.2),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.apartment,
+                              size: 24.sp,
+                              color: isSelected
+                                  ? const Color(0xFFe6ff00)
+                                  : Colors.white.withOpacity(0.7),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
+                                bair,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(
+                                Icons.check_circle,
+                                color: const Color(0xFFe6ff00),
+                                size: 24.sp,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 20.h),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDavkharSelectionModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0a0e27),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(30.w),
+              topRight: Radius.circular(30.w),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2.w),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Давхар сонгох',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
+                  itemCount: davkharOptions.length,
+                  itemBuilder: (context, index) {
+                    final davkhar = davkharOptions[index];
+                    final isSelected = davkhar == selectedDavkhar;
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedDavkhar = davkhar;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFe6ff00).withOpacity(0.2)
+                              : Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16.w),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFe6ff00)
+                                : Colors.white.withOpacity(0.2),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.stairs,
+                              size: 24.sp,
+                              color: isSelected
+                                  ? const Color(0xFFe6ff00)
+                                  : Colors.white.withOpacity(0.7),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Text(
+                                davkhar,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              Icon(
+                                Icons.check_circle,
+                                color: const Color(0xFFe6ff00),
+                                size: 24.sp,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(height: 20.h),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _validateAndSubmit(BuildContext context) {
     if (selectedBaiguullagiinId != null &&
         selectedDistrict != null &&
         selectedKhotkhon != null &&
-        selectedSOKH != null) {
+        selectedSOKH != null &&
+        selectedBair != null &&
+        selectedDavkhar != null) {
       // Initialize AuthConfig with selected location (async operation)
       AuthConfig.instance.initialize(
         duureg: selectedDistrict,
@@ -262,6 +635,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         'duureg': selectedDistrict,
         'horoo': selectedHorooKod, // Pass horoo.kod for API (may be null)
         'soh': selectedSOKH,
+        'bairniiNer': selectedBair,
+        'davkhar': selectedDavkhar,
         'baiguullagiinId':
             selectedBaiguullagiinId, // This is now set when district is selected
       };
@@ -279,7 +654,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       // Navigate to next screen with location data
       Future.delayed(const Duration(milliseconds: 200), () {
         if (!mounted) return;
-
         navigator.push(
           MaterialPageRoute(
             builder: (context) =>
@@ -926,10 +1300,158 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                     ),
                                   ],
 
+                                  // Bair field - Show only after SOKH selected
+                                  if (selectedSOKH != null) ...[
+                                    SizedBox(height: 14.h),
+                                    GestureDetector(
+                                      onTap: isLoadingBuildingDetails
+                                          ? null
+                                          : _showBairSelectionModal,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            100,
+                                          ),
+                                          color: AppColors.inputGrayColor
+                                              .withOpacity(0.5),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.3,
+                                              ),
+                                              offset: const Offset(0, 10),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 16.w,
+                                            vertical: 14.h,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                isLoadingBuildingDetails
+                                                    ? Icons
+                                                          .hourglass_empty_rounded
+                                                    : Icons.apartment,
+                                                size: 20.sp,
+                                                color: selectedBair != null
+                                                    ? Colors.white.withOpacity(
+                                                        0.7,
+                                                      )
+                                                    : Colors.white.withOpacity(
+                                                        0.5,
+                                                      ),
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Expanded(
+                                                child: Text(
+                                                  isLoadingBuildingDetails
+                                                      ? 'Уншиж байна...'
+                                                      : (selectedBair ??
+                                                            'Байр сонгох'),
+                                                  style: TextStyle(
+                                                    fontSize: 15.sp,
+                                                    color: selectedBair != null
+                                                        ? Colors.white
+                                                        : Colors.white70,
+                                                    fontWeight:
+                                                        selectedBair != null
+                                                        ? FontWeight.w500
+                                                        : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ),
+                                              Icon(
+                                                Icons.arrow_drop_down,
+                                                color: Colors.white,
+                                                size: 24.sp,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+
+                                  // Davkhar field - Show only after bair selected
+                                  if (selectedBair != null) ...[
+                                    SizedBox(height: 14.h),
+                                    GestureDetector(
+                                      onTap: _showDavkharSelectionModal,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            100,
+                                          ),
+                                          color: AppColors.inputGrayColor
+                                              .withOpacity(0.5),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.3,
+                                              ),
+                                              offset: const Offset(0, 10),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 16.w,
+                                            vertical: 14.h,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.stairs,
+                                                size: 20.sp,
+                                                color: selectedDavkhar != null
+                                                    ? Colors.white.withOpacity(
+                                                        0.7,
+                                                      )
+                                                    : Colors.white.withOpacity(
+                                                        0.5,
+                                                      ),
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Expanded(
+                                                child: Text(
+                                                  selectedDavkhar ??
+                                                      'Давхар сонгох',
+                                                  style: TextStyle(
+                                                    fontSize: 15.sp,
+                                                    color:
+                                                        selectedDavkhar != null
+                                                        ? Colors.white
+                                                        : Colors.white70,
+                                                    fontWeight:
+                                                        selectedDavkhar != null
+                                                        ? FontWeight.w500
+                                                        : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ),
+                                              Icon(
+                                                Icons.arrow_drop_down,
+                                                color: Colors.white,
+                                                size: 24.sp,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+
                                   // Continue button - Show only when all fields selected
                                   if (selectedDistrict != null &&
                                       selectedKhotkhon != null &&
-                                      selectedSOKH != null) ...[
+                                      selectedSOKH != null &&
+                                      selectedBair != null &&
+                                      selectedDavkhar != null) ...[
                                     SizedBox(height: 14.h),
                                     Container(
                                       decoration: BoxDecoration(

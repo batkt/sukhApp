@@ -746,6 +746,26 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> deleteUser({
+    required String nuutsUg,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/orshinSuugch/oorooUstgakh'),
+        headers: headers,
+        body: json.encode({'nuutsUg': nuutsUg}),
+      );
+
+      final data = json.decode(response.body);
+      return data;
+    } catch (e) {
+      print('Error deleting user: $e');
+      throw Exception('Бүртгэлтэй хаяг устгахад алдаа гарлаа: $e');
+    }
+  }
+
   // Fetch building details (bair, orts, davkhar) based on location
   static Future<Map<String, dynamic>> fetchBuildingDetails({
     required String baiguullagiinId,
