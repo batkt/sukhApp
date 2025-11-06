@@ -326,8 +326,8 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                         child: IntrinsicHeight(
                           child: Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 50.w,
-                              vertical: 40.h,
+                              horizontal: 40.w,
+                              vertical: 30.h,
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -338,7 +338,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                                   'Нууц код сэргээх',
                                   style: TextStyle(
                                     color: AppColors.grayColor,
-                                    fontSize: 24.sp,
+                                    fontSize: 22.sp,
                                   ),
                                 ),
                                 SizedBox(height: 20.h),
@@ -439,20 +439,14 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
       child: TextField(
         controller: _phoneController,
         keyboardType: TextInputType.phone,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 15.sp,
-        ),
+        style: TextStyle(color: Colors.white, fontSize: 15.sp),
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
           LengthLimitingTextInputFormatter(8),
         ],
         decoration: InputDecoration(
           hintText: 'Утасны дугаар',
-          hintStyle: TextStyle(
-            color: Colors.white70,
-            fontSize: 15.sp,
-          ),
+          hintStyle: TextStyle(color: Colors.white70, fontSize: 15.sp),
           filled: true,
           fillColor: AppColors.inputGrayColor.withOpacity(0.5),
           contentPadding: EdgeInsets.symmetric(
@@ -486,10 +480,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
       children: [
         // Display phone number with edit button
         Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 25.w,
-            vertical: 18.h,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 18.h),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(100),
             color: AppColors.inputGrayColor.withOpacity(0.5),
@@ -506,10 +497,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             children: [
               Text(
                 _phoneController.text,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 16.sp),
               ),
               GestureDetector(
                 onTap: () {
@@ -753,20 +741,14 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             controller: _newPasswordController,
             obscureText: _obscureNewPassword,
             keyboardType: TextInputType.number,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15.sp,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 15.sp),
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(4),
             ],
             decoration: InputDecoration(
               hintText: 'Шинэ нууц код (4 орон)',
-              hintStyle: TextStyle(
-                color: Colors.white70,
-                fontSize: 15.sp,
-              ),
+              hintStyle: TextStyle(color: Colors.white70, fontSize: 15.sp),
               filled: true,
               fillColor: AppColors.inputGrayColor.withOpacity(0.5),
               contentPadding: EdgeInsets.symmetric(
@@ -826,20 +808,14 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             controller: _confirmPasswordController,
             obscureText: _obscureConfirmPassword,
             keyboardType: TextInputType.number,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15.sp,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 15.sp),
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(4),
             ],
             decoration: InputDecoration(
               hintText: 'Нууц код давтах',
-              hintStyle: TextStyle(
-                color: Colors.white70,
-                fontSize: 15.sp,
-              ),
+              hintStyle: TextStyle(color: Colors.white70, fontSize: 15.sp),
               filled: true,
               fillColor: AppColors.inputGrayColor.withOpacity(0.5),
               contentPadding: EdgeInsets.symmetric(
@@ -933,10 +909,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                   ),
                 )
-              : Text(
-                  'Үргэлжлүүлэх',
-                  style: TextStyle(fontSize: 16.sp),
-                ),
+              : Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 16.sp)),
         ),
       ),
     );

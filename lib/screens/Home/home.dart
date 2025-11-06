@@ -706,7 +706,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
       return 'Төлөх ёстой огноо: $year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
     }
 
-    // If no unpaid invoice, show next invoice date
     if (nekhemjlekhUusgekhOgnoo != null) {
       DateTime nextInvoiceDate;
 

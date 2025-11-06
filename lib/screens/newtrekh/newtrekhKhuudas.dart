@@ -269,7 +269,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             'Намайг сана',
                                             style: TextStyle(
                                               color: AppColors.grayColor,
-                                              fontSize: 15.sp,
+                                              fontSize: isTablet
+                                                  ? 11.sp
+                                                  : 15.sp,
                                               fontWeight: FontWeight.w500,
                                             ),
                                             overflow: TextOverflow.ellipsis,
@@ -293,10 +295,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             MaterialTapTargetSize.shrinkWrap,
                                       ),
                                       child: Text(
-                                        'Нууц кодоо мартсан уу?',
+                                        'Нууц код сэргээх',
                                         style: TextStyle(
                                           color: AppColors.grayColor,
-                                          fontSize: 15.sp,
+                                          fontSize: isTablet ? 11.sp : 15.sp,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
