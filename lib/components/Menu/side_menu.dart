@@ -157,7 +157,7 @@ class _SideMenuState extends State<SideMenu> {
 
                     _buildMenuItem(
                       context,
-                      icon: Icons.history,
+                      icon: Icons.receipt,
                       title: 'Гэрээ',
                       onTap: () {
                         Navigator.pop(context);

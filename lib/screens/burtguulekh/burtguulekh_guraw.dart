@@ -36,29 +36,24 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
   AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   bool _isLoading = false;
 
-  final TextEditingController tootController = TextEditingController();
   final TextEditingController ovogController = TextEditingController();
   final TextEditingController nerController = TextEditingController();
 
-  final FocusNode tootFocus = FocusNode();
   final FocusNode ovogFocus = FocusNode();
   final FocusNode nerFocus = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    tootController.addListener(() => setState(() {}));
     ovogController.addListener(() => setState(() {}));
     nerController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    tootController.dispose();
     ovogController.dispose();
     nerController.dispose();
 
-    tootFocus.dispose();
     ovogFocus.dispose();
     nerFocus.dispose();
 
@@ -89,7 +84,6 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
     try {
       final allData = {
         ...?widget.locationData,
-        'toot': tootController.text,
         'ovog': ovogController.text,
         'ner': nerController.text,
       };
@@ -116,36 +110,6 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
         iconColor: Colors.redAccent,
       );
     }
-  }
-
-  InputDecoration _inputDecoration(
-    String hint,
-    TextEditingController controller,
-  ) {
-    return InputDecoration(
-      contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
-      filled: true,
-      fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.white70, fontSize: 15.sp),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: AppColors.grayColor, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-      ),
-      errorStyle: TextStyle(color: Colors.redAccent, fontSize: 13.sp),
-    );
   }
 
   @override
@@ -192,59 +156,6 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                                 softWrap: false,
                               ),
                               SizedBox(height: 18.h),
-
-                              // Тоот input
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  color: AppColors.inputGrayColor.withOpacity(
-                                    0.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                                child: TextFormField(
-                                  controller: tootController,
-                                  focusNode: tootFocus,
-                                  textInputAction: TextInputAction.next,
-                                  onFieldSubmitted: (_) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(ovogFocus);
-                                  },
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 20.w,
-                                      vertical: 14.h,
-                                    ),
-                                    hintText: 'Тоот',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 15.sp,
-                                    ),
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                  ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                          ? 'Тоот оруулна уу'
-                                          : null,
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
 
                               // Овог input
                               Container(
@@ -347,8 +258,7 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                               ),
 
                               // Continue button - Show only when all fields filled
-                              if (tootController.text.isNotEmpty &&
-                                  ovogController.text.isNotEmpty &&
+                              if (ovogController.text.isNotEmpty &&
                                   nerController.text.isNotEmpty) ...[
                                 SizedBox(height: 14.h),
                                 Container(

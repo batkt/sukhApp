@@ -459,7 +459,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
               SizedBox(height: 12.h),
 
-              // Payment Date Display Section with scrolling
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
