@@ -1,7 +1,7 @@
 /// Centralized API endpoints configuration
 class ApiEndpoints {
   // Base URL
-  static const String baseUrl = 'http://103.143.40.46:8084';
+  static const String baseUrl = 'https://amarhome.mn/api/';
 
   // API Version (if needed in future)
   static const String apiVersion = 'v1';
@@ -16,9 +16,9 @@ class ApiEndpoints {
   // Location Endpoints
   static const String baiguullaga = '/baiguullaga';
   static const String districts = '/locations/districts';
-  static String khotkhons(String districtId) => '/locations/khotkhons/$districtId';
+  static String khotkhons(String districtId) =>
+      '/locations/khotkhons/$districtId';
   static String sokhs(String khotkhonCode) => '/locations/sokhs/$khotkhonCode';
-
 
   static const String userProfile = '/users/profile';
   static const String updateProfile = '/users/profile';

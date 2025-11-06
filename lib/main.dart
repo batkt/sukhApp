@@ -58,7 +58,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-      designSize: const Size(375, 812), // Standard design size that works well for all phones
+      designSize: const Size(
+        375,
+        812,
+      ),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/router/app_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({Key? key}) : super(key: key);
@@ -147,9 +148,10 @@ class _SideMenuState extends State<SideMenu> {
                     _buildMenuItem(
                       context,
                       icon: Icons.dashboard_outlined,
-                      title: 'Хянах самбар',
+                      title: 'Хувийн мэдээлэл',
                       onTap: () {
                         Navigator.pop(context);
+                        context.push('/profile');
                       },
                     ),
 
@@ -217,10 +219,86 @@ class _SideMenuState extends State<SideMenu> {
                         context.push('/tokhirgoo');
                       },
                     ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.logout,
+                      title: 'Гарах',
+                      onTap: () async {
+                        final router = GoRouter.of(context);
+
+                        Navigator.pop(context);
+
+                        final shouldLogout = await showDialog<bool>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext dialogContext) {
+                            return AlertDialog(
+                              backgroundColor: const Color(0xFF1a1a2e),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              title: const Text(
+                                'Гарах',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              content: const Text(
+                                'Та системээс гарахдаа итгэлтэй байна уу?',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(dialogContext).pop(false);
+                                  },
+                                  child: const Text(
+                                    'Үгүй',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(dialogContext).pop(true);
+                                  },
+                                  child: const Text(
+                                    'Тийм',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (shouldLogout == true) {
+                          // Clear authentication data
+                          await StorageService.clearAuthData();
+
+                          // Navigate to login screen using the stored router
+                          router.go('/newtrekh');
+                        }
+                      },
+                      isLogout: true,
+                    ),
                   ],
                 ),
               ),
             ),
+
+            SizedBox(height: 10.h),
             // Footer stays at the bottom
             Padding(
               padding: EdgeInsets.only(bottom: 5.h, top: 10.h),

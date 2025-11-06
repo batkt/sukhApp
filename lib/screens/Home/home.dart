@@ -338,39 +338,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
     );
   }
 
-  Widget _buildProfileMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    bool isLogout = false,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isLogout ? Colors.red : const Color(0xFFe6ff00),
-              size: 22.sp,
-            ),
-            SizedBox(width: 12.w),
-            Text(
-              title,
-              style: TextStyle(
-                color: isLogout ? Colors.red : Colors.white,
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -409,7 +376,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                             padding: EdgeInsets.all(10.w),
                             child: Icon(
                               Icons.menu_rounded,
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white,
                               size: 26.sp,
                             ),
                           ),
@@ -434,206 +401,20 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () {
-                                final RenderBox renderBox =
-                                    context.findRenderObject() as RenderBox;
-                                final position = renderBox.localToGlobal(
-                                  Offset.zero,
-                                );
-
-                                showGeneralDialog(
-                                  context: context,
-                                  barrierDismissible: true,
-                                  barrierLabel: '',
-                                  barrierColor: Colors.transparent,
-                                  transitionDuration: const Duration(
-                                    milliseconds: 200,
-                                  ),
-                                  pageBuilder: (context, animation, secondaryAnimation) {
-                                    return Material(
-                                      color: Colors.transparent,
-                                      child: Stack(
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () => Navigator.pop(context),
-                                            child: Container(
-                                              color: Colors.transparent,
-                                            ),
-                                          ),
-                                          Positioned(
-                                            top: position.dy + 120,
-                                            right: 16.w,
-                                            child: FadeTransition(
-                                              opacity: animation,
-                                              child: Container(
-                                                width: 200.w,
-                                                decoration: BoxDecoration(
-                                                  color: const Color(
-                                                    0xFF1a1a2e,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black
-                                                          .withOpacity(0.3),
-                                                      blurRadius: 20,
-                                                      offset: const Offset(
-                                                        0,
-                                                        10,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    _buildProfileMenuItem(
-                                                      context,
-                                                      icon: Icons
-                                                          .settings_outlined,
-                                                      title: 'Тохиргоо',
-                                                      onTap: () {
-                                                        context.push(
-                                                          '/tokhirgoo',
-                                                        );
-                                                      },
-                                                    ),
-
-                                                    const Divider(
-                                                      color: Colors.white12,
-                                                      height: 1,
-                                                    ),
-                                                    _buildProfileMenuItem(
-                                                      context,
-                                                      icon: Icons.logout,
-                                                      title: 'Гарах',
-                                                      onTap: () async {
-                                                        // Store the router before popping
-                                                        final router =
-                                                            GoRouter.of(
-                                                              context,
-                                                            );
-
-                                                        Navigator.pop(context);
-
-                                                        final shouldLogout = await showDialog<bool>(
-                                                          context: context,
-                                                          barrierDismissible:
-                                                              false,
-                                                          builder:
-                                                              (
-                                                                BuildContext
-                                                                dialogContext,
-                                                              ) {
-                                                                return AlertDialog(
-                                                                  backgroundColor:
-                                                                      const Color(
-                                                                        0xFF1a1a2e,
-                                                                      ),
-                                                                  shape: RoundedRectangleBorder(
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                          16,
-                                                                        ),
-                                                                  ),
-                                                                  title: const Text(
-                                                                    'Гарах',
-                                                                    style: TextStyle(
-                                                                      color: Colors
-                                                                          .white,
-                                                                      fontSize:
-                                                                          20,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold,
-                                                                    ),
-                                                                  ),
-                                                                  content: const Text(
-                                                                    'Та системээс гарахдаа итгэлтэй байна уу?',
-                                                                    style: TextStyle(
-                                                                      color: Colors
-                                                                          .white70,
-                                                                      fontSize:
-                                                                          16,
-                                                                    ),
-                                                                  ),
-                                                                  actions: [
-                                                                    TextButton(
-                                                                      onPressed: () {
-                                                                        Navigator.of(
-                                                                          dialogContext,
-                                                                        ).pop(
-                                                                          false,
-                                                                        );
-                                                                      },
-                                                                      child: const Text(
-                                                                        'Үгүй',
-                                                                        style: TextStyle(
-                                                                          color:
-                                                                              Colors.white70,
-                                                                          fontSize:
-                                                                              16,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    TextButton(
-                                                                      onPressed: () {
-                                                                        Navigator.of(
-                                                                          dialogContext,
-                                                                        ).pop(
-                                                                          true,
-                                                                        );
-                                                                      },
-                                                                      child: const Text(
-                                                                        'Тийм',
-                                                                        style: TextStyle(
-                                                                          color:
-                                                                              Colors.red,
-                                                                          fontSize:
-                                                                              16,
-                                                                          fontWeight:
-                                                                              FontWeight.bold,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                );
-                                                              },
-                                                        );
-
-                                                        if (shouldLogout ==
-                                                            true) {
-                                                          // Clear authentication data
-                                                          await StorageService.clearAuthData();
-
-                                                          // Navigate to login screen using the stored router
-                                                          router.go(
-                                                            '/newtrekh',
-                                                          );
-                                                        }
-                                                      },
-                                                      isLogout: true,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
+                              onTap: _showPaymentModal,
                               borderRadius: BorderRadius.circular(100),
                               child: Padding(
-                                padding: EdgeInsets.all(10.w),
-                                child: Icon(
-                                  Icons.person_rounded,
-                                  color: Colors.white.withOpacity(0.3),
-                                  size: 26.sp,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 18.h,
+                                ),
+                                child: Text(
+                                  'Төлөх',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -671,42 +452,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           ),
                         ),
                       ],
-                    ),
-                    const Spacer(),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFe6ff00),
-                        borderRadius: BorderRadius.circular(100),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.25),
-                            blurRadius: 12,
-                            spreadRadius: 0,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _showPaymentModal,
-                          borderRadius: BorderRadius.circular(100),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 18.w,
-                              vertical: 8.h,
-                            ),
-                            child: Text(
-                              'Төлөх',
-                              style: TextStyle(
-                                color: const Color(0xFF0a0e27),
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 ),

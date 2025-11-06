@@ -7,6 +7,7 @@ import 'package:sukh_app/screens/newtrekh/newtrekhKhuudas.dart';
 import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
 import 'package:sukh_app/screens/Home/home.dart';
 import 'package:sukh_app/screens/Tokhirhoo/tokhirgoo.dart';
+import 'package:sukh_app/screens/Profile/profile.dart';
 import 'package:sukh_app/screens/geree/geree.dart';
 import 'package:sukh_app/screens/nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
@@ -51,110 +52,135 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const Newtrekhkhuudas(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const Newtrekhkhuudas(),
+          ),
     ),
     GoRoute(
       path: '/nuur',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: NuurKhuudas(key: UniqueKey()),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: NuurKhuudas(key: UniqueKey()),
+          ),
     ),
     GoRoute(
       path: '/newtrekh',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const Newtrekhkhuudas(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const Newtrekhkhuudas(),
+          ),
     ),
     GoRoute(
       path: '/nuutsUg',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const NuutsUgSergeekh(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const NuutsUgSergeekh(),
+          ),
     ),
     GoRoute(
       path: '/ekhniikh',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: OnboardingScreen(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: OnboardingScreen(),
+          ),
     ),
     GoRoute(
       path: '/burtguulekh_neg',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const Burtguulekh_Neg(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const Burtguulekh_Neg(),
+          ),
     ),
     GoRoute(
       path: '/burtguulekh_khoyor',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: Burtguulekh_Khoyor(
-          locationData: state.extra as Map<String, dynamic>?,
-        ),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: Burtguulekh_Khoyor(
+              locationData: state.extra as Map<String, dynamic>?,
+            ),
+          ),
     ),
     GoRoute(
       path: '/burtguulekh_guraw',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: Burtguulekh_Guraw(locationData: state.extra as Map<String, dynamic>?),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: Burtguulekh_Guraw(
+              locationData: state.extra as Map<String, dynamic>?,
+            ),
+          ),
     ),
     GoRoute(
       path: '/tokhirgoo',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const Tokhirgoo(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const Tokhirgoo(),
+          ),
+    ),
+    GoRoute(
+      path: '/profile',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const CreateProfile(),
+          ),
     ),
     GoRoute(
       path: '/geree',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const Geree(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const Geree(),
+          ),
     ),
     GoRoute(
       path: '/nekhemjlekh',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const NekhemjlekhPage(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const NekhemjlekhPage(),
+          ),
     ),
     GoRoute(
       path: '/sanal_khuselt',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const SanalKhuseltPage(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const SanalKhuseltPage(),
+          ),
     ),
     GoRoute(
       path: '/duudlaga',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const DuudlagaPage(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const DuudlagaPage(),
+          ),
     ),
     GoRoute(
       path: '/mashin',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const MashinPage(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const MashinPage(),
+          ),
     ),
     GoRoute(
       path: '/medegdel',
-      pageBuilder: (context, state) => PageTransitions.buildFadeThroughTransition(
-        key: state.pageKey,
-        child: const MedegdelPage(),
-      ),
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const MedegdelPage(),
+          ),
     ),
   ],
 );

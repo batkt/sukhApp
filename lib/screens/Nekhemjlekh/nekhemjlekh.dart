@@ -2585,18 +2585,23 @@ class NekhemjlekhItem {
 
   factory NekhemjlekhItem.fromJson(Map<String, dynamic> json) {
     return NekhemjlekhItem(
-      id: json['_id'] ?? '',
-      baiguullagiinNer: json['baiguullagiinNer'] ?? '',
-      ovog: json['ovog'] ?? '',
-      ner: json['ner'] ?? '',
-      register: json['register'] ?? '',
-      khayag: json['khayag'] ?? '',
-      gereeniiDugaar: json['gereeniiDugaar'] ?? '',
-      nekhemjlekhiinOgnoo: json['nekhemjlekhiinOgnoo'] ?? json['ognoo'] ?? '',
+      id: json['_id']?.toString() ?? '',
+      baiguullagiinNer: json['baiguullagiinNer']?.toString() ?? '',
+      ovog: json['ovog']?.toString() ?? '',
+      ner: json['ner']?.toString() ?? '',
+      register: json['register']?.toString() ?? '',
+      khayag: json['khayag']?.toString() ?? '',
+      gereeniiDugaar: json['gereeniiDugaar']?.toString() ?? '',
+      nekhemjlekhiinOgnoo:
+          json['nekhemjlekhiinOgnoo']?.toString() ??
+          json['ognoo']?.toString() ??
+          '',
       niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),
-      utas: json['utas'] != null ? List<String>.from(json['utas']) : [],
-      dansniiDugaar: json['dansniiDugaar'] ?? '',
-      tuluv: json['tuluv'] ?? 'Төлөөгүй',
+      utas: json['utas'] != null
+          ? (json['utas'] as List).map((e) => e.toString()).toList()
+          : [],
+      dansniiDugaar: json['dansniiDugaar']?.toString() ?? '',
+      tuluv: json['tuluv']?.toString() ?? 'Төлөөгүй',
       medeelel: json['medeelel'] != null
           ? NekhemjlekhMedeelel.fromJson(json['medeelel'])
           : null,
@@ -2643,8 +2648,8 @@ class NekhemjlekhMedeelel {
       zardluud: json['zardluud'] != null
           ? (json['zardluud'] as List).map((z) => Zardal.fromJson(z)).toList()
           : [],
-      toot: (json['toot'] ?? ''),
-      temdeglel: json['temdeglel'] ?? '',
+      toot: json['toot']?.toString() ?? '',
+      temdeglel: json['temdeglel']?.toString() ?? '',
     );
   }
 }
@@ -2668,11 +2673,11 @@ class Zardal {
 
   factory Zardal.fromJson(Map<String, dynamic> json) {
     return Zardal(
-      ner: json['ner'] ?? '',
-      turul: json['turul'] ?? '',
+      ner: json['ner']?.toString() ?? '',
+      turul: json['turul']?.toString() ?? '',
       tariff: (json['tariff'] ?? 0).toDouble(),
-      tariffUsgeer: json['tariffUsgeer'] ?? '₮',
-      zardliinTurul: json['zardliinTurul'] ?? '',
+      tariffUsgeer: json['tariffUsgeer']?.toString() ?? '₮',
+      zardliinTurul: json['zardliinTurul']?.toString() ?? '',
       dun: (json['dun'] ?? 0).toDouble(),
     );
   }
@@ -2729,7 +2734,7 @@ class VATReceipt {
   final List<VATPayment> payments;
   final String nekhemjlekhiinId;
   final String gereeniiDugaar;
-  final String utas;
+  final int utas;
   final String? receiptId;
 
   VATReceipt({
