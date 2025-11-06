@@ -405,8 +405,8 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               borderRadius: BorderRadius.circular(100),
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 18.h,
+                                  horizontal: 18.w,
+                                  vertical: 15.h,
                                 ),
                                 child: Text(
                                   'Төлөх',
