@@ -933,7 +933,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       } else {
         // Bank app not installed
         if (mounted) {
-          _showBankAppNotInstalledDialog(bank.link);
+          _showBankAppNotInstalledDialog(bank);
         }
       }
     } catch (e) {
@@ -1203,7 +1203,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
-  Future<void> _openBankApp(String deepLink) async {
+  Future<void> _openBankApp(String deepLink, [QPayBank? bank]) async {
     try {
       final Uri bankUri = Uri.parse(deepLink);
 
@@ -1231,7 +1231,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         }
       } else {
         if (mounted) {
-          _showBankAppNotInstalledDialog(deepLink);
+          // Create a fallback bank object if none provided
+          final fallbackBank =
+              bank ??
+              QPayBank(
+                name: 'bank',
+                description: 'Банк',
+                logo: '',
+                link: deepLink,
+              );
+          _showBankAppNotInstalledDialog(fallbackBank);
         }
       }
     } catch (e) {
@@ -1361,7 +1370,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
-  void _showBankAppNotInstalledDialog(String deepLink) {
+  void _showBankAppNotInstalledDialog(QPayBank bank) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1371,9 +1380,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             'Банкны апп олдсонгүй',
             style: TextStyle(color: Colors.white),
           ),
-          content: const Text(
-            'Банкны апп суулгагдаагүй эсвэл нээгдэхгүй байна. Та апп татах эсвэл QR кодыг хуулж авах уу?',
-            style: TextStyle(color: Colors.white70),
+          content: Text(
+            '${bank.description} апп суулгагдаагүй эсвэл нээгдэхгүй байна. Та апп татах эсвэл QR кодыг хуулж авах уу?',
+            style: const TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
@@ -1386,7 +1395,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _copyQRCodeToClipboard(deepLink);
+                _copyQRCodeToClipboard(bank.link);
               },
               child: const Text(
                 'QR код хуулах',
@@ -1396,7 +1405,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _openAppStore();
+                _openAppStore(bank);
               },
               child: const Text(
                 'Апп татах',
@@ -1430,15 +1439,99 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
-  Future<void> _openAppStore() async {
-    String appStoreUrl = '';
+  String _getBankStoreUrl(QPayBank bank, bool isIOS) {
+    final bankName = bank.name.toLowerCase();
 
-    if (Theme.of(context).platform == TargetPlatform.iOS) {
-      appStoreUrl = 'https://apps.apple.com/mn/app/xacbank/id1234567890';
+    if (isIOS) {
+      if (bankName.contains('qpay')) {
+        return 'https://apps.apple.com/mn/app/qpay/id1441608142';
+      } else if (bankName.contains('khan')) {
+        return 'https://apps.apple.com/mn/app/khan-bank/id1178998998';
+      } else if (bankName.contains('state')) {
+        return 'https://apps.apple.com/mn/app/state-bank-mobile-bank/id1439968858';
+      } else if (bankName.contains('xac')) {
+        return 'https://apps.apple.com/mn/app/xacbank/id1435546747';
+      } else if (bankName.contains('tdb') || bankName.contains('trade')) {
+        return 'https://apps.apple.com/mn/app/tdb-online/id1341682855';
+      } else if (bankName.contains('social') || bankName.contains('golomt')) {
+        return 'https://apps.apple.com/mn/app/social-pay/id907732452';
+      } else if (bankName.contains('most')) {
+        return 'https://apps.apple.com/mn/app/most-money/id1476831658';
+      } else if (bankName.contains('national')) {
+        return 'https://apps.apple.com/mn/app/nib/id1477940138';
+      } else if (bankName.contains('chinggis')) {
+        return 'https://apps.apple.com/mn/app/ckb/id1477634968';
+      } else if (bankName.contains('capitron')) {
+        return 'https://apps.apple.com/mn/app/capitron-bank/id1498290326';
+      } else if (bankName.contains('bogd')) {
+        return 'https://apps.apple.com/mn/app/bogd-bank/id1533486058';
+      } else if (bankName.contains('trans')) {
+        return 'https://apps.apple.com/mn/app/tdb/id1522843170';
+      } else if (bankName.contains('m bank')) {
+        return 'https://apps.apple.com/mn/app/m-bank/id1538651684';
+      } else if (bankName.contains('ard')) {
+        return 'https://apps.apple.com/mn/app/ard-app/id1546653588';
+      } else if (bankName.contains('toki')) {
+        return 'https://apps.apple.com/mn/app/toki/id1568099905';
+      } else if (bankName.contains('arig')) {
+        return 'https://apps.apple.com/mn/app/arig-bank/id1569785167';
+      } else if (bankName.contains('monpay')) {
+        return 'https://apps.apple.com/mn/app/monpay/id1491424177';
+      } else if (bankName.contains('hipay')) {
+        return 'https://apps.apple.com/mn/app/hipay/id1451162498';
+      } else if (bankName.contains('happy')) {
+        return 'https://apps.apple.com/mn/app/happy-pay/id1590968412';
+      }
+
+      return 'https://apps.apple.com/mn/search?term=${Uri.encodeComponent(bank.description)}';
     } else {
-      appStoreUrl =
-          'https://play.google.com/store/apps/details?id=mn.xacbank.mobile';
+      if (bankName.contains('qpay')) {
+        return 'https://play.google.com/store/apps/details?id=mn.qpay.wallet';
+      } else if (bankName.contains('khan')) {
+        return 'https://play.google.com/store/apps/details?id=com.khanbank.khaan';
+      } else if (bankName.contains('state')) {
+        return 'https://play.google.com/store/apps/details?id=mn.statebank.mobile';
+      } else if (bankName.contains('xac')) {
+        return 'https://play.google.com/store/apps/details?id=mn.xacbank.mobile';
+      } else if (bankName.contains('tdb') || bankName.contains('trade')) {
+        return 'https://play.google.com/store/apps/details?id=mn.tdb.mobile';
+      } else if (bankName.contains('social') || bankName.contains('golomt')) {
+        return 'https://play.google.com/store/apps/details?id=com.golomtbank.mobilebank';
+      } else if (bankName.contains('most')) {
+        return 'https://play.google.com/store/apps/details?id=mn.most.wallet';
+      } else if (bankName.contains('national')) {
+        return 'https://play.google.com/store/apps/details?id=mn.nibmobilebank';
+      } else if (bankName.contains('chinggis')) {
+        return 'https://play.google.com/store/apps/details?id=mn.ckb.mobile';
+      } else if (bankName.contains('capitron')) {
+        return 'https://play.google.com/store/apps/details?id=mn.capitronbank.mobile';
+      } else if (bankName.contains('bogd')) {
+        return 'https://play.google.com/store/apps/details?id=mn.bogdbank.mobile';
+      } else if (bankName.contains('trans')) {
+        return 'https://play.google.com/store/apps/details?id=mn.transbank.mobile';
+      } else if (bankName.contains('m bank')) {
+        return 'https://play.google.com/store/apps/details?id=mn.mbank.mobile';
+      } else if (bankName.contains('ard')) {
+        return 'https://play.google.com/store/apps/details?id=mn.ard.app';
+      } else if (bankName.contains('toki')) {
+        return 'https://play.google.com/store/apps/details?id=com.tokipay';
+      } else if (bankName.contains('arig')) {
+        return 'https://play.google.com/store/apps/details?id=mn.arigbank.mobile';
+      } else if (bankName.contains('monpay')) {
+        return 'https://play.google.com/store/apps/details?id=mn.monpay.android';
+      } else if (bankName.contains('hipay')) {
+        return 'https://play.google.com/store/apps/details?id=mn.hipay';
+      } else if (bankName.contains('happy')) {
+        return 'https://play.google.com/store/apps/details?id=mn.tdbwallet';
+      }
+
+      return 'https://play.google.com/store/search?q=${Uri.encodeComponent(bank.description)}&c=apps';
     }
+  }
+
+  Future<void> _openAppStore(QPayBank bank) async {
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    final appStoreUrl = _getBankStoreUrl(bank, isIOS);
 
     try {
       final uri = Uri.parse(appStoreUrl);

@@ -457,29 +457,82 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
           baiguullagiinId: selectedBaiguullagiinId!,
         );
 
-        bool tootExists = false;
-        String? davkharValue;
+        bool tootExistsInDavkhariinToonuud = false;
+
+        print('=== Building Details Debug ===');
+        print('Building Details: $buildingDetails');
 
         if (buildingDetails['barilguud'] != null &&
             buildingDetails['barilguud'] is List) {
           for (var barilga in buildingDetails['barilguud']) {
-            if (barilga is Map &&
-                barilga['bairniiNer'] == selectedBair &&
-                barilga['toot'] != null &&
-                barilga['toot'].toString() == tootController.text.trim()) {
-              tootExists = true;
-              // Get davkhar for this toot if available
-              if (barilga['davkhar'] != null) {
-                davkharValue = barilga['davkhar'].toString();
+            print(
+              'Checking barilga: ${barilga['bairniiNer']} against selectedBair: $selectedBair',
+            );
+
+            if (barilga is Map && barilga['bairniiNer'] == selectedBair) {
+              print('Found matching bair!');
+              print(
+                'davkhariinToonuud exists: ${barilga['davkhariinToonuud'] != null}',
+              );
+
+              // Check if davkhariinToonuud exists directly on barilga
+              if (barilga['davkhariinToonuud'] != null &&
+                  barilga['davkhariinToonuud'] is Map) {
+                final davkhariinToonuud = barilga['davkhariinToonuud'] as Map;
+                final enteredToot = tootController.text.trim();
+
+                print('davkhariinToonuud: $davkhariinToonuud');
+                print('Entered toot: $enteredToot');
+
+                for (var davkharKey in davkhariinToonuud.keys) {
+                  final roomsList = davkhariinToonuud[davkharKey];
+                  print(
+                    'Floor $davkharKey - roomsList: $roomsList (type: ${roomsList.runtimeType})',
+                  );
+
+                  if (roomsList is List) {
+                    for (var roomsString in roomsList) {
+                      print(
+                        'roomsString: $roomsString (type: ${roomsString.runtimeType})',
+                      );
+
+                      if (roomsString is String) {
+                        // Split comma-separated room numbers
+                        final rooms = roomsString
+                            .split(',')
+                            .map((r) => r.trim())
+                            .toList();
+
+                        print('Rooms after split: $rooms');
+
+                        if (rooms.contains(enteredToot)) {
+                          print(
+                            'FOUND! Toot $enteredToot exists in floor $davkharKey',
+                          );
+                          tootExistsInDavkhariinToonuud = true;
+                          break;
+                        }
+                      }
+                    }
+                  }
+
+                  if (tootExistsInDavkhariinToonuud) break;
+                }
+              } else {
+                print('davkhariinToonuud NOT FOUND in barilga!');
               }
               break;
             }
           }
         }
 
+        print(
+          'Final result: tootExistsInDavkhariinToonuud = $tootExistsInDavkhariinToonuud',
+        );
+
         if (!mounted) return;
 
-        if (!tootExists) {
+        if (!tootExistsInDavkhariinToonuud) {
           showGlassSnackBar(
             context,
             message: 'Тухайн байранд уг тооттой айл байхгүй байна',
@@ -503,7 +556,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
           'soh': selectedSOKH,
           'bairniiNer': selectedBair,
           'toot': tootController.text.trim(),
-          'davkhar': davkharValue,
           'baiguullagiinId': selectedBaiguullagiinId,
         };
 

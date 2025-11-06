@@ -45,5 +45,29 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>http</string>
+		<string>https</string>
+		<string>qpaywallet</string>
+		<string>khanbank</string>
+		<string>statebankmongolia</string>
+		<string>xacbank</string>
+		<string>tdbbank</string>
+		<string>socialpay-payment</string>
+		<string>most</string>
+		<string>nibank</string>
+		<string>ckbank</string>
+		<string>capitronbank</string>
+		<string>bogdbank</string>
+		<string>transbank</string>
+		<string>mbank</string>
+		<string>ard</string>
+		<string>toki</string>
+		<string>arig</string>
+		<string>Monpay</string>
+		<string>hipay</string>
+		<string>tdbwallet</string>
+	</array>
 </dict>
 </plist>

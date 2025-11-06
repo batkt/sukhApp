@@ -64,7 +64,7 @@ class ConnectivityService {
     if (_context != null && _context!.mounted) {
       showGlassSnackBar(
         _context!,
-        message: 'Интернэт холболт тасарсан байна',
+        message: 'Интернэт холболтоо шалгана уу',
         icon: Icons.wifi_off,
         iconColor: Colors.red,
         textColor: Colors.white,
@@ -98,7 +98,7 @@ class ConnectivityService {
     if (_context != null && _context!.mounted) {
       showGlassSnackBar(
         _context!,
-        message: 'Интернэт холболт байхгүй байна',
+        message: 'Интернэт холболтоо шалгана уу',
         icon: Icons.wifi_off,
         iconColor: Colors.red,
         textColor: Colors.white,
