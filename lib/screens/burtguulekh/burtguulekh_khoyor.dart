@@ -40,11 +40,17 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   bool _isPhoneSubmitted = false;
   bool _isLoading = false;
 
+  final TextEditingController ovogController = TextEditingController();
+  final TextEditingController nerController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
     4,
     (index) => TextEditingController(),
   );
+
+  final FocusNode ovogFocus = FocusNode();
+  final FocusNode nerFocus = FocusNode();
+  final FocusNode phoneFocus = FocusNode();
   final List<FocusNode> _pinFocusNodes = List.generate(
     4,
     (index) => FocusNode(),
@@ -57,16 +63,23 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   @override
   void initState() {
     super.initState();
+    ovogController.addListener(() => setState(() {}));
+    nerController.addListener(() => setState(() {}));
     _phoneController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    ovogController.dispose();
+    nerController.dispose();
     _phoneController.dispose();
     for (var controller in _pinControllers) {
       controller.dispose();
     }
+    ovogFocus.dispose();
+    nerFocus.dispose();
+    phoneFocus.dispose();
     for (var node in _pinFocusNodes) {
       node.dispose();
     }
@@ -275,8 +288,10 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 context,
                 PageTransitions.createRoute(
                   Burtguulekh_Guraw(
-                    locationData: {
+                    registrationData: {
                       ...?widget.locationData,
+                      'ovog': ovogController.text,
+                      'ner': nerController.text,
                       'utas': _phoneController.text,
                     },
                   ),
@@ -354,12 +369,23 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                               ),
 
                               SizedBox(height: isSmallScreen ? 14.h : 18.h),
-                              if (!_isPhoneSubmitted)
-                                _buildPhoneNumberField(isSmallScreen)
-                              else
+                              // Овог input
+                              _buildOvogField(isSmallScreen),
+                              SizedBox(height: 14.h),
+                              // Нэр input
+                              _buildNerField(isSmallScreen),
+                              SizedBox(height: 14.h),
+                              // Phone number input
+                              _buildPhoneNumberField(isSmallScreen),
+                              // Secret code field (appears below phone after submission)
+                              if (_isPhoneSubmitted) ...[
+                                SizedBox(height: 14.h),
                                 _buildSecretCodeField(isSmallScreen),
+                              ],
                               SizedBox(height: isSmallScreen ? 12.h : 14.h),
-                              if (_phoneController.text.length == 8 &&
+                              if (ovogController.text.isNotEmpty &&
+                                  nerController.text.isNotEmpty &&
+                                  _phoneController.text.length == 8 &&
                                   !_isPhoneSubmitted)
                                 _buildContinueButton(isSmallScreen),
                               if (_isPhoneSubmitted &&
@@ -412,12 +438,57 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
     );
   }
 
+  Widget _buildOvogField(bool isSmallScreen) {
+    return Container(
+      decoration: _boxShadowDecoration(),
+      child: TextFormField(
+        controller: ovogController,
+        focusNode: ovogFocus,
+        textInputAction: TextInputAction.next,
+        onFieldSubmitted: (_) {
+          FocusScope.of(context).requestFocus(nerFocus);
+        },
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 15.sp,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: _inputDecoration("Овог", ovogController, isSmallScreen),
+        validator: (value) =>
+            value == null || value.trim().isEmpty ? 'Овог оруулна уу' : null,
+      ),
+    );
+  }
+
+  Widget _buildNerField(bool isSmallScreen) {
+    return Container(
+      decoration: _boxShadowDecoration(),
+      child: TextFormField(
+        controller: nerController,
+        focusNode: nerFocus,
+        textInputAction: TextInputAction.next,
+        onFieldSubmitted: (_) {
+          FocusScope.of(context).requestFocus(phoneFocus);
+        },
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 15.sp,
+          fontWeight: FontWeight.w500,
+        ),
+        decoration: _inputDecoration("Нэр", nerController, isSmallScreen),
+        validator: (value) =>
+            value == null || value.trim().isEmpty ? 'Нэр оруулна уу' : null,
+      ),
+    );
+  }
+
   Widget _buildPhoneNumberField(bool isSmallScreen) {
     return Center(
       child: Container(
         decoration: _boxShadowDecoration(),
         child: TextFormField(
           controller: _phoneController,
+          focusNode: phoneFocus,
           style: TextStyle(
             color: Colors.white,
             fontSize: 15.sp,
@@ -436,6 +507,18 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           validator: (value) => value == null || value.trim().isEmpty
               ? 'Утасны дугаар оруулна уу'
               : null,
+          onChanged: (value) {
+            // If phone number changes after submission, reset submission state
+            if (_isPhoneSubmitted && value.length != 8) {
+              setState(() {
+                _isPhoneSubmitted = false;
+                _timer?.cancel();
+                for (var controller in _pinControllers) {
+                  controller.clear();
+                }
+              });
+            }
+          },
         ),
       ),
     );
@@ -444,33 +527,6 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   Widget _buildSecretCodeField(bool isSmallScreen) {
     return Column(
       children: [
-        // Display phone number
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 16.w : 20.w,
-            vertical: isSmallScreen ? 13.h : 16.h,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(100.r),
-            color: AppColors.inputGrayColor.withOpacity(0.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                offset: Offset(0, 10.h),
-                blurRadius: 8.r,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Text(
-                _phoneController.text,
-                style: TextStyle(color: Colors.white, fontSize: 16.sp),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: isSmallScreen ? 14.h : 18.h),
         // PIN Input boxes
         AutofillGroup(
           child: Row(
@@ -505,7 +561,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
       width: isSmallScreen ? 52.w : 60.w,
       height: isSmallScreen ? 60.h : 70.h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(100.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -545,11 +601,11 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
             filled: true,
             fillColor: AppColors.inputGrayColor.withOpacity(0.5),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(100.r),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(100.r),
               borderSide: BorderSide(color: AppColors.grayColor, width: 1.5.w),
             ),
             contentPadding: EdgeInsets.zero,

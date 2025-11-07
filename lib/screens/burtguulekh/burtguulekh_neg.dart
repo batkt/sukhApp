@@ -133,21 +133,19 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                 barilga['duuregNer'] == district &&
                 barilga['horoo'] != null &&
                 barilga['horoo']['ner'] != null &&
+                barilga['horoo']['ner'].toString().isNotEmpty &&
                 barilga['sohNer'] != null &&
                 barilga['sohNer'].toString().isNotEmpty) {
-              // NEW: Check if this СӨХ has Байр data (bairniiNer must exist and be non-empty)
-              if (barilga['bairniiNer'] != null &&
-                  barilga['bairniiNer'].toString().isNotEmpty) {
-                final horooNer = barilga['horoo']['ner'].toString();
-                final horooKod = barilga['horoo']['kod'].toString();
-                uniqueHoroos[horooNer] = horooKod;
+              // Only show Хороо that contain at least one valid СӨХ
+              final horooNer = barilga['horoo']['ner'].toString();
+              final horooKod = barilga['horoo']['kod'].toString();
+              uniqueHoroos[horooNer] = horooKod;
 
-                // Get baiguullagiinId from the first matching record
-                if (districtBaiguullagiinId == null &&
-                    baiguullaga['baiguullagiinId'] != null) {
-                  districtBaiguullagiinId = baiguullaga['baiguullagiinId']
-                      .toString();
-                }
+              // Get baiguullagiinId from the first matching record
+              if (districtBaiguullagiinId == null &&
+                  baiguullaga['baiguullagiinId'] != null) {
+                districtBaiguullagiinId = baiguullaga['baiguullagiinId']
+                    .toString();
               }
             }
           }
@@ -189,7 +187,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     });
 
     try {
-      // Filter: Only show СӨХ that contain at least one Байр that has Давхар data
+      // Only show СӨХ that are valid (non-null, non-empty)
       final Set<String> uniqueSOKHs = {};
 
       for (var baiguullaga in locationData) {
@@ -202,16 +200,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                 barilga['horoo']['ner'] == horooNer &&
                 barilga['sohNer'] != null &&
                 barilga['sohNer'].toString().isNotEmpty) {
-              // NEW: Check if this СӨХ has Байр with Давхар data
-              // Байр must exist (bairniiNer) and have at least one Давхар
-              if (barilga['bairniiNer'] != null &&
-                  barilga['bairniiNer'].toString().isNotEmpty) {
-                final davkhar = barilga['davkhar'];
-                if (davkhar != null && davkhar is List && davkhar.isNotEmpty) {
-                  // This СӨХ has Байр with Давхар, so include it
-                  uniqueSOKHs.add(barilga['sohNer'].toString());
-                }
-              }
+              // Add this valid СӨХ to the list
+              uniqueSOKHs.add(barilga['sohNer'].toString());
             }
           }
         }
@@ -295,11 +285,8 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
               if (barilga is Map &&
                   barilga['bairniiNer'] != null &&
                   barilga['bairniiNer'].toString().isNotEmpty) {
-                // NEW: Only show Байр that have at least one Давхар
-                final davkhar = barilga['davkhar'];
-                if (davkhar != null && davkhar is List && davkhar.isNotEmpty) {
-                  bairSet.add(barilga['bairniiNer'].toString());
-                }
+                // Add all valid Байр to the list
+                bairSet.add(barilga['bairniiNer'].toString());
               }
             }
 
@@ -535,7 +522,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         if (!tootExistsInDavkhariinToonuud) {
           showGlassSnackBar(
             context,
-            message: 'Тухайн байранд уг тооттой айл байхгүй байна',
+            message: 'Тухайн байранд уг тооттой айл бүртгэгдээгүй байна',
             icon: Icons.error,
             iconColor: Colors.red,
           );

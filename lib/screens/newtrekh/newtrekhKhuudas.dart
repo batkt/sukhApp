@@ -399,10 +399,28 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 setState(() {
                                                   _isLoading = false;
                                                 });
+
+                                                // Extract the error message from the exception
+                                                String errorMessage = e
+                                                    .toString();
+
+                                                // Remove "Exception: " prefix if it exists
+                                                if (errorMessage.startsWith(
+                                                  'Exception: ',
+                                                )) {
+                                                  errorMessage = errorMessage
+                                                      .substring(11);
+                                                }
+
+                                                // If it's still empty, use default
+                                                if (errorMessage.isEmpty) {
+                                                  errorMessage =
+                                                      "Утасны дугаар эсвэл нууц үг буруу байна";
+                                                }
+
                                                 showGlassSnackBar(
                                                   context,
-                                                  message:
-                                                      "Утасны дугаар эсвэл нууц үг буруу байна",
+                                                  message: errorMessage,
                                                   icon: Icons.error,
                                                   iconColor: Colors.red,
                                                 );

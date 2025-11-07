@@ -299,28 +299,34 @@ class ApiService {
     required String utas,
     required String nuutsUg,
   }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/orshinSuugchNevtrey'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'utas': utas, 'nuutsUg': nuutsUg}),
-      );
+    final response = await http.post(
+      Uri.parse('$baseUrl/orshinSuugchNevtrey'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'utas': utas, 'nuutsUg': nuutsUg}),
+    );
 
-      if (response.statusCode == 200) {
-        final loginData = json.decode(response.body);
+    // Try to decode the response body regardless of status code
+    final loginData = json.decode(response.body);
 
-        if (loginData['success'] == true && loginData['token'] != null) {
-          await StorageService.saveToken(loginData['token']);
-          await StorageService.saveUserData(loginData);
-          await SessionService.saveLoginTimestamp();
-        }
-
-        return loginData;
+    // Check if login was unsuccessful (check for 'aldaa' field first)
+    if (loginData['success'] == false) {
+      if (loginData['aldaa'] != null) {
+        throw Exception(loginData['aldaa']);
       } else {
         throw Exception('Утасны дугаар эсвэл нууц үг буруу байна');
       }
-    } catch (e) {
-      throw Exception('Нэвтрэхэд алдаа гарлаа: $e');
+    }
+
+    if (response.statusCode == 200 || response.statusCode == 500) {
+      if (loginData['success'] == true && loginData['token'] != null) {
+        await StorageService.saveToken(loginData['token']);
+        await StorageService.saveUserData(loginData);
+        await SessionService.saveLoginTimestamp();
+      }
+
+      return loginData;
+    } else {
+      throw Exception('Утасны дугаар эсвэл нууц үг буруу байна');
     }
   }
 
@@ -629,7 +635,6 @@ class ApiService {
     required double dun,
     required String turul,
     required String zakhialgiinDugaar,
-    required String dansniiDugaar,
 
     required List<String> nekhemjlekhiinTuukh,
   }) async {
@@ -645,7 +650,6 @@ class ApiService {
           'dun': dun,
           'turul': turul,
           'zakhialgiinDugaar': zakhialgiinDugaar,
-          'dansniiDugaar': dansniiDugaar,
 
           'nekhemjlekhiinTuukh': nekhemjlekhiinTuukh,
         }),

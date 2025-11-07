@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
-import 'package:sukh_app/screens/burtguulekh/burtguulekh_dorow.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
-import 'package:sukh_app/utils/page_transitions.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -16,99 +17,134 @@ class AppBackground extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: double.infinity,
-      child: Container(child: child),
+      child: child,
     );
   }
 }
 
-// ignore: camel_case_types
 class Burtguulekh_Guraw extends StatefulWidget {
-  final Map<String, dynamic>? locationData;
+  final Map<String, dynamic>? registrationData;
 
-  const Burtguulekh_Guraw({super.key, this.locationData});
+  const Burtguulekh_Guraw({super.key, this.registrationData});
 
   @override
-  State<Burtguulekh_Guraw> createState() => _BurtguulekhState();
+  State<Burtguulekh_Guraw> createState() => _BurtguulekhDorowState();
 }
 
-class _BurtguulekhState extends State<Burtguulekh_Guraw> {
+class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
   final _formKey = GlobalKey<FormState>();
-  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
-  final TextEditingController ovogController = TextEditingController();
-  final TextEditingController nerController = TextEditingController();
-
-  final FocusNode ovogFocus = FocusNode();
-  final FocusNode nerFocus = FocusNode();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    ovogController.addListener(() => setState(() {}));
-    nerController.addListener(() => setState(() {}));
+    _passwordController.addListener(() => setState(() {}));
+    _confirmPasswordController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
-    ovogController.dispose();
-    nerController.dispose();
-
-    ovogFocus.dispose();
-    nerFocus.dispose();
-
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _validateAndSubmit() async {
-    // Force validation mode to show all errors immediately
-    setState(() {
-      _autovalidateMode = AutovalidateMode.always;
-    });
-
-    if (!_formKey.currentState!.validate()) {
-      // If invalid, show snackbar
-      showGlassSnackBar(
-        context,
-        message: 'Бүх талбарыг бөглөнө үү',
-        icon: Icons.error,
-        iconColor: Colors.redAccent,
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final allData = {
-        ...?widget.locationData,
-        'ovog': ovogController.text,
-        'ner': nerController.text,
-      };
+    if (_formKey.currentState!.validate()) {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        showGlassSnackBar(
+          context,
+          message: 'Нууц үг таарахгүй байна',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+        return;
+      }
 
       setState(() {
-        _isLoading = false;
+        _isLoading = true;
       });
 
-      Navigator.push(
-        context,
-        PageTransitions.createRoute(
-          Burtguulekh_Dorow(registrationData: allData),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-      showGlassSnackBar(
-        context,
-        message: 'Алдаа гарлаа: $e',
-        icon: Icons.error,
-        iconColor: Colors.redAccent,
-      );
+      try {
+        // Get baiguullagiinId from registrationData passed from previous screen
+        final baiguullagiinId = widget.registrationData?['baiguullagiinId'];
+
+        if (baiguullagiinId == null) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            showGlassSnackBar(
+              context,
+              message: 'Байгууллагын мэдээлэл олдсонгүй',
+              icon: Icons.error,
+              iconColor: Colors.red,
+            );
+          }
+          return;
+        }
+
+        final registrationPayload = {
+          'utas': widget.registrationData?['utas'] ?? '',
+          'nuutsUg': _passwordController.text,
+          'bairniiNer': widget.registrationData?['bairniiNer'] ?? '',
+          'davkhar': widget.registrationData?['davkhar'] ?? '',
+          'toot': widget.registrationData?['toot'] ?? '',
+          'ovog': widget.registrationData?['ovog'] ?? '',
+          'ner': widget.registrationData?['ner'] ?? '',
+          'baiguullagiinId': baiguullagiinId,
+          'duureg': widget.registrationData?['duureg'] ?? '',
+          'horoo': widget.registrationData?['horoo'] ?? '',
+          'soh': widget.registrationData?['soh'] ?? '',
+          'register': widget.registrationData?['register'] ?? '',
+        };
+
+        await ApiService.registerUser(registrationPayload);
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: 'Бүртгэл амжилттай үүслээ!',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+
+          // Navigate to login page
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              context.go("/newtrekh");
+            }
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          // Extract error message from Exception
+          String errorMessage = e.toString();
+          if (errorMessage.startsWith('Exception: ')) {
+            errorMessage = errorMessage.substring(11);
+          }
+
+          showGlassSnackBar(
+            context,
+            message: errorMessage,
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
     }
   }
 
@@ -131,194 +167,36 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
                       physics: const ClampingScrollPhysics(),
                       child: Padding(
                         padding: EdgeInsets.only(
-                          left: 40.w,
-                          right: 40.w,
-                          top: 24.h,
-                          bottom: keyboardHeight > 0
-                              ? keyboardHeight + 20
-                              : 24.h,
+                          left: 50,
+                          right: 50,
+                          top: 40,
+                          bottom: keyboardHeight > 0 ? keyboardHeight + 20 : 40,
                         ),
                         child: Form(
                           key: _formKey,
-                          autovalidateMode: _autovalidateMode,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const AppLogo(),
-                              SizedBox(height: 20.h),
-                              Text(
+                              const SizedBox(height: 30),
+                              const Text(
                                 'Бүртгэл',
                                 style: TextStyle(
                                   color: AppColors.grayColor,
-                                  fontSize: 28.sp,
+                                  fontSize: 36,
                                 ),
                                 maxLines: 1,
                                 softWrap: false,
                               ),
-                              SizedBox(height: 18.h),
 
-                              // Овог input
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  color: AppColors.inputGrayColor.withOpacity(
-                                    0.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                                child: TextFormField(
-                                  controller: ovogController,
-                                  focusNode: ovogFocus,
-                                  textInputAction: TextInputAction.next,
-                                  onFieldSubmitted: (_) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(nerFocus);
-                                  },
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 20.w,
-                                      vertical: 14.h,
-                                    ),
-                                    hintText: 'Овог',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 15.sp,
-                                    ),
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                  ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                          ? 'Овог оруулна уу'
-                                          : null,
-                                ),
-                              ),
-                              SizedBox(height: 14.h),
-
-                              // Нэр input
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  color: AppColors.inputGrayColor.withOpacity(
-                                    0.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                                child: TextFormField(
-                                  controller: nerController,
-                                  focusNode: nerFocus,
-                                  textInputAction: TextInputAction.next,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 20.w,
-                                      vertical: 14.h,
-                                    ),
-                                    hintText: 'Нэр',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 15.sp,
-                                    ),
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                  ),
-                                  validator: (value) =>
-                                      value == null || value.trim().isEmpty
-                                          ? 'Нэр оруулна уу'
-                                          : null,
-                                ),
-                              ),
-
-                              // Continue button - Show only when all fields filled
-                              if (ovogController.text.isNotEmpty &&
-                                  nerController.text.isNotEmpty) ...[
-                                SizedBox(height: 14.h),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(100),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        offset: const Offset(0, 10),
-                                        blurRadius: 8,
-                                        spreadRadius: 0,
-                                      ),
-                                    ],
-                                  ),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: _isLoading
-                                          ? null
-                                          : _validateAndSubmit,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFFCAD2DB,
-                                        ),
-                                        foregroundColor: Colors.black,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 14.h,
-                                          horizontal: 10,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            100,
-                                          ),
-                                        ),
-                                        shadowColor: Colors.black.withOpacity(
-                                          0.3,
-                                        ),
-                                        elevation: 8,
-                                      ),
-                                      child: _isLoading
-                                          ? SizedBox(
-                                              height: 18.h,
-                                              width: 18.w,
-                                              child:
-                                                  const CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                      Color
-                                                    >(Colors.black),
-                                              ),
-                                            )
-                                          : Text(
-                                              'Үргэлжлүүлэх',
-                                              style: TextStyle(fontSize: 15.sp),
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              const SizedBox(height: 20),
+                              _buildPasswordField(),
+                              const SizedBox(height: 16),
+                              _buildConfirmPasswordField(),
+                              const SizedBox(height: 16),
+                              if (_passwordController.text.isNotEmpty &&
+                                  _confirmPasswordController.text.isNotEmpty)
+                                _buildContinueButton(),
                             ],
                           ),
                         ),
@@ -361,6 +239,191 @@ class _BurtguulekhState extends State<Burtguulekh_Guraw> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Container(
+      decoration: _boxShadowDecoration(),
+      child: TextFormField(
+        controller: _passwordController,
+        obscureText: _obscurePassword,
+        style: TextStyle(color: Colors.white, fontSize: 16.sp),
+        keyboardType: TextInputType.number,
+        maxLength: 4,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(4),
+        ],
+        decoration: _inputDecoration(
+          "Нууц код",
+          _passwordController,
+          counterText: '',
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.white70,
+            ),
+            onPressed: () {
+              setState(() {
+                _obscurePassword = !_obscurePassword;
+              });
+            },
+          ),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Нууц код оруулна уу';
+          }
+          if (value.length != 4) {
+            return 'Нууц код 4 оронтой байх ёстой';
+          }
+          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+            return 'Зөвхөн тоо оруулна уу';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  Widget _buildConfirmPasswordField() {
+    return Container(
+      decoration: _boxShadowDecoration(),
+      child: TextFormField(
+        controller: _confirmPasswordController,
+        obscureText: _obscureConfirmPassword,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16.sp, // 👈 use .sp for responsive font size
+        ),
+        keyboardType: TextInputType.number,
+        maxLength: 4,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(4),
+        ],
+        decoration: _inputDecoration(
+          "Нууц код давтах",
+          _confirmPasswordController,
+          counterText: '',
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+              color: Colors.white70,
+            ),
+            onPressed: () {
+              setState(() {
+                _obscureConfirmPassword = !_obscureConfirmPassword;
+              });
+            },
+          ),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Нууц код давтан оруулна уу';
+          }
+          if (value.length != 4) {
+            return 'Нууц код 4 оронтой байх ёстой';
+          }
+          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+            return 'Зөвхөн тоо оруулна уу';
+          }
+          if (value != _passwordController.text) {
+            return 'Нууц код таарахгүй байна';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  Widget _buildContinueButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            offset: const Offset(0, 10),
+            blurRadius: 8,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _validateAndSubmit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFCAD2DB),
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(100),
+            ),
+            shadowColor: Colors.black.withOpacity(0.3),
+            elevation: 8,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                  ),
+                )
+              : Text('Бүртгүүлэх', style: TextStyle(fontSize: 14.sp)),
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _boxShadowDecoration() {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(100),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.3),
+          offset: const Offset(0, 10),
+          blurRadius: 8,
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(
+    String hint,
+    TextEditingController controller, {
+    Widget? suffixIcon,
+    String? counterText,
+  }) {
+    return InputDecoration(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
+      filled: true,
+      fillColor: AppColors.inputGrayColor.withOpacity(0.5),
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white70),
+      suffixIcon: suffixIcon,
+      counterText: counterText,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: AppColors.grayColor, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(100),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
     );
   }
 }

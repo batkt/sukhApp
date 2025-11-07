@@ -13,7 +13,6 @@ import 'package:sukh_app/screens/nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
 import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
 import 'package:sukh_app/screens/mashin/mashin.dart';
-import 'package:sukh_app/screens/burtguulekh/burtguulekh_guraw.dart';
 import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
@@ -104,16 +103,6 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: Burtguulekh_Khoyor(
-              locationData: state.extra as Map<String, dynamic>?,
-            ),
-          ),
-    ),
-    GoRoute(
-      path: '/burtguulekh_guraw',
-      pageBuilder: (context, state) =>
-          PageTransitions.buildFadeThroughTransition(
-            key: state.pageKey,
-            child: Burtguulekh_Guraw(
               locationData: state.extra as Map<String, dynamic>?,
             ),
           ),

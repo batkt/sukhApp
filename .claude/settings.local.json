@@ -10,7 +10,8 @@
       "Bash(dir:*)",
       "Bash(flutter clean:*)",
       "Bash(flutter build:*)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(timeout 5 echo:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
+import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -39,6 +40,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   bool showHistoryOnly = false;
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
+  String? qpayQrImage; // Store base64 QR image
 
   @override
   void initState() {
@@ -71,17 +73,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           totalAmount += invoice.niitTulbur;
           selectedInvoiceIds.add(invoice.id);
 
-          dansniiDugaar ??= invoice.dansniiDugaar;
           turul ??= invoice.gereeniiDugaar;
         }
       }
 
       if (selectedInvoiceIds.isEmpty) {
         throw Exception('Нэхэмжлэх сонгоогүй байна');
-      }
-
-      if (dansniiDugaar == null || dansniiDugaar.isEmpty) {
-        throw Exception('Дансны дугаар олдсонгүй');
       }
 
       if (turul == null || turul.isEmpty) {
@@ -97,23 +94,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         dun: totalAmount,
         turul: turul,
         zakhialgiinDugaar: orderNumber,
-        dansniiDugaar: dansniiDugaar,
+
         nekhemjlekhiinTuukh: selectedInvoiceIds,
       );
 
       // Store QPay invoice ID for later status checking
       qpayInvoiceId = response['invoice_id']?.toString();
 
-      if (response['invoice_bank_accounts'] != null &&
-          response['invoice_bank_accounts'] is List &&
-          (response['invoice_bank_accounts'] as List).isNotEmpty) {
-        final accountNumber =
-            response['invoice_bank_accounts'][0]['account_number'] as String?;
-
-        if (accountNumber != null && accountNumber != dansniiDugaar) {
-          throw Exception('Дансны дугаар буруу байна!');
-        }
-      }
+      // Store QR image
+      qpayQrImage = response['qr_image']?.toString();
 
       if (response['urls'] != null && response['urls'] is List) {
         print('Found ${response['urls'].length} banks');
@@ -844,7 +833,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
   Widget _buildQPayBankItem(QPayBank bank) {
     return GestureDetector(
-      onTap: () => _openBankAppAndShowCheckModal(bank),
+      onTap: () {
+        // Check if it's qPay wallet - show QR code
+        if (bank.description.contains('qPay хэтэвч') ||
+            bank.name.toLowerCase().contains('qpay wallet')) {
+          _showQPayQRCodeModal();
+        } else {
+          _openBankAppAndShowCheckModal(bank);
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.1),
@@ -1368,6 +1365,96 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         print('Error fetching VAT receipt for $invoiceId: $e');
       }
     }
+  }
+
+  void _showQPayQRCodeModal() {
+    if (qpayQrImage == null || qpayQrImage!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QR код олдсонгүй'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0a0e27),
+              borderRadius: BorderRadius.circular(20.w),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'QPay хэтэвч QR код',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.w),
+                  ),
+                  child: Image.memory(
+                    base64Decode(qpayQrImage!),
+                    width: 250.w,
+                    height: 250.w,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  'QPay апп-аараа QR кодыг уншуулна уу',
+                  style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20.h),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _startPaymentStatusCheck();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFe6ff00),
+                    foregroundColor: Colors.black,
+                    padding: EdgeInsets.symmetric(
+                      vertical: 12.h,
+                      horizontal: 40.w,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(100.r),
+                    ),
+                  ),
+                  child: Text(
+                    'Төлбөр шалгах',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showBankAppNotInstalledDialog(QPayBank bank) {
