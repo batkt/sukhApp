@@ -110,7 +110,7 @@ class _SideMenuState extends State<SideMenu> {
             SizedBox(height: 20.h),
             // Logo and App Name Header
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               child: Row(
                 children: [
                   AppLogo(

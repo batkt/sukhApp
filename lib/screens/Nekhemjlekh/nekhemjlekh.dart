@@ -2544,6 +2544,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             ),
                             if (invoice.khayag.isNotEmpty)
                               _buildInfoText('Хаяг: ${invoice.khayag}'),
+                            if (invoice.medeelel?.tailbar != null &&
+                                invoice.medeelel!.tailbar!.isNotEmpty)
+                              _buildInfoText(
+                                'Тайлбар: ${invoice.medeelel!.tailbar}',
+                              ),
                           ],
                         ),
                       ),
@@ -2594,17 +2599,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ],
                   ),
                   SizedBox(height: 16.h),
-                  // Display expenses (zardluud)
+                  // Display initial balance or expenses list
+                  if (invoice.ekhniiUldegdel != null) ...[
+                    _buildPriceRow(
+                      'Эхний үлдэгдэл',
+                      '${invoice.ekhniiUldegdel!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+                    ),
+                  ],
+
                   if (invoice.medeelel != null &&
                       invoice.medeelel!.zardluud.isNotEmpty) ...[
-                    Text(
-                      'Зардлын жагсаалт:',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                     SizedBox(height: 8.h),
                     ...invoice.medeelel!.zardluud.map(
                       (zardal) =>
@@ -2740,6 +2744,7 @@ class NekhemjlekhItem {
   final String dansniiDugaar;
   final String tuluv;
   final NekhemjlekhMedeelel? medeelel;
+  final double? ekhniiUldegdel;
   bool isSelected;
   bool isExpanded;
 
@@ -2757,6 +2762,7 @@ class NekhemjlekhItem {
     required this.dansniiDugaar,
     required this.tuluv,
     this.medeelel,
+    this.ekhniiUldegdel,
     this.isSelected = false,
     this.isExpanded = false,
   });
@@ -2782,6 +2788,9 @@ class NekhemjlekhItem {
       tuluv: json['tuluv']?.toString() ?? 'Төлөөгүй',
       medeelel: json['medeelel'] != null
           ? NekhemjlekhMedeelel.fromJson(json['medeelel'])
+          : null,
+      ekhniiUldegdel: json['ekhniiUldegdel'] != null
+          ? (json['ekhniiUldegdel'] as num).toDouble()
           : null,
     );
   }
@@ -2814,11 +2823,13 @@ class NekhemjlekhMedeelel {
   final List<Zardal> zardluud;
   final String toot;
   final String temdeglel;
+  final String? tailbar;
 
   NekhemjlekhMedeelel({
     required this.zardluud,
     required this.toot,
     required this.temdeglel,
+    this.tailbar,
   });
 
   factory NekhemjlekhMedeelel.fromJson(Map<String, dynamic> json) {
@@ -2828,6 +2839,7 @@ class NekhemjlekhMedeelel {
           : [],
       toot: json['toot']?.toString() ?? '',
       temdeglel: json['temdeglel']?.toString() ?? '',
+      tailbar: json['tailbar']?.toString(),
     );
   }
 }
