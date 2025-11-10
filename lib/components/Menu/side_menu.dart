@@ -44,7 +44,6 @@ class _SideMenuState extends State<SideMenu> {
                 const _BouncingRocket(),
                 SizedBox(height: 24.h),
 
-                // Title
                 Text(
                   'Хөгжүүлэлт явагдаж байна',
                   textAlign: TextAlign.center,
@@ -338,7 +337,7 @@ class _SideMenuState extends State<SideMenu> {
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      contentPadding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+      contentPadding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 5.h),
     );
   }
 }

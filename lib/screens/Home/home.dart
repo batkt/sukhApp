@@ -387,7 +387,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: const Color(0xFFe6ff00),
                             borderRadius: BorderRadius.circular(100),
                             boxShadow: [
                               BoxShadow(
@@ -411,7 +411,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                                 child: Text(
                                   'Төлөх',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: Colors.black,
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -574,7 +574,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
     final isOverdue = hasUnpaidInvoice && daysDifference > 0;
     final displayDays = daysDifference.abs();
 
-    // Determine subtitle text
     String subtitleText;
     if (isOverdue) {
       subtitleText = 'өдөр хэтэрсэн';

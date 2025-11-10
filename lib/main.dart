@@ -5,6 +5,8 @@ import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/services/connectivity_service.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -31,7 +33,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     // Connectivity service will be initialized after first build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _connectivityService.initialize(context);
+      if (navigatorKey.currentContext != null) {
+        _connectivityService.initialize(navigatorKey.currentContext!);
+      }
     });
   }
 

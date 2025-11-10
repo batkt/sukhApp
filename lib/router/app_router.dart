@@ -16,8 +16,10 @@ import 'package:sukh_app/screens/mashin/mashin.dart';
 import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
+import 'package:sukh_app/main.dart';
 
 final GoRouter appRouter = GoRouter(
+  navigatorKey: navigatorKey,
   initialLocation: '/',
   redirect: (context, state) async {
     final isLoggedIn = await StorageService.isLoggedIn();

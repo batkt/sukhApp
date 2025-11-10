@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/main.dart';
 
 class ConnectivityService {
   static final ConnectivityService _instance = ConnectivityService._internal();
@@ -14,11 +15,9 @@ class ConnectivityService {
   bool _isConnected = true;
   bool get isConnected => _isConnected;
 
-  BuildContext? _context;
   bool _hasShownOfflineMessage = false;
 
   void initialize(BuildContext context) {
-    _context = context;
     _checkInitialConnectivity();
     _startMonitoring();
   }
@@ -61,9 +60,10 @@ class ConnectivityService {
   }
 
   void _showOfflineMessage() {
-    if (_context != null && _context!.mounted) {
+    final context = navigatorKey.currentContext;
+    if (context != null && context.mounted) {
       showGlassSnackBar(
-        _context!,
+        context,
         message: 'Интернэт холболтоо шалгана уу',
         icon: Icons.wifi_off,
         iconColor: Colors.red,
@@ -73,9 +73,10 @@ class ConnectivityService {
   }
 
   void _showOnlineMessage() {
-    if (_context != null && _context!.mounted) {
+    final context = navigatorKey.currentContext;
+    if (context != null && context.mounted) {
       showGlassSnackBar(
-        _context!,
+        context,
         message: 'Интернэт холболт сэргэсэн',
         icon: Icons.wifi,
         iconColor: Colors.green,
@@ -95,9 +96,10 @@ class ConnectivityService {
   }
 
   void showNoInternetError() {
-    if (_context != null && _context!.mounted) {
+    final context = navigatorKey.currentContext;
+    if (context != null && context.mounted) {
       showGlassSnackBar(
-        _context!,
+        context,
         message: 'Интернэт холболтоо шалгана уу',
         icon: Icons.wifi_off,
         iconColor: Colors.red,
@@ -108,6 +110,5 @@ class ConnectivityService {
 
   void dispose() {
     _connectivitySubscription?.cancel();
-    _context = null;
   }
 }
