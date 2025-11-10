@@ -98,10 +98,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         nekhemjlekhiinTuukh: selectedInvoiceIds,
       );
 
-      // Store QPay invoice ID for later status checking
       qpayInvoiceId = response['invoice_id']?.toString();
 
-      // Store QR image
       qpayQrImage = response['qr_image']?.toString();
 
       if (response['urls'] != null && response['urls'] is List) {
