@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 /// NotificationService - Handles local notifications
@@ -9,18 +10,26 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static bool _initialized = false;
+  static Completer<void>? _initCompleter;
 
   /// Initialize the notification service
   static Future<void> initialize() async {
     if (_initialized) return;
 
+    // If initialization is already in progress, wait for it to complete
+    if (_initCompleter != null) {
+      return _initCompleter!.future;
+    }
+
+    _initCompleter = Completer<void>();
+
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     const initSettings = InitializationSettings(
@@ -28,38 +37,61 @@ class NotificationService {
       iOS: iosSettings,
     );
 
-    await _notifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Handle notification tap
-        print('Notification tapped: ${response.payload}');
-      },
-    );
+    try {
+      await _notifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          // Handle notification tap
+          print('Notification tapped: ${response.payload}');
+        },
+      );
 
-    // Request permissions for Android 13+
-    await _requestPermissions();
+      // Request permissions for Android 13+
+      await _requestPermissions();
 
-    _initialized = true;
+      _initialized = true;
+      _initCompleter!.complete();
+    } catch (e) {
+      _initCompleter!.completeError(e);
+      _initCompleter = null;
+      rethrow;
+    }
   }
 
   /// Request notification permissions
   static Future<void> _requestPermissions() async {
-    final androidPlugin = _notifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+    try {
+      final androidPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
 
-    if (androidPlugin != null) {
-      await androidPlugin.requestNotificationsPermission();
-    }
+      if (androidPlugin != null) {
+        // Check if permission is already granted
+        final granted = await androidPlugin.areNotificationsEnabled();
+        if (granted != true) {
+          await androidPlugin.requestNotificationsPermission();
+        }
+      }
 
-    final iosPlugin = _notifications
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >();
+      final iosPlugin = _notifications
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
 
-    if (iosPlugin != null) {
-      await iosPlugin.requestPermissions(alert: true, badge: true, sound: true);
+      if (iosPlugin != null) {
+        await iosPlugin.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      }
+    } on Exception catch (e) {
+      // If permission request is already in progress, that's okay - just continue
+      if (e.toString().contains('permissionRequestInProgress')) {
+        return;
+      }
+      rethrow;
     }
   }
 
