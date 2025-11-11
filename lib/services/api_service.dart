@@ -770,14 +770,12 @@ class ApiService {
     }
   }
 
-  // Fetch building details (bair, orts, davkhar) based on location
   static Future<Map<String, dynamic>> fetchBuildingDetails({
     required String baiguullagiinId,
   }) async {
     try {
       final data = await fetchLocationData();
 
-      // Find the matching baiguullaga by baiguullagiinId
       final matchingBaiguullaga = data.firstWhere(
         (item) => item['baiguullagiinId'] == baiguullagiinId,
         orElse: () => {},

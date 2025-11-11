@@ -40,7 +40,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   bool showHistoryOnly = false;
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
-  String? qpayQrImage; // Store base64 QR image
+  String? qpayQrImage;
 
   @override
   void initState() {
@@ -2599,7 +2599,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ],
                   ),
                   SizedBox(height: 16.h),
-                  // Display initial balance or expenses list
+
                   if (invoice.ekhniiUldegdel != null) ...[
                     _buildPriceRow(
                       'Эхний үлдэгдэл',
@@ -2613,6 +2613,18 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ...invoice.medeelel!.zardluud.map(
                       (zardal) =>
                           _buildPriceRow(zardal.ner, zardal.formattedTariff),
+                    ),
+                  ],
+
+                  if (invoice.medeelel != null &&
+                      invoice.medeelel!.guilgeenuud != null &&
+                      invoice.medeelel!.guilgeenuud!.isNotEmpty) ...[
+                    SizedBox(height: 8.h),
+                    ...invoice.medeelel!.guilgeenuud!.map(
+                      (guilgee) => _buildPriceRow(
+                        guilgee.tailbar ?? '',
+                        '${guilgee.tulukhDun?.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+                      ),
                     ),
                   ],
                   SizedBox(height: 20.h),
@@ -2821,12 +2833,14 @@ class NekhemjlekhItem {
 
 class NekhemjlekhMedeelel {
   final List<Zardal> zardluud;
+  final List<Guilgee>? guilgeenuud;
   final String toot;
   final String temdeglel;
   final String? tailbar;
 
   NekhemjlekhMedeelel({
     required this.zardluud,
+    this.guilgeenuud,
     required this.toot,
     required this.temdeglel,
     this.tailbar,
@@ -2837,6 +2851,11 @@ class NekhemjlekhMedeelel {
       zardluud: json['zardluud'] != null
           ? (json['zardluud'] as List).map((z) => Zardal.fromJson(z)).toList()
           : [],
+      guilgeenuud: json['guilgeenuud'] != null
+          ? (json['guilgeenuud'] as List)
+                .map((g) => Guilgee.fromJson(g))
+                .toList()
+          : null,
       toot: json['toot']?.toString() ?? '',
       temdeglel: json['temdeglel']?.toString() ?? '',
       tailbar: json['tailbar']?.toString(),
@@ -2880,6 +2899,54 @@ class Zardal {
           (match) => '${match[1]},',
         );
     return '$formatted$tariffUsgeer';
+  }
+}
+
+class Guilgee {
+  final String? ognoo;
+  final double? tulukhDun;
+  final double? tulsunDun;
+  final String? tailbar;
+  final String? turul;
+  final String? gereeniiId;
+  final String? guilgeeKhiisenOgnoo;
+  final String? guilgeeKhiisenAjiltniiNer;
+  final String? guilgeeKhiisenAjiltniiId;
+  final int? avlagaGuilgeeIndex;
+  final String? id;
+
+  Guilgee({
+    this.ognoo,
+    this.tulukhDun,
+    this.tulsunDun,
+    this.tailbar,
+    this.turul,
+    this.gereeniiId,
+    this.guilgeeKhiisenOgnoo,
+    this.guilgeeKhiisenAjiltniiNer,
+    this.guilgeeKhiisenAjiltniiId,
+    this.avlagaGuilgeeIndex,
+    this.id,
+  });
+
+  factory Guilgee.fromJson(Map<String, dynamic> json) {
+    return Guilgee(
+      ognoo: json['ognoo']?.toString(),
+      tulukhDun: json['tulukhDun'] != null
+          ? (json['tulukhDun'] as num).toDouble()
+          : null,
+      tulsunDun: json['tulsunDun'] != null
+          ? (json['tulsunDun'] as num).toDouble()
+          : null,
+      tailbar: json['tailbar']?.toString(),
+      turul: json['turul']?.toString(),
+      gereeniiId: json['gereeniiId']?.toString(),
+      guilgeeKhiisenOgnoo: json['guilgeeKhiisenOgnoo']?.toString(),
+      guilgeeKhiisenAjiltniiNer: json['guilgeeKhiisenAjiltniiNer']?.toString(),
+      guilgeeKhiisenAjiltniiId: json['guilgeeKhiisenAjiltniiId']?.toString(),
+      avlagaGuilgeeIndex: json['avlagaGuilgeeIndex'] as int?,
+      id: json['_id']?.toString(),
+    );
   }
 }
 
