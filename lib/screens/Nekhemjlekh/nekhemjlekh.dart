@@ -2623,7 +2623,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       TextButton(
                         onPressed: () {},
                         child: Text(
-                          'Зардал',
+                          'Төлбөрийн задаргаа',
                           style: TextStyle(
                             color: Colors.black.withOpacity(0.7),
                             fontSize: 14.sp,

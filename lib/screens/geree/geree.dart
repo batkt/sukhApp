@@ -279,6 +279,14 @@ class _GereeState extends State<Geree> {
                 label: 'Утас',
                 value: geree.utas.isNotEmpty ? geree.utas.join(', ') : '-',
               ),
+              if (geree.temdeglel.isNotEmpty) ...[
+                Divider(color: Colors.white10, height: 24.h),
+                _buildInvoiceDetailRow(
+                  icon: Icons.note_outlined,
+                  label: 'Тэмдэглэл',
+                  value: geree.temdeglel,
+                ),
+              ],
               if (geree.suhUtas.isNotEmpty) ...[
                 Divider(color: Colors.white10, height: 24.h),
                 _buildInvoiceDetailRow(
@@ -327,124 +335,6 @@ class _GereeState extends State<Geree> {
 
           SizedBox(height: 20.h),
 
-          _buildSection(
-            title: 'САНХҮҮГИЙН МЭДЭЭЛЭЛ',
-            icon: Icons.payments_outlined,
-            children: [
-              _buildInvoiceDetailRow(
-                icon: Icons.account_balance_wallet_outlined,
-                label: 'Нийт төлбөр',
-                value: _formatCurrency(geree.niitTulbur),
-                valueColor: const Color(0xFFe6ff00),
-                isLarge: true,
-              ),
-            ],
-          ),
-
-          SizedBox(height: 20.h),
-
-          // Additional Information Section
-          _buildSection(
-            title: 'НЭМЭЛТ МЭДЭЭЛЭЛ',
-            icon: Icons.info_outline,
-            children: [
-              if (geree.tulukhOgnoo.isNotEmpty) ...[
-                _buildInvoiceDetailRow(
-                  icon: Icons.event_outlined,
-                  label: 'Төлөх огноо',
-                  value: _formatDate(geree.tulukhOgnoo),
-                ),
-                Divider(color: Colors.white10, height: 24.h),
-              ],
-              _buildInvoiceDetailRow(
-                icon: Icons.person_pin_outlined,
-                label: 'Бүртгэсэн ажилтан',
-                // value: geree.burtgesenAjiltan.isNotEmpty
-                //     ? geree.burtgesenAjiltan
-                //     : '-',
-                value: "СӨХ",
-              ),
-              if (geree.orshinSuugchId.isNotEmpty) ...[
-                Divider(color: Colors.white10, height: 24.h),
-                _buildInvoiceDetailRow(
-                  icon: Icons.group_outlined,
-                  label: 'Оршин суугчид',
-                  // value: geree.orshinSuugchId,
-                  value: '${geree.ovog} ${geree.ner}',
-                ),
-              ],
-              if (geree.temdeglel.isNotEmpty) ...[
-                Divider(color: Colors.white10, height: 24.h),
-                _buildInvoiceDetailRow(
-                  icon: Icons.note_outlined,
-                  label: 'Тэмдэглэл',
-                  value: geree.temdeglel,
-                ),
-              ],
-            ],
-          ),
-
-          SizedBox(height: 20.h),
-
-          // Footer Information
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(8.w),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Үүсгэсэн огноо',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.white.withOpacity(0.5),
-                        ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        _formatDate(geree.createdAt),
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Шинэчилсэн огноо',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.white.withOpacity(0.5),
-                        ),
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        _formatDate(geree.updatedAt),
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // If there are multiple contracts, show selector
           if (_gereeData!.jagsaalt.length > 1) ...[
             SizedBox(height: 24.h),
             Container(
