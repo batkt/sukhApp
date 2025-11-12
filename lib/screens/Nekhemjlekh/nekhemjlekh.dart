@@ -538,11 +538,57 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       }
 
       if (receipts.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Баримт олдсонгүй'),
-            backgroundColor: Colors.orange,
-          ),
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0a0e27),
+                  borderRadius: BorderRadius.circular(20.w),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.all(20.w),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white70),
+                          onPressed: () => Navigator.of(context).pop(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10.h),
+                    Icon(
+                      Icons.info_outline,
+                      color: const Color(0xFFe6ff00),
+                      size: 60.sp,
+                    ),
+                    SizedBox(height: 20.h),
+                    Text(
+                      "Төлбөр амжилттай хийгдсэн боловч, СӨХ-ийн ТИН дугаар байхгүй тул төлбөрийн баримт үүсээгүй!",
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 20.h),
+                  ],
+                ),
+              ),
+            );
+          },
         );
         return;
       }

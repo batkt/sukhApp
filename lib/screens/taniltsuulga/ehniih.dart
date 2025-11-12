@@ -41,21 +41,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "description": "This app will make your life easier.",
       "image": "lib/assets/img/neg.jpg",
     },
-    {
-      "title": "Гар ажиллагаатай процессуудад баяртай гэж хэлээрэй.",
-      "description": "Keep track of your tasks and achievements.",
-      "image": "lib/assets/img/khoyor.jpg",
-    },
-    {
-      "title": "Гар ажиллагаатай процессуудад баяртай гэж хэлээрэй.",
-      "description": "Receive important reminders on time.",
-      "image": "lib/assets/img/guraw.jpg",
-    },
-    {
-      "title": "Гар ажиллагаатай процессуудад баяртай гэж хэлээрэй.",
-      "description": "Let's start your journey now!",
-      "image": "lib/assets/img/dorow.jpg",
-    },
   ];
 
   void _finishOnboarding() async {
@@ -169,23 +154,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(onboardingData.length, (index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: _currentPage == index ? 24 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _currentPage == index
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    );
-                  }),
-                ),
+
                 const SizedBox(height: 20),
                 // Continue button
                 SizedBox(

@@ -17,6 +17,13 @@
       "type": "dart",
       "flutterMode": "release",
       "args": ["-d", "android"]
+    },
+    {
+      "name": "sukh_app (Flutter SM A705FN)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": ["-d", "android"]
     }
   ]
 }

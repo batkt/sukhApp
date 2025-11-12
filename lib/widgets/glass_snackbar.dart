@@ -9,7 +9,7 @@ void showGlassSnackBar(
   IconData icon = Icons.info,
   Color textColor = Colors.white,
   Color iconColor = Colors.white,
-  double opacity = 0.2,
+  double opacity = 0.1,
   double blur = 10,
 }) {
   showTopSnackBar(
