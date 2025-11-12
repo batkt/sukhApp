@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/models/geree_model.dart' as model;
+import 'package:sukh_app/models/ajiltan_model.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -26,11 +27,13 @@ class _GereeState extends State<Geree> {
   bool _isLoading = true;
   String? _errorMessage;
   model.GereeResponse? _gereeData;
+  AjiltanResponse? _ajiltanData;
 
   @override
   void initState() {
     super.initState();
     _fetchGereeData();
+    _fetchAjiltanData();
   }
 
   Future<void> _fetchGereeData() async {
@@ -55,6 +58,18 @@ class _GereeState extends State<Geree> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _fetchAjiltanData() async {
+    try {
+      final response = await ApiService.fetchAjiltan();
+      setState(() {
+        _ajiltanData = AjiltanResponse.fromJson(response);
+      });
+    } catch (e) {
+      // Silently fail - ajiltan data is optional
+      print('Error fetching ajiltan data: $e');
     }
   }
 
@@ -291,7 +306,7 @@ class _GereeState extends State<Geree> {
                 Divider(color: Colors.white10, height: 24.h),
                 _buildInvoiceDetailRow(
                   icon: Icons.phone_android_outlined,
-                  label: 'Сүх утас',
+                  label: 'Сөх утас',
                   value: geree.suhUtas.join(', '),
                 ),
               ],
@@ -335,6 +350,38 @@ class _GereeState extends State<Geree> {
 
           SizedBox(height: 20.h),
 
+          // SOH Information Section
+          if (_ajiltanData != null && _ajiltanData!.jagsaalt.isNotEmpty)
+            _buildSection(
+              title: 'СӨХ МЭДЭЭЛЭЛ',
+              icon: Icons.support_agent_outlined,
+              children: [
+                ..._ajiltanData!.jagsaalt.map((ajiltan) {
+                  return Column(
+                    children: [
+                      if (_ajiltanData!.jagsaalt.indexOf(ajiltan) > 0)
+                        Divider(color: Colors.white10, height: 24.h),
+                      _buildInvoiceDetailRow(
+                        icon: Icons.person_outline,
+                        label: 'Нэр',
+                        value: '${ajiltan.ovog} ${ajiltan.ner}',
+                      ),
+                      Divider(color: Colors.white10, height: 24.h),
+                      _buildInvoiceDetailRow(
+                        icon: Icons.phone_outlined,
+                        label: 'Утас',
+                        value: ajiltan.utas.isNotEmpty ? ajiltan.utas : '-',
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+
+          if (_ajiltanData != null && _ajiltanData!.jagsaalt.isNotEmpty)
+            SizedBox(height: 20.h),
+
+          // If there are multiple contracts, show selector
           if (_gereeData!.jagsaalt.length > 1) ...[
             SizedBox(height: 24.h),
             Container(

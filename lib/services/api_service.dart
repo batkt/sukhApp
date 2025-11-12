@@ -792,4 +792,48 @@ class ApiService {
       throw Exception('Барилгын мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
+
+  static Future<Map<String, dynamic>> fetchAjiltan({
+    int khuudasniiDugaar = 1,
+    int khuudasniiKhemjee = 500,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+
+      if (baiguullagiinId == null || barilgiinId == null) {
+        throw Exception('Байгууллага эсвэл барилгын мэдээлэл олдсонгүй');
+      }
+
+      final queryJson = json.encode({
+        'erkh': {'\$nin': ['Admin']},
+        'baiguullagiinId': baiguullagiinId,
+        'barilgiinId': barilgiinId,
+      });
+
+      final uri = Uri.parse('$baseUrl/ajiltan').replace(
+        queryParameters: {
+          'baiguullagiinId': baiguullagiinId,
+          'barilgiinId': barilgiinId,
+          'query': queryJson,
+          'khuudasniiDugaar': khuudasniiDugaar.toString(),
+          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+        },
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Ажилтны мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching ajiltan: $e');
+      throw Exception('Ажилтны мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
 }
