@@ -105,12 +105,19 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
           'register': widget.registrationData?['register'] ?? '',
         };
 
-        await ApiService.registerUser(registrationPayload);
+        final response = await ApiService.registerUser(registrationPayload);
 
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
+
+          // Check if registration failed
+          if (response['success'] == false && response['aldaa'] != null) {
+            _showErrorModal(response['aldaa']);
+            return;
+          }
+
           showGlassSnackBar(
             context,
             message: 'Бүртгэл амжилттай үүслээ!',
@@ -146,6 +153,57 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
         }
       }
     }
+  }
+
+  Future<void> _showErrorModal(String errorMessage) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1a1a2e),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Анхааруулга',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          content: Text(
+            errorMessage,
+            style: const TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text(
+                'Хаах',
+                style: TextStyle(color: Color(0xFFCAD2DB), fontSize: 16),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
