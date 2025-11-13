@@ -4,7 +4,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/session_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://amarhome.mn/api/';
+  static const String baseUrl = 'http://103.50.205.80:8084';
 
   // Helper method to wrap HTTP calls with better error handling
   static Future<T> _handleHttpRequest<T>(
