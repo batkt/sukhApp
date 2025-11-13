@@ -360,18 +360,8 @@ class _GereeState extends State<Geree> {
                   return Column(
                     children: [
                       if (_ajiltanData!.jagsaalt.indexOf(ajiltan) > 0)
-                        Divider(color: Colors.white10, height: 24.h),
-                      _buildInvoiceDetailRow(
-                        icon: Icons.person_outline,
-                        label: 'Нэр',
-                        value: '${ajiltan.ovog} ${ajiltan.ner}',
-                      ),
-                      Divider(color: Colors.white10, height: 24.h),
-                      _buildInvoiceDetailRow(
-                        icon: Icons.phone_outlined,
-                        label: 'Утас',
-                        value: ajiltan.utas.isNotEmpty ? ajiltan.utas : '-',
-                      ),
+                        SizedBox(height: 16.h),
+                      _buildEmployeeCard(ajiltan),
                     ],
                   );
                 }),
@@ -512,6 +502,130 @@ class _GereeState extends State<Geree> {
                   fontSize: isLarge ? 18.sp : 14.sp,
                   fontWeight: isLarge ? FontWeight.bold : FontWeight.w600,
                   color: valueColor ?? Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmployeeCard(Ajiltan ajiltan) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(8.w),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Name with icon
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFe6ff00).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8.w),
+                ),
+                child: Icon(
+                  Icons.person,
+                  size: 20.sp,
+                  color: const Color(0xFFe6ff00),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ajiltan.ovog != null && ajiltan.ovog!.isNotEmpty && ajiltan.ner.isNotEmpty
+                          ? '${ajiltan.ovog} ${ajiltan.ner}'
+                          : ajiltan.ner.isNotEmpty
+                          ? ajiltan.ner
+                          : '-',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (ajiltan.albanTushaal != null && ajiltan.albanTushaal!.isNotEmpty) ...[
+                      SizedBox(height: 4.h),
+                      Text(
+                        ajiltan.albanTushaal!,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: const Color(0xFFe6ff00).withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 16.h),
+
+          // Contact Information
+          Row(
+            children: [
+              Expanded(
+                child: _buildContactInfo(
+                  icon: Icons.phone,
+                  label: 'Утас',
+                  value: ajiltan.utas.isNotEmpty ? ajiltan.utas : '-',
+                ),
+              ),
+            ],
+          ),
+
+          if (ajiltan.mail != null && ajiltan.mail!.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            _buildContactInfo(
+              icon: Icons.email,
+              label: 'Имэйл',
+              value: ajiltan.mail!,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactInfo({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 14.sp, color: Colors.white.withOpacity(0.5)),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

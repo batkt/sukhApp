@@ -806,26 +806,28 @@ class ApiService {
         throw Exception('Байгууллага эсвэл барилгын мэдээлэл олдсонгүй');
       }
 
-      final queryJson = json.encode({
-        'erkh': {'\$nin': ['Admin']},
-        'baiguullagiinId': baiguullagiinId,
-        'barilgiinId': barilgiinId,
-      });
-
-      final uri = Uri.parse('$baseUrl/ajiltan').replace(
-        queryParameters: {
-          'baiguullagiinId': baiguullagiinId,
-          'barilgiinId': barilgiinId,
-          'query': queryJson,
-          'khuudasniiDugaar': khuudasniiDugaar.toString(),
-          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
-        },
-      );
+      final uri = Uri.parse(
+        '$baseUrl/ajiltan',
+      ).replace(queryParameters: {'baiguullagiinId': baiguullagiinId});
 
       final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final data = json.decode(response.body);
+
+        // Filter jagsaalt by baiguullagiinId on client side
+        if (data['jagsaalt'] != null && data['jagsaalt'] is List) {
+          final filteredList = (data['jagsaalt'] as List).where((ajiltan) {
+            return ajiltan['baiguullagiinId'] == baiguullagiinId;
+          }).toList();
+
+          data['jagsaalt'] = filteredList;
+          data['niitMur'] = filteredList.length;
+          data['niitKhuudas'] = (filteredList.length / khuudasniiKhemjee)
+              .ceil();
+        }
+
+        return data;
       } else {
         throw Exception(
           'Ажилтны мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',

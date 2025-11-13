@@ -17,7 +17,8 @@ class AjiltanResponse {
     return AjiltanResponse(
       khuudasniiDugaar: json['khuudasniiDugaar'] ?? 0,
       khuudasniiKhemjee: json['khuudasniiKhemjee'] ?? 0,
-      jagsaalt: (json['jagsaalt'] as List<dynamic>?)
+      jagsaalt:
+          (json['jagsaalt'] as List<dynamic>?)
               ?.map((e) => Ajiltan.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -30,17 +31,21 @@ class AjiltanResponse {
 class Ajiltan {
   final String id;
   final String ner;
-  final String ovog;
+  final String? ovog;
   final String utas;
-  final String mail;
+  final String? mail;
   final String register;
   final List<dynamic> tsonkhniiErkhuud;
   final List<String> barilguud;
   final List<dynamic> zogsoolKhaalga;
-  final String ajildOrsonOgnoo;
+  final String? ajildOrsonOgnoo;
   final String baiguullagiinId;
+  final String? baiguullagiinNer;
   final String nevtrekhNer;
+  final String? albanTushaal;
+  final String? erkh;
   final List<dynamic> tuukh;
+  final List<dynamic> departmentAssignments;
   final String createdAt;
   final String updatedAt;
   final Tokhirgoo tokhirgoo;
@@ -48,17 +53,21 @@ class Ajiltan {
   Ajiltan({
     required this.id,
     required this.ner,
-    required this.ovog,
+    this.ovog,
     required this.utas,
-    required this.mail,
+    this.mail,
     required this.register,
     required this.tsonkhniiErkhuud,
     required this.barilguud,
     required this.zogsoolKhaalga,
-    required this.ajildOrsonOgnoo,
+    this.ajildOrsonOgnoo,
     required this.baiguullagiinId,
+    this.baiguullagiinNer,
     required this.nevtrekhNer,
+    this.albanTushaal,
+    this.erkh,
     required this.tuukh,
+    required this.departmentAssignments,
     required this.createdAt,
     required this.updatedAt,
     required this.tokhirgoo,
@@ -68,20 +77,25 @@ class Ajiltan {
     return Ajiltan(
       id: json['_id'] ?? '',
       ner: json['ner'] ?? '',
-      ovog: json['ovog'] ?? '',
+      ovog: json['ovog'],
       utas: json['utas'] ?? '',
-      mail: json['mail'] ?? '',
+      mail: json['mail'],
       register: json['register'] ?? '',
       tsonkhniiErkhuud: json['tsonkhniiErkhuud'] ?? [],
-      barilguud: (json['barilguud'] as List<dynamic>?)
+      barilguud:
+          (json['barilguud'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
       zogsoolKhaalga: json['zogsoolKhaalga'] ?? [],
-      ajildOrsonOgnoo: json['ajildOrsonOgnoo'] ?? '',
+      ajildOrsonOgnoo: json['ajildOrsonOgnoo'],
       baiguullagiinId: json['baiguullagiinId'] ?? '',
+      baiguullagiinNer: json['baiguullagiinNer'],
       nevtrekhNer: json['nevtrekhNer'] ?? '',
+      albanTushaal: json['albanTushaal'],
+      erkh: json['erkh'],
       tuukh: json['tuukh'] ?? [],
+      departmentAssignments: json['departmentAssignments'] ?? [],
       createdAt: json['createdAt'] ?? '',
       updatedAt: json['updatedAt'] ?? '',
       tokhirgoo: json['tokhirgoo'] != null
