@@ -285,8 +285,19 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
               if (barilga is Map &&
                   barilga['bairniiNer'] != null &&
                   barilga['bairniiNer'].toString().isNotEmpty) {
-                // Add all valid Байр to the list
-                bairSet.add(barilga['bairniiNer'].toString());
+                // Filter by selected Хороо and СӨХ
+                bool matchesHoroo =
+                    selectedKhotkhon == null ||
+                    (barilga['horoo'] != null &&
+                        barilga['horoo']['ner'] == selectedKhotkhon);
+
+                bool matchesSOKH =
+                    selectedSOKH == null || (barilga['sohNer'] == selectedSOKH);
+
+                // Only add Байр that matches the selected Хороо and СӨХ
+                if (matchesHoroo && matchesSOKH) {
+                  bairSet.add(barilga['bairniiNer'].toString());
+                }
               }
             }
 
