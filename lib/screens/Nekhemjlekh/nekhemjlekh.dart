@@ -41,6 +41,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
   String? qpayQrImage;
+  String contactPhone = '';
 
   @override
   void initState() {
@@ -53,6 +54,19 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     setState(() {
       isLoadingQPay = true;
     });
+
+    // Fetch ajiltan contact info
+    try {
+      final ajiltanResponse = await ApiService.fetchAjiltan();
+      if (ajiltanResponse['jagsaalt'] != null &&
+          ajiltanResponse['jagsaalt'] is List &&
+          (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
+        final firstAjiltan = ajiltanResponse['jagsaalt'][0];
+        contactPhone = firstAjiltan['utas'] ?? '';
+      }
+    } catch (e) {
+      print('Error fetching ajiltan contact: $e');
+    }
 
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -103,19 +117,20 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       qpayQrImage = response['qr_image']?.toString();
 
       if (response['urls'] != null && response['urls'] is List) {
-        print('Found ${response['urls'].length} banks');
         setState(() {
           qpayBanks = (response['urls'] as List)
               .map((bank) => QPayBank.fromJson(bank))
               .toList();
           isLoadingQPay = false;
         });
-        print('QPay banks loaded successfully');
       } else {
-        throw Exception('Банкны мэдээлэл олдсонгүй');
+        throw Exception(
+          contactPhone.isNotEmpty
+              ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
+              : 'Банкны мэдээлэл олдсонгүй',
+        );
       }
     } catch (e) {
-      print('QPay Error: $e');
       setState(() {
         isLoadingQPay = false;
       });
@@ -469,11 +484,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             : qpayBanks.isEmpty
                             ? Center(
                                 child: Text(
-                                  'Банкны мэдээлэл олдсонгүй',
+                                  contactPhone.isNotEmpty
+                                      ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
+                                      : 'Банкны мэдээлэл олдсонгүй',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 16.sp,
                                   ),
+                                  textAlign: TextAlign.center,
                                 ),
                               )
                             : GridView.builder(
@@ -538,6 +556,22 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       }
 
       if (receipts.isEmpty) {
+        // Fetch ajiltan data to get contact phone number
+        String contactPhone = '';
+        try {
+          final ajiltanResponse = await ApiService.fetchAjiltan();
+          if (ajiltanResponse['jagsaalt'] != null &&
+              ajiltanResponse['jagsaalt'] is List &&
+              (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
+            final firstAjiltan = ajiltanResponse['jagsaalt'][0];
+            contactPhone = firstAjiltan['utas'] ?? '';
+          }
+        } catch (e) {
+          print('Error fetching ajiltan contact: $e');
+        }
+
+        if (!mounted) return;
+
         showDialog(
           context: context,
           builder: (BuildContext context) {
@@ -575,7 +609,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ),
                     SizedBox(height: 20.h),
                     Text(
-                      "Төлбөр амжилттай хийгдсэн боловч, СӨХ-ийн ТИН дугаар байхгүй тул төлбөрийн баримт үүсээгүй!",
+                      contactPhone.isNotEmpty
+                          ? "Төлбөр амжилттай хийгдсэн боловч, СӨХ-ийн ТИН дугаар байхгүй тул төлбөрийн баримт үүсээгүй та СӨХ ийн $contactPhone энэ дугаар луу залгаарай!"
+                          : "Төлбөр амжилттай хийгдсэн боловч, СӨХ-ийн ТИН дугаар байхгүй тул төлбөрийн баримт үүсээгүй!",
                       style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,

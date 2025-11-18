@@ -248,7 +248,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 _rememberMe = value ?? false;
                                               });
                                             },
-                                            activeColor: AppColors.grayColor,
                                             checkColor: Colors.white,
                                             side: const BorderSide(
                                               color: AppColors.grayColor,
@@ -269,9 +268,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             'Намайг сана',
                                             style: TextStyle(
                                               color: AppColors.grayColor,
-                                              fontSize: isTablet
-                                                  ? 11.sp
-                                                  : 15.sp,
+                                              fontSize: isTablet ? 11 : 15,
                                               fontWeight: FontWeight.w500,
                                             ),
                                             overflow: TextOverflow.ellipsis,
@@ -298,7 +295,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         'Нууц код сэргээх',
                                         style: TextStyle(
                                           color: AppColors.grayColor,
-                                          fontSize: isTablet ? 11.sp : 15.sp,
+                                          fontSize: isTablet ? 11 : 15,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -364,7 +361,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               );
 
                                               if (mounted) {
-                                                // Save or clear phone number based on remember me checkbox
                                                 if (_rememberMe) {
                                                   await StorageService.savePhoneNumber(
                                                     inputPhone,
@@ -373,7 +369,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                   await StorageService.clearSavedPhoneNumber();
                                                 }
 
-                                                // Check if we should show onboarding
                                                 final taniltsuulgaKharakhEsekh =
                                                     await StorageService.getTaniltsuulgaKharakhEsekh();
 
