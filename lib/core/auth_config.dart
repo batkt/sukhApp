@@ -157,6 +157,8 @@ class AuthConfig {
   Future<void> logout() async {
     clear();
     await StorageService.clearAuthData();
+    // Reset shake hint so it shows again after next login
+    await StorageService.setShakeHintShown(false);
   }
 
   /// Initialize from saved session (call on app startup)

@@ -7,25 +7,6 @@ class ApiService {
   static const String baseUrl = 'http://103.50.205.80:8084';
 
   // Helper method to wrap HTTP calls with better error handling
-  static Future<T> _handleHttpRequest<T>(
-    Future<T> Function() request,
-    String errorMessage,
-  ) async {
-    try {
-      return await request();
-    } catch (e) {
-      // Check if it's a network/connection error
-      if (e.toString().contains('Failed host lookup') ||
-          e.toString().contains('SocketException') ||
-          e.toString().contains('No address associated with hostname') ||
-          e.toString().contains('NetworkException') ||
-          e.toString().contains('Connection') ||
-          e.toString().contains('Network is unreachable')) {
-        throw Exception('Интернэт холболт тасарсан байна');
-      }
-      throw Exception('$errorMessage: $e');
-    }
-  }
 
   static List<Map<String, dynamic>>? _cachedLocationData;
 

@@ -4,6 +4,8 @@ import 'router/app_router.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/services/connectivity_service.dart';
+import 'package:sukh_app/services/shake_service.dart';
+import 'package:sukh_app/widgets/shake_hint_overlay.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -35,6 +37,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (navigatorKey.currentContext != null) {
         _connectivityService.initialize(navigatorKey.currentContext!);
+        // Initialize shake detection after context is ready
+        ShakeService.initialize();
       }
     });
   }
@@ -42,6 +46,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     _connectivityService.dispose();
+    ShakeService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -51,11 +56,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
 
     if (state == AppLifecycleState.resumed) {
+      // Re-initialize shake detection when app resumes
+      ShakeService.initialize();
+
       SessionService.checkAndHandleSession().then((isValid) {
         if (!isValid && mounted) {
           appRouter.refresh();
         }
       });
+    } else if (state == AppLifecycleState.paused) {
+      // Optionally stop shake detection when app is paused to save battery
+      // ShakeService.stop();
     }
   }
 
@@ -89,6 +100,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 ),
                 fontFamily: 'Inter',
               ),
+              builder: (context, child) {
+                return ShakeHintOverlay(
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
             ),
           ),
         );

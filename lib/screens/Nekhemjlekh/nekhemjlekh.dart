@@ -10,6 +10,8 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/models/geree_model.dart';
+import 'package:sukh_app/models/ajiltan_model.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -41,6 +43,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
   String? qpayQrImage;
+  String contactPhone = '';
 
   @override
   void initState() {
@@ -49,10 +52,21 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   Future<void> _createQPayInvoice() async {
-    print('=== Starting QPay Invoice Creation ===');
     setState(() {
       isLoadingQPay = true;
     });
+
+    try {
+      final ajiltanResponse = await ApiService.fetchAjiltan();
+      if (ajiltanResponse['jagsaalt'] != null &&
+          ajiltanResponse['jagsaalt'] is List &&
+          (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
+        final firstAjiltan = ajiltanResponse['jagsaalt'][0];
+        contactPhone = firstAjiltan['utas'] ?? '';
+      }
+    } catch (e) {
+      print('Error fetching ajiltan contact: $e');
+    }
 
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -63,7 +77,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       }
 
       double totalAmount = 0;
-      String? dansniiDugaar;
       String? turul;
 
       selectedInvoiceIds = [];
@@ -103,19 +116,20 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       qpayQrImage = response['qr_image']?.toString();
 
       if (response['urls'] != null && response['urls'] is List) {
-        print('Found ${response['urls'].length} banks');
         setState(() {
           qpayBanks = (response['urls'] as List)
               .map((bank) => QPayBank.fromJson(bank))
               .toList();
           isLoadingQPay = false;
         });
-        print('QPay banks loaded successfully');
       } else {
-        throw Exception('Банкны мэдээлэл олдсонгүй');
+        throw Exception(
+          contactPhone.isNotEmpty
+              ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
+              : 'Банкны мэдээлэл олдсонгүй',
+        );
       }
     } catch (e) {
-      print('QPay Error: $e');
       setState(() {
         isLoadingQPay = false;
       });
@@ -144,13 +158,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
-      // Step 2: Fetch geree data to get gereeniiDugaar
-      print('Fetching geree data for orshinSuugchId: $orshinSuugchId');
       final gereeResponse = await ApiService.fetchGeree(orshinSuugchId);
 
-      print('Geree response: $gereeResponse');
-
-      // Step 3: Store all available contracts
       if (gereeResponse['jagsaalt'] != null &&
           gereeResponse['jagsaalt'] is List &&
           (gereeResponse['jagsaalt'] as List).isNotEmpty) {
@@ -158,7 +167,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           gereeResponse['jagsaalt'],
         );
 
-        // Use selected contract or default to first one
         final gereeToUse = selectedGereeniiDugaar != null
             ? availableContracts.firstWhere(
                 (c) => c['gereeniiDugaar'] == selectedGereeniiDugaar,
@@ -175,19 +183,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         selectedGereeniiDugaar = gereeniiDugaar;
         selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
 
-        print('Using gereeniiDugaar: $gereeniiDugaar');
-
-        // Step 4: Fetch nekhemjlekhiinTuukh using gereeniiDugaar
         final response = await ApiService.fetchNekhemjlekhiinTuukh(
           gereeniiDugaar: gereeniiDugaar,
           khuudasniiDugaar: 1,
           khuudasniiKhemjee: 10,
         );
 
-        print('NekhemjlekhiinTuukh response: $response');
-
         if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
-          // Store previously selected invoice IDs to preserve selection
           final previouslySelectedIds = invoices
               .where((inv) => inv.isSelected)
               .map((inv) => inv.id)
@@ -198,7 +200,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 .map((item) => NekhemjlekhItem.fromJson(item))
                 .toList();
 
-            // Restore selection state for previously selected invoices
             for (var invoice in invoices) {
               if (previouslySelectedIds.contains(invoice.id)) {
                 invoice.isSelected = true;
@@ -469,11 +470,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             : qpayBanks.isEmpty
                             ? Center(
                                 child: Text(
-                                  'Банкны мэдээлэл олдсонгүй',
+                                  contactPhone.isNotEmpty
+                                      ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
+                                      : 'Банкны мэдээлэл олдсонгүй',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 16.sp,
                                   ),
+                                  textAlign: TextAlign.center,
                                 ),
                               )
                             : GridView.builder(
@@ -508,7 +512,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
   Future<void> _showVATReceiptModal(String invoiceId) async {
     try {
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -538,53 +541,265 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       }
 
       if (receipts.isEmpty) {
+        // Find the invoice to get gereeniiDugaar
+        final invoice = invoices.firstWhere(
+          (inv) => inv.id == invoiceId,
+          orElse: () => invoices.first,
+        );
+
+        // Try to get suhUtas from contract first
+        String suhUtas = '';
+        if (availableContracts.isNotEmpty &&
+            invoice.gereeniiDugaar.isNotEmpty) {
+          try {
+            final contractMap = availableContracts.firstWhere(
+              (c) => c['gereeniiDugaar']?.toString() == invoice.gereeniiDugaar,
+              orElse: () => availableContracts.first,
+            );
+
+            // Convert Map to Geree model object (like in geree.dart)
+            final geree = Geree.fromJson(contractMap);
+
+            if (geree.suhUtas.isNotEmpty) {
+              suhUtas = geree.suhUtas.first;
+            }
+          } catch (e) {
+            // Silent fail
+          }
+        }
+
+        if (suhUtas.isEmpty) {
+          try {
+            final ajiltanResponse = await ApiService.fetchAjiltan();
+            if (ajiltanResponse['jagsaalt'] != null &&
+                ajiltanResponse['jagsaalt'] is List &&
+                (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
+              final ajiltanData = AjiltanResponse.fromJson(ajiltanResponse);
+              if (ajiltanData.jagsaalt.isNotEmpty) {
+                // Get first phone number from ajiltan
+                final firstAjiltan = ajiltanData.jagsaalt.firstWhere(
+                  (ajiltan) => ajiltan.utas.isNotEmpty,
+                  orElse: () => ajiltanData.jagsaalt.first,
+                );
+                if (firstAjiltan.utas.isNotEmpty) {
+                  suhUtas = firstAjiltan.utas;
+                }
+              }
+            }
+          } catch (e) {
+            // Silent fail
+          }
+        }
+
+        if (!mounted) return;
+
         showDialog(
           context: context,
+          barrierColor: Colors.black.withOpacity(0.7),
           builder: (BuildContext context) {
             return Dialog(
               backgroundColor: Colors.transparent,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0a0e27),
-                  borderRadius: BorderRadius.circular(20.w),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                ),
-                padding: EdgeInsets.all(20.w),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white70),
-                          onPressed: () => Navigator.of(context).pop(),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+              elevation: 0,
+              insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: 0.8 + (0.2 * value),
+                    child: Opacity(opacity: value, child: child),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24.w),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0a0e27).withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(24.w),
+                        border: Border.all(
+                          color: const Color(0xFFe6ff00).withOpacity(0.3),
+                          width: 1.5,
                         ),
-                      ],
-                    ),
-                    SizedBox(height: 10.h),
-                    Icon(
-                      Icons.info_outline,
-                      color: const Color(0xFFe6ff00),
-                      size: 60.sp,
-                    ),
-                    SizedBox(height: 20.h),
-                    Text(
-                      "Төлбөр амжилттай хийгдсэн боловч, СӨХ-ийн ТИН дугаар байхгүй тул төлбөрийн баримт үүсээгүй!",
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFe6ff00).withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
+                      padding: EdgeInsets.all(24.w),
+                      child: Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12.w),
+                          border: Border.all(
+                            color: const Color(0xFFe6ff00).withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Close button
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    color: Colors.white70,
+                                  ),
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  iconSize: 20.sp,
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8.h),
+                            // Message
+                            Text(
+                              "И-Баримтын тохиргоо хийгдээгүй байна.",
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withOpacity(0.8),
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 16.h),
+                            // Phone number label
+                            Text(
+                              "СӨХ-тэй холбогдох утасны дугаар:",
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withOpacity(0.6),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 8.h),
+                            if (suhUtas.isNotEmpty) ...[
+                              // Phone number
+                              GestureDetector(
+                                onLongPress: () {
+                                  Clipboard.setData(
+                                    ClipboardData(text: suhUtas),
+                                  );
+                                  HapticFeedback.lightImpact();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Дугаар хуулагдлаа: $suhUtas',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      backgroundColor: const Color(
+                                        0xFFe6ff00,
+                                      ).withOpacity(0.9),
+                                      duration: const Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  suhUtas,
+                                  style: TextStyle(
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFe6ff00),
+                                    letterSpacing: 1.0,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              SizedBox(height: 16.h),
+                              // Call button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    HapticFeedback.mediumImpact();
+                                    final uri = Uri.parse('tel:$suhUtas');
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri);
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Утас дуудах боломжгүй',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          backgroundColor: Colors.red,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  icon: Icon(Icons.phone_rounded, size: 18.sp),
+                                  label: Text(
+                                    'Залгах',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFe6ff00),
+                                    foregroundColor: const Color(0xFF0a0e27),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12.h,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10.w),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              // Empty state
+                              Text(
+                                '.............',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withOpacity(0.4),
+                                  letterSpacing: 1.0,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 6.h),
+                              Text(
+                                'Утасны дугаар олдсонгүй',
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  color: Colors.white.withOpacity(0.5),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 20.h),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -841,38 +1056,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         ],
       ),
     );
-  }
-
-  String _generatePaymentQRData() {
-    return 'socialpay://payment?amount=${totalSelectedAmount.replaceAll('₮', '').replaceAll(',', '')}&contracts=$selectedCount&merchant=SUKH_APP';
-  }
-
-  Future<void> _openSocialPayApp(String qrData) async {
-    final Uri socialPayUri = Uri.parse(qrData);
-
-    try {
-      if (await canLaunchUrl(socialPayUri)) {
-        await launchUrl(socialPayUri, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Social Pay апп суулгагдаагүй байна'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Алдаа гарлаа: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   Widget _buildQPayBankItem(QPayBank bank) {
@@ -1240,59 +1423,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
         // Show bank list again
         _showBankInfoModal();
-      }
-    }
-  }
-
-  Future<void> _openBankApp(String deepLink, [QPayBank? bank]) async {
-    try {
-      final Uri bankUri = Uri.parse(deepLink);
-
-      print('Attempting to launch bank app with URL: $deepLink');
-
-      // Try to launch the bank app
-      bool launched = false;
-      try {
-        launched = await launchUrl(
-          bankUri,
-          mode: LaunchMode.externalApplication,
-        );
-      } catch (e) {
-        print('Error launching bank app: $e');
-        launched = false;
-      }
-
-      if (launched) {
-        // Successfully opened the app
-        print('Bank app launched successfully');
-        if (mounted) {
-          Navigator.of(context).pop();
-          // Start checking payment status
-          _startPaymentStatusCheck();
-        }
-      } else {
-        if (mounted) {
-          // Create a fallback bank object if none provided
-          final fallbackBank =
-              bank ??
-              QPayBank(
-                name: 'bank',
-                description: 'Банк',
-                logo: '',
-                link: deepLink,
-              );
-          _showBankAppNotInstalledDialog(fallbackBank);
-        }
-      }
-    } catch (e) {
-      print('Error in _openBankApp: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Алдаа гарлаа: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }
@@ -1681,90 +1811,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
-  Widget _buildBankItem({
-    required String bankName,
-    required String accountNumber,
-    required String accountName,
-    IconData? logo,
-    String? logoImage,
-    double iconSize = 30,
-    VoidCallback? onTap,
-  }) {
-    final content = Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1a1f3a),
-              borderRadius: BorderRadius.circular(12.w),
-            ),
-            child: logoImage != null
-                ? Image.asset(
-                    logoImage,
-                    width: iconSize.w,
-                    height: iconSize.w,
-                    fit: BoxFit.contain,
-                  )
-                : Icon(
-                    logo ?? Icons.account_balance,
-                    color: Colors.white,
-                    size: iconSize.sp,
-                  ),
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  bankName,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'Данс: $accountNumber',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14.sp,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Нэр: $accountName',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 12.sp,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16.w),
-        child: content,
-      );
-    }
-
-    return content;
-  }
-
   void _showPaymentModal() {
     showModalBottomSheet(
       context: context,
@@ -2076,7 +2122,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF0F1119),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(16.w),
                                   border: Border.all(
                                     color: Colors.white.withOpacity(0.1),
                                   ),
@@ -2316,7 +2362,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     return Container(
       decoration: BoxDecoration(
         color: isHistory ? Colors.white.withOpacity(0.95) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.w),
         border: Border.all(
           color: isHistory
               ? const Color(0xFFe6ff00).withOpacity(0.3)

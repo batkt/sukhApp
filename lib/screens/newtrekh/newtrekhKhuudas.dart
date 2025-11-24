@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/widgets/shake_hint_modal.dart';
+import 'package:sukh_app/main.dart' show navigatorKey;
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -49,6 +51,28 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         phoneController.text = savedPhone;
         _rememberMe = rememberMe;
       });
+    }
+  }
+
+  Future<void> _showModalAfterNavigation() async {
+    // Wait for navigation to complete (page transition is 300ms)
+    await Future.delayed(const Duration(milliseconds: 1000));
+    
+    // Try multiple times with increasing delays to ensure context is ready
+    for (int i = 0; i < 10; i++) {
+      await Future.delayed(Duration(milliseconds: 200 * (i + 1)));
+      
+      final navigatorContext = navigatorKey.currentContext;
+      if (navigatorContext != null && navigatorContext.mounted) {
+        try {
+          // Show the modal - it will check storage internally
+          showShakeHintModal(navigatorContext);
+          return; // Successfully showed modal, exit
+        } catch (e) {
+          // Continue trying if there's an error
+          continue;
+        }
+      }
     }
   }
 
@@ -159,12 +183,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               SizedBox(height: 10.h),
                               Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
+                                  borderRadius: BorderRadius.circular(100.r),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
+                                      offset: Offset(0, 10.h),
+                                      blurRadius: 8.w,
                                     ),
                                   ],
                                 ),
@@ -388,11 +412,18 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 );
 
                                                 // Navigate to onboarding if taniltsuulgaKharakhEsekh is true, otherwise go to home
-                                                if (taniltsuulgaKharakhEsekh) {
-                                                  context.go('/ekhniikh');
-                                                } else {
-                                                  context.go('/nuur');
-                                                }
+                                                final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
+                                                
+                                                // Navigate and wait for it to complete
+                                                context.go(targetRoute);
+                                                
+                                                // Show shake hint modal after navigation
+                                                // Use WidgetsBinding to ensure we're in the next frame
+                                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                  Future.delayed(const Duration(milliseconds: 800), () {
+                                                    _showModalAfterNavigation();
+                                                  });
+                                                });
                                               }
                                             } catch (e) {
                                               if (mounted) {

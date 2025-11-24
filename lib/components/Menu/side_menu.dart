@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sukh_app/router/app_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/services/storage_service.dart';
 
@@ -234,21 +233,21 @@ class _SideMenuState extends State<SideMenu> {
                             return AlertDialog(
                               backgroundColor: const Color(0xFF1a1a2e),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(16.w),
                               ),
-                              title: const Text(
+                              title: Text(
                                 'Гарах',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 20,
+                                  fontSize: 20.sp,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              content: const Text(
+                              content: Text(
                                 'Та системээс гарахдаа итгэлтэй байна уу?',
                                 style: TextStyle(
                                   color: Colors.white70,
-                                  fontSize: 16,
+                                  fontSize: 16.sp,
                                 ),
                               ),
                               actions: [
@@ -256,11 +255,11 @@ class _SideMenuState extends State<SideMenu> {
                                   onPressed: () {
                                     Navigator.of(dialogContext).pop(false);
                                   },
-                                  child: const Text(
+                                  child: Text(
                                     'Үгүй',
                                     style: TextStyle(
                                       color: Colors.white70,
-                                      fontSize: 16,
+                                      fontSize: 16.sp,
                                     ),
                                   ),
                                 ),
@@ -268,11 +267,11 @@ class _SideMenuState extends State<SideMenu> {
                                   onPressed: () {
                                     Navigator.of(dialogContext).pop(true);
                                   },
-                                  child: const Text(
+                                  child: Text(
                                     'Тийм',
                                     style: TextStyle(
                                       color: Colors.red,
-                                      fontSize: 16,
+                                      fontSize: 16.sp,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

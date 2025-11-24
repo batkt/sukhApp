@@ -419,10 +419,6 @@ class _GereeState extends State<Geree> {
     }
   }
 
-  String _formatCurrency(double amount) {
-    return '${amount.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}₮';
-  }
-
   Widget _buildSection({
     required String title,
     required IconData icon,
@@ -543,7 +539,9 @@ class _GereeState extends State<Geree> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ajiltan.ovog != null && ajiltan.ovog!.isNotEmpty && ajiltan.ner.isNotEmpty
+                      ajiltan.ovog != null &&
+                              ajiltan.ovog!.isNotEmpty &&
+                              ajiltan.ner.isNotEmpty
                           ? '${ajiltan.ovog} ${ajiltan.ner}'
                           : ajiltan.ner.isNotEmpty
                           ? ajiltan.ner
@@ -554,7 +552,8 @@ class _GereeState extends State<Geree> {
                         color: Colors.white,
                       ),
                     ),
-                    if (ajiltan.albanTushaal != null && ajiltan.albanTushaal!.isNotEmpty) ...[
+                    if (ajiltan.albanTushaal != null &&
+                        ajiltan.albanTushaal!.isNotEmpty) ...[
                       SizedBox(height: 4.h),
                       Text(
                         ajiltan.albanTushaal!,

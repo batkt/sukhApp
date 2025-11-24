@@ -355,13 +355,13 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(100),
+                        borderRadius: BorderRadius.circular(100.r),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.25),
-                            blurRadius: 12,
+                            blurRadius: 12.w,
                             spreadRadius: 0,
-                            offset: const Offset(0, 4),
+                            offset: Offset(0, 4.h),
                           ),
                         ],
                       ),
@@ -371,7 +371,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           onTap: () {
                             _scaffoldKey.currentState?.openDrawer();
                           },
-                          borderRadius: BorderRadius.circular(100),
+                          borderRadius: BorderRadius.circular(100.r),
                           child: Padding(
                             padding: EdgeInsets.all(10.w),
                             child: Icon(
@@ -388,13 +388,13 @@ class _BookingScreenState extends State<NuurKhuudas> {
                         Container(
                           decoration: BoxDecoration(
                             color: const Color(0xFFe6ff00),
-                            borderRadius: BorderRadius.circular(100),
+                            borderRadius: BorderRadius.circular(100.r),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.25),
-                                blurRadius: 12,
+                                blurRadius: 12.w,
                                 spreadRadius: 0,
-                                offset: const Offset(0, 4),
+                                offset: Offset(0, 4.h),
                               ),
                             ],
                           ),
@@ -402,7 +402,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: _showPaymentModal,
-                              borderRadius: BorderRadius.circular(100),
+                              borderRadius: BorderRadius.circular(100.r),
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 18.w,
@@ -514,7 +514,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(16.w),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -666,7 +666,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
             padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(50),
+              borderRadius: BorderRadius.circular(50.r),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -814,7 +814,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     padding: EdgeInsets.all(14.w),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.w),
                       border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
                     child: Row(
@@ -852,7 +852,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                         foregroundColor: Colors.black,
                         padding: EdgeInsets.symmetric(vertical: 14.h),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.w),
                         ),
                       ),
                       child: Text(

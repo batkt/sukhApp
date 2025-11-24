@@ -132,22 +132,22 @@ class _TokhirgooState extends State<Tokhirgoo>
             return AlertDialog(
               backgroundColor: const Color(0xFF1a1a2e),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16.w),
               ),
-              title: const Text(
+              title: Text(
                 'Нууц үг оруулах',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'Бүртгэл устгахын тулд одоогийн нууц үгээ оруулна уу',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: TextStyle(color: Colors.white70, fontSize: 14.sp),
                   ),
                   SizedBox(height: 16.h),
                   TextFormField(
@@ -180,16 +180,16 @@ class _TokhirgooState extends State<Tokhirgoo>
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.05),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.w),
                         borderSide: BorderSide(
                           color: Colors.white.withOpacity(0.1),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFe6ff00),
-                          width: 2,
+                        borderRadius: BorderRadius.circular(12.w),
+                        borderSide: BorderSide(
+                          color: const Color(0xFFe6ff00),
+                          width: 2.w,
                         ),
                       ),
                     ),
@@ -247,7 +247,7 @@ class _TokhirgooState extends State<Tokhirgoo>
         return AlertDialog(
           backgroundColor: const Color(0xFF1a1a2e),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.w),
           ),
           title: const Text(
             'Бүртгэл устгах',
@@ -448,7 +448,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                     backgroundColor: const Color(0xFFe6ff00),
                                     foregroundColor: Colors.black,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(12.w),
                                     ),
                                     elevation: 0,
                                   ),
@@ -570,20 +570,20 @@ class _TokhirgooState extends State<Tokhirgoo>
         filled: true,
         fillColor: Colors.white.withOpacity(0.05),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.w),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFe6ff00), width: 2),
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: BorderSide(color: const Color(0xFFe6ff00), width: 2.w),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.w),
           borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: BorderSide(color: Colors.red, width: 2.w),
         ),
       ),
       inputFormatters: [

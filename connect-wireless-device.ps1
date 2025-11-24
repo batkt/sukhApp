@@ -1,0 +1,113 @@
+# Wireless Android Device Connection Helper Script
+# Usage: .\connect-wireless-device.ps1
+
+$adbPath = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+
+if (-not (Test-Path $adbPath)) {
+    Write-Host "ERROR: ADB not found at $adbPath" -ForegroundColor Red
+    Write-Host "Please ensure Android SDK platform-tools are installed." -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "=== Wireless Android Device Connection ===" -ForegroundColor Cyan
+Write-Host ""
+
+# Check current devices
+Write-Host "Current connected devices:" -ForegroundColor Yellow
+& $adbPath devices
+Write-Host ""
+
+# Ask user for connection method
+Write-Host "Select connection method:" -ForegroundColor Green
+Write-Host "1. Android 11+ (Wireless Debugging with pairing code)"
+Write-Host "2. Android 10 and below (ADB over Network)"
+Write-Host "3. Just list devices"
+Write-Host ""
+
+$choice = Read-Host "Enter choice (1-3)"
+
+switch ($choice) {
+    "1" {
+        Write-Host ""
+        Write-Host "=== Android 11+ Wireless Debugging ===" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "On your device:" -ForegroundColor Yellow
+        Write-Host "1. Go to Settings → Developer options → Wireless debugging"
+        Write-Host "2. Tap 'Pair device with pairing code'"
+        Write-Host "3. Note the IP:PORT and 6-digit code"
+        Write-Host ""
+        
+        $pairAddress = Read-Host "Enter IP:PORT (e.g., 192.168.1.100:12345)"
+        $pairCode = Read-Host "Enter 6-digit pairing code"
+        
+        Write-Host ""
+        Write-Host "Pairing device..." -ForegroundColor Yellow
+        & $adbPath pair "$pairAddress" "$pairCode"
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host ""
+            Write-Host "Pairing successful! Now connect using the new IP:PORT shown above." -ForegroundColor Green
+            $connectAddress = Read-Host "Enter the new IP:PORT to connect"
+            
+            Write-Host ""
+            Write-Host "Connecting..." -ForegroundColor Yellow
+            & $adbPath connect "$connectAddress"
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host ""
+                Write-Host "Connection successful!" -ForegroundColor Green
+                & $adbPath devices
+            }
+        }
+    }
+    "2" {
+        Write-Host ""
+        Write-Host "=== ADB over Network (Android 10 and below) ===" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "First, connect your device via USB and enable USB debugging." -ForegroundColor Yellow
+        Write-Host ""
+        
+        $usbConnected = Read-Host "Is your device connected via USB? (y/n)"
+        
+        if ($usbConnected -eq "y" -or $usbConnected -eq "Y") {
+            Write-Host ""
+            Write-Host "Enabling TCP/IP mode on port 5555..." -ForegroundColor Yellow
+            & $adbPath tcpip 5555
+            
+            Write-Host ""
+            Write-Host "Now disconnect the USB cable." -ForegroundColor Yellow
+            Write-Host "Find your device's IP address:" -ForegroundColor Yellow
+            Write-Host "  Settings → About phone → Status → IP address"
+            Write-Host ""
+            
+            $deviceIP = Read-Host "Enter your device IP address"
+            
+            Write-Host ""
+            Write-Host "Connecting wirelessly..." -ForegroundColor Yellow
+            & $adbPath connect "$deviceIP`:5555"
+            
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host ""
+                Write-Host "Connection successful!" -ForegroundColor Green
+                & $adbPath devices
+            }
+        } else {
+            Write-Host "Please connect your device via USB first, then run this script again." -ForegroundColor Red
+        }
+    }
+    "3" {
+        Write-Host ""
+        Write-Host "=== Connected Devices ===" -ForegroundColor Cyan
+        & $adbPath devices
+        Write-Host ""
+        Write-Host "=== Flutter Devices ===" -ForegroundColor Cyan
+        flutter devices
+    }
+    default {
+        Write-Host "Invalid choice. Exiting." -ForegroundColor Red
+    }
+}
+
+Write-Host ""
+Write-Host "=== Done ===" -ForegroundColor Cyan
+

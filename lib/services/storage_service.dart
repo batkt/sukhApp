@@ -31,6 +31,7 @@ class StorageService {
       'taniltsuulga_kharakh_esekh';
   static const String _savedPhoneKey = 'saved_phone_number';
   static const String _rememberMeKey = 'remember_me';
+  static const String _shakeHintShownKey = 'shake_hint_shown';
 
   static Future<bool> saveToken(String token) async {
     try {
@@ -45,7 +46,7 @@ class StorageService {
   static Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       return prefs.getString(_tokenKey);
     } catch (e) {
       print('Token алдаа: $e');
@@ -282,6 +283,26 @@ class StorageService {
       return prefs.getBool(_rememberMeKey) ?? false;
     } catch (e) {
       print('Error checking remember me: $e');
+      return false;
+    }
+  }
+
+  /// Check if shake hint has been shown
+  static Future<bool> hasShakeHintBeenShown() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_shakeHintShownKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Mark shake hint as shown
+  static Future<bool> setShakeHintShown(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_shakeHintShownKey, value);
+    } catch (e) {
       return false;
     }
   }

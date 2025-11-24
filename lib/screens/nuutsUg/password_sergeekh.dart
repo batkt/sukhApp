@@ -643,14 +643,14 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             filled: true,
             fillColor: AppColors.inputGrayColor.withOpacity(0.5),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.w),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
+              borderRadius: BorderRadius.circular(12.w),
+              borderSide: BorderSide(
                 color: AppColors.grayColor,
-                width: 1.5,
+                width: 1.5.w,
               ),
             ),
             contentPadding: EdgeInsets.zero,

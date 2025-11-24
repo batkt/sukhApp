@@ -292,7 +292,7 @@ class _CreateProfileState extends State<CreateProfile>
       height: 60.h,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.w),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Padding(
@@ -318,7 +318,7 @@ class _CreateProfileState extends State<CreateProfile>
                     width: 80.w,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(4.w),
                     ),
                   ),
                 ],
@@ -349,24 +349,24 @@ class _CreateProfileState extends State<CreateProfile>
         filled: true,
         fillColor: Colors.white.withOpacity(0.05),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.w),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.w),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFe6ff00), width: 2),
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: BorderSide(color: const Color(0xFFe6ff00), width: 2.w),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.w),
           borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: BorderSide(color: Colors.red, width: 2.w),
         ),
       ),
       validator: (value) {
