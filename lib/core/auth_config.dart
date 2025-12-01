@@ -157,8 +157,9 @@ class AuthConfig {
   Future<void> logout() async {
     clear();
     await StorageService.clearAuthData();
-    // Reset shake hint so it shows again after next login
-    await StorageService.setShakeHintShown(false);
+    // Note: shake hint is NOT reset on logout - it persists across sessions
+    // This way, once a user has seen the hint, they won't see it again
+    // even after logging out and back in
   }
 
   /// Initialize from saved session (call on app startup)

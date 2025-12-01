@@ -33,30 +33,31 @@ class ShakeService {
     try {
       _shakeDetector = ShakeDetector.autoStart(
         onPhoneShake: (ShakeEvent event) {
-          // Always trigger vibration first (even if modal is blocked)
-          _triggerVibration();
-
           // Prevent multiple modals from stacking
           if (_isModalShowing) {
             return;
           }
 
-          // Cooldown period - prevent opening modal too frequently (2 seconds)
+          // Cooldown period - prevent opening modal too frequently (3 seconds)
           final now = DateTime.now();
           if (_lastModalShownTime != null) {
             final timeSinceLastModal = now.difference(_lastModalShownTime!);
-            if (timeSinceLastModal.inSeconds < 2) {
+            if (timeSinceLastModal.inSeconds < 5) {
               return;
             }
           }
 
+          // Trigger vibration when showing help modal
+          _triggerVibration();
+
           // Show modal
           _showHelpModal();
         },
-        minimumShakeCount: 1,
-        shakeSlopTimeMS: 500,
-        shakeCountResetTime: 3000,
-        shakeThresholdGravity: 1.2,
+        minimumShakeCount: 3, // Require 3 shakes before triggering
+        shakeSlopTimeMS: 800, // Increased time window for shake detection
+        shakeCountResetTime: 4000, // Reset count after 4 seconds of no shaking
+        shakeThresholdGravity:
+            2.5, // Increased threshold - requires stronger shake
       );
 
       _isInitialized = true;

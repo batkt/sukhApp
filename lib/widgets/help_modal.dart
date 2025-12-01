@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sukh_app/services/shake_service.dart';
 import 'dart:ui';
 
 /// Show help modal with frequently asked questions
@@ -208,31 +207,14 @@ class _HelpModalState extends State<HelpModal> {
                         ),
                       ],
                     ),
-                    Row(
-                      children: [
-                        // Vibration test button
-                        IconButton(
-                          icon: Icon(
-                            Icons.vibration,
-                            color: const Color(0xFFe6ff00),
-                            size: 24.sp,
-                          ),
-                          onPressed: () {
-                            // Trigger vibration
-                            ShakeService.testVibration();
-                          },
-                          tooltip: 'Чангалах туршилт',
-                        ),
-                        // Close button
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 24.sp,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
+                    // Close button
+                    IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 24.sp,
+                      ),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),

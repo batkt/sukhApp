@@ -6,8 +6,7 @@ import 'package:sukh_app/screens/medegdel/medegdel.dart';
 import 'package:sukh_app/screens/newtrekh/newtrekhKhuudas.dart';
 import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
 import 'package:sukh_app/screens/Home/home.dart';
-import 'package:sukh_app/screens/Tokhirhoo/tokhirgoo.dart';
-import 'package:sukh_app/screens/Profile/profile.dart';
+import 'package:sukh_app/screens/Profile/profile_settings.dart';
 import 'package:sukh_app/screens/geree/geree.dart';
 import 'package:sukh_app/screens/nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
@@ -114,7 +113,7 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) =>
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
-            child: const Tokhirgoo(),
+            child: const ProfileSettings(),
           ),
     ),
     GoRoute(
@@ -122,7 +121,7 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) =>
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
-            child: const CreateProfile(),
+            child: const ProfileSettings(),
           ),
     ),
     GoRoute(

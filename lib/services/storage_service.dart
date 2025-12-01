@@ -217,6 +217,7 @@ class StorageService {
   }
 
   /// Clear only authentication data (keep other app data)
+  /// Note: shake hint shown status is NOT cleared - it persists across logouts
   static Future<bool> clearAuthData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -228,6 +229,7 @@ class StorageService {
       await prefs.remove(_barilgiinIdKey);
       await prefs.remove(_duusakhOgnooKey);
       await prefs.remove(_taniltsuulgaKharakhEsekhKey);
+      // Note: _shakeHintShownKey is NOT removed - it persists across sessions
       return true;
     } catch (e) {
       print('Error clearing auth data: $e');

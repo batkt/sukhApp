@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/constants/constants.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({Key? key}) : super(key: key);
@@ -74,8 +75,8 @@ class _SideMenuState extends State<SideMenu> {
                       Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFe6ff00),
-                      foregroundColor: const Color(0xFF1a1a2e),
+                      backgroundColor: AppColors.goldPrimary,
+                      foregroundColor: AppColors.darkBackground,
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -102,7 +103,7 @@ class _SideMenuState extends State<SideMenu> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: const Color(0xFF1a1a2e),
+      backgroundColor: AppColors.darkBackground,
       child: SafeArea(
         child: Column(
           children: [
@@ -123,16 +124,17 @@ class _SideMenuState extends State<SideMenu> {
                   Text(
                     'Amarhome',
                     style: TextStyle(
-                      color: const Color(0xFFe6ff00),
+                      color: AppColors.goldPrimary,
                       fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.5,
                     ),
                   ),
                 ],
               ),
             ),
             Divider(
-              color: Colors.grey,
+              color: AppColors.goldPrimary.withOpacity(0.15),
               thickness: 0.5,
               indent: 16.w,
               endIndent: 16.w,
@@ -143,16 +145,6 @@ class _SideMenuState extends State<SideMenu> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.dashboard_outlined,
-                      title: 'Хувийн мэдээлэл',
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push('/profile');
-                      },
-                    ),
-
                     _buildMenuItem(
                       context,
                       icon: Icons.receipt,
@@ -231,22 +223,27 @@ class _SideMenuState extends State<SideMenu> {
                           barrierDismissible: false,
                           builder: (BuildContext dialogContext) {
                             return AlertDialog(
-                              backgroundColor: const Color(0xFF1a1a2e),
+                              backgroundColor: AppColors.darkSurface,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16.w),
+                                side: BorderSide(
+                                  color: AppColors.goldPrimary.withOpacity(0.2),
+                                  width: 1,
+                                ),
                               ),
                               title: Text(
                                 'Гарах',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.goldPrimary,
                                   fontSize: 20.sp,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.8,
                                 ),
                               ),
                               content: Text(
                                 'Та системээс гарахдаа итгэлтэй байна уу?',
                                 style: TextStyle(
-                                  color: Colors.white70,
+                                  color: AppColors.darkTextSecondary,
                                   fontSize: 16.sp,
                                 ),
                               ),
@@ -323,20 +320,22 @@ class _SideMenuState extends State<SideMenu> {
     return ListTile(
       leading: Icon(
         icon,
-        color: isLogout ? Colors.red : const Color(0xFFe6ff00),
-        size: 24.sp,
+        color: isLogout ? Colors.red : AppColors.goldPrimary,
+        size: 22.sp,
       ),
       title: Text(
         title,
         style: TextStyle(
           color: isLogout ? Colors.red : Colors.white,
           fontSize: 14.sp,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.5,
         ),
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.w)),
       contentPadding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 5.h),
+      hoverColor: AppColors.goldPrimary.withOpacity(0.05),
     );
   }
 }
@@ -386,12 +385,16 @@ class _BouncingRocketState extends State<_BouncingRocket>
           child: Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: const Color(0xFFe6ff00).withValues(alpha: 0.2),
+              color: AppColors.goldPrimary.withOpacity(0.1),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.goldPrimary.withOpacity(0.25),
+                width: 1.5,
+              ),
             ),
             child: Icon(
               Icons.rocket_launch,
-              color: const Color(0xFFe6ff00),
+              color: AppColors.goldPrimary,
               size: 48.sp,
             ),
           ),

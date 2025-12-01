@@ -161,7 +161,7 @@ class _ShakeHintModalState extends State<_ShakeHintModal>
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: Text(
-                    'Утсаа сэгсрээд асуудлаа шалгуулах',
+                    'Утсаа сэгсрээрэй',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
