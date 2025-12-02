@@ -6,7 +6,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 
 class SideMenu extends StatefulWidget {
-  const SideMenu({Key? key}) : super(key: key);
+  const SideMenu({super.key});
 
   @override
   State<SideMenu> createState() => _SideMenuState();

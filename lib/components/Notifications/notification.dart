@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Notification Dropdown Widget
 class NotificationDropdown extends StatelessWidget {
-  const NotificationDropdown({Key? key}) : super(key: key);
+  const NotificationDropdown({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +209,7 @@ class NotificationDropdown extends StatelessWidget {
 
 // Full Notifications Page (keep this for "View All" functionality)
 class NotificationsPage extends StatelessWidget {
-  const NotificationsPage({Key? key}) : super(key: key);
+  const NotificationsPage({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -9,7 +9,7 @@ import 'package:sukh_app/constants/constants.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +18,7 @@ class AppBackground extends StatelessWidget {
 }
 
 class ProfileSettings extends StatefulWidget {
-  const ProfileSettings({Key? key}) : super(key: key);
+  const ProfileSettings({super.key});
 
   @override
   State<ProfileSettings> createState() => _ProfileSettingsState();
@@ -289,7 +289,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     if (_deletePasswordController.text.isEmpty) {
                       return;
                     }
-                    Navigator.of(dialogContext).pop(_deletePasswordController.text);
+                    Navigator.of(
+                      dialogContext,
+                    ).pop(_deletePasswordController.text);
                   },
                   child: const Text(
                     'Устгах',
@@ -443,11 +445,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 width: 1,
               ),
             ),
-            child: Icon(
-              icon,
-              color: AppColors.goldPrimary,
-              size: 20.sp,
-            ),
+            child: Icon(icon, color: AppColors.goldPrimary, size: 20.sp),
           ),
           SizedBox(width: 12.w),
           Text(
@@ -516,35 +514,24 @@ class _ProfileSettingsState extends State<ProfileSettings>
       controller: controller,
       enabled: enabled,
       keyboardType: keyboardType,
-      style: TextStyle(
-        color: enabled ? Colors.white : Colors.white60,
-      ),
+      style: TextStyle(color: enabled ? Colors.white : Colors.white60),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: Colors.white.withOpacity(0.6),
-        ),
+        labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
         prefixIcon: Icon(icon, color: AppColors.goldPrimary),
         filled: true,
         fillColor: Colors.white.withOpacity(0.05),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.1),
-          ),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.05),
-          ),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(
-            color: AppColors.goldPrimary,
-            width: 2.w,
-          ),
+          borderSide: BorderSide(color: AppColors.goldPrimary, width: 2.w),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.w),
@@ -578,13 +565,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
       autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: Colors.white.withOpacity(0.6),
-        ),
-        prefixIcon: Icon(
-          Icons.lock_outline,
-          color: AppColors.goldPrimary,
-        ),
+        labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+        prefixIcon: Icon(Icons.lock_outline, color: AppColors.goldPrimary),
         suffixIcon: IconButton(
           icon: Icon(
             obscureText
@@ -598,16 +580,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
         fillColor: Colors.white.withOpacity(0.05),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.1),
-          ),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(
-            color: AppColors.goldPrimary,
-            width: 2.w,
-          ),
+          borderSide: BorderSide(color: AppColors.goldPrimary, width: 2.w),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.w),
@@ -675,9 +652,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12.w),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Padding(
         padding: EdgeInsets.all(16.w),
@@ -782,8 +757,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black
-                                                  .withOpacity(0.3),
+                                              color: Colors.black.withOpacity(
+                                                0.3,
+                                              ),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),
                                             ),
@@ -905,8 +881,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                         child: Container(
                                           decoration: BoxDecoration(
                                             color: AppColors.goldPrimary,
-                                            borderRadius:
-                                                BorderRadius.circular(12.w),
+                                            borderRadius: BorderRadius.circular(
+                                              12.w,
+                                            ),
                                           ),
                                           child: Material(
                                             color: Colors.transparent,
@@ -924,10 +901,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                         width: 20.w,
                                                         child:
                                                             CircularProgressIndicator(
-                                                          color: AppColors
-                                                              .darkBackground,
-                                                          strokeWidth: 2,
-                                                        ),
+                                                              color: AppColors
+                                                                  .darkBackground,
+                                                              strokeWidth: 2,
+                                                            ),
                                                       )
                                                     : Text(
                                                         'Нууц код солих',
@@ -982,28 +959,30 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                           ),
                                           foregroundColor: Colors.redAccent,
                                           side: BorderSide(
-                                            color: Colors.redAccent
-                                                .withOpacity(0.5),
+                                            color: Colors.redAccent.withOpacity(
+                                              0.5,
+                                            ),
                                             width: 1,
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12.w),
+                                            borderRadius: BorderRadius.circular(
+                                              12.w,
+                                            ),
                                           ),
                                         ),
                                         child: _isDeletingAccount
                                             ? Row(
-                                                mainAxisSize:
-                                                    MainAxisSize.min,
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   SizedBox(
                                                     height: 16.h,
                                                     width: 16.h,
                                                     child:
                                                         CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Colors.redAccent,
-                                                    ),
+                                                          strokeWidth: 2,
+                                                          color:
+                                                              Colors.redAccent,
+                                                        ),
                                                   ),
                                                   SizedBox(width: 8.w),
                                                   Text(
@@ -1041,4 +1020,3 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
   }
 }
-

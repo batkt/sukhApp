@@ -8,7 +8,7 @@ import 'package:sukh_app/models/ajiltan_model.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class AppBackground extends StatelessWidget {
 }
 
 class Geree extends StatefulWidget {
-  const Geree({Key? key}) : super(key: key);
+  const Geree({super.key});
 
   @override
   State<Geree> createState() => _GereeState();

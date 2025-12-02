@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class AppBackground extends StatelessWidget {
 }
 
 class CreateProfile extends StatefulWidget {
-  const CreateProfile({Key? key}) : super(key: key);
+  const CreateProfile({super.key});
 
   @override
   State<CreateProfile> createState() => _CreateProfileState();

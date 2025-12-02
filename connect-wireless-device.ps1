@@ -12,6 +12,13 @@ if (-not (Test-Path $adbPath)) {
 Write-Host "=== Wireless Android Device Connection ===" -ForegroundColor Cyan
 Write-Host ""
 
+# Restart ADB server to avoid hanging issues
+Write-Host "Restarting ADB server..." -ForegroundColor Yellow
+& $adbPath kill-server 2>&1 | Out-Null
+Start-Sleep -Milliseconds 500
+& $adbPath start-server 2>&1 | Out-Null
+Start-Sleep -Milliseconds 500
+
 # Check current devices
 Write-Host "Current connected devices:" -ForegroundColor Yellow
 & $adbPath devices

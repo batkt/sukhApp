@@ -7,8 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class ResponsiveDebugOverlay extends StatelessWidget {
   final Widget child;
 
-  const ResponsiveDebugOverlay({Key? key, required this.child})
-    : super(key: key);
+  const ResponsiveDebugOverlay({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {

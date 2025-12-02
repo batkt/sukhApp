@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class ShakeHintOverlay extends StatelessWidget {
   final Widget child;
 
-  const ShakeHintOverlay({Key? key, required this.child}) : super(key: key);
+  const ShakeHintOverlay({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {

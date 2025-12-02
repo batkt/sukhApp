@@ -8,7 +8,7 @@ import 'package:sukh_app/services/api_service.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class AppBackground extends StatelessWidget {
 }
 
 class Tokhirgoo extends StatefulWidget {
-  const Tokhirgoo({Key? key}) : super(key: key);
+  const Tokhirgoo({super.key});
 
   @override
   State<Tokhirgoo> createState() => _TokhirgooState();

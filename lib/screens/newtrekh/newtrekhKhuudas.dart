@@ -6,13 +6,15 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
+import 'dart:io';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +36,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   bool _isLoading = false;
   bool _rememberMe = false;
   bool _isPasswordVisible = false;
+  bool _biometricAvailable = false;
 
   @override
   void initState() {
@@ -41,6 +44,16 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     phoneController.addListener(() => setState(() {}));
     passwordController.addListener(() => setState(() {}));
     _loadSavedPhoneNumber();
+    _checkBiometricAvailability();
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final isAvailable = await BiometricService.isAvailable();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = isAvailable;
+      });
+    }
   }
 
   Future<void> _loadSavedPhoneNumber() async {
@@ -54,14 +67,108 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     }
   }
 
+  Future<void> _authenticateWithBiometric() async {
+    if (!_biometricAvailable) {
+      return;
+    }
+
+    try {
+      // First authenticate with biometric
+      final didAuthenticate = await BiometricService.authenticate();
+      if (!didAuthenticate || !mounted) {
+        return;
+      }
+
+      // Get saved credentials
+      final savedPhone = await StorageService.getSavedPhoneNumber();
+      final savedPassword = await StorageService.getSavedPasswordForBiometric();
+
+      // If no saved credentials, show message to login first
+      if (savedPhone == null || savedPassword == null) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Эхлээд нэвтрэх шаардлагатай',
+            icon: Icons.info,
+            iconColor: Colors.orange,
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+        phoneController.text = savedPhone;
+      });
+
+      try {
+        await ApiService.loginUser(utas: savedPhone, nuutsUg: savedPassword);
+
+        if (mounted) {
+          final taniltsuulgaKharakhEsekh =
+              await StorageService.getTaniltsuulgaKharakhEsekh();
+
+          setState(() {
+            _isLoading = false;
+          });
+          showGlassSnackBar(
+            context,
+            message: 'Нэвтрэлт амжилттай',
+            icon: Icons.check_outlined,
+            iconColor: Colors.green,
+          );
+
+          final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
+          context.go(targetRoute);
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Future.delayed(const Duration(milliseconds: 800), () {
+              _showModalAfterNavigation();
+            });
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          String errorMessage = e.toString();
+          if (errorMessage.startsWith('Exception: ')) {
+            errorMessage = errorMessage.substring(11);
+          }
+          if (errorMessage.isEmpty) {
+            errorMessage = "Утасны дугаар эсвэл нууц үг буруу байна";
+          }
+
+          showGlassSnackBar(
+            context,
+            message: errorMessage,
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Биометрийн баталгаажуулалт амжилтгүй',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
   Future<void> _showModalAfterNavigation() async {
     // Wait for navigation to complete (page transition is 300ms)
     await Future.delayed(const Duration(milliseconds: 1000));
-    
+
     // Try multiple times with increasing delays to ensure context is ready
     for (int i = 0; i < 10; i++) {
       await Future.delayed(Duration(milliseconds: 200 * (i + 1)));
-      
+
       final navigatorContext = navigatorKey.currentContext;
       if (navigatorContext != null && navigatorContext.mounted) {
         try {
@@ -119,15 +226,17 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   fontSize: 22.sp,
                                 ),
                               ),
-                              SizedBox(height: 14.h),
+                              SizedBox(height: 24.h),
+                              // Phone Input Field
                               Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
+                                  borderRadius: BorderRadius.circular(16.r),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
+                                      color: Colors.black.withOpacity(0.15),
+                                      offset: const Offset(0, 4),
+                                      blurRadius: 12,
+                                      spreadRadius: 0,
                                     ),
                                   ],
                                 ),
@@ -137,37 +246,48 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   autofocus: false,
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 15.sp,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'Утасны дугаар',
                                     hintStyle: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 15.sp,
+                                      color: Colors.white.withOpacity(0.5),
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w400,
                                     ),
                                     filled: true,
                                     fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.5),
+                                        .withOpacity(0.3),
                                     contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 16.w,
-                                      vertical: 11.h,
+                                      horizontal: 20.w,
+                                      vertical: 16.h,
                                     ),
                                     enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: BorderSide.none,
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      borderSide: BorderSide(
+                                        color: Colors.white.withOpacity(0.1),
+                                        width: 1.5,
+                                      ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.grayColor,
-                                        width: 1.5,
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      borderSide: BorderSide(
+                                        color: AppColors.grayColor.withOpacity(
+                                          0.8,
+                                        ),
+                                        width: 2,
                                       ),
                                     ),
                                     suffixIcon: phoneController.text.isNotEmpty
                                         ? IconButton(
-                                            icon: const Icon(
-                                              Icons.clear,
-                                              color: Colors.white70,
+                                            icon: Icon(
+                                              Icons.clear_rounded,
+                                              color: Colors.white.withOpacity(
+                                                0.7,
+                                              ),
+                                              size: 20.sp,
                                             ),
                                             onPressed: () =>
                                                 phoneController.clear(),
@@ -180,15 +300,17 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ],
                                 ),
                               ),
-                              SizedBox(height: 10.h),
+                              SizedBox(height: 16.h),
+                              // Password Input Field
                               Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100.r),
+                                  borderRadius: BorderRadius.circular(16.r),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: Offset(0, 10.h),
-                                      blurRadius: 8.w,
+                                      color: Colors.black.withOpacity(0.15),
+                                      offset: const Offset(0, 4),
+                                      blurRadius: 12,
+                                      spreadRadius: 0,
                                     ),
                                   ],
                                 ),
@@ -199,30 +321,38 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   autofocus: false,
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 15.sp,
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 2,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'Нууц код',
                                     hintStyle: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 15.sp,
+                                      color: Colors.white.withOpacity(0.5),
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w400,
                                     ),
                                     filled: true,
                                     fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.5),
+                                        .withOpacity(0.3),
                                     contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 16.w,
-                                      vertical: 11.h,
+                                      horizontal: 20.w,
+                                      vertical: 16.h,
                                     ),
                                     enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: BorderSide.none,
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      borderSide: BorderSide(
+                                        color: Colors.white.withOpacity(0.1),
+                                        width: 1.5,
+                                      ),
                                     ),
                                     focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(100),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.grayColor,
-                                        width: 1.5,
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      borderSide: BorderSide(
+                                        color: AppColors.grayColor.withOpacity(
+                                          0.8,
+                                        ),
+                                        width: 2,
                                       ),
                                     ),
                                     suffixIcon:
@@ -230,9 +360,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         ? IconButton(
                                             icon: Icon(
                                               _isPasswordVisible
-                                                  ? Icons.visibility_off
-                                                  : Icons.visibility,
-                                              color: Colors.white70,
+                                                  ? Icons.visibility_off_rounded
+                                                  : Icons.visibility_rounded,
+                                              color: Colors.white.withOpacity(
+                                                0.7,
+                                              ),
+                                              size: 20.sp,
                                             ),
                                             onPressed: () {
                                               setState(() {
@@ -249,7 +382,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ],
                                 ),
                               ),
-                              SizedBox(height: 10.h),
+                              SizedBox(height: 20.h),
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -260,48 +393,55 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         _rememberMe = !_rememberMe;
                                       });
                                     },
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Transform.scale(
-                                          scale: 0.75,
-                                          child: Checkbox(
-                                            value: _rememberMe,
-                                            onChanged: (value) {
-                                              setState(() {
-                                                _rememberMe = value ?? false;
-                                              });
-                                            },
-                                            activeColor: AppColors.grayColor,
-                                            checkColor: Colors.white,
-                                            side: const BorderSide(
-                                              color: AppColors.grayColor,
-                                              width: 1.5,
+                                    borderRadius: BorderRadius.circular(8.r),
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 4.w,
+                                        vertical: 4.h,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 20.w,
+                                            height: 20.w,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(6.r),
+                                              border: Border.all(
+                                                color: _rememberMe
+                                                    ? AppColors.grayColor
+                                                    : AppColors.grayColor
+                                                          .withOpacity(0.5),
+                                                width: 2,
+                                              ),
+                                              color: _rememberMe
+                                                  ? AppColors.grayColor
+                                                  : Colors.transparent,
                                             ),
-                                            materialTapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
-                                            visualDensity: const VisualDensity(
-                                              horizontal: -4,
-                                              vertical: -4,
+                                            child: _rememberMe
+                                                ? Icon(
+                                                    Icons.check_rounded,
+                                                    size: 14.sp,
+                                                    color: Colors.white,
+                                                  )
+                                                : null,
+                                          ),
+                                          SizedBox(width: 8.w),
+                                          Flexible(
+                                            child: Text(
+                                              'Намайг сана',
+                                              style: TextStyle(
+                                                color: AppColors.grayColor,
+                                                fontSize: 14.sp,
+                                                fontWeight: FontWeight.w500,
+                                                letterSpacing: 0.2,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                        ),
-                                        SizedBox(width: 3.w),
-                                        Flexible(
-                                          child: Text(
-                                            'Намайг сана',
-                                            style: TextStyle(
-                                              color: AppColors.grayColor,
-                                              fontSize: isTablet
-                                                  ? 11.sp
-                                                  : 15.sp,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                   Flexible(
@@ -311,18 +451,28 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                       },
                                       style: TextButton.styleFrom(
                                         padding: EdgeInsets.symmetric(
-                                          horizontal: 4.w,
-                                          vertical: 1.h,
+                                          horizontal: 8.w,
+                                          vertical: 4.h,
                                         ),
                                         minimumSize: Size.zero,
                                         tapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8.r,
+                                          ),
+                                        ),
                                       ),
                                       child: Text(
                                         'Нууц код сэргээх',
                                         style: TextStyle(
                                           color: AppColors.grayColor,
-                                          fontSize: isTablet ? 11.sp : 15.sp,
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w500,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: AppColors.grayColor
+                                              .withOpacity(0.5),
+                                          decorationThickness: 1,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -330,215 +480,398 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ),
                                 ],
                               ),
-                              SizedBox(height: 10.h),
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
+                              SizedBox(height: 24.h),
+                              Stack(
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      right: _biometricAvailable ? 62.w : 0,
                                     ),
-                                  ],
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading
-                                        ? null
-                                        : () async {
-                                            String inputPhone = phoneController
-                                                .text
-                                                .trim();
-                                            String inputPassword =
-                                                passwordController.text.trim();
-
-                                            if (inputPhone.isEmpty ||
-                                                inputPassword.isEmpty) {
-                                              showGlassSnackBar(
-                                                context,
-                                                message:
-                                                    "Утасны дугаар болон нууц үгийг оруулна уу",
-                                                icon: Icons.error,
-                                                iconColor: Colors.red,
-                                              );
-                                              return;
-                                            } else if (!RegExp(
-                                              r'^\d+$',
-                                            ).hasMatch(inputPhone)) {
-                                              showGlassSnackBar(
-                                                context,
-                                                message:
-                                                    "Зөвхөн тоо оруулна уу!",
-                                                icon: Icons.error,
-                                                iconColor: Colors.red,
-                                              );
-                                              return;
-                                            }
-
-                                            setState(() {
-                                              _isLoading = true;
-                                            });
-
-                                            try {
-                                              await ApiService.loginUser(
-                                                utas: inputPhone,
-                                                nuutsUg: inputPassword,
-                                              );
-
-                                              if (mounted) {
-                                                // Save or clear phone number based on remember me checkbox
-                                                if (_rememberMe) {
-                                                  await StorageService.savePhoneNumber(
-                                                    inputPhone,
-                                                  );
-                                                } else {
-                                                  await StorageService.clearSavedPhoneNumber();
-                                                }
-
-                                                // Check if we should show onboarding
-                                                final taniltsuulgaKharakhEsekh =
-                                                    await StorageService.getTaniltsuulgaKharakhEsekh();
-
-                                                setState(() {
-                                                  _isLoading = false;
-                                                });
-                                                showGlassSnackBar(
-                                                  context,
-                                                  message: 'Нэвтрэлт амжилттай',
-                                                  icon: Icons.check_outlined,
-                                                  iconColor: Colors.green,
-                                                );
-
-                                                // Navigate to onboarding if taniltsuulgaKharakhEsekh is true, otherwise go to home
-                                                final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
-                                                
-                                                // Navigate and wait for it to complete
-                                                context.go(targetRoute);
-                                                
-                                                // Show shake hint modal after navigation
-                                                // Use WidgetsBinding to ensure we're in the next frame
-                                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                  Future.delayed(const Duration(milliseconds: 800), () {
-                                                    _showModalAfterNavigation();
-                                                  });
-                                                });
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                });
-
-                                                // Extract the error message from the exception
-                                                String errorMessage = e
-                                                    .toString();
-
-                                                // Remove "Exception: " prefix if it exists
-                                                if (errorMessage.startsWith(
-                                                  'Exception: ',
-                                                )) {
-                                                  errorMessage = errorMessage
-                                                      .substring(11);
-                                                }
-
-                                                // If it's still empty, use default
-                                                if (errorMessage.isEmpty) {
-                                                  errorMessage =
-                                                      "Утасны дугаар эсвэл нууц үг буруу байна";
-                                                }
-
-                                                showGlassSnackBar(
-                                                  context,
-                                                  message: errorMessage,
-                                                  icon: Icons.error,
-                                                  iconColor: Colors.red,
-                                                );
-                                              }
-                                            }
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFCAD2DB),
-                                      foregroundColor: Colors.black,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 11.h,
-                                        horizontal: 16.w,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          100,
-                                        ),
-                                      ),
-                                    ),
-                                    child: _isLoading
-                                        ? SizedBox(
-                                            height: 16.h,
-                                            width: 16.w,
-                                            child:
-                                                const CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(Colors.black),
-                                                ),
-                                          )
-                                        : Text(
-                                            'Нэвтрэх',
-                                            style: TextStyle(fontSize: 15.sp),
+                                    child: Column(
+                                      children: [
+                                        // Login Button
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              16.r,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(
+                                                  0xFFCAD2DB,
+                                                ).withOpacity(0.4),
+                                                offset: const Offset(0, 6),
+                                                blurRadius: 12,
+                                                spreadRadius: 0,
+                                              ),
+                                            ],
                                           ),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            borderRadius: BorderRadius.circular(
+                                              16.r,
+                                            ),
+                                            child: InkWell(
+                                              borderRadius:
+                                                  BorderRadius.circular(16.r),
+                                              onTap: _isLoading
+                                                  ? null
+                                                  : () async {
+                                                      String inputPhone =
+                                                          phoneController.text
+                                                              .trim();
+                                                      String inputPassword =
+                                                          passwordController
+                                                              .text
+                                                              .trim();
+
+                                                      if (inputPhone.isEmpty ||
+                                                          inputPassword
+                                                              .isEmpty) {
+                                                        showGlassSnackBar(
+                                                          context,
+                                                          message:
+                                                              "Утасны дугаар болон нууц үгийг оруулна уу",
+                                                          icon: Icons.error,
+                                                          iconColor: Colors.red,
+                                                        );
+                                                        return;
+                                                      } else if (!RegExp(
+                                                        r'^\d+$',
+                                                      ).hasMatch(inputPhone)) {
+                                                        showGlassSnackBar(
+                                                          context,
+                                                          message:
+                                                              "Зөвхөн тоо оруулна уу!",
+                                                          icon: Icons.error,
+                                                          iconColor: Colors.red,
+                                                        );
+                                                        return;
+                                                      }
+
+                                                      setState(() {
+                                                        _isLoading = true;
+                                                      });
+
+                                                      try {
+                                                        await ApiService.loginUser(
+                                                          utas: inputPhone,
+                                                          nuutsUg:
+                                                              inputPassword,
+                                                        );
+
+                                                        if (mounted) {
+                                                          // Save or clear phone number based on remember me checkbox
+                                                          if (_rememberMe) {
+                                                            await StorageService.savePhoneNumber(
+                                                              inputPhone,
+                                                            );
+                                                          } else {
+                                                            await StorageService.clearSavedPhoneNumber();
+                                                          }
+
+                                                          // Always save password for biometric if biometric is available (regardless of remember me)
+                                                          if (_biometricAvailable) {
+                                                            await StorageService.savePasswordForBiometric(
+                                                              inputPassword,
+                                                            );
+                                                            await StorageService.setBiometricEnabled(
+                                                              true,
+                                                            );
+                                                          } else {
+                                                            // Clear biometric data if biometric is not available
+                                                            await StorageService.clearSavedPasswordForBiometric();
+                                                            await StorageService.setBiometricEnabled(
+                                                              false,
+                                                            );
+                                                          }
+
+                                                          // Check if we should show onboarding
+                                                          final taniltsuulgaKharakhEsekh =
+                                                              await StorageService.getTaniltsuulgaKharakhEsekh();
+
+                                                          setState(() {
+                                                            _isLoading = false;
+                                                          });
+                                                          showGlassSnackBar(
+                                                            context,
+                                                            message:
+                                                                'Нэвтрэлт амжилттай',
+                                                            icon: Icons
+                                                                .check_outlined,
+                                                            iconColor:
+                                                                Colors.green,
+                                                          );
+
+                                                          // Navigate to onboarding if taniltsuulgaKharakhEsekh is true, otherwise go to home
+                                                          final targetRoute =
+                                                              taniltsuulgaKharakhEsekh
+                                                              ? '/ekhniikh'
+                                                              : '/nuur';
+
+                                                          // Navigate and wait for it to complete
+                                                          context.go(
+                                                            targetRoute,
+                                                          );
+
+                                                          // Show shake hint modal after navigation
+                                                          // Use WidgetsBinding to ensure we're in the next frame
+                                                          WidgetsBinding
+                                                              .instance
+                                                              .addPostFrameCallback((
+                                                                _,
+                                                              ) {
+                                                                Future.delayed(
+                                                                  const Duration(
+                                                                    milliseconds:
+                                                                        800,
+                                                                  ),
+                                                                  () {
+                                                                    _showModalAfterNavigation();
+                                                                  },
+                                                                );
+                                                              });
+                                                        }
+                                                      } catch (e) {
+                                                        if (mounted) {
+                                                          setState(() {
+                                                            _isLoading = false;
+                                                          });
+
+                                                          // Extract the error message from the exception
+                                                          String errorMessage =
+                                                              e.toString();
+
+                                                          // Remove "Exception: " prefix if it exists
+                                                          if (errorMessage
+                                                              .startsWith(
+                                                                'Exception: ',
+                                                              )) {
+                                                            errorMessage =
+                                                                errorMessage
+                                                                    .substring(
+                                                                      11,
+                                                                    );
+                                                          }
+
+                                                          // If it's still empty, use default
+                                                          if (errorMessage
+                                                              .isEmpty) {
+                                                            errorMessage =
+                                                                "Утасны дугаар эсвэл нууц үг буруу байна";
+                                                          }
+
+                                                          showGlassSnackBar(
+                                                            context,
+                                                            message:
+                                                                errorMessage,
+                                                            icon: Icons.error,
+                                                            iconColor:
+                                                                Colors.red,
+                                                          );
+                                                        }
+                                                      }
+                                                    },
+                                              splashColor: Colors.white
+                                                  .withOpacity(0.2),
+                                              highlightColor: Colors.white
+                                                  .withOpacity(0.1),
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 16.h,
+                                                  horizontal: 20.w,
+                                                ),
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  gradient: _isLoading
+                                                      ? null
+                                                      : LinearGradient(
+                                                          colors: [
+                                                            const Color(
+                                                              0xFFCAD2DB,
+                                                            ),
+                                                            const Color(
+                                                              0xFFCAD2DB,
+                                                            ).withOpacity(0.9),
+                                                          ],
+                                                          begin:
+                                                              Alignment.topLeft,
+                                                          end: Alignment
+                                                              .bottomRight,
+                                                        ),
+                                                  color: _isLoading
+                                                      ? const Color(
+                                                          0xFFCAD2DB,
+                                                        ).withOpacity(0.7)
+                                                      : null,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        16.r,
+                                                      ),
+                                                ),
+                                                child: _isLoading
+                                                    ? SizedBox(
+                                                        height: 20.h,
+                                                        width: 20.w,
+                                                        child: const CircularProgressIndicator(
+                                                          strokeWidth: 2.5,
+                                                          valueColor:
+                                                              AlwaysStoppedAnimation<
+                                                                Color
+                                                              >(Colors.black),
+                                                        ),
+                                                      )
+                                                    : Text(
+                                                        'Нэвтрэх',
+                                                        style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontSize: 16.sp,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          letterSpacing: 0.5,
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: 12.h),
+                                        // Register Button
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              16.r,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.2,
+                                                ),
+                                                offset: const Offset(0, 4),
+                                                blurRadius: 12,
+                                                spreadRadius: 0,
+                                              ),
+                                            ],
+                                          ),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            borderRadius: BorderRadius.circular(
+                                              16.r,
+                                            ),
+                                            child: InkWell(
+                                              borderRadius:
+                                                  BorderRadius.circular(16.r),
+                                              onTap: () {
+                                                context.push(
+                                                  '/burtguulekh_neg',
+                                                );
+                                              },
+                                              splashColor: Colors.white
+                                                  .withOpacity(0.2),
+                                              highlightColor: Colors.white
+                                                  .withOpacity(0.1),
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  vertical: 16.h,
+                                                  horizontal: 20.w,
+                                                ),
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  color: AppColors
+                                                      .inputGrayColor
+                                                      .withOpacity(0.4),
+                                                  border: Border.all(
+                                                    color: Colors.white
+                                                        .withOpacity(0.2),
+                                                    width: 1.5,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        16.r,
+                                                      ),
+                                                ),
+                                                child: Text(
+                                                  'Бүртгүүлэх',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                              SizedBox(height: 10.h),
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(100),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 10),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(100),
-                                    onTap: () {
-                                      context.push('/burtguulekh_neg');
-                                    },
-                                    splashColor: Colors.white.withOpacity(0.2),
-                                    highlightColor: Colors.white.withOpacity(
-                                      0.1,
-                                    ),
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 11.h,
-                                        horizontal: 16.w,
-                                      ),
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.inputGrayColor
-                                            .withOpacity(0.5),
-                                        borderRadius: BorderRadius.circular(
-                                          100,
+                                  // Biometric authentication button - circular shape
+                                  if (_biometricAvailable)
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      bottom: 0,
+                                      child: Center(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.grayColor
+                                                    .withOpacity(0.3),
+                                                offset: const Offset(0, 4),
+                                                blurRadius: 8,
+                                                spreadRadius: 0,
+                                              ),
+                                            ],
+                                          ),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            shape: const CircleBorder(),
+                                            child: InkWell(
+                                              customBorder:
+                                                  const CircleBorder(),
+                                              onTap: _isLoading
+                                                  ? null
+                                                  : _authenticateWithBiometric,
+                                              splashColor: AppColors.grayColor
+                                                  .withOpacity(0.2),
+                                              highlightColor: AppColors
+                                                  .grayColor
+                                                  .withOpacity(0.1),
+                                              child: Container(
+                                                width: 56.w,
+                                                height: 56.w,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: AppColors.grayColor
+                                                        .withOpacity(0.6),
+                                                    width: 2,
+                                                  ),
+                                                  color: AppColors
+                                                      .inputGrayColor
+                                                      .withOpacity(0.2),
+                                                ),
+                                                child: Icon(
+                                                  Platform.isIOS
+                                                      ? Icons.face_rounded
+                                                      : Icons
+                                                            .fingerprint_rounded,
+                                                  size: 28.sp,
+                                                  color: AppColors.grayColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                      child: Text(
-                                        'Бүртгүүлэх',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15.sp,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
                                     ),
-                                  ),
-                                ),
+                                ],
                               ),
                               const Spacer(),
                               Text(

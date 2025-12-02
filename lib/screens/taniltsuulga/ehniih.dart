@@ -26,6 +26,8 @@ class MyApp extends StatelessWidget {
 }
 
 class OnboardingScreen extends StatefulWidget {
+  const OnboardingScreen({super.key});
+
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
@@ -203,6 +205,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

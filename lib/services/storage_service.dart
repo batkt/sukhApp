@@ -32,6 +32,8 @@ class StorageService {
   static const String _savedPhoneKey = 'saved_phone_number';
   static const String _rememberMeKey = 'remember_me';
   static const String _shakeHintShownKey = 'shake_hint_shown';
+  static const String _savedPasswordKey = 'saved_password_biometric';
+  static const String _biometricEnabledKey = 'biometric_enabled';
 
   static Future<bool> saveToken(String token) async {
     try {
@@ -305,6 +307,62 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setBool(_shakeHintShownKey, value);
     } catch (e) {
+      return false;
+    }
+  }
+
+  /// Save password for biometric login (only when biometric is enabled)
+  static Future<bool> savePasswordForBiometric(String password) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_savedPasswordKey, password);
+    } catch (e) {
+      print('Error saving password for biometric: $e');
+      return false;
+    }
+  }
+
+  /// Get saved password for biometric login
+  static Future<String?> getSavedPasswordForBiometric() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_savedPasswordKey);
+    } catch (e) {
+      print('Error getting saved password: $e');
+      return null;
+    }
+  }
+
+  /// Clear saved password for biometric
+  static Future<bool> clearSavedPasswordForBiometric() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_savedPasswordKey);
+      await prefs.setBool(_biometricEnabledKey, false);
+      return true;
+    } catch (e) {
+      print('Error clearing saved password: $e');
+      return false;
+    }
+  }
+
+  /// Check if biometric login is enabled
+  static Future<bool> isBiometricEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_biometricEnabledKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Enable/disable biometric login
+  static Future<bool> setBiometricEnabled(bool enabled) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_biometricEnabledKey, enabled);
+    } catch (e) {
+      print('Error setting biometric enabled: $e');
       return false;
     }
   }

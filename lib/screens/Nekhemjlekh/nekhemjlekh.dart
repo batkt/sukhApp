@@ -15,7 +15,7 @@ import 'package:sukh_app/models/ajiltan_model.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +39,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   List<Map<String, dynamic>> availableContracts = [];
   String? selectedGereeniiDugaar;
   String? selectedContractDisplay;
-  bool showHistoryOnly = false;
+  String selectedFilter = 'All'; // All, Overdue, Paid, Due this month, Pending
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
   String? qpayQrImage;
@@ -306,7 +306,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           color: isSelected
                               ? const Color(0xFFe6ff00).withOpacity(0.2)
                               : Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16.w),
+                          borderRadius: BorderRadius.circular(20.w),
                           border: Border.all(
                             color: isSelected
                                 ? const Color(0xFFe6ff00)
@@ -391,6 +391,122 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         }
       }
     });
+  }
+
+  List<NekhemjlekhItem> _getFilteredInvoices() {
+    List<NekhemjlekhItem> filtered = invoices;
+
+    // Apply filter
+    if (selectedFilter == 'Paid') {
+      // Show only paid invoices
+      filtered = filtered
+          .where((invoice) => invoice.tuluv == 'Төлсөн')
+          .toList();
+    } else {
+      // 'All' shows all unpaid invoices
+      filtered = filtered
+          .where((invoice) => invoice.tuluv != 'Төлсөн')
+          .toList();
+    }
+
+    return filtered;
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Төлсөн':
+        return const Color(0xFF10B981); // Green
+      case 'Төлөөгүй':
+        return const Color(0xFFF59E0B); // Orange/Amber
+      default:
+        return const Color(0xFF6B7280); // Gray
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'Төлсөн':
+        return 'Төлөгдсөн';
+      case 'Төлөөгүй':
+        return 'Хүлээгдэж байгаа';
+      default:
+        return status;
+    }
+  }
+
+  int _getFilterCount(String filterKey) {
+    switch (filterKey) {
+      case 'All':
+        return invoices.where((invoice) => invoice.tuluv != 'Төлсөн').length;
+      case 'Paid':
+        return invoices.where((invoice) => invoice.tuluv == 'Төлсөн').length;
+      default:
+        return 0;
+    }
+  }
+
+  Widget _buildFilterTab(String filterKey, String label) {
+    final isSelected = selectedFilter == filterKey;
+    final count = _getFilterCount(filterKey);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedFilter = filterKey;
+        });
+      },
+      child: Container(
+        margin: EdgeInsets.only(right: 8.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFFe6ff00).withOpacity(0.2)
+              : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20.w),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFFe6ff00).withOpacity(0.5)
+                : Colors.white.withOpacity(0.2),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? const Color(0xFFe6ff00)
+                    : Colors.white.withOpacity(0.9),
+                fontSize: 13.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+            if (count > 0) ...[
+              SizedBox(width: 6.w),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFFe6ff00)
+                      : Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10.w),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: TextStyle(
+                    color: isSelected ? Colors.black : Colors.white,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   void _showBankInfoModal() async {
@@ -907,7 +1023,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         padding: EdgeInsets.all(20.w),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16.w),
+                          borderRadius: BorderRadius.circular(20.w),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1241,7 +1357,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       padding: EdgeInsets.all(20.w),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(16.w),
+                        borderRadius: BorderRadius.circular(20.w),
                         border: Border.all(
                           color: Colors.white.withOpacity(0.2),
                           width: 1,
@@ -1971,69 +2087,28 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         child: SafeArea(
           child: Column(
             children: [
+              // Header - matching geree page style
               Padding(
-                padding: EdgeInsets.all(
-                  isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
-                ),
+                padding: EdgeInsets.all(16.w),
                 child: Row(
                   children: [
                     IconButton(
                       icon: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: isVerySmallScreen
-                            ? 22
-                            : (isSmallScreen ? 24 : 28),
+                        size: 28.sp,
                       ),
                       onPressed: () => context.pop(),
                     ),
-                    SizedBox(
-                      width: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
-                    ),
+                    SizedBox(width: 12.w),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Нэхэмжлэх',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: isVerySmallScreen
-                                  ? 18
-                                  : (isSmallScreen ? 20 : 24),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (selectedContractDisplay != null &&
-                              availableContracts.length > 1)
-                            GestureDetector(
-                              onTap: _showContractSelectionModal,
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      selectedContractDisplay!,
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.7),
-                                        fontSize: isVerySmallScreen
-                                            ? 11
-                                            : (isSmallScreen ? 12 : 14),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  SizedBox(width: isVerySmallScreen ? 2 : 4),
-                                  Icon(
-                                    Icons.keyboard_arrow_down,
-                                    color: Colors.white.withOpacity(0.7),
-                                    size: isVerySmallScreen
-                                        ? 14
-                                        : (isSmallScreen ? 16 : 18),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
+                      child: Text(
+                        'Нэхэмжлэх',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     if (availableContracts.length > 1)
@@ -2041,31 +2116,67 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         icon: Icon(
                           Icons.swap_horiz,
                           color: Colors.white,
-                          size: isVerySmallScreen
-                              ? 22
-                              : (isSmallScreen ? 24 : 28),
+                          size: 24.sp,
                         ),
                         onPressed: _showContractSelectionModal,
                         tooltip: 'Гэрээ солих',
                       ),
-                    IconButton(
-                      icon: Icon(
-                        showHistoryOnly ? Icons.receipt : Icons.history,
-                        color: const Color(0xFFe6ff00),
-                        size: isVerySmallScreen
-                            ? 22
-                            : (isSmallScreen ? 24 : 28),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          showHistoryOnly = !showHistoryOnly;
-                        });
-                      },
-                      tooltip: showHistoryOnly ? 'Бүх нэхэмжлэх' : 'Түүх',
-                    ),
                   ],
                 ),
               ),
+              // Contract info (if multiple contracts)
+              if (selectedContractDisplay != null &&
+                  availableContracts.length > 1)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: GestureDetector(
+                    onTap: _showContractSelectionModal,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 8.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8.w),
+                        border: Border.all(
+                          color: const Color(0xFFe6ff00).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.business,
+                            color: const Color(0xFFe6ff00),
+                            size: 16.sp,
+                          ),
+                          SizedBox(width: 8.w),
+                          Flexible(
+                            child: Text(
+                              selectedContractDisplay!,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Icon(
+                            Icons.keyboard_arrow_down,
+                            color: const Color(0xFFe6ff00),
+                            size: 16.sp,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (selectedContractDisplay != null &&
+                  availableContracts.length > 1)
+                SizedBox(height: 12.h),
               Expanded(
                 child: isLoading
                     ? const Center(
@@ -2106,140 +2217,154 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       )
                     : Column(
                         children: [
+                          // Filter Tabs
+                          Container(
+                            height: 50.h,
+                            margin: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 8.h,
+                            ),
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                _buildFilterTab('All', 'Бүгд'),
+                                _buildFilterTab('Paid', 'Төлсөн'),
+                              ],
+                            ),
+                          ),
                           // Sticky payment section at top (hidden in history mode)
-                          if (!showHistoryOnly)
+                          if (selectedFilter != 'Paid')
                             Padding(
-                              padding: EdgeInsets.all(
-                                isVerySmallScreen
-                                    ? 12
-                                    : (isSmallScreen ? 14 : 16),
-                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 16.w),
                               child: Container(
-                                padding: EdgeInsets.all(
-                                  isVerySmallScreen
-                                      ? 12
-                                      : (isSmallScreen ? 16 : 20),
-                                ),
+                                padding: EdgeInsets.all(16.w),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0F1119),
-                                  borderRadius: BorderRadius.circular(16.w),
+                                  color: Colors.white.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(20.w),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.1),
+                                    color: const Color(
+                                      0xFFe6ff00,
+                                    ).withOpacity(0.3),
+                                    width: 1.5,
                                   ),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      selectedCount > 0
-                                          ? '$selectedCount гэрээ сонгосон байна'
-                                          : 'Гэрээ сонгоно уу',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: isVerySmallScreen
-                                            ? 11
-                                            : (isSmallScreen ? 12 : 14),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: isVerySmallScreen
-                                          ? 6
-                                          : (isSmallScreen ? 7 : 8),
-                                    ),
-                                    Text(
-                                      'Төлөх дүн: $totalSelectedAmount',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: isVerySmallScreen
-                                            ? 16
-                                            : (isSmallScreen ? 18 : 20),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: isVerySmallScreen
-                                          ? 10
-                                          : (isSmallScreen ? 12 : 16),
-                                    ),
-                                    Row(
+                                child: ClipRRect(
+                                  child: Container(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Expanded(
-                                          child: ElevatedButton(
-                                            onPressed: selectedCount > 0
-                                                ? _showPaymentModal
-                                                : null,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.white,
-                                              foregroundColor: Colors.black,
-                                              disabledBackgroundColor: Colors
-                                                  .white
-                                                  .withOpacity(0.3),
-                                              disabledForegroundColor: Colors
-                                                  .black
-                                                  .withOpacity(0.3),
-                                              padding: EdgeInsets.symmetric(
-                                                vertical: isVerySmallScreen
-                                                    ? 10
-                                                    : (isSmallScreen ? 12 : 14),
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                      isVerySmallScreen
-                                                          ? 10
-                                                          : 12,
-                                                    ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              selectedCount > 0
+                                                  ? '$selectedCount нэхэмжлэх сонгосон'
+                                                  : 'Нэхэмжлэх сонгоно уу',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(
+                                                  0.7,
+                                                ),
+                                                fontSize: 12.sp,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                             ),
-                                            child: Text(
-                                              'Төлбөр төлөх',
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              totalSelectedAmount,
                                               style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: isVerySmallScreen
-                                                    ? 13
-                                                    : (isSmallScreen ? 14 : 16),
+                                                color: const Color(0xFFe6ff00),
+                                                fontSize: 20.sp,
+                                                fontWeight: FontWeight.bold,
                                               ),
+                                            ),
+                                          ],
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: selectedCount > 0
+                                              ? _showPaymentModal
+                                              : null,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFFe6ff00,
+                                            ),
+                                            foregroundColor: Colors.black,
+                                            disabledBackgroundColor: Colors
+                                                .white
+                                                .withOpacity(0.1),
+                                            disabledForegroundColor: Colors
+                                                .white
+                                                .withOpacity(0.3),
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 24.w,
+                                              vertical: 12.h,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12.w),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Төлбөр төлөх',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14.sp,
                                             ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
+                          SizedBox(height: 8.h),
                           // Scrollable invoice list
                           Expanded(
                             child: () {
-                              final filteredInvoices = invoices
-                                  .where(
-                                    (invoice) => showHistoryOnly
-                                        ? invoice.tuluv == 'Төлсөн'
-                                        : invoice.tuluv != 'Төлсөн',
-                                  )
-                                  .toList();
+                              final filteredInvoices = _getFilteredInvoices();
 
                               if (filteredInvoices.isEmpty) {
                                 return Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(
-                                        showHistoryOnly
-                                            ? Icons.history
-                                            : Icons.receipt_long,
-                                        size: 64.sp,
-                                        color: Colors.white.withOpacity(0.5),
-                                      ),
-                                      SizedBox(height: 16.h),
-                                      Text(
-                                        showHistoryOnly
-                                            ? 'Төлөгдсөн нэхэмжлэл байхгүй байна.'
-                                            : 'Одоогоор нэхэмжлэл байхгүй байна.',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.7),
-                                          fontSize: 16.sp,
+                                      Container(
+                                        padding: EdgeInsets.all(24.w),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.1),
+                                          shape: BoxShape.circle,
                                         ),
+                                        child: Icon(
+                                          selectedFilter == 'Paid'
+                                              ? Icons.history
+                                              : Icons.receipt_long,
+                                          size: 48.sp,
+                                          color: Colors.white.withOpacity(0.5),
+                                        ),
+                                      ),
+                                      SizedBox(height: 24.h),
+                                      Text(
+                                        selectedFilter == 'Paid'
+                                            ? 'Төлөгдсөн нэхэмжлэл байхгүй'
+                                            : 'Одоогоор нэхэмжлэл байхгүй',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.8),
+                                          fontSize: 18.sp,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8.h),
+                                      Text(
+                                        selectedFilter == 'Paid'
+                                            ? 'Төлөгдсөн нэхэмжлэлийн түүх энд харагдана'
+                                            : 'Шинэ нэхэмжлэл үүсэхэд энд харагдана',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.5),
+                                          fontSize: 14.sp,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
                                     ],
                                   ),
@@ -2254,7 +2379,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 ),
                                 child: Column(
                                   children: [
-                                    if (!showHistoryOnly &&
+                                    if (selectedFilter != 'Paid' &&
                                         filteredInvoices.isNotEmpty)
                                       Padding(
                                         padding: EdgeInsets.only(
@@ -2316,7 +2441,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                           ),
                                         ),
                                       ),
-                                    if (!showHistoryOnly &&
+                                    if (selectedFilter != 'Paid' &&
                                         filteredInvoices.isNotEmpty)
                                       SizedBox(
                                         height: isVerySmallScreen
@@ -2332,7 +2457,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                         ),
                                         child: _buildInvoiceCard(
                                           invoice,
-                                          isHistory: showHistoryOnly,
+                                          isHistory: selectedFilter == 'Paid',
                                           isSmallScreen: isSmallScreen,
                                           isVerySmallScreen: isVerySmallScreen,
                                         ),
@@ -2359,478 +2484,596 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     bool isSmallScreen = false,
     bool isVerySmallScreen = false,
   }) {
+    // Get status color and label
+    final statusColor = _getStatusColor(invoice.tuluv);
+    final statusLabel = _getStatusLabel(invoice.tuluv);
+
+    // Logo for invoice card
+
     return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
-        color: isHistory ? Colors.white.withOpacity(0.95) : Colors.white,
-        borderRadius: BorderRadius.circular(16.w),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20.w),
         border: Border.all(
-          color: isHistory
-              ? const Color(0xFFe6ff00).withOpacity(0.3)
-              : Colors.black.withOpacity(0.1),
+          color: const Color(0xFFe6ff00).withOpacity(0.3),
+          width: 2,
         ),
       ),
-      child: Column(
-        children: [
-          // Compact header
-          InkWell(
-            onTap: () {
-              setState(() {
-                invoice.isExpanded = !invoice.isExpanded;
-              });
-            },
-            borderRadius: BorderRadius.circular(isVerySmallScreen ? 12 : 16),
-            child: Padding(
-              padding: EdgeInsets.all(
-                isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      // Checkbox (hidden in history view)
-                      if (!isHistory)
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              invoice.isSelected = !invoice.isSelected;
-                            });
-                          },
-                          child: Container(
-                            width: isVerySmallScreen
-                                ? 16
-                                : (isSmallScreen ? 18 : 20),
-                            height: isVerySmallScreen
-                                ? 16
-                                : (isSmallScreen ? 18 : 20),
-                            decoration: BoxDecoration(
-                              color: invoice.isSelected
-                                  ? Colors.black
-                                  : Colors.transparent,
-                              border: Border.all(color: Colors.black, width: 2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: invoice.isSelected
-                                ? Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: isVerySmallScreen
-                                        ? 10
-                                        : (isSmallScreen ? 12 : 14),
-                                  )
-                                : null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              invoice.isExpanded = !invoice.isExpanded;
+            });
+          },
+          borderRadius: BorderRadius.circular(20.w),
+          splashColor: const Color(0xFFe6ff00).withOpacity(0.1),
+          highlightColor: const Color(0xFFe6ff00).withOpacity(0.05),
+          hoverColor: const Color(0xFFe6ff00).withOpacity(0.08),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Main card content
+              Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Date row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          invoice.formattedDate,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      if (!isHistory)
-                        SizedBox(
-                          width: isVerySmallScreen
-                              ? 8
-                              : (isSmallScreen ? 10 : 12),
-                        ),
-                      // Paid status badge for history
-                      if (isHistory)
+                        // Status tag - Premium design
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: isVerySmallScreen
-                                ? 6
-                                : (isSmallScreen ? 7 : 8),
-                            vertical: isVerySmallScreen ? 3 : 4,
+                            horizontal: 12.w,
+                            vertical: 6.h,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.green, width: 1),
+                            gradient: LinearGradient(
+                              colors: [
+                                statusColor.withOpacity(0.15),
+                                statusColor.withOpacity(0.08),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16.w),
+                            border: Border.all(
+                              color: statusColor.withOpacity(0.4),
+                              width: 1.5,
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12.h),
+                    // Main content row
+                    Row(
+                      children: [
+                        // Company logo
+                        Container(
+                          width: 48.w,
+                          height: 48.w,
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFe6ff00).withOpacity(0.3),
+                              width: 2,
+                            ),
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'lib/assets/img/logo_3.png',
+                              width: 48.w,
+                              height: 48.w,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.receipt_long_rounded,
+                                  color: Colors.white,
+                                  size: 24.sp,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        // Client info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.check_circle,
-                                color: Colors.green,
-                                size: isVerySmallScreen
-                                    ? 12
-                                    : (isSmallScreen ? 14 : 16),
-                              ),
-                              SizedBox(width: isVerySmallScreen ? 3 : 4),
                               Text(
-                                'Төлсөн',
+                                invoice.displayName,
                                 style: TextStyle(
-                                  color: Colors.green,
-                                  fontSize: isVerySmallScreen
-                                      ? 10
-                                      : (isSmallScreen ? 11 : 12),
-                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                invoice.gereeniiDugaar,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 13.sp,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      if (isHistory)
-                        SizedBox(
-                          width: isVerySmallScreen
-                              ? 8
-                              : (isSmallScreen ? 10 : 12),
-                        ),
-                      // Company info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // Amount
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              invoice.displayName,
+                              invoice.formattedAmount,
                               style: TextStyle(
-                                color: Colors.black,
-                                fontSize: isVerySmallScreen
-                                    ? 13
-                                    : (isSmallScreen ? 14 : 16),
+                                color: const Color(0xFFe6ff00),
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: isVerySmallScreen ? 3 : 4),
-                            Text(
-                              'Гэрээ: ${invoice.gereeniiDugaar}',
-                              style: TextStyle(
-                                color: Colors.black.withOpacity(0.6),
-                                fontSize: isVerySmallScreen
-                                    ? 10
-                                    : (isSmallScreen ? 11 : 12),
+                            if (!isHistory) SizedBox(height: 8.h),
+                            // Premium Checkbox for selection (only in non-history mode)
+                            if (!isHistory)
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    setState(() {
+                                      invoice.isSelected = !invoice.isSelected;
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(6.w),
+                                  splashColor: const Color(
+                                    0xFFe6ff00,
+                                  ).withOpacity(0.3),
+                                  highlightColor: const Color(
+                                    0xFFe6ff00,
+                                  ).withOpacity(0.1),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOutCubic,
+                                    width: 26.w,
+                                    height: 26.w,
+                                    decoration: BoxDecoration(
+                                      gradient: invoice.isSelected
+                                          ? LinearGradient(
+                                              colors: [
+                                                const Color(0xFFe6ff00),
+                                                const Color(
+                                                  0xFFe6ff00,
+                                                ).withOpacity(0.8),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            )
+                                          : null,
+                                      color: invoice.isSelected
+                                          ? null
+                                          : Colors.transparent,
+                                      border: Border.all(
+                                        color: invoice.isSelected
+                                            ? const Color(0xFFe6ff00)
+                                            : Colors.white.withOpacity(0.5),
+                                        width: invoice.isSelected ? 2.5 : 2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6.w),
+                                      boxShadow: invoice.isSelected
+                                          ? [
+                                              BoxShadow(
+                                                color: const Color(
+                                                  0xFFe6ff00,
+                                                ).withOpacity(0.5),
+                                                blurRadius: 16,
+                                                spreadRadius: 0,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                              BoxShadow(
+                                                color: const Color(
+                                                  0xFFe6ff00,
+                                                ).withOpacity(0.3),
+                                                blurRadius: 10,
+                                                spreadRadius: 3,
+                                              ),
+                                            ]
+                                          : [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.15,
+                                                ),
+                                                blurRadius: 6,
+                                                spreadRadius: 0,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                    ),
+                                    child: Center(
+                                      child: AnimatedScale(
+                                        scale: invoice.isSelected ? 1.0 : 0.0,
+                                        duration: const Duration(
+                                          milliseconds: 250,
+                                        ),
+                                        curve: Curves.elasticOut,
+                                        child: invoice.isSelected
+                                            ? Icon(
+                                                Icons.check_rounded,
+                                                color: Colors.white,
+                                                size: 18.sp,
+                                                weight: 3,
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
                           ],
                         ),
-                      ),
-                      // Amount
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                      ],
+                    ),
+                    // Expand/Collapse indicator
+                    Padding(
+                      padding: EdgeInsets.only(top: 8.h),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            invoice.formattedAmount,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: isVerySmallScreen
-                                  ? 13
-                                  : (isSmallScreen ? 14 : 16),
-                              fontWeight: FontWeight.bold,
+                          Icon(
+                            invoice.isExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: const Color(0xFFe6ff00),
+                            size: 20.sp,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Expanded details section (inside same card)
+              if (invoice.isExpanded) ...[
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(color: Colors.transparent),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Нэхэмжлэгч and Төлөгч sections with gold accents
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Нэхэмжлэгч section
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.all(12.w),
+                              constraints: BoxConstraints(minHeight: 120.h),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(12.w),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFFe6ff00,
+                                  ).withOpacity(0.3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.business,
+                                        color: const Color(0xFFe6ff00),
+                                        size: 16.sp,
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        'Нэхэмжлэгч',
+                                        style: TextStyle(
+                                          color: const Color(0xFFe6ff00),
+                                          fontSize: 13.sp,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  _buildInfoText(
+                                    context,
+                                    'Байгууллагын нэр:\n${invoice.baiguullagiinNer}',
+                                  ),
+                                  if (invoice.khayag.isNotEmpty) ...[
+                                    SizedBox(height: 6.h),
+                                    _buildInfoText(
+                                      context,
+                                      'Хаяг: ${invoice.khayag}',
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
-                          SizedBox(height: isVerySmallScreen ? 3 : 4),
-                          Text(
-                            invoice.formattedDate,
-                            style: TextStyle(
-                              color: Colors.black.withOpacity(0.6),
-                              fontSize: isVerySmallScreen
-                                  ? 10
-                                  : (isSmallScreen ? 11 : 12),
+                          SizedBox(width: 12.w),
+                          // Төлөгч section
+                          Expanded(
+                            child: Container(
+                              padding: EdgeInsets.all(12.w),
+                              constraints: BoxConstraints(minHeight: 120.h),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(12.w),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFFe6ff00,
+                                  ).withOpacity(0.3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person,
+                                        color: const Color(0xFFe6ff00),
+                                        size: 16.sp,
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        'Төлөгч',
+                                        style: TextStyle(
+                                          color: const Color(0xFFe6ff00),
+                                          fontSize: 13.sp,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8.h),
+                                  _buildInfoText(
+                                    context,
+                                    'Нэр: ${invoice.displayName}',
+                                  ),
+                                  if (invoice.register.isNotEmpty) ...[
+                                    SizedBox(height: 6.h),
+                                    _buildInfoText(
+                                      context,
+                                      'Регистр: ${invoice.register}',
+                                    ),
+                                  ],
+                                  if (invoice.phoneNumber.isNotEmpty) ...[
+                                    SizedBox(height: 6.h),
+                                    _buildInfoText(
+                                      context,
+                                      'Утас: ${invoice.phoneNumber}',
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                  SizedBox(
-                    height: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
-                  ),
-                  // "Баримт харах" button for history view (paid invoices)
-                  if (isHistory) ...[
-                    GestureDetector(
-                      onTap: () => _showVATReceiptModal(invoice.id),
-                      child: Container(
-                        width: double.infinity,
-                        height: isVerySmallScreen
-                            ? 28
-                            : (isSmallScreen ? 30 : 32),
+                      SizedBox(height: 20.h),
+                      // Price breakdown
+                      if (invoice.ekhniiUldegdel != null &&
+                          invoice.ekhniiUldegdel! != 0) ...[
+                        _buildPriceRow(
+                          context,
+                          'Эхний үлдэгдэл',
+                          '${invoice.ekhniiUldegdel!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+                        ),
+                      ],
+                      if (invoice.medeelel != null &&
+                          invoice.medeelel!.zardluud.isNotEmpty) ...[
+                        SizedBox(height: 8.h),
+                        ...invoice.medeelel!.zardluud.map(
+                          (zardal) => _buildPriceRow(
+                            context,
+                            zardal.ner,
+                            zardal.formattedTariff,
+                          ),
+                        ),
+                      ],
+                      // Tailbar field
+                      if (invoice.medeelel != null &&
+                          invoice.medeelel!.tailbar != null &&
+                          invoice.medeelel!.tailbar!.isNotEmpty) ...[
+                        SizedBox(height: 16.h),
+                        Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(12.w),
+                            border: Border.all(
+                              color: const Color(0xFFe6ff00).withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.note_outlined,
+                                    color: const Color(0xFFe6ff00),
+                                    size: 16.sp,
+                                  ),
+                                  SizedBox(width: 6.w),
+                                  Text(
+                                    'Тайлбар',
+                                    style: TextStyle(
+                                      color: const Color(0xFFe6ff00),
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                invoice.medeelel!.tailbar!,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 13.sp,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 16.h),
+                      // Total amount with gold accent
+                      Container(
+                        padding: EdgeInsets.all(16.w),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFe6ff00),
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12.w),
+                          border: Border.all(
+                            color: const Color(0xFFe6ff00).withOpacity(0.4),
+                            width: 1.5,
+                          ),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              Icons.receipt_long,
-                              color: Colors.black,
-                              size: isVerySmallScreen
-                                  ? 13
-                                  : (isSmallScreen ? 14 : 16),
-                            ),
-                            SizedBox(
-                              width: isVerySmallScreen
-                                  ? 4
-                                  : (isSmallScreen ? 5 : 6),
+                            Text(
+                              'Нийт дүн:',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
-                              'Баримт харах',
+                              invoice.formattedAmount,
                               style: TextStyle(
-                                color: Colors.black,
-                                fontSize: isVerySmallScreen
-                                    ? 11
-                                    : (isSmallScreen ? 12 : 13),
-                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFe6ff00),
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    SizedBox(
-                      height: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
-                    ),
-                  ],
-                  // Review button
-                  Container(
-                    width: double.infinity,
-                    height: isVerySmallScreen ? 30 : (isSmallScreen ? 33 : 36),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          invoice.isExpanded ? 'Хураах' : 'Дэлгэрэнгүй',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontSize: isVerySmallScreen
-                                ? 12
-                                : (isSmallScreen ? 13 : 14),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(width: isVerySmallScreen ? 3 : 4),
-                        Icon(
-                          invoice.isExpanded
-                              ? Icons.keyboard_arrow_up
-                              : Icons.keyboard_arrow_down,
-                          color: Colors.black87,
-                          size: isVerySmallScreen
-                              ? 16
-                              : (isSmallScreen ? 18 : 20),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Expanded details
-          if (invoice.isExpanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: EdgeInsets.all(
-                isVerySmallScreen ? 12 : (isSmallScreen ? 16 : 20),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildInfoTitle('Нэхэмжлэгч'),
-                            _buildInfoText(
-                              'Байгууллагын нэр:\n${invoice.baiguullagiinNer}',
+                      if (isHistory) ...[
+                        SizedBox(height: 12.h),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _showVATReceiptModal(invoice.id),
+                            icon: Icon(Icons.receipt_long, size: 18.sp),
+                            label: Text(
+                              'Баримт харах',
+                              style: TextStyle(fontSize: 14.sp),
                             ),
-                            if (invoice.khayag.isNotEmpty)
-                              _buildInfoText('Хаяг: ${invoice.khayag}'),
-                            if (invoice.medeelel?.tailbar != null &&
-                                invoice.medeelel!.tailbar!.isNotEmpty)
-                              _buildInfoText(
-                                'Тайлбар: ${invoice.medeelel!.tailbar}',
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFe6ff00),
+                              foregroundColor: const Color(0xFF0a0e27),
+                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.w),
                               ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildInfoTitle('Төлөгч'),
-                            _buildInfoText('Нэр: ${invoice.displayName}'),
-                            if (invoice.register.isNotEmpty)
-                              _buildInfoText('Регистр: ${invoice.register}'),
-                            if (invoice.phoneNumber.isNotEmpty)
-                              _buildInfoText('Утас: ${invoice.phoneNumber}'),
-                            _buildInfoText(
-                              'Гэрээний дугаар:\n${invoice.gereeniiDugaar}',
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          'Төлбөрийн задаргаа',
-                          style: TextStyle(
-                            color: Colors.black.withOpacity(0.7),
-                            fontSize: 14.sp,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          'Үнэ төлбөр',
-                          style: TextStyle(
-                            color: Colors.black.withOpacity(0.7),
-                            fontSize: 14.sp,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16.h),
-
-                  if (invoice.ekhniiUldegdel != null) ...[
-                    _buildPriceRow(
-                      'Эхний үлдэгдэл',
-                      '${invoice.ekhniiUldegdel!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
-                    ),
-                  ],
-
-                  if (invoice.medeelel != null &&
-                      invoice.medeelel!.zardluud.isNotEmpty) ...[
-                    SizedBox(height: 8.h),
-                    ...invoice.medeelel!.zardluud.map(
-                      (zardal) =>
-                          _buildPriceRow(zardal.ner, zardal.formattedTariff),
-                    ),
-                  ],
-
-                  if (invoice.medeelel != null &&
-                      invoice.medeelel!.guilgeenuud != null &&
-                      invoice.medeelel!.guilgeenuud!.isNotEmpty) ...[
-                    SizedBox(height: 8.h),
-                    ...invoice.medeelel!.guilgeenuud!.map(
-                      (guilgee) => _buildPriceRow(
-                        guilgee.tailbar ?? '',
-                        '${guilgee.tulukhDun?.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
-                      ),
-                    ),
-                  ],
-                  SizedBox(height: 20.h),
-                  Container(
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12.w),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Нийт дүн:',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          invoice.formattedAmount,
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoTitle(String title) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
-
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: isVerySmallScreen ? 8 : (isSmallScreen ? 10 : 12),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: isVerySmallScreen ? 13 : (isSmallScreen ? 14 : 16),
-          fontWeight: FontWeight.w600,
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildInfoText(String text) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
+Widget _buildInfoText(BuildContext context, String text) {
+  final screenHeight = MediaQuery.of(context).size.height;
+  final screenWidth = MediaQuery.of(context).size.width;
+  final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+  final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+  return Padding(
+    padding: EdgeInsets.only(
+      bottom: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: Colors.white.withOpacity(0.9),
+        fontSize: isVerySmallScreen ? 11 : (isSmallScreen ? 12 : 13),
+        height: 1.4,
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.black.withOpacity(0.8),
-          fontSize: isVerySmallScreen ? 11 : (isSmallScreen ? 12 : 13),
-          height: 1.4,
+    ),
+  );
+}
+
+Widget _buildPriceRow(BuildContext context, String label, String amount) {
+  final screenHeight = MediaQuery.of(context).size.height;
+  final screenWidth = MediaQuery.of(context).size.width;
+  final isSmallScreen = screenHeight < 900 || screenWidth < 400;
+  final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
+
+  return Padding(
+    padding: EdgeInsets.symmetric(
+      vertical: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPriceRow(String label, String amount) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.black.withOpacity(0.8),
-              fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
-            ),
+        Text(
+          amount,
+          style: TextStyle(
+            color: const Color(0xFFe6ff00),
+            fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
+            fontWeight: FontWeight.w600,
           ),
-          Text(
-            amount,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
 
 // Nekhemjlekh data models

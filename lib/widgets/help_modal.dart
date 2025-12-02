@@ -18,7 +18,7 @@ Future<void> showHelpModal(BuildContext context) {
 }
 
 class HelpModal extends StatefulWidget {
-  const HelpModal({Key? key}) : super(key: key);
+  const HelpModal({super.key});
 
   @override
   State<HelpModal> createState() => _HelpModalState();
@@ -209,11 +209,7 @@ class _HelpModalState extends State<HelpModal> {
                     ),
                     // Close button
                     IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 24.sp,
-                      ),
+                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],

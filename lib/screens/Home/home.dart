@@ -12,7 +12,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class AppBackground extends StatelessWidget {
 }
 
 class NuurKhuudas extends StatefulWidget {
-  const NuurKhuudas({Key? key}) : super(key: key);
+  const NuurKhuudas({super.key});
 
   @override
   State<NuurKhuudas> createState() => _BookingScreenState();

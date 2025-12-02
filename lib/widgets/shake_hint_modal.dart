@@ -63,7 +63,7 @@ Future<void> showShakeHintModal(
 }
 
 class _ShakeHintModal extends StatefulWidget {
-  const _ShakeHintModal({Key? key}) : super(key: key);
+  const _ShakeHintModal();
 
   @override
   State<_ShakeHintModal> createState() => _ShakeHintModalState();
