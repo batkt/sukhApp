@@ -5,6 +5,7 @@ import 'package:sukh_app/screens/burtguulekh/burtguulekh_khoyor.dart';
 import 'package:sukh_app/screens/medegdel/medegdel.dart';
 import 'package:sukh_app/screens/newtrekh/newtrekhKhuudas.dart';
 import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
+import 'package:sukh_app/screens/taniltsuulga/hoyrdah.dart';
 import 'package:sukh_app/screens/Home/home.dart';
 import 'package:sukh_app/screens/Profile/profile_settings.dart';
 import 'package:sukh_app/screens/geree/geree.dart';
@@ -28,6 +29,7 @@ final GoRouter appRouter = GoRouter(
         state.matchedLocation == '/newtrekh' || state.matchedLocation == '/';
     final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
     final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
+    final isGoingToBiometricOnboarding = state.matchedLocation == '/hoyrdah';
     final isGoingToPasswordReset = state.matchedLocation == '/nuutsUg';
 
     if (isLoggedIn && (isGoingToLogin || isGoingToRegister)) {
@@ -42,6 +44,7 @@ final GoRouter appRouter = GoRouter(
         !isGoingToLogin &&
         !isGoingToRegister &&
         !isGoingToOnboarding &&
+        !isGoingToBiometricOnboarding &&
         !isGoingToPasswordReset) {
       return '/newtrekh';
     }
@@ -88,6 +91,14 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: OnboardingScreen(),
+          ),
+    ),
+    GoRoute(
+      path: '/hoyrdah',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const BiometricOnboardingScreen(),
           ),
     ),
     GoRoute(

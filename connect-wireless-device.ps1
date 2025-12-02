@@ -19,9 +19,33 @@ Start-Sleep -Milliseconds 500
 & $adbPath start-server 2>&1 | Out-Null
 Start-Sleep -Milliseconds 500
 
-# Check current devices
+# Check current devices with timeout
 Write-Host "Current connected devices:" -ForegroundColor Yellow
-& $adbPath devices
+try {
+    $job = Start-Job -ScriptBlock { 
+        param($adb)
+        & $adb devices 2>&1
+    } -ArgumentList $adbPath
+    
+    $result = Wait-Job -Job $job -Timeout 3
+    if ($result) {
+        Receive-Job -Job $job
+        Remove-Job -Job $job
+    } else {
+        Write-Host "ADB command timed out. Trying direct call..." -ForegroundColor Yellow
+        Stop-Job -Job $job -ErrorAction SilentlyContinue
+        Remove-Job -Job $job -ErrorAction SilentlyContinue
+        # Try direct call as fallback
+        Start-Process -FilePath $adbPath -ArgumentList "devices" -NoNewWindow -Wait -RedirectStandardOutput "temp_adb_output.txt" -ErrorAction SilentlyContinue | Out-Null
+        if (Test-Path "temp_adb_output.txt") {
+            Get-Content "temp_adb_output.txt"
+            Remove-Item "temp_adb_output.txt" -ErrorAction SilentlyContinue
+        }
+    }
+} catch {
+    Write-Host "Error checking devices: $_" -ForegroundColor Red
+    Write-Host "Continuing anyway..." -ForegroundColor Yellow
+}
 Write-Host ""
 
 # Ask user for connection method

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/biometric_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +66,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     if (mounted) {
-      context.go('/nuur');
+      // Check if biometric is available
+      final biometricAvailable = await BiometricService.isAvailable();
+      final prefs = await SharedPreferences.getInstance();
+      final hasSeenBiometricOnboarding =
+          prefs.getBool('hasSeenBiometricOnboarding') ?? false;
+
+      // If biometric is available and user hasn't seen the onboarding, show biometric onboarding
+      if (biometricAvailable && !hasSeenBiometricOnboarding) {
+        context.go('/hoyrdah');
+      } else {
+        context.go('/nuur');
+      }
     }
   }
 
