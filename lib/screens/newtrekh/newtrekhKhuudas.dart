@@ -10,7 +10,6 @@ import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
-import 'dart:io';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -37,6 +36,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   bool _rememberMe = false;
   bool _isPasswordVisible = false;
   bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+  bool _hasSavedCredentials = false;
 
   @override
   void initState() {
@@ -45,13 +46,35 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     passwordController.addListener(() => setState(() {}));
     _loadSavedPhoneNumber();
     _checkBiometricAvailability();
+    _checkSavedCredentials();
+  }
+
+  @override
+  void didUpdateWidget(Newtrekhkhuudas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Refresh biometric status when widget updates
+    _checkBiometricAvailability();
   }
 
   Future<void> _checkBiometricAvailability() async {
     final isAvailable = await BiometricService.isAvailable();
+    final isEnabled = await StorageService.isBiometricEnabled();
     if (mounted) {
       setState(() {
         _biometricAvailable = isAvailable;
+        _biometricEnabled = isEnabled;
+      });
+    }
+  }
+
+  Future<void> _checkSavedCredentials() async {
+    final savedPhone = await StorageService.getSavedPhoneNumber();
+    final savedPassword = await StorageService.getSavedPasswordForBiometric();
+    if (mounted) {
+      setState(() {
+        _hasSavedCredentials =
+            (savedPhone != null && savedPhone.isNotEmpty) &&
+            (savedPassword != null && savedPassword.isNotEmpty);
       });
     }
   }
@@ -68,7 +91,16 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   }
 
   Future<void> _authenticateWithBiometric() async {
-    if (!_biometricAvailable) {
+    if (!_biometricAvailable || !_biometricEnabled) {
+      return;
+    }
+
+    // Check if credentials are saved before attempting authentication
+    final savedPhone = await StorageService.getSavedPhoneNumber();
+    final savedPassword = await StorageService.getSavedPasswordForBiometric();
+
+    if (savedPhone == null || savedPassword == null) {
+      // Don't show the button if no credentials, but if somehow triggered, just return silently
       return;
     }
 
@@ -76,23 +108,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       // First authenticate with biometric
       final didAuthenticate = await BiometricService.authenticate();
       if (!didAuthenticate || !mounted) {
-        return;
-      }
-
-      // Get saved credentials
-      final savedPhone = await StorageService.getSavedPhoneNumber();
-      final savedPassword = await StorageService.getSavedPasswordForBiometric();
-
-      // If no saved credentials, show message to login first
-      if (savedPhone == null || savedPassword == null) {
-        if (mounted) {
-          showGlassSnackBar(
-            context,
-            message: 'Эхлээд нэвтрэх шаардлагатай',
-            icon: Icons.info,
-            iconColor: Colors.orange,
-          );
-        }
         return;
       }
 
@@ -532,18 +547,30 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               await StorageService.clearSavedPhoneNumber();
                                             }
 
-                                            if (_biometricAvailable) {
+                                            // Check current biometric enabled state before saving
+                                            final currentBiometricEnabled =
+                                                await StorageService.isBiometricEnabled();
+
+                                            if (_biometricAvailable &&
+                                                currentBiometricEnabled) {
+                                              // Only save password if biometric is enabled in settings
                                               await StorageService.savePasswordForBiometric(
                                                 inputPassword,
                                               );
-                                              await StorageService.setBiometricEnabled(
-                                                true,
-                                              );
+                                              // Refresh credentials state after saving
+                                              await _checkSavedCredentials();
+                                              await _checkBiometricAvailability();
                                             } else {
+                                              // Clear biometric data if disabled or not available
                                               await StorageService.clearSavedPasswordForBiometric();
-                                              await StorageService.setBiometricEnabled(
-                                                false,
-                                              );
+                                              if (!_biometricAvailable) {
+                                                await StorageService.setBiometricEnabled(
+                                                  false,
+                                                );
+                                              }
+                                              // Refresh credentials state after clearing
+                                              await _checkSavedCredentials();
+                                              await _checkBiometricAvailability();
                                             }
 
                                             final taniltsuulgaKharakhEsekh =
@@ -675,33 +702,44 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                       ),
                                     ),
                                   ),
-                                  if (_biometricAvailable) ...[
+                                  if (_biometricAvailable &&
+                                      _biometricEnabled &&
+                                      _hasSavedCredentials) ...[
                                     SizedBox(width: 12.w),
                                     GestureDetector(
-                                      onTap: _isLoading
+                                      onTap: (_isLoading || !_biometricEnabled)
                                           ? null
                                           : _authenticateWithBiometric,
-                                      child: Container(
-                                        width: 56.w,
-                                        height: 48.w,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.inputGrayColor
-                                              .withOpacity(0.3),
-                                          border: Border.all(
-                                            color: AppColors.grayColor
-                                                .withOpacity(0.5),
-                                            width: 2,
+                                      child: Opacity(
+                                        opacity: _biometricEnabled ? 1.0 : 0.5,
+                                        child: Container(
+                                          width: 56.w,
+                                          height: 48.w,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.inputGrayColor
+                                                .withOpacity(0.3),
+                                            border: Border.all(
+                                              color: _biometricEnabled
+                                                  ? AppColors.grayColor
+                                                        .withOpacity(0.5)
+                                                  : Colors.white.withOpacity(
+                                                      0.2,
+                                                    ),
+                                              width: 2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              12.r,
+                                            ),
                                           ),
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
+                                          child: Image.asset(
+                                            'lib/assets/img/face-id.png',
+                                            width: 22.w,
+                                            height: 22.w,
+                                            color: _biometricEnabled
+                                                ? AppColors.grayColor
+                                                : Colors.white.withOpacity(0.3),
+                                            colorBlendMode: BlendMode.srcIn,
                                           ),
-                                        ),
-                                        child: Icon(
-                                          Platform.isIOS
-                                              ? Icons.face_rounded
-                                              : Icons.fingerprint_rounded,
-                                          size: 22.sp,
-                                          color: AppColors.grayColor,
                                         ),
                                       ),
                                     ),
@@ -740,4 +778,123 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       ),
     );
   }
+}
+
+/// Custom painter for iOS Face ID icon
+class FaceIdIconPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+
+  FaceIdIconPainter({required this.color, this.strokeWidth = 3.0});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    final faceWidth = size.width * 0.5;
+    final faceHeight = size.height * 0.5;
+
+    // Draw corner frame segments
+    final cornerLength = size.width * 0.25;
+    final cornerThickness = strokeWidth * 1.5;
+
+    // Top-left corner
+    final topLeftPath = Path()
+      ..moveTo(centerX - faceWidth / 2, centerY - faceHeight / 2 - cornerLength)
+      ..lineTo(centerX - faceWidth / 2, centerY - faceHeight / 2)
+      ..lineTo(
+        centerX - faceWidth / 2 - cornerLength,
+        centerY - faceHeight / 2,
+      );
+    canvas.drawPath(topLeftPath, paint..strokeWidth = cornerThickness);
+
+    // Top-right corner
+    final topRightPath = Path()
+      ..moveTo(centerX + faceWidth / 2, centerY - faceHeight / 2 - cornerLength)
+      ..lineTo(centerX + faceWidth / 2, centerY - faceHeight / 2)
+      ..lineTo(
+        centerX + faceWidth / 2 + cornerLength,
+        centerY - faceHeight / 2,
+      );
+    canvas.drawPath(topRightPath, paint..strokeWidth = cornerThickness);
+
+    // Bottom-left corner
+    final bottomLeftPath = Path()
+      ..moveTo(centerX - faceWidth / 2, centerY + faceHeight / 2 + cornerLength)
+      ..lineTo(centerX - faceWidth / 2, centerY + faceHeight / 2)
+      ..lineTo(
+        centerX - faceWidth / 2 - cornerLength,
+        centerY + faceHeight / 2,
+      );
+    canvas.drawPath(bottomLeftPath, paint..strokeWidth = cornerThickness);
+
+    // Bottom-right corner
+    final bottomRightPath = Path()
+      ..moveTo(centerX + faceWidth / 2, centerY + faceHeight / 2 + cornerLength)
+      ..lineTo(centerX + faceWidth / 2, centerY + faceHeight / 2)
+      ..lineTo(
+        centerX + faceWidth / 2 + cornerLength,
+        centerY + faceHeight / 2,
+      );
+    canvas.drawPath(bottomRightPath, paint..strokeWidth = cornerThickness);
+
+    // Draw face features
+    final facePaint = paint..strokeWidth = strokeWidth;
+
+    // Left eye (vertical oval)
+    final leftEyeRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(centerX - faceWidth * 0.2, centerY - faceHeight * 0.15),
+        width: faceWidth * 0.15,
+        height: faceWidth * 0.2,
+      ),
+      const Radius.circular(100),
+    );
+    canvas.drawRRect(leftEyeRect, facePaint);
+
+    // Right eye (vertical oval)
+    final rightEyeRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(centerX + faceWidth * 0.2, centerY - faceHeight * 0.15),
+        width: faceWidth * 0.15,
+        height: faceWidth * 0.2,
+      ),
+      const Radius.circular(100),
+    );
+    canvas.drawRRect(rightEyeRect, facePaint);
+
+    // Nose (vertical oval, slightly offset to left)
+    final noseRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(centerX - faceWidth * 0.05, centerY),
+        width: faceWidth * 0.12,
+        height: faceWidth * 0.25,
+      ),
+      const Radius.circular(100),
+    );
+    canvas.drawRRect(noseRect, facePaint);
+
+    // Smile (upward-curving arc)
+    final smilePath = Path();
+    smilePath.addArc(
+      Rect.fromCenter(
+        center: Offset(centerX, centerY + faceHeight * 0.1),
+        width: faceWidth * 0.6,
+        height: faceHeight * 0.4,
+      ),
+      -0.3,
+      0.6,
+    );
+    canvas.drawPath(smilePath, facePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

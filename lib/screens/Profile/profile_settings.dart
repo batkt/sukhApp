@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'dart:io';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -48,6 +50,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
   bool _isChangingPassword = false;
   bool _isDeletingAccount = false;
 
+  // Biometric settings
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -63,6 +69,83 @@ class _ProfileSettingsState extends State<ProfileSettings>
       curve: Curves.easeInOut,
     );
     _loadUserProfile();
+    _checkBiometricStatus();
+  }
+
+  Future<void> _checkBiometricStatus() async {
+    final isAvailable = await BiometricService.isAvailable();
+    final isEnabled = await StorageService.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = isAvailable;
+        _biometricEnabled = isEnabled;
+      });
+      // Debug: verify state was loaded
+      print(
+        'Biometric status loaded - Available: $isAvailable, Enabled: $isEnabled',
+      );
+    }
+  }
+
+  Future<void> _handleBiometricToggle(bool value) async {
+    print('Toggling biometric to: $value');
+
+    // Save to storage first
+    final success = await StorageService.setBiometricEnabled(value);
+    print('Save result: $success');
+
+    if (!success) {
+      // If save failed, show error and don't update UI
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Тохиргоо хадгалахад алдаа гарлаа',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return;
+    }
+
+    // Verify it was saved
+    final verifyEnabled = await StorageService.isBiometricEnabled();
+    print('Verified saved state: $verifyEnabled');
+
+    if (verifyEnabled != value) {
+      // State mismatch - something went wrong
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Тохиргоо хадгалахад алдаа гарлаа',
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return;
+    }
+
+    // Update UI after successful save and verification
+    if (mounted) {
+      setState(() {
+        _biometricEnabled = value;
+      });
+    }
+
+    if (!value) {
+      // If disabling, clear saved biometric data
+      await StorageService.clearSavedPasswordForBiometric();
+    }
+
+    if (mounted) {
+      showGlassSnackBar(
+        context,
+        message: value
+            ? 'Биометрийн баталгаажуулалт идэвхжлээ'
+            : 'Биометрийн баталгаажуулалт идэвхгүй боллоо',
+        icon: value ? Icons.check_circle : Icons.info,
+        iconColor: value ? Colors.green : Colors.orange,
+      );
+    }
   }
 
   @override
@@ -927,6 +1010,108 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 ),
                               ),
                               SizedBox(height: 24.h),
+
+                              // Biometric Settings Section
+                              if (_biometricAvailable) ...[
+                                _buildSubSectionHeader(
+                                  'Биометрийн баталгаажуулалт',
+                                  Platform.isIOS
+                                      ? Icons.face_rounded
+                                      : Icons.fingerprint_rounded,
+                                ),
+                                SizedBox(height: 12.h),
+                                _buildSectionCard(
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Биометрийн баталгаажуулалт',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16.sp,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              Platform.isIOS
+                                                  ? 'Face ID ашиглан нэвтрэх'
+                                                  : 'Хурууны хээ ашиглан нэвтрэх',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(
+                                                  0.7,
+                                                ),
+                                                fontSize: 13.sp,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: 16.w),
+                                      GestureDetector(
+                                        onTap: () => _handleBiometricToggle(
+                                          !_biometricEnabled,
+                                        ),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          width: 56.w,
+                                          height: 32.h,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              16.r,
+                                            ),
+                                            color: _biometricEnabled
+                                                ? AppColors.grayColor
+                                                : Colors.white.withOpacity(0.3),
+                                          ),
+                                          child: Stack(
+                                            children: [
+                                              AnimatedPositioned(
+                                                duration: const Duration(
+                                                  milliseconds: 200,
+                                                ),
+                                                curve: Curves.easeInOut,
+                                                left: _biometricEnabled
+                                                    ? 26.w
+                                                    : 4.w,
+                                                top: 4.h,
+                                                child: Container(
+                                                  width: 24.w,
+                                                  height: 24.w,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.white,
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.2),
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                        blurRadius: 4,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 24.h),
+                              ],
 
                               // Delete Account Section
                               _buildSubSectionHeader(

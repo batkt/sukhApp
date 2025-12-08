@@ -121,13 +121,38 @@ class _SideMenuState extends State<SideMenu> {
                     showImage: true,
                   ),
                   SizedBox(width: 12.w),
-                  Text(
-                    'Amarhome',
-                    style: TextStyle(
-                      color: AppColors.goldPrimary,
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.5,
+                  ShaderMask(
+                    shaderCallback: (bounds) => LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.goldPrimary,
+                        AppColors.goldPrimary.withOpacity(0.8),
+                        const Color(0xFFe6ff00),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ).createShader(bounds),
+                    child: Text(
+                      'Amarhome',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2.0,
+                        height: 1.2,
+                        shadows: [
+                          Shadow(
+                            color: AppColors.goldPrimary.withOpacity(0.5),
+                            offset: const Offset(0, 2),
+                            blurRadius: 8,
+                          ),
+                          Shadow(
+                            color: AppColors.goldPrimary.withOpacity(0.3),
+                            offset: const Offset(0, 4),
+                            blurRadius: 12,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

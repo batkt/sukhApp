@@ -27,6 +27,7 @@ dependencies:
   connectivity_plus: ^7.0.0
   shake: ^3.0.0
   local_auth: ^3.0.0
+  snow_fall_animation: ^0.0.1+2
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -93,18 +93,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                       width: 2,
                     ),
                   ),
-                  child: Platform.isIOS
-                      ? CustomPaint(
-                          painter: FaceIdIconPainter(
-                            color: AppColors.grayColor,
-                          ),
-                          size: Size(60.w, 60.w),
-                        )
-                      : Icon(
-                          Icons.fingerprint_rounded,
-                          size: 60.sp,
-                          color: AppColors.grayColor,
-                        ),
+                  child: Center(
+                    child: Image.asset(
+                      'lib/assets/img/face-id.png',
+                      width: 80.w,
+                      height: 80.w,
+                      color: AppColors.grayColor,
+                      colorBlendMode: BlendMode.srcIn,
+                    ),
+                  ),
                 ),
                 SizedBox(height: 32.h),
 

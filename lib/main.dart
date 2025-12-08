@@ -6,6 +6,7 @@ import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/services/connectivity_service.dart';
 import 'package:sukh_app/services/shake_service.dart';
 import 'package:sukh_app/widgets/shake_hint_overlay.dart';
+import 'package:sukh_app/widgets/snow_effect.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -70,6 +71,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
+  bool _isDecember() {
+    return DateTime.now().month == 12;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -90,22 +95,41 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 scale: 3,
               ),
             ),
-            child: MaterialApp.router(
-              debugShowCheckedModeBanner: false,
-              routerConfig: appRouter,
-              theme: ThemeData(
-                scaffoldBackgroundColor: Colors.transparent,
-                textTheme: const TextTheme(
-                  bodyMedium: TextStyle(fontWeight: FontWeight.w400),
-                ),
-                fontFamily: 'Inter',
-              ),
-              builder: (context, child) {
-                return ShakeHintOverlay(
-                  child: child ?? const SizedBox.shrink(),
-                );
-              },
-            ),
+            child: _isDecember()
+                ? SnowEffect(
+                    child: MaterialApp.router(
+                      debugShowCheckedModeBanner: false,
+                      routerConfig: appRouter,
+                      theme: ThemeData(
+                        scaffoldBackgroundColor: Colors.transparent,
+                        textTheme: const TextTheme(
+                          bodyMedium: TextStyle(fontWeight: FontWeight.w400),
+                        ),
+                        fontFamily: 'Inter',
+                      ),
+                      builder: (context, child) {
+                        return ShakeHintOverlay(
+                          child: child ?? const SizedBox.shrink(),
+                        );
+                      },
+                    ),
+                  )
+                : MaterialApp.router(
+                    debugShowCheckedModeBanner: false,
+                    routerConfig: appRouter,
+                    theme: ThemeData(
+                      scaffoldBackgroundColor: Colors.transparent,
+                      textTheme: const TextTheme(
+                        bodyMedium: TextStyle(fontWeight: FontWeight.w400),
+                      ),
+                      fontFamily: 'Inter',
+                    ),
+                    builder: (context, child) {
+                      return ShakeHintOverlay(
+                        child: child ?? const SizedBox.shrink(),
+                      );
+                    },
+                  ),
           ),
         );
       },
