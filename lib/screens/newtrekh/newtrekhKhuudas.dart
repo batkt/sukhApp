@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/biometric_service.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
@@ -118,6 +119,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
       try {
         await ApiService.loginUser(utas: savedPhone, nuutsUg: savedPassword);
+        
+        // Connect socket after successful biometric login
+        try {
+          await SocketService.instance.connect();
+        } catch (e) {
+          // Silently fail - socket is optional
+          print('Failed to connect socket: $e');
+        }
 
         if (mounted) {
           final taniltsuulgaKharakhEsekh =
@@ -585,6 +594,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               icon: Icons.check_outlined,
                                               iconColor: Colors.green,
                                             );
+
+                                            // Connect socket after successful login
+                                            try {
+                                              await SocketService.instance.connect();
+                                            } catch (e) {
+                                              // Silently fail - socket is optional
+                                              print('Failed to connect socket: $e');
+                                            }
 
                                             final targetRoute =
                                                 taniltsuulgaKharakhEsekh

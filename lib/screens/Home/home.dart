@@ -6,9 +6,12 @@ import 'package:sukh_app/components/Menu/side_menu.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/models/nekhemjlekh_cron_model.dart';
+import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/constants/constants.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -39,10 +42,74 @@ class _BookingScreenState extends State<NuurKhuudas> {
   DateTime? oldestUnpaidInvoiceDate;
   bool hasUnpaidInvoice = false;
 
+  // Notification count
+  int _unreadNotificationCount = 0;
+
   @override
   void initState() {
     super.initState();
     _loadPaymentData();
+    _loadNotificationCount();
+    _setupSocketListener();
+  }
+
+  void _setupSocketListener() {
+    // Set up socket notification callback
+    SocketService.instance.setNotificationCallback((notification) {
+      // Refresh notification count when new notification arrives
+      if (mounted) {
+        print('📬 Home: Received socket notification, refreshing count');
+        _loadNotificationCount();
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-establish socket listener when screen comes back into focus
+    // This ensures the callback is active even after modal closes
+    _setupSocketListener();
+  }
+
+  @override
+  void dispose() {
+    // Don't remove callback on dispose - let it stay active
+    // The socket service will handle cleanup on logout
+    super.dispose();
+  }
+
+  Future<void> _loadNotificationCount() async {
+    try {
+      // Check if user is logged in first
+      final isLoggedIn = await StorageService.isLoggedIn();
+      if (!isLoggedIn) {
+        return;
+      }
+
+      final response = await ApiService.fetchMedegdel();
+      final medegdelResponse = MedegdelResponse.fromJson(response);
+      final unreadCount = medegdelResponse.data
+          .where((n) => !n.kharsanEsekh)
+          .length;
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = unreadCount;
+        });
+      }
+    } catch (e) {
+      // Silently fail - notifications are optional
+      // Only log if it's not a 400 error (which might be expected if no notifications exist)
+      if (!e.toString().contains('400')) {
+        print('Error loading notification count: $e');
+      }
+      // Reset count on error
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = 0;
+        });
+      }
+    }
   }
 
   @override
@@ -385,9 +452,83 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     ),
                     Row(
                       children: [
+                        // Notification icon with badge
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(100.r),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 12.w,
+                                    spreadRadius: 0,
+                                    offset: Offset(0, 4.h),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    // Navigate to notification list screen
+                                    context.push('/medegdel-list').then((_) {
+                                      // Refresh count when returning from list
+                                      _loadNotificationCount();
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(100.r),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(10.w),
+                                    child: Icon(
+                                      Icons.notifications_outlined,
+                                      color: Colors.white,
+                                      size: 24.sp,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (_unreadNotificationCount > 0)
+                              Positioned(
+                                right: -2.w,
+                                top: -2.h,
+                                child: Container(
+                                  padding: EdgeInsets.all(4.w),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryAccent,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.darkBackground,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  constraints: BoxConstraints(
+                                    minWidth: 18.w,
+                                    minHeight: 18.w,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      _unreadNotificationCount > 99
+                                          ? '99+'
+                                          : '$_unreadNotificationCount',
+                                      style: TextStyle(
+                                        color: AppColors.darkBackground,
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        SizedBox(width: 12.w),
                         Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFFe6ff00),
+                            color: AppColors.secondaryAccent,
                             borderRadius: BorderRadius.circular(100.r),
                             boxShadow: [
                               BoxShadow(
@@ -468,7 +609,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           height: 300.h,
                           child: const Center(
                             child: CircularProgressIndicator(
-                              color: Color(0xFFe6ff00),
+                              color: AppColors.secondaryAccent,
                             ),
                           ),
                         )
@@ -623,7 +764,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isOverdue
                             ? const Color(0xFFFF6B6B)
-                            : const Color(0xFFe6ff00),
+                            : AppColors.secondaryAccent,
                       ),
                     ),
                   ),
@@ -636,7 +777,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                         style: TextStyle(
                           color: isOverdue
                               ? const Color(0xFFFF6B6B)
-                              : const Color(0xFFe6ff00),
+                              : AppColors.secondaryAccent,
                           fontSize: 65.sp,
                           fontWeight: FontWeight.bold,
                           height: 1,
@@ -753,7 +894,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
         context,
         message: 'Нэхэмжлэл үүсээгүй байна',
         icon: Icons.info_outline,
-        iconColor: const Color(0xFFe6ff00),
+        iconColor: AppColors.secondaryAccent,
         textColor: Colors.white,
       );
       return;
@@ -848,7 +989,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                         context.push('/nekhemjlekh');
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFe6ff00),
+                        backgroundColor: AppColors.secondaryAccent,
                         foregroundColor: Colors.black,
                         padding: EdgeInsets.symmetric(vertical: 14.h),
                         shape: RoundedRectangleBorder(

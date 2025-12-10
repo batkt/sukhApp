@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/session_service.dart';
 
@@ -817,6 +818,417 @@ class ApiService {
     } catch (e) {
       print('Error fetching ajiltan: $e');
       throw Exception('Ажилтны мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  // ============================================
+  // MEDEGDEL (Notifications) API Methods
+  // ============================================
+
+  static Future<Map<String, dynamic>> fetchMedegdel({
+    String? barilgiinId,
+  }) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      if (tukhainBaaziinKholbolt == 'amarSukh' ||
+          tukhainBaaziinKholbolt == null) {
+        try {
+          final userProfile = await getUserProfile();
+          if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
+            tukhainBaaziinKholbolt =
+                userProfile['result']['tukhainBaaziinKholbolt'].toString();
+            // Save it for future use
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(
+              'tukhain_baaziin_kholbolt',
+              tukhainBaaziinKholbolt,
+            );
+          }
+        } catch (e) {
+          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+        }
+      }
+
+      if (baiguullagiinId == null ||
+          tukhainBaaziinKholbolt == null ||
+          tukhainBaaziinKholbolt.isEmpty) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй. Та дахин нэвтэрнэ үү.');
+      }
+
+      final headers = await getAuthHeaders();
+
+      // Get current user ID for filtering notifications
+      final userId = await StorageService.getUserId();
+
+      // Build query parameters
+      // Note: Some APIs might not support turul filter, so we'll filter client-side
+      final queryParams = <String, String>{
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        // Try without turul first - filter client-side instead
+        // 'turul': 'мэдэгдэл',
+      };
+
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        queryParams['barilgiinId'] = barilgiinId;
+      }
+
+      // Add user ID filter to get only notifications for current user
+      if (userId != null && userId.isNotEmpty) {
+        queryParams['orshinSuugchId'] = userId;
+      }
+
+      // Ensure we're using the correct endpoint - construct URI explicitly
+      final endpoint = '/medegdel';
+      final uri = Uri.parse(
+        '$baseUrl$endpoint',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // Filter to only include notifications where turul = "app"
+        // Also filter by userId as a fallback in case API doesn't filter properly
+        // (filtering client-side in case API doesn't support turul parameter)
+        if (data['data'] != null && data['data'] is List) {
+          final filteredData = (data['data'] as List).where((item) {
+            final turul = item['turul']?.toString().toLowerCase() ?? '';
+            // Accept "app" type and "khariu" (reply) notifications
+            final matchesTurul =
+                turul == 'app' ||
+                turul == 'khariu' ||
+                turul == 'хариу' ||
+                turul == 'hariu';
+
+            // Also filter by userId as fallback (in case API doesn't filter properly)
+            if (userId != null && userId.isNotEmpty) {
+              final itemUserId = item['orshinSuugchId']?.toString() ?? '';
+              return matchesTurul && itemUserId == userId;
+            }
+
+            return matchesTurul;
+          }).toList();
+
+          data['data'] = filteredData;
+          if (data['count'] != null) {
+            data['count'] = filteredData.length;
+          }
+        }
+        return data;
+      } else if (response.statusCode == 400) {
+        // Handle 400 error - might be a backend validation issue
+        // Return empty data instead of throwing error
+        return {'success': true, 'data': <dynamic>[], 'count': 0};
+      } else {
+        // Try to get error message from response body
+        String errorMessage =
+            'Мэдэгдэл татахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
+          } else if (errorBody['aldaa'] != null) {
+            errorMessage = errorBody['aldaa'].toString();
+          }
+        } catch (_) {
+          // If parsing fails, use default message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Мэдэгдэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Get user's complaints and suggestions (Гомдол, Санал) for tracking progress
+  static Future<Map<String, dynamic>> fetchUserGomdolSanal({
+    String? barilgiinId,
+  }) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+      final userId = await StorageService.getUserId();
+
+      if (baiguullagiinId == null ||
+          tukhainBaaziinKholbolt == null ||
+          userId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+
+      final queryParams = <String, String>{
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'orshinSuugchId': userId,
+      };
+
+      if (barilgiinId != null) {
+        queryParams['barilgiinId'] = barilgiinId;
+      }
+
+      // Ensure we're using the correct endpoint - construct URI explicitly
+      final endpoint = '/medegdel';
+      final uri = Uri.parse(
+        '$baseUrl$endpoint',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['data'] != null) {
+          if (data['data'] is Map) {
+            // Handle single object response
+            final item = data['data'] as Map;
+            // Convert single object to array for consistency
+            data['data'] = [item];
+          }
+        } else {
+          data['data'] = [];
+        }
+
+        // Filter to only include "gomdol" and "sanal"
+        if (data['data'] != null && data['data'] is List) {
+          final filteredData = (data['data'] as List).where((item) {
+            final turul = item['turul']?.toString().toLowerCase() ?? '';
+            final matches = turul == 'gomdol' || turul == 'sanal';
+            return matches;
+          }).toList();
+          data['data'] = filteredData;
+          data['count'] = filteredData.length;
+        }
+        return data;
+      } else {
+        // Try to get error message from response body
+        String errorMessage =
+            'Гомдол, санал татахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
+          } else if (errorBody['aldaa'] != null) {
+            errorMessage = errorBody['aldaa'].toString();
+          }
+        } catch (_) {
+          // If parsing fails, use default message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception('Гомдол, санал татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Submit complaint or suggestion (Гомдол or Санал)
+  static Future<Map<String, dynamic>> submitGomdolSanal({
+    required String title,
+    required String message,
+    required String turul, // "gomdol" or "sanal"
+  }) async {
+    final turulLower = turul.toLowerCase();
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+      final userId = await StorageService.getUserId();
+
+      if (baiguullagiinId == null ||
+          tukhainBaaziinKholbolt == null ||
+          userId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      if (turulLower != 'gomdol' && turulLower != 'sanal') {
+        throw Exception(
+          'Буруу төрөл. Зөвхөн "gomdol" эсвэл "sanal" байх ёстой',
+        );
+      }
+
+      final headers = await getAuthHeaders();
+
+      final requestBody = {
+        'medeelel': {'title': title, 'body': message},
+        'orshinSuugchId': userId,
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'turul': turulLower, // Use lowercase version
+      };
+
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        requestBody['barilgiinId'] = barilgiinId;
+      }
+
+      // Debug logging
+      print('=== Submitting ${turul} ===');
+      print('Endpoint: /medegdelIlgeeye');
+      print('Request body: ${json.encode(requestBody)}');
+      print('tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt');
+
+      // Use /medegdelIlgeeye endpoint - this is the correct endpoint for creating notifications
+      // Note: This endpoint requires Firebase token, but we'll handle that error gracefully
+      final response = await http.post(
+        Uri.parse('$baseUrl/medegdelIlgeeye'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      // Debug response
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // The API returns "done" as a string, so we return a success response
+        final responseBody = response.body.trim();
+        if (responseBody.toLowerCase() == 'done' ||
+            responseBody.contains('success') ||
+            responseBody.isEmpty) {
+          return {
+            'success': true,
+            'message': turulLower == 'gomdol'
+                ? 'Гомдол амжилттай илгээгдлээ'
+                : 'Санал амжилттай илгээгдлээ',
+          };
+        }
+        // If response is JSON, try to parse it
+        try {
+          final data = json.decode(responseBody);
+          if (data['success'] == true || data['message'] != null) {
+            return {
+              'success': true,
+              'message': turulLower == 'gomdol'
+                  ? 'Гомдол амжилттай илгээгдлээ'
+                  : 'Санал амжилттай илгээгдлээ',
+            };
+          }
+        } catch (_) {
+          // If not JSON, assume success if status is 200
+        }
+        // Default success response
+        return {
+          'success': true,
+          'message': turulLower == 'gomdol'
+              ? 'Гомдол амжилттай илгээгдлээ'
+              : 'Санал амжилттай илгээгдлээ',
+        };
+      } else {
+        // Try to get error message from response body
+        String errorMessage =
+            '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа: ${response.statusCode}';
+        try {
+          // Check if response is HTML (404 error page)
+          if (response.body.contains('<!DOCTYPE html>') ||
+              response.body.contains('Cannot POST') ||
+              response.body.contains('Cannot GET')) {
+            errorMessage = 'Серверийн алдаа гарлаа. Дахин оролдоно уу.';
+          } else {
+            final errorBody = json.decode(response.body);
+            if (errorBody['message'] != null) {
+              errorMessage = errorBody['message'].toString();
+            } else if (errorBody['aldaa'] != null) {
+              errorMessage = errorBody['aldaa'].toString();
+            } else if (errorBody['error'] != null) {
+              errorMessage = errorBody['error'].toString();
+            }
+
+            // Handle Firebase token error with a user-friendly message
+            if (errorMessage.contains('Firebase token') ||
+                errorMessage.contains('firebaseToken')) {
+              errorMessage =
+                  'Мэдэгдэл илгээхэд алдаа гарлаа. Системийн тохиргоо шаардлагатай.';
+            }
+          }
+        } catch (_) {
+          // If response is not JSON, use the raw body if it's not empty
+          if (response.body.trim().isNotEmpty &&
+              !response.body.contains('<!DOCTYPE html>')) {
+            errorMessage = response.body.trim();
+          }
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception(
+        '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа: $e',
+      );
+    }
+  }
+
+  /// Mark notification as read
+  static Future<Map<String, dynamic>> markMedegdelAsRead(
+    String medegdelId,
+  ) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+
+      // Ensure Content-Type header is set
+      final requestHeaders = Map<String, String>.from(headers);
+      requestHeaders['Content-Type'] = 'application/json';
+
+      final requestBody = {
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'kharsanEsekh': true,
+      };
+
+      final url = '$baseUrl/medegdel/$medegdelId';
+
+      final response = await http.put(
+        Uri.parse(url),
+        headers: requestHeaders,
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        try {
+          final responseData = json.decode(response.body);
+          // Verify the response indicates success
+          if (responseData['success'] == true ||
+              (responseData['data'] != null &&
+                  responseData['data']['kharsanEsekh'] == true)) {
+            return responseData;
+          }
+          // If response doesn't have success flag, assume it worked if status is 200
+          return {'success': true, 'data': responseData};
+        } catch (e) {
+          // If response is not JSON, assume success if status is 200
+          return {'success': true};
+        }
+      } else {
+        String errorMessage =
+            'Мэдэгдэл тэмдэглэхэд алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
+          } else if (errorBody['aldaa'] != null) {
+            errorMessage = errorBody['aldaa'].toString();
+          }
+        } catch (_) {
+          // Use default error message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception('Мэдэгдэл тэмдэглэхэд алдаа гарлаа: $e');
     }
   }
 }

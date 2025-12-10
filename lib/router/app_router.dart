@@ -3,6 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_neg.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_khoyor.dart';
 import 'package:sukh_app/screens/medegdel/medegdel.dart';
+import 'package:sukh_app/screens/Medegdel/medegdel_list.dart';
+import 'package:sukh_app/screens/Medegdel/gomdol_sanal_form.dart';
+import 'package:sukh_app/screens/Medegdel/gomdol_sanal_progress.dart';
+import 'package:sukh_app/screens/Medegdel/medegdel_detail.dart';
+import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/screens/newtrekh/newtrekhKhuudas.dart';
 import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
 import 'package:sukh_app/screens/taniltsuulga/hoyrdah.dart';
@@ -182,6 +187,40 @@ final GoRouter appRouter = GoRouter(
             key: state.pageKey,
             child: const MedegdelPage(),
           ),
+    ),
+    GoRoute(
+      path: '/medegdel-list',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const MedegdelListScreen(),
+          ),
+    ),
+    GoRoute(
+      path: '/gomdol-sanal-form',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const GomdolSanalFormScreen(),
+          ),
+    ),
+    GoRoute(
+      path: '/gomdol-sanal-progress',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const GomdolSanalProgressScreen(),
+          ),
+    ),
+    GoRoute(
+      path: '/medegdel-detail',
+      pageBuilder: (context, state) {
+        final notification = state.extra as Medegdel;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: MedegdelDetailScreen(notification: notification),
+        );
+      },
     ),
   ],
 );

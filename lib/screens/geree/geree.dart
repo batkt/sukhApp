@@ -5,6 +5,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/models/geree_model.dart' as model;
 import 'package:sukh_app/models/ajiltan_model.dart';
+import 'package:sukh_app/constants/constants.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -117,7 +118,7 @@ class _GereeState extends State<Geree> {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFe6ff00)),
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.secondaryAccent),
         ),
       );
     }
@@ -145,8 +146,8 @@ class _GereeState extends State<Geree> {
             ElevatedButton(
               onPressed: _fetchGereeData,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFe6ff00),
-                foregroundColor: const Color(0xFF0a0e27),
+                backgroundColor: AppColors.secondaryAccent,
+                foregroundColor: AppColors.darkBackground,
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
               ),
               child: Text('Дахин оролдох', style: TextStyle(fontSize: 14.sp)),
@@ -202,7 +203,7 @@ class _GereeState extends State<Geree> {
               color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12.w),
               border: Border.all(
-                color: const Color(0xFFe6ff00).withOpacity(0.3),
+                color: AppColors.secondaryAccent.withOpacity(0.3),
               ),
             ),
             child: Column(
@@ -219,7 +220,7 @@ class _GereeState extends State<Geree> {
                           style: TextStyle(
                             fontSize: 11.sp,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFFe6ff00),
+                            color: AppColors.secondaryAccent,
                             letterSpacing: 1.2,
                           ),
                         ),
@@ -377,10 +378,10 @@ class _GereeState extends State<Geree> {
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: BoxDecoration(
-                color: const Color(0xFFe6ff00).withOpacity(0.1),
+                color: AppColors.secondaryAccent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12.w),
                 border: Border.all(
-                  color: const Color(0xFFe6ff00).withOpacity(0.3),
+                  color: AppColors.secondaryAccent.withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -524,7 +525,7 @@ class _GereeState extends State<Geree> {
               Container(
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFe6ff00).withOpacity(0.1),
+                  color: AppColors.secondaryAccent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8.w),
                 ),
                 child: Icon(
@@ -559,7 +560,7 @@ class _GereeState extends State<Geree> {
                         ajiltan.albanTushaal!,
                         style: TextStyle(
                           fontSize: 12.sp,
-                          color: const Color(0xFFe6ff00).withOpacity(0.8),
+                          color: AppColors.secondaryAccent.withOpacity(0.8),
                           fontWeight: FontWeight.w500,
                         ),
                       ),

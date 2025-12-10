@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 
 class SideMenu extends StatefulWidget {
@@ -23,16 +24,16 @@ class _SideMenuState extends State<SideMenu> {
           child: Container(
             padding: EdgeInsets.all(24.w),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF1a1a2e), Color(0xFF252547)],
+                colors: [AppColors.darkSurface, AppColors.darkSurfaceElevated],
               ),
-              border: Border.all(color: const Color(0xFFe6ff00), width: 2),
+              border: Border.all(color: AppColors.secondaryAccent, width: 2),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFe6ff00).withValues(alpha: 0.3),
+                  color: AppColors.secondaryAccent.withValues(alpha: 0.3),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
@@ -128,7 +129,7 @@ class _SideMenuState extends State<SideMenu> {
                       colors: [
                         AppColors.goldPrimary,
                         AppColors.goldPrimary.withOpacity(0.8),
-                        const Color(0xFFe6ff00),
+                        AppColors.secondaryAccent,
                       ],
                       stops: const [0.0, 0.5, 1.0],
                     ).createShader(bounds),
@@ -222,7 +223,16 @@ class _SideMenuState extends State<SideMenu> {
                       title: 'Мэдэгдэл',
                       onTap: () {
                         Navigator.pop(context);
-                        _showDevelopmentModal(context);
+                        context.push('/medegdel-list');
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      icon: Icons.feedback_outlined,
+                      title: 'Гомдол, Санал',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/gomdol-sanal-progress');
                       },
                     ),
                     _buildMenuItem(
@@ -304,6 +314,9 @@ class _SideMenuState extends State<SideMenu> {
                         );
 
                         if (shouldLogout == true) {
+                          // Disconnect socket before logout
+                          SocketService.instance.disconnect();
+                          
                           // Clear authentication data
                           await StorageService.clearAuthData();
 

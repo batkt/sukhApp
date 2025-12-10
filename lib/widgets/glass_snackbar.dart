@@ -13,29 +13,50 @@ void showGlassSnackBar(
   double blur = 10,
   Duration duration = const Duration(seconds: 2),
 }) {
-  final overlay = Overlay.of(context);
-  OverlayEntry? overlayEntry;
+  try {
+    final overlay = Overlay.of(context, rootOverlay: true);
+    OverlayEntry? overlayEntry;
 
-  overlayEntry = OverlayEntry(
-    builder: (context) => _SnackBarWidget(
-      message: message,
-      icon: icon,
-      textColor: textColor,
-      iconColor: iconColor,
-      opacity: opacity,
-      blur: blur,
-      onDismiss: () {
+    overlayEntry = OverlayEntry(
+      builder: (context) => _SnackBarWidget(
+        message: message,
+        icon: icon,
+        textColor: textColor,
+        iconColor: iconColor,
+        opacity: opacity,
+        blur: blur,
+        onDismiss: () {
+          try {
+            overlayEntry?.remove();
+          } catch (e) {
+            // Ignore errors when removing overlay (widget might be disposed)
+            print('Error removing overlay entry: $e');
+          }
+        },
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    // Auto-dismiss after duration
+    Timer(duration, () {
+      try {
         overlayEntry?.remove();
-      },
-    ),
-  );
-
-  overlay.insert(overlayEntry);
-
-  // Auto-dismiss after duration
-  Timer(duration, () {
-    overlayEntry?.remove();
-  });
+      } catch (e) {
+        // Ignore errors when removing overlay (widget might be disposed)
+        print('Error auto-dismissing snackbar: $e');
+      }
+    });
+  } catch (e) {
+    // Fallback to regular SnackBar if overlay fails
+    print('Error showing glass snackbar, using fallback: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: duration,
+      ),
+    );
+  }
 }
 
 class _SnackBarWidget extends StatefulWidget {

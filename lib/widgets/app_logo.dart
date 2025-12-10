@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:math';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:sukh_app/constants/constants.dart';
 
 class AppLogo extends StatelessWidget {
   final double? minHeight;
@@ -124,7 +125,7 @@ class SantaHatPainter extends CustomPainter {
     final hatWidth = size.width * 0.75;
 
     // Draw red hat body - classic Santa hat shape
-    paint.color = const Color(0xFFC41E3A);
+    paint.color = AppColors.santaRed;
 
     // Main hat cone
     final hatPath = Path()
@@ -136,7 +137,7 @@ class SantaHatPainter extends CustomPainter {
     canvas.drawPath(hatPath, paint);
 
     // Add shadow/highlight for depth
-    paint.color = const Color(0xFFA01A2E);
+    paint.color = AppColors.santaRedDark;
     final shadowPath = Path()
       ..moveTo(centerX - hatWidth * 0.25, hatBaseY)
       ..lineTo(centerX - hatWidth * 0.1, hatBaseY * 0.5)

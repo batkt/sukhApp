@@ -12,6 +12,7 @@ import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/models/ajiltan_model.dart';
+import 'package:sukh_app/constants/constants.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -236,7 +237,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       builder: (BuildContext context) {
         return Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF0a0e27),
+            color: AppColors.darkBackground,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(30.w),
               topRight: Radius.circular(30.w),
@@ -304,12 +305,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         padding: EdgeInsets.all(16.w),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFFe6ff00).withOpacity(0.2)
+                              ? AppColors.secondaryAccent.withOpacity(0.2)
                               : Colors.white.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20.w),
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFFe6ff00)
+                                ? AppColors.secondaryAccent
                                 : Colors.white.withOpacity(0.2),
                             width: isSelected ? 2 : 1,
                           ),
@@ -342,7 +343,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             if (isSelected)
                               Icon(
                                 Icons.check_circle,
-                                color: const Color(0xFFe6ff00),
+                                color: AppColors.secondaryAccent,
                                 size: 24.sp,
                               ),
                           ],
@@ -415,11 +416,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Төлсөн':
-        return const Color(0xFF10B981); // Green
+        return AppColors.success; // Green
       case 'Төлөөгүй':
-        return const Color(0xFFF59E0B); // Orange/Amber
+        return AppColors.warning; // Orange/Amber
       default:
-        return const Color(0xFF6B7280); // Gray
+        return AppColors.neutralGray; // Gray
     }
   }
 
@@ -460,12 +461,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFe6ff00).withOpacity(0.2)
+              ? AppColors.secondaryAccent.withOpacity(0.2)
               : Colors.white.withOpacity(0.08),
           borderRadius: BorderRadius.circular(20.w),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFe6ff00).withOpacity(0.5)
+                ? AppColors.secondaryAccent.withOpacity(0.5)
                 : Colors.white.withOpacity(0.2),
             width: isSelected ? 1.5 : 1,
           ),
@@ -477,7 +478,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               label,
               style: TextStyle(
                 color: isSelected
-                    ? const Color(0xFFe6ff00)
+                    ? AppColors.secondaryAccent
                     : Colors.white.withOpacity(0.9),
                 fontSize: 13.sp,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -489,7 +490,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? const Color(0xFFe6ff00)
+                      ? AppColors.secondaryAccent
                       : Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10.w),
                 ),
@@ -525,7 +526,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             return Container(
               height: MediaQuery.of(context).size.height * 0.7,
               decoration: BoxDecoration(
-                color: const Color(0xFF0a0e27),
+                color: AppColors.darkBackground,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(30.w),
                   topRight: Radius.circular(30.w),
@@ -632,7 +633,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         context: context,
         barrierDismissible: false,
         builder: (context) => const Center(
-          child: CircularProgressIndicator(color: Color(0xFFe6ff00)),
+          child: CircularProgressIndicator(color: AppColors.secondaryAccent),
         ),
       );
 
@@ -733,15 +734,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0a0e27).withOpacity(0.95),
+                        color: AppColors.darkBackground.withOpacity(0.95),
                         borderRadius: BorderRadius.circular(24.w),
                         border: Border.all(
-                          color: const Color(0xFFe6ff00).withOpacity(0.3),
+                          color: AppColors.secondaryAccent.withOpacity(0.3),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFe6ff00).withOpacity(0.2),
+                            color: AppColors.secondaryAccent.withOpacity(0.2),
                             blurRadius: 20,
                             spreadRadius: 2,
                           ),
@@ -759,7 +760,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           color: Colors.white.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(12.w),
                           border: Border.all(
-                            color: const Color(0xFFe6ff00).withOpacity(0.2),
+                            color: AppColors.secondaryAccent.withOpacity(0.2),
                             width: 1,
                           ),
                         ),
@@ -820,9 +821,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                         'Дугаар хуулагдлаа: $suhUtas',
                                         style: TextStyle(color: Colors.white),
                                       ),
-                                      backgroundColor: const Color(
-                                        0xFFe6ff00,
-                                      ).withOpacity(0.9),
+                                      backgroundColor: AppColors.secondaryAccent
+                                          .withOpacity(0.9),
                                       duration: const Duration(seconds: 2),
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
@@ -836,7 +836,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                   style: TextStyle(
                                     fontSize: 18.sp,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFFe6ff00),
+                                    color: AppColors.secondaryAccent,
                                     letterSpacing: 1.0,
                                   ),
                                   textAlign: TextAlign.center,
@@ -878,8 +878,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFe6ff00),
-                                    foregroundColor: const Color(0xFF0a0e27),
+                                    backgroundColor: AppColors.secondaryAccent,
+                                    foregroundColor: AppColors.darkBackground,
                                     padding: EdgeInsets.symmetric(
                                       vertical: 12.h,
                                     ),
@@ -949,7 +949,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: const Color(0xFF0a0e27),
+        color: AppColors.darkBackground,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30.w),
           topRight: Radius.circular(30.w),
@@ -1298,7 +1298,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         return Container(
           height: MediaQuery.of(context).size.height * 0.5,
           decoration: BoxDecoration(
-            color: const Color(0xFF0a0e27),
+            color: AppColors.darkBackground,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(30.w),
               topRight: Radius.circular(30.w),
@@ -1411,8 +1411,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       child: ElevatedButton(
                         onPressed: () => _checkPaymentStatus(bank),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFe6ff00),
-                          foregroundColor: Colors.black,
+                          backgroundColor: AppColors.secondaryAccent,
+                          foregroundColor: AppColors.darkBackground,
                           padding: EdgeInsets.symmetric(vertical: 16.h),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.w),
@@ -1446,7 +1446,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFFe6ff00)),
+        child: CircularProgressIndicator(color: AppColors.secondaryAccent),
       ),
     );
 
@@ -1675,7 +1675,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           backgroundColor: Colors.transparent,
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF0a0e27),
+              color: AppColors.darkBackground,
               borderRadius: BorderRadius.circular(20.w),
               border: Border.all(
                 color: Colors.white.withOpacity(0.2),
@@ -1721,8 +1721,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     _startPaymentStatusCheck();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFe6ff00),
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.secondaryAccent,
+                    foregroundColor: AppColors.darkBackground,
                     padding: EdgeInsets.symmetric(
                       vertical: 12.h,
                       horizontal: 40.w,
@@ -1752,7 +1752,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF0a0e27),
+          backgroundColor: AppColors.darkBackground,
           title: const Text(
             'Банкны апп олдсонгүй',
             style: TextStyle(color: Colors.white),
@@ -1776,7 +1776,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               },
               child: const Text(
                 'QR код хуулах',
-                style: TextStyle(color: Color(0xFFe6ff00)),
+                style: TextStyle(color: AppColors.secondaryAccent),
               ),
             ),
             TextButton(
@@ -1786,7 +1786,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               },
               child: const Text(
                 'Апп татах',
-                style: TextStyle(color: Color(0xFFe6ff00)),
+                style: TextStyle(color: AppColors.secondaryAccent),
               ),
             ),
           ],
@@ -1934,7 +1934,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF0a0e27),
+          color: AppColors.darkBackground,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(16.w),
             topRight: Radius.circular(16.w),
@@ -2140,7 +2140,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         color: Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(8.w),
                         border: Border.all(
-                          color: const Color(0xFFe6ff00).withOpacity(0.3),
+                          color: AppColors.secondaryAccent.withOpacity(0.3),
                         ),
                       ),
                       child: Row(
@@ -2148,7 +2148,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         children: [
                           Icon(
                             Icons.business,
-                            color: const Color(0xFFe6ff00),
+                            color: AppColors.secondaryAccent,
                             size: 16.sp,
                           ),
                           SizedBox(width: 8.w),
@@ -2166,7 +2166,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           SizedBox(width: 4.w),
                           Icon(
                             Icons.keyboard_arrow_down,
-                            color: const Color(0xFFe6ff00),
+                            color: AppColors.secondaryAccent,
                             size: 16.sp,
                           ),
                         ],
@@ -2242,9 +2242,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                   color: Colors.white.withOpacity(0.08),
                                   borderRadius: BorderRadius.circular(20.w),
                                   border: Border.all(
-                                    color: const Color(
-                                      0xFFe6ff00,
-                                    ).withOpacity(0.3),
+                                    color: AppColors.secondaryAccent
+                                        .withOpacity(0.3),
                                     width: 1.5,
                                   ),
                                 ),
@@ -2274,7 +2273,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                             Text(
                                               totalSelectedAmount,
                                               style: TextStyle(
-                                                color: const Color(0xFFe6ff00),
+                                                color:
+                                                    AppColors.secondaryAccent,
                                                 fontSize: 20.sp,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -2286,9 +2286,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               ? _showPaymentModal
                                               : null,
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(
-                                              0xFFe6ff00,
-                                            ),
+                                            backgroundColor:
+                                                AppColors.secondaryAccent,
                                             foregroundColor: Colors.black,
                                             disabledBackgroundColor: Colors
                                                 .white
@@ -2496,7 +2495,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(20.w),
         border: Border.all(
-          color: const Color(0xFFe6ff00).withOpacity(0.3),
+          color: AppColors.secondaryAccent.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -2509,9 +2508,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             });
           },
           borderRadius: BorderRadius.circular(20.w),
-          splashColor: const Color(0xFFe6ff00).withOpacity(0.1),
-          highlightColor: const Color(0xFFe6ff00).withOpacity(0.05),
-          hoverColor: const Color(0xFFe6ff00).withOpacity(0.08),
+          splashColor: AppColors.secondaryAccent.withOpacity(0.1),
+          highlightColor: AppColors.secondaryAccent.withOpacity(0.05),
+          hoverColor: AppColors.secondaryAccent.withOpacity(0.08),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2578,7 +2577,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             color: Colors.transparent,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFFe6ff00).withOpacity(0.3),
+                              color: AppColors.secondaryAccent.withOpacity(0.3),
                               width: 2,
                             ),
                           ),
@@ -2632,7 +2631,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             Text(
                               invoice.formattedAmount,
                               style: TextStyle(
-                                color: const Color(0xFFe6ff00),
+                                color: AppColors.secondaryAccent,
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -2650,12 +2649,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                     });
                                   },
                                   borderRadius: BorderRadius.circular(6.w),
-                                  splashColor: const Color(
-                                    0xFFe6ff00,
-                                  ).withOpacity(0.3),
-                                  highlightColor: const Color(
-                                    0xFFe6ff00,
-                                  ).withOpacity(0.1),
+                                  splashColor: AppColors.secondaryAccent
+                                      .withOpacity(0.3),
+                                  highlightColor: AppColors.secondaryAccent
+                                      .withOpacity(0.1),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 300),
                                     curve: Curves.easeInOutCubic,
@@ -2665,10 +2662,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                       gradient: invoice.isSelected
                                           ? LinearGradient(
                                               colors: [
-                                                const Color(0xFFe6ff00),
-                                                const Color(
-                                                  0xFFe6ff00,
-                                                ).withOpacity(0.8),
+                                                AppColors.secondaryAccent,
+                                                AppColors.secondaryAccent
+                                                    .withOpacity(0.8),
                                               ],
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
@@ -2679,7 +2675,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                           : Colors.transparent,
                                       border: Border.all(
                                         color: invoice.isSelected
-                                            ? const Color(0xFFe6ff00)
+                                            ? AppColors.secondaryAccent
                                             : Colors.white.withOpacity(0.5),
                                         width: invoice.isSelected ? 2.5 : 2,
                                       ),
@@ -2687,17 +2683,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                       boxShadow: invoice.isSelected
                                           ? [
                                               BoxShadow(
-                                                color: const Color(
-                                                  0xFFe6ff00,
-                                                ).withOpacity(0.5),
+                                                color: AppColors.secondaryAccent
+                                                    .withOpacity(0.5),
                                                 blurRadius: 16,
                                                 spreadRadius: 0,
                                                 offset: const Offset(0, 6),
                                               ),
                                               BoxShadow(
-                                                color: const Color(
-                                                  0xFFe6ff00,
-                                                ).withOpacity(0.3),
+                                                color: AppColors.secondaryAccent
+                                                    .withOpacity(0.3),
                                                 blurRadius: 10,
                                                 spreadRadius: 3,
                                               ),
@@ -2747,7 +2741,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             invoice.isExpanded
                                 ? Icons.keyboard_arrow_up
                                 : Icons.keyboard_arrow_down,
-                            color: const Color(0xFFe6ff00),
+                            color: AppColors.secondaryAccent,
                             size: 20.sp,
                           ),
                         ],
@@ -2777,9 +2771,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 color: Colors.transparent,
                                 borderRadius: BorderRadius.circular(12.w),
                                 border: Border.all(
-                                  color: const Color(
-                                    0xFFe6ff00,
-                                  ).withOpacity(0.3),
+                                  color: AppColors.secondaryAccent.withOpacity(
+                                    0.3,
+                                  ),
                                   width: 1.5,
                                 ),
                               ),
@@ -2791,14 +2785,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                     children: [
                                       Icon(
                                         Icons.business,
-                                        color: const Color(0xFFe6ff00),
+                                        color: AppColors.secondaryAccent,
                                         size: 16.sp,
                                       ),
                                       SizedBox(width: 6.w),
                                       Text(
                                         'Нэхэмжлэгч',
                                         style: TextStyle(
-                                          color: const Color(0xFFe6ff00),
+                                          color: AppColors.secondaryAccent,
                                           fontSize: 13.sp,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -2831,9 +2825,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 color: Colors.transparent,
                                 borderRadius: BorderRadius.circular(12.w),
                                 border: Border.all(
-                                  color: const Color(
-                                    0xFFe6ff00,
-                                  ).withOpacity(0.3),
+                                  color: AppColors.secondaryAccent.withOpacity(
+                                    0.3,
+                                  ),
                                   width: 1.5,
                                 ),
                               ),
@@ -2845,14 +2839,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                     children: [
                                       Icon(
                                         Icons.person,
-                                        color: const Color(0xFFe6ff00),
+                                        color: AppColors.secondaryAccent,
                                         size: 16.sp,
                                       ),
                                       SizedBox(width: 6.w),
                                       Text(
                                         'Төлөгч',
                                         style: TextStyle(
-                                          color: const Color(0xFFe6ff00),
+                                          color: AppColors.secondaryAccent,
                                           fontSize: 13.sp,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -2916,7 +2910,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             color: Colors.transparent,
                             borderRadius: BorderRadius.circular(12.w),
                             border: Border.all(
-                              color: const Color(0xFFe6ff00).withOpacity(0.3),
+                              color: AppColors.secondaryAccent.withOpacity(0.3),
                               width: 1.5,
                             ),
                           ),
@@ -2927,14 +2921,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 children: [
                                   Icon(
                                     Icons.note_outlined,
-                                    color: const Color(0xFFe6ff00),
+                                    color: AppColors.secondaryAccent,
                                     size: 16.sp,
                                   ),
                                   SizedBox(width: 6.w),
                                   Text(
                                     'Тайлбар',
                                     style: TextStyle(
-                                      color: const Color(0xFFe6ff00),
+                                      color: AppColors.secondaryAccent,
                                       fontSize: 13.sp,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -2962,7 +2956,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           color: Colors.transparent,
                           borderRadius: BorderRadius.circular(12.w),
                           border: Border.all(
-                            color: const Color(0xFFe6ff00).withOpacity(0.4),
+                            color: AppColors.secondaryAccent.withOpacity(0.4),
                             width: 1.5,
                           ),
                         ),
@@ -2980,7 +2974,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             Text(
                               invoice.formattedAmount,
                               style: TextStyle(
-                                color: const Color(0xFFe6ff00),
+                                color: AppColors.secondaryAccent,
                                 fontSize: 20.sp,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -3000,8 +2994,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               style: TextStyle(fontSize: 14.sp),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFe6ff00),
-                              foregroundColor: const Color(0xFF0a0e27),
+                              backgroundColor: AppColors.secondaryAccent,
+                              foregroundColor: AppColors.darkBackground,
                               padding: EdgeInsets.symmetric(vertical: 12.h),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12.w),
@@ -3066,7 +3060,7 @@ Widget _buildPriceRow(BuildContext context, String label, String amount) {
         Text(
           amount,
           style: TextStyle(
-            color: const Color(0xFFe6ff00),
+            color: AppColors.secondaryAccent,
             fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
             fontWeight: FontWeight.w600,
           ),

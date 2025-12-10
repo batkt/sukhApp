@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/core/auth_config.dart';
 
 class SessionService {
@@ -73,6 +74,9 @@ class SessionService {
 
   /// Logout the user and clear all data
   static Future<void> logout() async {
+    // Disconnect socket before logout
+    SocketService.instance.disconnect();
+    
     await AuthConfig.instance.logout();
     await clearLoginTimestamp();
     // Cancel any scheduled session expiry notification

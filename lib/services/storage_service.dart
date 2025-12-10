@@ -34,6 +34,7 @@ class StorageService {
   static const String _shakeHintShownKey = 'shake_hint_shown';
   static const String _savedPasswordKey = 'saved_password_biometric';
   static const String _biometricEnabledKey = 'biometric_enabled';
+  static const String _tukhainBaaziinKholboltKey = 'tukhain_baaziin_kholbolt';
 
   static Future<bool> saveToken(String token) async {
     try {
@@ -97,6 +98,28 @@ class StorageService {
           userData['result']['barilgiinId'],
         );
       }
+
+      // Save tukhainBaaziinKholbolt - check multiple possible locations
+      String? tukhainBaaziinKholbolt;
+      
+      // Check in result object first
+      if (userData['result']?['tukhainBaaziinKholbolt'] != null) {
+        tukhainBaaziinKholbolt = userData['result']['tukhainBaaziinKholbolt'].toString();
+      }
+      // Check in root of userData
+      else if (userData['tukhainBaaziinKholbolt'] != null) {
+        tukhainBaaziinKholbolt = userData['tukhainBaaziinKholbolt'].toString();
+      }
+      // If not found, will use default below
+      
+      // Save the value (or default)
+      await prefs.setString(
+        _tukhainBaaziinKholboltKey,
+        tukhainBaaziinKholbolt ?? 'amarSukh',
+      );
+      
+      // Debug log to see what we're saving
+      print('Saved tukhainBaaziinKholbolt: ${tukhainBaaziinKholbolt ?? 'amarSukh'}');
 
       // Save duusakhOgnoo
       if (userData['duusakhOgnoo'] != null) {
@@ -364,6 +387,17 @@ class StorageService {
     } catch (e) {
       print('Error setting biometric enabled: $e');
       return false;
+    }
+  }
+
+  /// Get tukhainBaaziinKholbolt (database connection identifier)
+  static Future<String?> getTukhainBaaziinKholbolt() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_tukhainBaaziinKholboltKey) ?? 'amarSukh';
+    } catch (e) {
+      print('Error getting tukhainBaaziinKholbolt: $e');
+      return 'amarSukh'; // Default fallback
     }
   }
 }
