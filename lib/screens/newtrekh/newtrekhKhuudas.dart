@@ -6,7 +6,6 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
-import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/shake_hint_modal.dart';
@@ -31,157 +30,25 @@ class Newtrekhkhuudas extends StatefulWidget {
 
 class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
   bool _isLoading = false;
-  bool _rememberMe = false;
-  bool _isPasswordVisible = false;
-  bool _biometricAvailable = false;
-  bool _biometricEnabled = false;
-  bool _hasSavedCredentials = false;
+  bool _showEmailField = false;
 
   @override
   void initState() {
     super.initState();
     phoneController.addListener(() => setState(() {}));
-    passwordController.addListener(() => setState(() {}));
+    emailController.addListener(() => setState(() {}));
     _loadSavedPhoneNumber();
-    _checkBiometricAvailability();
-    _checkSavedCredentials();
-  }
-
-  @override
-  void didUpdateWidget(Newtrekhkhuudas oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Refresh biometric status when widget updates
-    _checkBiometricAvailability();
-  }
-
-  Future<void> _checkBiometricAvailability() async {
-    final isAvailable = await BiometricService.isAvailable();
-    final isEnabled = await StorageService.isBiometricEnabled();
-    if (mounted) {
-      setState(() {
-        _biometricAvailable = isAvailable;
-        _biometricEnabled = isEnabled;
-      });
-    }
-  }
-
-  Future<void> _checkSavedCredentials() async {
-    final savedPhone = await StorageService.getSavedPhoneNumber();
-    final savedPassword = await StorageService.getSavedPasswordForBiometric();
-    if (mounted) {
-      setState(() {
-        _hasSavedCredentials =
-            (savedPhone != null && savedPhone.isNotEmpty) &&
-            (savedPassword != null && savedPassword.isNotEmpty);
-      });
-    }
   }
 
   Future<void> _loadSavedPhoneNumber() async {
     final savedPhone = await StorageService.getSavedPhoneNumber();
-    final rememberMe = await StorageService.isRememberMeEnabled();
     if (savedPhone != null && mounted) {
       setState(() {
         phoneController.text = savedPhone;
-        _rememberMe = rememberMe;
       });
-    }
-  }
-
-  Future<void> _authenticateWithBiometric() async {
-    if (!_biometricAvailable || !_biometricEnabled) {
-      return;
-    }
-
-    // Check if credentials are saved before attempting authentication
-    final savedPhone = await StorageService.getSavedPhoneNumber();
-    final savedPassword = await StorageService.getSavedPasswordForBiometric();
-
-    if (savedPhone == null || savedPassword == null) {
-      // Don't show the button if no credentials, but if somehow triggered, just return silently
-      return;
-    }
-
-    try {
-      // First authenticate with biometric
-      final didAuthenticate = await BiometricService.authenticate();
-      if (!didAuthenticate || !mounted) {
-        return;
-      }
-
-      setState(() {
-        _isLoading = true;
-        phoneController.text = savedPhone;
-      });
-
-      try {
-        await ApiService.loginUser(utas: savedPhone, nuutsUg: savedPassword);
-        
-        // Connect socket after successful biometric login
-        try {
-          await SocketService.instance.connect();
-        } catch (e) {
-          // Silently fail - socket is optional
-          print('Failed to connect socket: $e');
-        }
-
-        if (mounted) {
-          final taniltsuulgaKharakhEsekh =
-              await StorageService.getTaniltsuulgaKharakhEsekh();
-
-          setState(() {
-            _isLoading = false;
-          });
-          showGlassSnackBar(
-            context,
-            message: 'Нэвтрэлт амжилттай',
-            icon: Icons.check_outlined,
-            iconColor: Colors.green,
-          );
-
-          final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
-          context.go(targetRoute);
-
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Future.delayed(const Duration(milliseconds: 800), () {
-              _showModalAfterNavigation();
-            });
-          });
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-
-          String errorMessage = e.toString();
-          if (errorMessage.startsWith('Exception: ')) {
-            errorMessage = errorMessage.substring(11);
-          }
-          if (errorMessage.isEmpty) {
-            errorMessage = "Утасны дугаар эсвэл нууц үг буруу байна";
-          }
-
-          showGlassSnackBar(
-            context,
-            message: errorMessage,
-            icon: Icons.error,
-            iconColor: Colors.red,
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Биометрийн баталгаажуулалт амжилтгүй',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
     }
   }
 
@@ -210,7 +77,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   @override
   void dispose() {
     phoneController.dispose();
-    passwordController.dispose();
+    emailController.dispose();
     super.dispose();
   }
 
@@ -251,7 +118,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 ),
                               ),
                               SizedBox(height: 24.h),
-                              // Phone Input Field
                               Container(
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16.r),
@@ -324,203 +190,106 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ],
                                 ),
                               ),
-                              SizedBox(height: 16.h),
-                              // Password Input Field
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16.r),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      offset: const Offset(0, 4),
-                                      blurRadius: 12,
-                                      spreadRadius: 0,
-                                    ),
-                                  ],
-                                ),
-                                child: TextFormField(
-                                  controller: passwordController,
-                                  keyboardType: TextInputType.number,
-                                  obscureText: !_isPasswordVisible,
-                                  autofocus: false,
+                              SizedBox(height: 12.h),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                child: Text(
+                                  _showEmailField
+                                      ? 'Хэтэвчний системд бүртгэлгүй байна. Имэйл хаягаа оруулна уу'
+                                      : 'Хэтэвчний системд бүртгэлтэй утасны дугаараа оруулна уу',
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 2,
+                                    color: AppColors.grayColor.withOpacity(0.7),
+                                    fontSize: 12.sp,
                                   ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Нууц код',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white.withOpacity(0.5),
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    filled: true,
-                                    fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.3),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 20.w,
-                                      vertical: 16.h,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(16.r),
-                                      borderSide: BorderSide(
-                                        color: Colors.white.withOpacity(0.1),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(16.r),
-                                      borderSide: BorderSide(
-                                        color: AppColors.grayColor.withOpacity(
-                                          0.8,
-                                        ),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    suffixIcon:
-                                        passwordController.text.isNotEmpty
-                                        ? IconButton(
-                                            icon: Icon(
-                                              _isPasswordVisible
-                                                  ? Icons.visibility_off_rounded
-                                                  : Icons.visibility_rounded,
-                                              color: Colors.white.withOpacity(
-                                                0.7,
-                                              ),
-                                              size: 20.sp,
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _isPasswordVisible =
-                                                    !_isPasswordVisible;
-                                              });
-                                            },
-                                          )
-                                        : null,
-                                  ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(4),
-                                  ],
                                 ),
                               ),
-                              SizedBox(height: 20.h),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        _rememberMe = !_rememberMe;
-                                      });
-                                    },
-                                    borderRadius: BorderRadius.circular(8.r),
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 4.w,
-                                        vertical: 4.h,
+                              if (_showEmailField) ...[
+                                SizedBox(height: 12.h),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        offset: const Offset(0, 4),
+                                        blurRadius: 12,
+                                        spreadRadius: 0,
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(
-                                            width: 20.w,
-                                            height: 20.w,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(6.r),
-                                              border: Border.all(
-                                                color: _rememberMe
-                                                    ? AppColors.grayColor
-                                                    : AppColors.grayColor
-                                                          .withOpacity(0.5),
-                                                width: 2,
-                                              ),
-                                              color: _rememberMe
-                                                  ? AppColors.grayColor
-                                                  : Colors.transparent,
-                                            ),
-                                            child: _rememberMe
-                                                ? Icon(
-                                                    Icons.check_rounded,
-                                                    size: 14.sp,
-                                                    color: Colors.white,
-                                                  )
-                                                : null,
-                                          ),
-                                          SizedBox(width: 8.w),
-                                          Flexible(
-                                            child: Text(
-                                              'Намайг сана',
-                                              style: TextStyle(
-                                                color: AppColors.grayColor,
-                                                fontSize: 14.sp,
-                                                fontWeight: FontWeight.w500,
-                                                letterSpacing: 0.2,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
+                                    ],
+                                  ),
+                                  child: TextFormField(
+                                    controller: emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.2,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'Имэйл хаяг',
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withOpacity(0.5),
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w400,
                                       ),
+                                      filled: true,
+                                      fillColor: AppColors.inputGrayColor
+                                          .withOpacity(0.3),
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
+                                        vertical: 16.h,
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          16.r,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: Colors.white.withOpacity(0.1),
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          16.r,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: AppColors.grayColor
+                                              .withOpacity(0.8),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      suffixIcon:
+                                          emailController.text.isNotEmpty
+                                          ? IconButton(
+                                              icon: Icon(
+                                                Icons.clear_rounded,
+                                                color: Colors.white.withOpacity(
+                                                  0.7,
+                                                ),
+                                                size: 20.sp,
+                                              ),
+                                              onPressed: () =>
+                                                  emailController.clear(),
+                                            )
+                                          : null,
                                     ),
                                   ),
-                                  Flexible(
-                                    child: TextButton(
-                                      onPressed: () {
-                                        context.push('/nuutsUg');
-                                      },
-                                      style: TextButton.styleFrom(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8.w,
-                                          vertical: 4.h,
-                                        ),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8.r,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Нууц код сэргээх',
-                                        style: TextStyle(
-                                          color: AppColors.grayColor,
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.w500,
-                                          decoration: TextDecoration.underline,
-                                          decorationColor: AppColors.grayColor
-                                              .withOpacity(0.5),
-                                          decorationThickness: 1,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                               SizedBox(height: 24.h),
-                              // Login Button - New Design
                               GestureDetector(
                                 onTap: _isLoading
                                     ? null
                                     : () async {
                                         String inputPhone = phoneController.text
                                             .trim();
-                                        String inputPassword =
-                                            passwordController.text.trim();
 
-                                        if (inputPhone.isEmpty ||
-                                            inputPassword.isEmpty) {
+                                        if (inputPhone.isEmpty) {
                                           showGlassSnackBar(
                                             context,
-                                            message:
-                                                "Утасны дугаар болон нууц үгийг оруулна уу",
+                                            message: "Утасны дугаар оруулна уу",
                                             icon: Icons.error,
                                             iconColor: Colors.red,
                                           );
@@ -542,51 +311,196 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         });
 
                                         try {
-                                          await ApiService.loginUser(
-                                            utas: inputPhone,
-                                            nuutsUg: inputPassword,
-                                          );
+                                          // If email field is shown, user needs to register first
+                                          if (_showEmailField) {
+                                            final inputEmail = emailController
+                                                .text
+                                                .trim();
 
-                                          if (mounted) {
-                                            if (_rememberMe) {
-                                              await StorageService.savePhoneNumber(
-                                                inputPhone,
-                                              );
-                                            } else {
-                                              await StorageService.clearSavedPhoneNumber();
-                                            }
-
-                                            // Check current biometric enabled state before saving
-                                            final currentBiometricEnabled =
-                                                await StorageService.isBiometricEnabled();
-
-                                            if (_biometricAvailable &&
-                                                currentBiometricEnabled) {
-                                              // Only save password if biometric is enabled in settings
-                                              await StorageService.savePasswordForBiometric(
-                                                inputPassword,
-                                              );
-                                              // Refresh credentials state after saving
-                                              await _checkSavedCredentials();
-                                              await _checkBiometricAvailability();
-                                            } else {
-                                              // Clear biometric data if disabled or not available
-                                              await StorageService.clearSavedPasswordForBiometric();
-                                              if (!_biometricAvailable) {
-                                                await StorageService.setBiometricEnabled(
-                                                  false,
+                                            if (inputEmail.isEmpty) {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                });
+                                                showGlassSnackBar(
+                                                  context,
+                                                  message:
+                                                      'Имэйл хаяг оруулна уу',
+                                                  icon: Icons.error,
+                                                  iconColor: Colors.red,
                                                 );
                                               }
-                                              // Refresh credentials state after clearing
-                                              await _checkSavedCredentials();
-                                              await _checkBiometricAvailability();
+                                              return;
                                             }
+
+                                            if (!RegExp(
+                                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                            ).hasMatch(inputEmail)) {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _isLoading = false;
+                                                });
+                                                showGlassSnackBar(
+                                                  context,
+                                                  message:
+                                                      'Зөв имэйл хаяг оруулна уу',
+                                                  icon: Icons.error,
+                                                  iconColor: Colors.red,
+                                                );
+                                              }
+                                              return;
+                                            }
+
+                                            // Register in Wallet API first
+                                            await ApiService.registerWalletUser(
+                                              utas: inputPhone,
+                                              mail: inputEmail,
+                                            );
+                                          }
+
+                                          // Get saved address to send with login
+                                          // Backend will also check saved address in user profile if not provided
+                                          var savedBairId =
+                                              await StorageService.getWalletBairId();
+                                          var savedDoorNo =
+                                              await StorageService.getWalletDoorNo();
+
+                                          // If address not in local storage, try to get from previous login response
+                                          // This handles cases where address was saved to backend but not to local storage
+                                          if (savedBairId == null ||
+                                              savedDoorNo == null) {
+                                            print(
+                                              '📍 [LOGIN] Address not in local storage, backend will use saved address from profile',
+                                            );
+                                          }
+
+                                          // Try to login - backend automatically handles billing connection
+                                          print(
+                                            '🔐 [LOGIN] Attempting login with phone: $inputPhone',
+                                          );
+                                          print(
+                                            '🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo',
+                                          );
+
+                                          final loginResponse =
+                                              await ApiService.loginUser(
+                                                utas: inputPhone,
+                                                bairId: savedBairId,
+                                                doorNo: savedDoorNo,
+                                              );
+
+                                          print(
+                                            '✅ [LOGIN] Login response received',
+                                          );
+                                          print(
+                                            '   - Success: ${loginResponse['success']}',
+                                          );
+                                          print(
+                                            '   - Has token: ${loginResponse['token'] != null}',
+                                          );
+                                          print(
+                                            '   - Has result: ${loginResponse['result'] != null}',
+                                          );
+                                          print(
+                                            '   - Has billingInfo: ${loginResponse['billingInfo'] != null}',
+                                          );
+
+                                          // Verify token was saved before proceeding
+                                          final tokenSaved =
+                                              await StorageService.isLoggedIn();
+                                          print(
+                                            '🔑 [LOGIN] Token saved check: $tokenSaved',
+                                          );
+
+                                          if (!tokenSaved) {
+                                            throw Exception(
+                                              'Токен хадгалахад алдаа гарлаа. Дахин оролдоно уу.',
+                                            );
+                                          }
+
+                                          if (mounted) {
+                                            // Check if user has address in their profile
+                                            // The login response has walletBairId and walletDoorNo
+                                            bool hasAddress = false;
+
+                                            if (loginResponse['result'] !=
+                                                null) {
+                                              final userData =
+                                                  loginResponse['result'];
+                                              final walletBairId =
+                                                  userData['walletBairId']
+                                                      ?.toString();
+                                              final walletDoorNo =
+                                                  userData['walletDoorNo']
+                                                      ?.toString();
+
+                                              if (walletBairId != null &&
+                                                  walletBairId.isNotEmpty &&
+                                                  walletDoorNo != null &&
+                                                  walletDoorNo.isNotEmpty) {
+                                                // Save address from user profile to local storage
+                                                await StorageService.saveWalletAddress(
+                                                  bairId: walletBairId,
+                                                  doorNo: walletDoorNo,
+                                                );
+                                                hasAddress = true;
+                                                print(
+                                                  '📍 [LOGIN] Address found in user profile: $walletBairId / $walletDoorNo',
+                                                );
+
+                                                // If billingInfo is not in response but we have address,
+                                                // the backend should have fetched it automatically
+                                                // If not, we'll fetch it manually as fallback
+                                                if (loginResponse['billingInfo'] ==
+                                                    null) {
+                                                  print(
+                                                    '⚠️ [LOGIN] Address exists but billingInfo missing - will fetch manually',
+                                                  );
+                                                }
+                                              } else {
+                                                // Check if address is already saved locally
+                                                hasAddress =
+                                                    await StorageService.hasSavedAddress();
+                                                print(
+                                                  '📍 [LOGIN] Address not in profile, checking local storage: $hasAddress',
+                                                );
+                                              }
+                                            } else {
+                                              // Fallback to local storage check
+                                              hasAddress =
+                                                  await StorageService.hasSavedAddress();
+                                              print(
+                                                '📍 [LOGIN] No user data in response, checking local storage: $hasAddress',
+                                              );
+                                            }
+
+                                            await StorageService.savePhoneNumber(
+                                              inputPhone,
+                                            );
 
                                             final taniltsuulgaKharakhEsekh =
                                                 await StorageService.getTaniltsuulgaKharakhEsekh();
 
+                                            print(
+                                              '📍 [LOGIN] Final hasAddress: $hasAddress',
+                                            );
+
+                                            print(
+                                              '📍 [LOGIN] Has saved address: $hasAddress',
+                                            );
+                                            if (hasAddress) {
+                                              final bairId =
+                                                  await StorageService.getWalletBairId();
+                                              final doorNo =
+                                                  await StorageService.getWalletDoorNo();
+                                              print(
+                                                '📍 [LOGIN] Saved address - bairId: $bairId, doorNo: $doorNo',
+                                              );
+                                            }
+
                                             setState(() {
                                               _isLoading = false;
+                                              _showEmailField = false;
                                             });
                                             showGlassSnackBar(
                                               context,
@@ -595,20 +509,132 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               iconColor: Colors.green,
                                             );
 
-                                            // Connect socket after successful login
                                             try {
-                                              await SocketService.instance.connect();
+                                              await SocketService.instance
+                                                  .connect();
                                             } catch (e) {
-                                              // Silently fail - socket is optional
-                                              print('Failed to connect socket: $e');
+                                              print(
+                                                'Failed to connect socket: $e',
+                                              );
                                             }
 
+                                            // Backend now automatically handles billing connection
+                                            // Check billingInfo in response to see if billing was connected
+                                            if (loginResponse['billingInfo'] !=
+                                                null) {
+                                              final billingInfo =
+                                                  loginResponse['billingInfo'];
+                                              final billingConnected =
+                                                  loginResponse['billingConnected'] ==
+                                                  true;
+
+                                              print(
+                                                '✅ [LOGIN] Billing info received from backend',
+                                              );
+                                              print(
+                                                '   - Billing ID: ${billingInfo['billingId']}',
+                                              );
+                                              print(
+                                                '   - Billing Name: ${billingInfo['billingName']}',
+                                              );
+                                              print(
+                                                '   - Customer Name: ${billingInfo['customerName']}',
+                                              );
+                                              print(
+                                                '   - Billing Connected: $billingConnected',
+                                              );
+
+                                              if (!billingConnected &&
+                                                  loginResponse['connectionError'] !=
+                                                      null) {
+                                                print(
+                                                  '⚠️ [LOGIN] Billing connection failed: ${loginResponse['connectionError']}',
+                                                );
+                                              }
+                                            } else {
+                                              // No billingInfo in response
+                                              // Check if user has address - backend should have used it automatically
+                                              if (hasAddress) {
+                                                print(
+                                                  '⚠️ [LOGIN] User has address but no billingInfo in response',
+                                                );
+                                                print(
+                                                  '   Backend should have automatically fetched billing using saved address',
+                                                );
+                                                print(
+                                                  '   Attempting to fetch billing manually...',
+                                                );
+
+                                                // Try to fetch billing manually using the address from profile
+                                                try {
+                                                  final bairId =
+                                                      await StorageService.getWalletBairId();
+                                                  final doorNo =
+                                                      await StorageService.getWalletDoorNo();
+
+                                                  if (bairId != null &&
+                                                      doorNo != null) {
+                                                    await ApiService.fetchWalletBilling(
+                                                      bairId: bairId,
+                                                      doorNo: doorNo,
+                                                    );
+                                                    print(
+                                                      '✅ [LOGIN] Billing fetched manually after login',
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  print(
+                                                    '⚠️ [LOGIN] Could not fetch billing manually: $e',
+                                                  );
+                                                  // This is not critical - user can still use the app
+                                                }
+                                              } else {
+                                                print(
+                                                  'ℹ️ [LOGIN] No billing info in response (user may not have address)',
+                                                );
+                                              }
+                                            }
+
+                                            // Navigate to home
                                             final targetRoute =
                                                 taniltsuulgaKharakhEsekh
                                                 ? '/ekhniikh'
                                                 : '/nuur';
 
-                                            context.go(targetRoute);
+                                            if (!hasAddress) {
+                                              // If user doesn't have address, show address selection screen
+                                              // Address selection will fetch billing data separately
+                                              print(
+                                                '📍 [LOGIN] No saved address, showing address selection screen',
+                                              );
+                                              await context.push<bool>(
+                                                '/address_selection',
+                                              );
+                                            }
+
+                                            // Navigate to home (whether address was selected or not)
+                                            print(
+                                              '🚀 [LOGIN] Navigating to: $targetRoute',
+                                            );
+                                            try {
+                                              context.go(targetRoute);
+                                              print(
+                                                '✅ [LOGIN] Navigation successful',
+                                              );
+                                            } catch (e) {
+                                              print(
+                                                '❌ [LOGIN] Navigation error: $e',
+                                              );
+                                              // Try alternative navigation method
+                                              if (mounted) {
+                                                Navigator.of(
+                                                  context,
+                                                ).pushNamedAndRemoveUntil(
+                                                  targetRoute,
+                                                  (route) => false,
+                                                );
+                                              }
+                                            }
 
                                             WidgetsBinding.instance
                                                 .addPostFrameCallback((_) {
@@ -617,7 +643,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                       milliseconds: 800,
                                                     ),
                                                     () {
-                                                      _showModalAfterNavigation();
+                                                      if (mounted) {
+                                                        _showModalAfterNavigation();
+                                                      }
                                                     },
                                                   );
                                                 });
@@ -637,7 +665,27 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             }
                                             if (errorMessage.isEmpty) {
                                               errorMessage =
-                                                  "Утасны дугаар эсвэл нууц үг буруу байна";
+                                                  "Нэвтрэхэд алдаа гарлаа";
+                                            }
+
+                                            // If login fails because user is not registered, show email field
+                                            if (errorMessage.contains(
+                                                  'бүртгэлгүй',
+                                                ) ||
+                                                errorMessage.contains(
+                                                  'бүртгэлтэй биш',
+                                                ) ||
+                                                errorMessage.contains(
+                                                  'not found',
+                                                ) ||
+                                                errorMessage.contains(
+                                                  'олдсонгүй',
+                                                )) {
+                                              setState(() {
+                                                _showEmailField = true;
+                                              });
+                                              errorMessage =
+                                                  "Хэтэвчний системд бүртгэлгүй байна. Имэйл хаягаа оруулна уу.";
                                             }
 
                                             showGlassSnackBar(
@@ -671,7 +719,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                           ),
                                         )
                                       : Text(
-                                          'Нэвтрэх',
+                                          _showEmailField
+                                              ? 'Бүртгүүлэх'
+                                              : 'Нэвтрэх',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.black,
@@ -681,87 +731,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                           ),
                                         ),
                                 ),
-                              ),
-                              SizedBox(height: 12.h),
-                              // Register Button - New Design
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        context.push('/burtguulekh_neg');
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 11.5.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.transparent,
-                                          border: Border.all(
-                                            color: AppColors.grayColor
-                                                .withOpacity(0.5),
-                                            width: 2,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Бүртгүүлэх',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: AppColors.grayColor,
-                                            fontSize: 15.sp,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_biometricAvailable &&
-                                      _biometricEnabled &&
-                                      _hasSavedCredentials) ...[
-                                    SizedBox(width: 12.w),
-                                    GestureDetector(
-                                      onTap: (_isLoading || !_biometricEnabled)
-                                          ? null
-                                          : _authenticateWithBiometric,
-                                      child: Opacity(
-                                        opacity: _biometricEnabled ? 1.0 : 0.5,
-                                        child: Container(
-                                          width: 56.w,
-                                          height: 48.w,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.inputGrayColor
-                                                .withOpacity(0.3),
-                                            border: Border.all(
-                                              color: _biometricEnabled
-                                                  ? AppColors.grayColor
-                                                        .withOpacity(0.5)
-                                                  : Colors.white.withOpacity(
-                                                      0.2,
-                                                    ),
-                                              width: 2,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              12.r,
-                                            ),
-                                          ),
-                                          child: Image.asset(
-                                            'lib/assets/img/face-id.png',
-                                            width: 22.w,
-                                            height: 22.w,
-                                            color: _biometricEnabled
-                                                ? AppColors.grayColor
-                                                : Colors.white.withOpacity(0.3),
-                                            colorBlendMode: BlendMode.srcIn,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
                               ),
                               const Spacer(),
                               Text(

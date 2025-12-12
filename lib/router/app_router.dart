@@ -18,7 +18,8 @@ import 'package:sukh_app/screens/nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
 import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
 import 'package:sukh_app/screens/mashin/mashin.dart';
-import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
+import 'package:sukh_app/screens/address/address_selection.dart';
+import 'package:sukh_app/screens/biller/biller_detail.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/main.dart';
@@ -35,8 +36,6 @@ final GoRouter appRouter = GoRouter(
     final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
     final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
     final isGoingToBiometricOnboarding = state.matchedLocation == '/hoyrdah';
-    final isGoingToPasswordReset = state.matchedLocation == '/nuutsUg';
-
     if (isLoggedIn && (isGoingToLogin || isGoingToRegister)) {
       return '/nuur';
     }
@@ -49,8 +48,7 @@ final GoRouter appRouter = GoRouter(
         !isGoingToLogin &&
         !isGoingToRegister &&
         !isGoingToOnboarding &&
-        !isGoingToBiometricOnboarding &&
-        !isGoingToPasswordReset) {
+        !isGoingToBiometricOnboarding) {
       return '/newtrekh';
     }
 
@@ -83,14 +81,6 @@ final GoRouter appRouter = GoRouter(
           ),
     ),
     GoRoute(
-      path: '/nuutsUg',
-      pageBuilder: (context, state) =>
-          PageTransitions.buildFadeThroughTransition(
-            key: state.pageKey,
-            child: const NuutsUgSergeekh(),
-          ),
-    ),
-    GoRoute(
       path: '/ekhniikh',
       pageBuilder: (context, state) =>
           PageTransitions.buildFadeThroughTransition(
@@ -105,6 +95,28 @@ final GoRouter appRouter = GoRouter(
             key: state.pageKey,
             child: const BiometricOnboardingScreen(),
           ),
+    ),
+    GoRoute(
+      path: '/address_selection',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const AddressSelectionScreen(),
+          ),
+    ),
+    GoRoute(
+      path: '/biller-detail',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: BillerDetailScreen(
+            billerCode: extra?['billerCode'] ?? '',
+            billerName: extra?['billerName'] ?? 'Биллер',
+            description: extra?['description'],
+          ),
+        );
+      },
     ),
     GoRoute(
       path: '/burtguulekh_neg',

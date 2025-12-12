@@ -89,19 +89,19 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           colors: [AppColors.darkBackground, AppColors.darkSurface],
-        ),
+          ),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24.r),
           topRight: Radius.circular(24.r),
         ),
       ),
-      child: Column(
-        children: [
+          child: Column(
+            children: [
           Container(
             margin: EdgeInsets.only(top: 12.h),
             width: 40.w,
@@ -111,24 +111,24 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               borderRadius: BorderRadius.circular(2.r),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    isGomdol
-                        ? 'Гомдол'
-                        : isSanal
-                        ? 'Санал'
-                        : 'Мэдэгдэл',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
+              Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isGomdol
+                            ? 'Гомдол'
+                            : isSanal
+                                ? 'Санал'
+                                : 'Мэдэгдэл',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
                 IconButton(
                   icon: Icon(Icons.close, color: Colors.white, size: 28.sp),
                   onPressed: () {
@@ -139,9 +139,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     Navigator.pop(context, wasMarkedAsRead);
                   },
                 ),
-              ],
-            ),
-          ),
+                  ],
+                ),
+              ),
           Expanded(child: _buildContent(isGomdol, isSanal)),
         ],
       ),
@@ -178,9 +178,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   Widget _buildContent(bool isGomdol, bool isSanal) {
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
           Container(
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
@@ -194,67 +194,67 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ),
             ),
             child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
                     vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isGomdol
+                            ),
+                            decoration: BoxDecoration(
+                              color: isGomdol
                         ? Colors.orange.withOpacity(0.15)
-                        : isSanal
+                                  : isSanal
                         ? AppColors.secondaryAccent.withOpacity(0.15)
                         : AppColors.primary.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10.w),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isGomdol
-                            ? Icons.report_problem
-                            : isSanal
-                            ? Icons.lightbulb_outline
-                            : Icons.notifications,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isGomdol
+                                      ? Icons.report_problem
+                                      : isSanal
+                                          ? Icons.lightbulb_outline
+                                          : Icons.notifications,
                         size: 18.sp,
-                        color: isGomdol
+                                  color: isGomdol
                             ? Colors.orange
-                            : isSanal
-                            ? AppColors.secondaryAccent
-                            : AppColors.primary,
-                      ),
+                                      : isSanal
+                                          ? AppColors.secondaryAccent
+                                          : AppColors.primary,
+                                ),
                       SizedBox(width: 6.w),
-                      Text(
+                                Text(
                         _getDisplayTurul(_notification.turul),
-                        style: TextStyle(
-                          color: isGomdol
+                                  style: TextStyle(
+                                    color: isGomdol
                               ? Colors.orange
-                              : isSanal
-                              ? AppColors.secondaryAccent
-                              : AppColors.primary,
+                                        : isSanal
+                                            ? AppColors.secondaryAccent
+                                            : AppColors.primary,
                           fontSize: 13.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isGomdol || isSanal) ...[
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isGomdol || isSanal) ...[
                   SizedBox(width: 10.w),
-                  Container(
-                    padding: EdgeInsets.symmetric(
+                            Container(
+                              padding: EdgeInsets.symmetric(
                       horizontal: 12.w,
                       vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
+                              ),
+                              decoration: BoxDecoration(
                       color: _isStatusDone(_notification)
                           ? AppColors.success.withOpacity(0.15)
                           : _notification.hasReply
                           ? AppColors.success.withOpacity(0.15)
                           : Colors.orange.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(10.w),
-                    ),
+                              ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -274,63 +274,63 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                         SizedBox(width: 6.w),
                         Text(
                           _getStatusText(_notification),
-                          style: TextStyle(
+                                style: TextStyle(
                             color: _isStatusDone(_notification)
                                 ? AppColors.success
                                 : _notification.hasReply
                                 ? AppColors.success
-                                : Colors.orange,
+                                      : Colors.orange,
                             fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                                  fontWeight: FontWeight.w600,
+                                ),
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
           ),
           SizedBox(height: 20.h),
           Container(
             padding: EdgeInsets.symmetric(vertical: 4.h),
             child: Text(
-              _notification.title,
-              style: TextStyle(
+                        _notification.title,
+                        style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                 height: 1.3,
               ),
-            ),
-          ),
-          SizedBox(height: 16.h),
-          Container(
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+                      Container(
             padding: EdgeInsets.all(18.w),
-            decoration: BoxDecoration(
+                        decoration: BoxDecoration(
               color: AppColors.textPrimary.withOpacity(0.08),
               borderRadius: BorderRadius.circular(16.w),
-              border: Border.all(
+                          border: Border.all(
                 color: AppColors.textPrimary.withOpacity(0.15),
                 width: 1,
-              ),
-            ),
-            child: Text(
-              _notification.message,
+                          ),
+                        ),
+                        child: Text(
+                          _notification.message,
               textAlign: TextAlign.justify,
-              style: TextStyle(
+                          style: TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 15.sp,
+                            fontSize: 15.sp,
                 height: 1.6,
                 letterSpacing: 0.2,
-              ),
-            ),
-          ),
+                          ),
+                        ),
+                      ),
           if (_notification.hasReply && (isGomdol || isSanal)) ...[
             SizedBox(height: 20.h),
-            Container(
+                      Container(
               padding: EdgeInsets.all(18.w),
-              decoration: BoxDecoration(
+                        decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -340,14 +340,14 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16.w),
-                border: Border.all(
+                          border: Border.all(
                   color: AppColors.success.withOpacity(0.25),
                   width: 1.5,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 12.w,
@@ -366,18 +366,18 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                           size: 20.sp,
                         ),
                         SizedBox(width: 8.w),
-                        Text(
+                            Text(
                           'Хариу',
-                          style: TextStyle(
+                              style: TextStyle(
                             color: AppColors.success,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
+                              ),
+                            ),
+                            SizedBox(height: 16.h),
                   Text(
                     _notification.tailbar!,
                     textAlign: TextAlign.justify,
@@ -458,52 +458,52 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   ],
                 ),
                 SizedBox(height: 18.h),
-                _buildDetailRow(
-                  'Огноо',
-                  _notification.formattedDateTime,
-                  Icons.calendar_today,
-                ),
-                if (_notification.gereeniiDugaar != null &&
-                    _notification.gereeniiDugaar!.isNotEmpty)
-                  _buildDetailRow(
-                    'Гэрээний дугаар',
-                    _notification.gereeniiDugaar!,
-                    Icons.description,
-                  ),
-                if (_notification.orshinSuugchGereeniiDugaar != null &&
-                    _notification.orshinSuugchGereeniiDugaar!.isNotEmpty)
-                  _buildDetailRow(
-                    'Оршин суугчийн гэрээний дугаар',
-                    _notification.orshinSuugchGereeniiDugaar!,
-                    Icons.person_outline,
-                  ),
-                if (_notification.orshinSuugchNer != null &&
-                    _notification.orshinSuugchNer!.isNotEmpty)
-                  _buildDetailRow(
-                    'Оршин суугчийн нэр',
-                    _notification.orshinSuugchNer!,
-                    Icons.person,
-                  ),
-                if (_notification.orshinSuugchUtas != null &&
-                    _notification.orshinSuugchUtas!.isNotEmpty)
-                  _buildDetailRow(
-                    'Утасны дугаар',
-                    _notification.orshinSuugchUtas!,
-                    Icons.phone,
-                  ),
-                _buildDetailRow(
-                  'Төлөв',
+                            _buildDetailRow(
+                              'Огноо',
+                              _notification.formattedDateTime,
+                              Icons.calendar_today,
+                            ),
+                            if (_notification.gereeniiDugaar != null &&
+                                _notification.gereeniiDugaar!.isNotEmpty)
+                              _buildDetailRow(
+                                'Гэрээний дугаар',
+                                _notification.gereeniiDugaar!,
+                                Icons.description,
+                              ),
+                            if (_notification.orshinSuugchGereeniiDugaar != null &&
+                                _notification.orshinSuugchGereeniiDugaar!.isNotEmpty)
+                              _buildDetailRow(
+                                'Оршин суугчийн гэрээний дугаар',
+                                _notification.orshinSuugchGereeniiDugaar!,
+                                Icons.person_outline,
+                              ),
+                            if (_notification.orshinSuugchNer != null &&
+                                _notification.orshinSuugchNer!.isNotEmpty)
+                              _buildDetailRow(
+                                'Оршин суугчийн нэр',
+                                _notification.orshinSuugchNer!,
+                                Icons.person,
+                              ),
+                            if (_notification.orshinSuugchUtas != null &&
+                                _notification.orshinSuugchUtas!.isNotEmpty)
+                              _buildDetailRow(
+                                'Утасны дугаар',
+                                _notification.orshinSuugchUtas!,
+                                Icons.phone,
+                              ),
+                            _buildDetailRow(
+                              'Төлөв',
                   _getStatusText(_notification),
                   _isStatusDone(_notification) || _notification.hasReply
-                      ? Icons.check_circle
-                      : Icons.pending,
-                ),
-                _buildDetailRow(
-                  'Үүсгэсэн огноо',
-                  _formatDate(_notification.createdAt),
-                  Icons.access_time,
-                ),
-                if (_notification.updatedAt != _notification.createdAt)
+                                  ? Icons.check_circle
+                                  : Icons.pending,
+                            ),
+                            _buildDetailRow(
+                              'Үүсгэсэн огноо',
+                              _formatDate(_notification.createdAt),
+                              Icons.access_time,
+                            ),
+                            if (_notification.updatedAt != _notification.createdAt)
                   _buildDetailRow(
                     'Шинэчлэгдсэн огноо',
                     _formatDate(_notification.updatedAt),
@@ -1090,19 +1090,19 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                               ),
                               if (_notification.updatedAt !=
                                   _notification.createdAt)
-                                _buildDetailRow(
-                                  'Шинэчлэгдсэн огноо',
-                                  _formatDate(_notification.updatedAt),
-                                  Icons.update,
-                                ),
-                            ],
-                          ),
+                              _buildDetailRow(
+                                'Шинэчлэгдсэн огноо',
+                                _formatDate(_notification.updatedAt),
+                                Icons.update,
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
+            ],
             ),
           ),
         ),

@@ -6,7 +6,7 @@ import 'package:sukh_app/core/auth_config.dart';
 
 class SessionService {
   static const String _loginTimestampKey = 'login_timestamp';
-  static const Duration _sessionDuration = Duration(minutes: 1);
+  static const Duration _sessionDuration = Duration(minutes: 10);
 
   static Future<void> saveLoginTimestamp() async {
     try {
@@ -76,7 +76,7 @@ class SessionService {
   static Future<void> logout() async {
     // Disconnect socket before logout
     SocketService.instance.disconnect();
-    
+
     await AuthConfig.instance.logout();
     await clearLoginTimestamp();
     // Cancel any scheduled session expiry notification

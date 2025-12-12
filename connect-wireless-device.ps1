@@ -65,23 +65,27 @@ switch ($choice) {
         Write-Host "On your device:" -ForegroundColor Yellow
         Write-Host "1. Go to Settings → Developer options → Wireless debugging"
         Write-Host "2. Tap 'Pair device with pairing code'"
-        Write-Host "3. Note the IP:PORT and 6-digit code"
+        Write-Host "3. Note the PORT and 6-digit code"
         Write-Host ""
         
-        $pairAddress = Read-Host "Enter IP:PORT (e.g., 192.168.1.100:12345)"
+        $defaultIP = "192.168.1.178"
+        $pairPort = Read-Host "Enter pairing PORT (default IP: $defaultIP)"
         $pairCode = Read-Host "Enter 6-digit pairing code"
         
+        $pairAddress = "$defaultIP`:$pairPort"
+        
         Write-Host ""
-        Write-Host "Pairing device..." -ForegroundColor Yellow
+        Write-Host "Pairing device at $pairAddress..." -ForegroundColor Yellow
         & $adbPath pair "$pairAddress" "$pairCode"
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host ""
-            Write-Host "Pairing successful! Now connect using the new IP:PORT shown above." -ForegroundColor Green
-            $connectAddress = Read-Host "Enter the new IP:PORT to connect"
+            Write-Host "Pairing successful! Now connect using the new PORT shown above." -ForegroundColor Green
+            $connectPort = Read-Host "Enter the new PORT to connect (default IP: $defaultIP)"
             
+            $connectAddress = "$defaultIP`:$connectPort"
             Write-Host ""
-            Write-Host "Connecting..." -ForegroundColor Yellow
+            Write-Host "Connecting to $connectAddress..." -ForegroundColor Yellow
             & $adbPath connect "$connectAddress"
             
             if ($LASTEXITCODE -eq 0) {
@@ -107,15 +111,20 @@ switch ($choice) {
             
             Write-Host ""
             Write-Host "Now disconnect the USB cable." -ForegroundColor Yellow
-            Write-Host "Find your device's IP address:" -ForegroundColor Yellow
-            Write-Host "  Settings → About phone → Status → IP address"
             Write-Host ""
             
-            $deviceIP = Read-Host "Enter your device IP address"
+            $defaultIP = "192.168.1.178"
+            $devicePort = Read-Host "Enter PORT (default: 5555, default IP: $defaultIP)"
+            
+            if ([string]::IsNullOrWhiteSpace($devicePort)) {
+                $devicePort = "5555"
+            }
+            
+            $deviceAddress = "$defaultIP`:$devicePort"
             
             Write-Host ""
-            Write-Host "Connecting wirelessly..." -ForegroundColor Yellow
-            & $adbPath connect "$deviceIP`:5555"
+            Write-Host "Connecting wirelessly to $deviceAddress..." -ForegroundColor Yellow
+            & $adbPath connect "$deviceAddress"
             
             if ($LASTEXITCODE -eq 0) {
                 Write-Host ""

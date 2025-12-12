@@ -54,6 +54,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
 
+  // Address
+  String? _currentAddress;
+  bool _isLoadingAddress = false;
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -70,6 +74,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
     _loadUserProfile();
     _checkBiometricStatus();
+    _loadCurrentAddress();
   }
 
   Future<void> _checkBiometricStatus() async {
@@ -209,6 +214,67 @@ class _ProfileSettingsState extends State<ProfileSettings>
           iconColor: Colors.red,
         );
       }
+    }
+  }
+
+  Future<void> _loadCurrentAddress() async {
+    setState(() {
+      _isLoadingAddress = true;
+    });
+
+    try {
+      final response = await ApiService.getUserProfile();
+      
+      if (response['success'] == true && response['result'] != null) {
+        final userData = response['result'];
+        String? addressText;
+        
+        if (userData['bairniiNer'] != null && userData['bairniiNer'].toString().isNotEmpty) {
+          addressText = userData['bairniiNer'].toString();
+          if (userData['walletDoorNo'] != null && userData['walletDoorNo'].toString().isNotEmpty) {
+            addressText += ', ${userData['walletDoorNo']}';
+          }
+        } else {
+          final bairId = await StorageService.getWalletBairId();
+          final doorNo = await StorageService.getWalletDoorNo();
+          if (bairId != null && doorNo != null) {
+            addressText = 'Хаяг хадгалагдсан (Тоот: $doorNo)';
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _currentAddress = addressText;
+            _isLoadingAddress = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingAddress = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAddress = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleUpdateAddress() async {
+    final result = await context.push('/address_selection');
+    
+    if (result == true && mounted) {
+      await _loadCurrentAddress();
+      showGlassSnackBar(
+        context,
+        message: 'Хаяг амжилттай шинэчлэгдлээ',
+        icon: Icons.check_circle,
+        iconColor: Colors.green,
+      );
     }
   }
 
@@ -884,6 +950,104 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       icon: Icons.phone_outlined,
                                       enabled: false,
                                       keyboardType: TextInputType.phone,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 16.h),
+                              _buildSectionCard(
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_on_outlined,
+                                          color: AppColors.goldPrimary,
+                                          size: 20.sp,
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Text(
+                                          'Хаяг',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 12.h),
+                                    if (_isLoadingAddress)
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 16.w,
+                                              height: 16.h,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: AppColors.goldPrimary,
+                                              ),
+                                            ),
+                                            SizedBox(width: 12.w),
+                                            Text(
+                                              'Хаяг ачааллаж байна...',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.6),
+                                                fontSize: 14.sp,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else if (_currentAddress != null && _currentAddress!.isNotEmpty)
+                                      Text(
+                                        _currentAddress!,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 14.sp,
+                                        ),
+                                      )
+                                    else
+                                      Text(
+                                        'Хаяг тодорхойлогдоогүй',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.5),
+                                          fontSize: 14.sp,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    SizedBox(height: 16.h),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        onPressed: _handleUpdateAddress,
+                                        icon: Icon(
+                                          Icons.edit_outlined,
+                                          color: AppColors.goldPrimary,
+                                          size: 18.sp,
+                                        ),
+                                        label: Text(
+                                          'Хаяг шинэчлэх',
+                                          style: TextStyle(
+                                            color: AppColors.goldPrimary,
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                                          side: BorderSide(
+                                            color: AppColors.goldPrimary.withOpacity(0.5),
+                                            width: 1,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12.w),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),

@@ -310,44 +310,44 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
             SizedBox(width: 12.w),
             // Content
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          style: TextStyle(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    notification.title,
+                    style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 15.sp,
                             fontWeight: isRead
                                 ? FontWeight.w500
                                 : FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      if (!isRead)
-                        Container(
-                          width: 8.w,
-                          height: 8.w,
-                          decoration: BoxDecoration(
-                            color: AppColors.secondaryAccent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
+                ),
+                if (!isRead)
+                  Container(
+                    width: 8.w,
+                    height: 8.w,
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
                   SizedBox(height: 6.h),
-                  Text(
-                    notification.message,
-                    style: TextStyle(
+            Text(
+              notification.message,
+              style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13.sp,
-                    ),
+              ),
                     maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+              overflow: TextOverflow.ellipsis,
+            ),
                   // Show reply indicator if has reply
                   if (hasReply && (isGomdol || isSanal)) ...[
                     SizedBox(height: 6.h),
@@ -423,26 +423,26 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                     ),
                   ],
                   SizedBox(height: 8.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        notification.formattedDateTime,
-                        style: TextStyle(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  notification.formattedDateTime,
+                  style: TextStyle(
                           color: AppColors.inputGray,
                           fontSize: 11.sp,
-                        ),
-                      ),
-                      if (!isRead)
-                        Text(
-                          'Шинэ',
-                          style: TextStyle(
-                            color: AppColors.secondaryAccent,
+                  ),
+                ),
+                if (!isRead)
+                  Text(
+                    'Шинэ',
+                    style: TextStyle(
+                      color: AppColors.secondaryAccent,
                             fontSize: 11.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                    ],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
                   ),
                 ],
               ),

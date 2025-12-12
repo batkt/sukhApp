@@ -35,6 +35,8 @@ class StorageService {
   static const String _savedPasswordKey = 'saved_password_biometric';
   static const String _biometricEnabledKey = 'biometric_enabled';
   static const String _tukhainBaaziinKholboltKey = 'tukhain_baaziin_kholbolt';
+  static const String _walletBairIdKey = 'wallet_bair_id';
+  static const String _walletDoorNoKey = 'wallet_door_no';
 
   static Future<bool> saveToken(String token) async {
     try {
@@ -254,6 +256,9 @@ class StorageService {
       await prefs.remove(_barilgiinIdKey);
       await prefs.remove(_duusakhOgnooKey);
       await prefs.remove(_taniltsuulgaKharakhEsekhKey);
+      // Clear wallet address on logout - each user should set their own address
+      await prefs.remove(_walletBairIdKey);
+      await prefs.remove(_walletDoorNoKey);
       // Note: _shakeHintShownKey is NOT removed - it persists across sessions
       return true;
     } catch (e) {
@@ -398,6 +403,64 @@ class StorageService {
     } catch (e) {
       print('Error getting tukhainBaaziinKholbolt: $e');
       return 'amarSukh'; // Default fallback
+    }
+  }
+
+  /// Save Wallet API address (bairId and doorNo)
+  static Future<bool> saveWalletAddress({
+    required String bairId,
+    required String doorNo,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_walletBairIdKey, bairId);
+      await prefs.setString(_walletDoorNoKey, doorNo);
+      return true;
+    } catch (e) {
+      print('Error saving wallet address: $e');
+      return false;
+    }
+  }
+
+  /// Get saved Wallet API bairId
+  static Future<String?> getWalletBairId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairIdKey);
+    } catch (e) {
+      print('Error getting wallet bairId: $e');
+      return null;
+    }
+  }
+
+  /// Get saved Wallet API doorNo
+  static Future<String?> getWalletDoorNo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletDoorNoKey);
+    } catch (e) {
+      print('Error getting wallet doorNo: $e');
+      return null;
+    }
+  }
+
+  /// Check if user has saved address
+  static Future<bool> hasSavedAddress() async {
+    final bairId = await getWalletBairId();
+    final doorNo = await getWalletDoorNo();
+    return bairId != null && bairId.isNotEmpty && doorNo != null && doorNo.isNotEmpty;
+  }
+
+  /// Clear saved Wallet API address
+  static Future<bool> clearWalletAddress() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_walletBairIdKey);
+      await prefs.remove(_walletDoorNoKey);
+      return true;
+    } catch (e) {
+      print('Error clearing wallet address: $e');
+      return false;
     }
   }
 }

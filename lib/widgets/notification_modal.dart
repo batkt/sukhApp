@@ -325,63 +325,63 @@ class _NotificationModalState extends State<NotificationModal> {
             SizedBox(width: 12.w),
             // Content
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15.sp,
-                            fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      if (!isRead)
-                        Container(
-                          width: 8.w,
-                          height: 8.w,
-                          decoration: BoxDecoration(
-                            color: AppColors.secondaryAccent,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(height: 6.h),
-                  Text(
-                    notification.message,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    notification.title,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 13.sp,
+                      color: Colors.white,
+                            fontSize: 15.sp,
+                      fontWeight: isRead ? FontWeight.w500 : FontWeight.bold,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                if (!isRead)
+                  Container(
+                    width: 8.w,
+                    height: 8.w,
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
+                  SizedBox(height: 6.h),
+            Text(
+              notification.message,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                      fontSize: 13.sp,
+              ),
+                    maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
                   SizedBox(height: 8.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        notification.formattedDateTime,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  notification.formattedDateTime,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
                           fontSize: 11.sp,
-                        ),
-                      ),
-                      if (!isRead)
-                        Text(
-                          'Шинэ',
-                          style: TextStyle(
-                            color: AppColors.secondaryAccent,
+                  ),
+                ),
+                if (!isRead)
+                  Text(
+                    'Шинэ',
+                    style: TextStyle(
+                      color: AppColors.secondaryAccent,
                             fontSize: 11.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                    ],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
                   ),
                 ],
               ),
