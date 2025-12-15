@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
@@ -13,6 +13,15 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/models/ajiltan_model.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
+import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_header.dart';
+import 'package:sukh_app/components/Nekhemjlekh/filter_tabs.dart';
+import 'package:sukh_app/components/Nekhemjlekh/payment_section.dart';
+import 'package:sukh_app/components/Nekhemjlekh/invoice_card.dart';
+import 'package:sukh_app/components/Nekhemjlekh/contract_selection_modal.dart';
+import 'package:sukh_app/components/Nekhemjlekh/bank_selection_modal.dart';
+import 'package:sukh_app/components/Nekhemjlekh/payment_modal.dart';
+import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -234,130 +243,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.darkBackground,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30.w),
-              topRight: Radius.circular(30.w),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Container(
-                margin: EdgeInsets.only(top: 12.h),
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2.w),
-                ),
-              ),
-              // Header
-              Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Гэрээ сонгох',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              // Contract list
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 10.h,
-                  ),
-                  itemCount: availableContracts.length,
-                  itemBuilder: (context, index) {
-                    final contract = availableContracts[index];
-                    final gereeniiDugaar = contract['gereeniiDugaar'] as String;
-                    final bairNer = contract['bairNer'] ?? gereeniiDugaar;
-                    final isSelected = gereeniiDugaar == selectedGereeniiDugaar;
-
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedGereeniiDugaar = gereeniiDugaar;
-                        });
-                        Navigator.pop(context);
-                        _loadNekhemjlekh();
-                      },
-                      child: Container(
-                        margin: EdgeInsets.only(bottom: 12.h),
-                        padding: EdgeInsets.all(16.w),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.secondaryAccent.withOpacity(0.2)
-                              : Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20.w),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.secondaryAccent
-                                : Colors.white.withOpacity(0.2),
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    bairNer,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    'Гэрээ: $gereeniiDugaar',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 14.sp,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (isSelected)
-                              Icon(
-                                Icons.check_circle,
-                                color: AppColors.secondaryAccent,
-                                size: 24.sp,
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 20.h),
-            ],
-          ),
-        );
-      },
+      builder: (context) => ContractSelectionModal(
+        availableContracts: availableContracts,
+        selectedGereeniiDugaar: selectedGereeniiDugaar,
+        onContractSelected: (gereeniiDugaar) {
+          setState(() {
+            selectedGereeniiDugaar = gereeniiDugaar;
+          });
+          _loadNekhemjlekh();
+        },
+      ),
     );
   }
 
@@ -413,27 +308,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     return filtered;
   }
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Төлсөн':
-        return AppColors.success; // Green
-      case 'Төлөөгүй':
-        return AppColors.warning; // Orange/Amber
-      default:
-        return AppColors.neutralGray; // Gray
-    }
-  }
-
-  String _getStatusLabel(String status) {
-    switch (status) {
-      case 'Төлсөн':
-        return 'Төлөгдсөн';
-      case 'Төлөөгүй':
-        return 'Хүлээгдэж байгаа';
-      default:
-        return status;
-    }
-  }
+  // _getStatusColor and _getStatusLabel moved to components/Nekhemjlekh/invoice_card.dart
 
   int _getFilterCount(String filterKey) {
     switch (filterKey) {
@@ -446,69 +321,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
-  Widget _buildFilterTab(String filterKey, String label) {
-    final isSelected = selectedFilter == filterKey;
-    final count = _getFilterCount(filterKey);
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedFilter = filterKey;
-        });
-      },
-      child: Container(
-        margin: EdgeInsets.only(right: 8.w),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.secondaryAccent.withOpacity(0.2)
-              : Colors.white.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(20.w),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.secondaryAccent.withOpacity(0.5)
-                : Colors.white.withOpacity(0.2),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? AppColors.secondaryAccent
-                    : Colors.white.withOpacity(0.9),
-                fontSize: 13.sp,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-            if (count > 0) ...[
-              SizedBox(width: 6.w),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.secondaryAccent
-                      : Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10.w),
-                ),
-                child: Text(
-                  count.toString(),
-                  style: TextStyle(
-                    color: isSelected ? Colors.black : Colors.white,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  // _buildFilterTab moved to components/Nekhemjlekh/filter_tabs.dart
 
   void _showBankInfoModal() async {
     print('=== _showBankInfoModal called ===');
@@ -520,110 +333,21 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.7,
-              decoration: BoxDecoration(
-                color: AppColors.darkBackground,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30.w),
-                  topRight: Radius.circular(30.w),
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30.w),
-                  topRight: Radius.circular(30.w),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Column(
-                    children: [
-                      // Handle bar
-                      Container(
-                        margin: EdgeInsets.only(top: 12.h),
-                        width: 40.w,
-                        height: 4.h,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(2.w),
-                        ),
-                      ),
-                      // Header
-                      Padding(
-                        padding: EdgeInsets.all(20.w),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Банк сонгох',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 24.sp,
-                              ),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Bank grid
-                      Expanded(
-                        child: isLoadingQPay
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              )
-                            : qpayBanks.isEmpty
-                            ? Center(
-                                child: Text(
-                                  contactPhone.isNotEmpty
-                                      ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
-                                      : 'Банкны мэдээлэл олдсонгүй',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16.sp,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              )
-                            : GridView.builder(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 20.w,
-                                  vertical: 10.h,
-                                ),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 12.w,
-                                      mainAxisSpacing: 12.h,
-                                      childAspectRatio: 0.85,
-                                    ),
-                                itemCount: qpayBanks.length,
-                                itemBuilder: (context, index) {
-                                  final bank = qpayBanks[index];
-                                  return _buildQPayBankItem(bank);
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => BankSelectionModal(
+        qpayBanks: qpayBanks,
+        isLoadingQPay: isLoadingQPay,
+        contactPhone: contactPhone,
+        onBankTap: (bank) {
+          // Check if it's qPay wallet - show QR code
+          if (bank.description.contains('qPay хэтэвч') ||
+              bank.name.toLowerCase().contains('qpay wallet')) {
+            _showQPayQRCodeModal();
+          } else {
+            _openBankAppAndShowCheckModal(bank);
+          }
+        },
+        onQPayWalletTap: _showQPayQRCodeModal,
+      ),
     );
   }
 
@@ -728,11 +452,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     child: Opacity(opacity: value, child: child),
                   );
                 },
-                child: ClipRRect(
+                child: OptimizedGlass(
                   borderRadius: BorderRadius.circular(24.w),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
+                  opacity: 0.10,
+                  child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.darkBackground.withOpacity(0.95),
                         borderRadius: BorderRadius.circular(24.w),
@@ -915,7 +638,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         ),
                       ),
                     ),
-                  ),
                 ),
               ),
             );
@@ -928,7 +650,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (context) => _buildVATReceiptBottomSheet(receipts[0]),
+        builder: (context) => VATReceiptModal(receipt: receipts[0]),
       );
     } catch (e) {
       if (!mounted) return;
@@ -945,299 +667,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
-  Widget _buildVATReceiptBottomSheet(VATReceipt receipt) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: AppColors.darkBackground,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.w),
-          topRight: Radius.circular(30.w),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.w),
-          topRight: Radius.circular(30.w),
-        ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: EdgeInsets.only(top: 12.h),
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2.w),
-                ),
-              ),
-              // Header
-              Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'НӨАТ-ын баримт',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    children: [
-                      // QR Code
-                      if (receipt.qrData.isNotEmpty) ...[
-                        Container(
-                          padding: EdgeInsets.all(20.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20.w),
-                          ),
-                          child: QrImageView(
-                            data: receipt.qrData,
-                            version: QrVersions.auto,
-                            size: 250.w,
-                            backgroundColor: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 20.h),
-                      ],
-                      // Receipt Info
-                      Container(
-                        padding: EdgeInsets.all(20.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20.w),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (receipt.lottery != null)
-                              _buildReceiptInfoRow(
-                                'Сугалааны дугаар:',
-                                receipt.lottery!,
-                              ),
-                            _buildReceiptInfoRow(
-                              'Огноо:',
-                              receipt.formattedDate,
-                            ),
-                            _buildReceiptInfoRow(
-                              'Регистр:',
-                              receipt.merchantTin,
-                            ),
-
-                            Divider(color: Colors.white24, height: 24.h),
-                            Text(
-                              'Бараа, үйлчилгээ:',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 12.h),
-
-                            ...receipt.receipts
-                                .expand((r) => r.items)
-                                .map(
-                                  (item) => Padding(
-                                    padding: EdgeInsets.only(bottom: 12.h),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.name,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4.h),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              '${item.qty} ${item.measureUnit} × ${item.unitPrice}₮',
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(
-                                                  0.7,
-                                                ),
-                                                fontSize: 12.sp,
-                                              ),
-                                            ),
-                                            Text(
-                                              '${item.totalAmount}₮',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14.sp,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                            Divider(color: Colors.white24, height: 24.h),
-                            _buildReceiptInfoRow(
-                              'Нийт дүн:',
-                              receipt.formattedAmount,
-                              isBold: true,
-                            ),
-                            _buildReceiptInfoRow(
-                              'НӨАТ:',
-                              '${receipt.totalVAT.toStringAsFixed(2)}₮',
-                            ),
-                            if (receipt.totalCityTax > 0)
-                              _buildReceiptInfoRow(
-                                'Хотын татвар:',
-                                '${receipt.totalCityTax.toStringAsFixed(2)}₮',
-                              ),
-                            Divider(color: Colors.white24, height: 24.h),
-                            Text(
-                              'Төлбөр:',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 8.h),
-                            ...receipt.payments.map(
-                              (payment) => _buildReceiptInfoRow(
-                                payment.code,
-                                '${payment.paidAmount}₮ (${payment.status})',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReceiptInfoRow(
-    String label,
-    String value, {
-    bool isBold = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14.sp,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQPayBankItem(QPayBank bank) {
-    return GestureDetector(
-      onTap: () {
-        // Check if it's qPay wallet - show QR code
-        if (bank.description.contains('qPay хэтэвч') ||
-            bank.name.toLowerCase().contains('qpay wallet')) {
-          _showQPayQRCodeModal();
-        } else {
-          _openBankAppAndShowCheckModal(bank);
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.w),
-          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Bank logo
-            Container(
-              width: 60.w,
-              height: 60.w,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8.w),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.w),
-                child: Image.network(
-                  bank.logo,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.account_balance,
-                      color: Colors.grey,
-                      size: 30.sp,
-                    );
-                  },
-                ),
-              ),
-            ),
-            SizedBox(height: 8.h),
-            // Bank name
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w),
-              child: Text(
-                bank.description,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // _buildVATReceiptBottomSheet, _buildReceiptInfoRow, _buildQPayBankItem moved to components
 
   Future<void> _openBankAppAndShowCheckModal(QPayBank bank) async {
     try {
@@ -1304,15 +734,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
               topRight: Radius.circular(30.w),
             ),
           ),
-          child: ClipRRect(
+          child: OptimizedGlass(
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(30.w),
               topRight: Radius.circular(30.w),
             ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Column(
-                children: [
+            opacity: 0.08,
+            child: Column(
+              children: [
                   // Handle bar
                   Container(
                     margin: EdgeInsets.only(top: 12.h),
@@ -1428,8 +857,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         );
@@ -1644,11 +1072,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         }
 
         if (receipts.isNotEmpty && mounted) {
-          await showModalBottomSheet(
+          showModalBottomSheet(
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
-            builder: (context) => _buildVATReceiptBottomSheet(receipts[0]),
+            builder: (context) => VATReceiptModal(receipt: receipts[0]),
           );
         }
       } catch (e) {
@@ -1932,144 +1360,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.darkBackground,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(16.w),
-            topRight: Radius.circular(16.w),
-          ),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: EdgeInsets.all(16.w),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Төлбөрийн мэдээлэл',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
-                    onPressed: () => Navigator.of(context).pop(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
-            // Content
-            Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Price information panel
-                  Container(
-                    padding: EdgeInsets.all(14.w),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12.w),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Төлөх дүн',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.white.withOpacity(0.6),
-                          ),
-                        ),
-                        Text(
-                          totalSelectedAmount,
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 10.h),
-                  // Contract information panel
-                  Container(
-                    padding: EdgeInsets.all(14.w),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12.w),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Гэрээ',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.white.withOpacity(0.6),
-                          ),
-                        ),
-                        Text(
-                          '$selectedCount гэрээ',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  // Payment button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        // Add a small delay to ensure modal is closed before showing new one
-                        await Future.delayed(const Duration(milliseconds: 100));
-                        _showBankInfoModal();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        padding: EdgeInsets.symmetric(vertical: 14.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.w),
-                        ),
-                      ),
-                      child: Text(
-                        'Банкны аппликешнээр төлөх',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      builder: (context) => PaymentModal(
+        totalSelectedAmount: totalSelectedAmount,
+        selectedCount: selectedCount,
+        onPaymentTap: () async {
+          Navigator.pop(context);
+          await Future.delayed(const Duration(milliseconds: 100));
+          _showBankInfoModal();
+        },
       ),
     );
   }
@@ -2087,236 +1385,105 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header - matching geree page style
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 28.sp,
-                      ),
-                      onPressed: () => context.pop(),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Text(
-                        'Нэхэмжлэх',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    if (availableContracts.length > 1)
-                      IconButton(
-                        icon: Icon(
-                          Icons.swap_horiz,
-                          color: Colors.white,
-                          size: 24.sp,
-                        ),
-                        onPressed: _showContractSelectionModal,
-                        tooltip: 'Гэрээ солих',
-                      ),
-                  ],
-                ),
+              // Header
+              NekhemjlekhHeader(
+                selectedContractDisplay: selectedContractDisplay,
+                availableContractsCount: availableContracts.length,
+                onContractSelect: availableContracts.length > 1
+                    ? _showContractSelectionModal
+                    : null,
               ),
-              // Contract info (if multiple contracts)
-              if (selectedContractDisplay != null &&
-                  availableContracts.length > 1)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: GestureDetector(
-                    onTap: _showContractSelectionModal,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 8.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8.w),
-                        border: Border.all(
-                          color: AppColors.secondaryAccent.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.business,
-                            color: AppColors.secondaryAccent,
-                            size: 16.sp,
-                          ),
-                          SizedBox(width: 8.w),
-                          Flexible(
-                            child: Text(
-                              selectedContractDisplay!,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          SizedBox(width: 4.w),
-                          Icon(
-                            Icons.keyboard_arrow_down,
-                            color: AppColors.secondaryAccent,
-                            size: 16.sp,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              if (selectedContractDisplay != null &&
-                  availableContracts.length > 1)
-                SizedBox(height: 12.h),
               Expanded(
                 child: isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.secondaryAccent,
+                          ),
+                        ),
                       )
                     : errorMessage != null
                     ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(16.w),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                errorMessage!,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 16.h),
-                              ElevatedButton(
-                                onPressed: _loadNekhemjlekh,
-                                style: ElevatedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 20.w,
-                                    vertical: 12.h,
+                          padding: EdgeInsets.all(20.w),
+                          child: OptimizedGlass(
+                            borderRadius: BorderRadius.circular(22.r),
+                            opacity: 0.10,
+                            child: Padding(
+                              padding: EdgeInsets.all(24.w),
+                              child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline_rounded,
+                                        color: Colors.red.withOpacity(0.8),
+                                        size: 48.sp,
+                                      ),
+                                      SizedBox(height: 16.h),
+                                      Text(
+                                        errorMessage!,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 14.sp,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 24.h),
+                                      OptimizedGlass(
+                                        borderRadius:
+                                            BorderRadius.circular(12.r),
+                                        opacity: 0.10,
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: _loadNekhemjlekh,
+                                            borderRadius: BorderRadius.circular(
+                                              12.r,
+                                            ),
+                                            child: Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 24.w,
+                                                vertical: 12.h,
+                                              ),
+                                              child: Text(
+                                                'Дахин оролдох',
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                child: Text(
-                                  'Дахин оролдох',
-                                  style: TextStyle(fontSize: 14.sp),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       )
                     : Column(
                         children: [
                           // Filter Tabs
-                          Container(
-                            height: 50.h,
-                            margin: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 8.h,
-                            ),
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: [
-                                _buildFilterTab('All', 'Бүгд'),
-                                _buildFilterTab('Paid', 'Төлсөн'),
-                              ],
-                            ),
+                          FilterTabs(
+                            selectedFilter: selectedFilter,
+                            onFilterChanged: (filterKey) {
+                              setState(() {
+                                selectedFilter = filterKey;
+                              });
+                            },
+                            getFilterCount: _getFilterCount,
                           ),
                           // Sticky payment section at top (hidden in history mode)
                           if (selectedFilter != 'Paid')
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              child: Container(
-                                padding: EdgeInsets.all(16.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.08),
-                                  borderRadius: BorderRadius.circular(20.w),
-                                  border: Border.all(
-                                    color: AppColors.secondaryAccent
-                                        .withOpacity(0.3),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: ClipRRect(
-                                  child: Container(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              selectedCount > 0
-                                                  ? '$selectedCount нэхэмжлэх сонгосон'
-                                                  : 'Нэхэмжлэх сонгоно уу',
-                                              style: TextStyle(
-                                                color: Colors.white.withOpacity(
-                                                  0.7,
-                                                ),
-                                                fontSize: 12.sp,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            SizedBox(height: 4.h),
-                                            Text(
-                                              totalSelectedAmount,
-                                              style: TextStyle(
-                                                color:
-                                                    AppColors.secondaryAccent,
-                                                fontSize: 20.sp,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: selectedCount > 0
-                                              ? _showPaymentModal
-                                              : null,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                AppColors.secondaryAccent,
-                                            foregroundColor: Colors.black,
-                                            disabledBackgroundColor: Colors
-                                                .white
-                                                .withOpacity(0.1),
-                                            disabledForegroundColor: Colors
-                                                .white
-                                                .withOpacity(0.3),
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 24.w,
-                                              vertical: 12.h,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12.w),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            'Төлбөр төлөх',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14.sp,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
+                            PaymentSection(
+                              selectedCount: selectedCount,
+                              totalSelectedAmount: totalSelectedAmount,
+                              onPaymentTap: selectedCount > 0
+                                  ? _showPaymentModal
+                                  : null,
                             ),
                           SizedBox(height: 8.h),
                           // Scrollable invoice list
@@ -2326,46 +1493,63 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
                               if (filteredInvoices.isEmpty) {
                                 return Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(20.w),
+                                    child: OptimizedGlass(
+                                      borderRadius:
+                                          BorderRadius.circular(22.r),
+                                      opacity: 0.10,
+                                      child: Padding(
                                         padding: EdgeInsets.all(24.w),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.1),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          selectedFilter == 'Paid'
-                                              ? Icons.history
-                                              : Icons.receipt_long,
-                                          size: 48.sp,
-                                          color: Colors.white.withOpacity(0.5),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(24.w),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white
+                                                    .withOpacity(0.05),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                selectedFilter == 'Paid'
+                                                    ? Icons.history_rounded
+                                                    : Icons
+                                                        .receipt_long_rounded,
+                                                size: 48.sp,
+                                                color: Colors.white
+                                                    .withOpacity(0.5),
+                                              ),
+                                            ),
+                                            SizedBox(height: 24.h),
+                                            Text(
+                                              selectedFilter == 'Paid'
+                                                  ? 'Төлөгдсөн нэхэмжлэл байхгүй'
+                                                  : 'Одоогоор нэхэмжлэл байхгүй',
+                                              style: TextStyle(
+                                                color: Colors.white
+                                                    .withOpacity(0.9),
+                                                fontSize: 18.sp,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            SizedBox(height: 8.h),
+                                            Text(
+                                              selectedFilter == 'Paid'
+                                                  ? 'Төлөгдсөн нэхэмжлэлийн түүх энд харагдана'
+                                                  : 'Шинэ нэхэмжлэл үүсэхэд энд харагдана',
+                                              style: TextStyle(
+                                                color: Colors.white
+                                                    .withOpacity(0.6),
+                                                fontSize: 14.sp,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      SizedBox(height: 24.h),
-                                      Text(
-                                        selectedFilter == 'Paid'
-                                            ? 'Төлөгдсөн нэхэмжлэл байхгүй'
-                                            : 'Одоогоор нэхэмжлэл байхгүй',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
-                                          fontSize: 18.sp,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8.h),
-                                      Text(
-                                        selectedFilter == 'Paid'
-                                            ? 'Төлөгдсөн нэхэмжлэлийн түүх энд харагдана'
-                                            : 'Шинэ нэхэмжлэл үүсэхэд энд харагдана',
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.5),
-                                          fontSize: 14.sp,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 );
                               }
@@ -2386,57 +1570,114 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               ? 14
                                               : (isSmallScreen ? 16 : 18),
                                         ),
-                                        child: GestureDetector(
-                                          onTap: toggleSelectAll,
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                width: isVerySmallScreen
-                                                    ? 16
-                                                    : (isSmallScreen ? 18 : 20),
-                                                height: isVerySmallScreen
-                                                    ? 16
-                                                    : (isSmallScreen ? 18 : 20),
-                                                decoration: BoxDecoration(
-                                                  color: allSelected
-                                                      ? Colors.white
-                                                      : Colors.transparent,
-                                                  border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                ),
-                                                child: allSelected
-                                                    ? Icon(
-                                                        Icons.check,
-                                                        color: Colors.black,
-                                                        size: isVerySmallScreen
-                                                            ? 10
-                                                            : (isSmallScreen
-                                                                  ? 12
-                                                                  : 14),
-                                                      )
-                                                    : null,
+                                        child: OptimizedGlass(
+                                          borderRadius:
+                                              BorderRadius.circular(12.r),
+                                          opacity: 0.08,
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              onTap: toggleSelectAll,
+                                              borderRadius:
+                                                  BorderRadius.circular(12.r),
+                                              child: Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 12.w,
+                                                          vertical: 8.h,
+                                                        ),
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Container(
+                                                          width:
+                                                              isVerySmallScreen
+                                                              ? 18
+                                                              : (isSmallScreen
+                                                                    ? 20
+                                                                    : 22),
+                                                          height:
+                                                              isVerySmallScreen
+                                                              ? 18
+                                                              : (isSmallScreen
+                                                                    ? 20
+                                                                    : 22),
+                                                          decoration: BoxDecoration(
+                                                            gradient:
+                                                                allSelected
+                                                                ? LinearGradient(
+                                                                    colors: [
+                                                                      AppColors
+                                                                          .secondaryAccent,
+                                                                      AppColors
+                                                                          .secondaryAccent
+                                                                          .withOpacity(
+                                                                            0.8,
+                                                                          ),
+                                                                    ],
+                                                                  )
+                                                                : null,
+                                                            color: allSelected
+                                                                ? null
+                                                                : Colors
+                                                                      .transparent,
+                                                            border: Border.all(
+                                                              color: allSelected
+                                                                  ? AppColors
+                                                                        .secondaryAccent
+                                                                  : Colors.white
+                                                                        .withOpacity(
+                                                                          0.5,
+                                                                        ),
+                                                              width: 2,
+                                                            ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  6.r,
+                                                                ),
+                                                          ),
+                                                          child: allSelected
+                                                              ? Icon(
+                                                                  Icons
+                                                                      .check_rounded,
+                                                                  color: Colors
+                                                                      .white,
+                                                                  size:
+                                                                      isVerySmallScreen
+                                                                      ? 12
+                                                                      : (isSmallScreen
+                                                                            ? 14
+                                                                            : 16),
+                                                                )
+                                                              : null,
+                                                        ),
+                                                        SizedBox(
+                                                          width:
+                                                              isVerySmallScreen
+                                                              ? 10
+                                                              : (isSmallScreen
+                                                                    ? 12
+                                                                    : 14),
+                                                        ),
+                                                        Text(
+                                                          'Бүгдийг сонгох',
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize:
+                                                                isVerySmallScreen
+                                                                ? 13
+                                                                : (isSmallScreen
+                                                                      ? 14
+                                                                      : 16),
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                               ),
-                                              SizedBox(
-                                                width: isVerySmallScreen
-                                                    ? 8
-                                                    : (isSmallScreen ? 10 : 12),
-                                              ),
-                                              Text(
-                                                'Бүгдийг сонгох',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: isVerySmallScreen
-                                                      ? 13
-                                                      : (isSmallScreen
-                                                            ? 14
-                                                            : 16),
-                                                ),
-                                              ),
-                                            ],
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -2454,11 +1695,32 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               ? 10
                                               : (isSmallScreen ? 12 : 16),
                                         ),
-                                        child: _buildInvoiceCard(
-                                          invoice,
+                                        child: InvoiceCard(
+                                          invoice: invoice,
                                           isHistory: selectedFilter == 'Paid',
                                           isSmallScreen: isSmallScreen,
                                           isVerySmallScreen: isVerySmallScreen,
+                                          onToggleExpand: () {
+                                            setState(() {
+                                              invoice.isExpanded =
+                                                  !invoice.isExpanded;
+                                            });
+                                          },
+                                          onToggleSelect:
+                                              selectedFilter != 'Paid'
+                                              ? () {
+                                                  setState(() {
+                                                    invoice.isSelected =
+                                                        !invoice.isSelected;
+                                                  });
+                                                }
+                                              : null,
+                                          onShowVATReceipt:
+                                              selectedFilter == 'Paid'
+                                              ? () => _showVATReceiptModal(
+                                                  invoice.id,
+                                                )
+                                              : null,
                                         ),
                                       ),
                                     ),
@@ -2477,1006 +1739,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     );
   }
 
-  Widget _buildInvoiceCard(
-    NekhemjlekhItem invoice, {
-    bool isHistory = false,
-    bool isSmallScreen = false,
-    bool isVerySmallScreen = false,
-  }) {
-    // Get status color and label
-    final statusColor = _getStatusColor(invoice.tuluv);
-    final statusLabel = _getStatusLabel(invoice.tuluv);
-
-    // Logo for invoice card
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20.w),
-        border: Border.all(
-          color: AppColors.secondaryAccent.withOpacity(0.3),
-          width: 2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            setState(() {
-              invoice.isExpanded = !invoice.isExpanded;
-            });
-          },
-          borderRadius: BorderRadius.circular(20.w),
-          splashColor: AppColors.secondaryAccent.withOpacity(0.1),
-          highlightColor: AppColors.secondaryAccent.withOpacity(0.05),
-          hoverColor: AppColors.secondaryAccent.withOpacity(0.08),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Main card content
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Date row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          invoice.formattedDate,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        // Status tag - Premium design
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12.w,
-                            vertical: 6.h,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                statusColor.withOpacity(0.15),
-                                statusColor.withOpacity(0.08),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16.w),
-                            border: Border.all(
-                              color: statusColor.withOpacity(0.4),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Text(
-                            statusLabel,
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12.h),
-                    // Main content row
-                    Row(
-                      children: [
-                        // Company logo
-                        Container(
-                          width: 48.w,
-                          height: 48.w,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppColors.secondaryAccent.withOpacity(0.3),
-                              width: 2,
-                            ),
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'lib/assets/img/logo_3.png',
-                              width: 48.w,
-                              height: 48.w,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Icon(
-                                  Icons.receipt_long_rounded,
-                                  color: Colors.white,
-                                  size: 24.sp,
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        // Client info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                invoice.displayName,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                invoice.gereeniiDugaar,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 13.sp,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Amount
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              invoice.formattedAmount,
-                              style: TextStyle(
-                                color: AppColors.secondaryAccent,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (!isHistory) SizedBox(height: 8.h),
-                            // Premium Checkbox for selection (only in non-history mode)
-                            if (!isHistory)
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    setState(() {
-                                      invoice.isSelected = !invoice.isSelected;
-                                    });
-                                  },
-                                  borderRadius: BorderRadius.circular(6.w),
-                                  splashColor: AppColors.secondaryAccent
-                                      .withOpacity(0.3),
-                                  highlightColor: AppColors.secondaryAccent
-                                      .withOpacity(0.1),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOutCubic,
-                                    width: 26.w,
-                                    height: 26.w,
-                                    decoration: BoxDecoration(
-                                      gradient: invoice.isSelected
-                                          ? LinearGradient(
-                                              colors: [
-                                                AppColors.secondaryAccent,
-                                                AppColors.secondaryAccent
-                                                    .withOpacity(0.8),
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            )
-                                          : null,
-                                      color: invoice.isSelected
-                                          ? null
-                                          : Colors.transparent,
-                                      border: Border.all(
-                                        color: invoice.isSelected
-                                            ? AppColors.secondaryAccent
-                                            : Colors.white.withOpacity(0.5),
-                                        width: invoice.isSelected ? 2.5 : 2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(6.w),
-                                      boxShadow: invoice.isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: AppColors.secondaryAccent
-                                                    .withOpacity(0.5),
-                                                blurRadius: 16,
-                                                spreadRadius: 0,
-                                                offset: const Offset(0, 6),
-                                              ),
-                                              BoxShadow(
-                                                color: AppColors.secondaryAccent
-                                                    .withOpacity(0.3),
-                                                blurRadius: 10,
-                                                spreadRadius: 3,
-                                              ),
-                                            ]
-                                          : [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(
-                                                  0.15,
-                                                ),
-                                                blurRadius: 6,
-                                                spreadRadius: 0,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                    ),
-                                    child: Center(
-                                      child: AnimatedScale(
-                                        scale: invoice.isSelected ? 1.0 : 0.0,
-                                        duration: const Duration(
-                                          milliseconds: 250,
-                                        ),
-                                        curve: Curves.elasticOut,
-                                        child: invoice.isSelected
-                                            ? Icon(
-                                                Icons.check_rounded,
-                                                color: Colors.white,
-                                                size: 18.sp,
-                                                weight: 3,
-                                              )
-                                            : const SizedBox.shrink(),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    // Expand/Collapse indicator
-                    Padding(
-                      padding: EdgeInsets.only(top: 8.h),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            invoice.isExpanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                            color: AppColors.secondaryAccent,
-                            size: 20.sp,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Expanded details section (inside same card)
-              if (invoice.isExpanded) ...[
-                Container(
-                  padding: EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(color: Colors.transparent),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Нэхэмжлэгч and Төлөгч sections with gold accents
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Нэхэмжлэгч section
-                          Expanded(
-                            child: Container(
-                              padding: EdgeInsets.all(12.w),
-                              constraints: BoxConstraints(minHeight: 120.h),
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(12.w),
-                                border: Border.all(
-                                  color: AppColors.secondaryAccent.withOpacity(
-                                    0.3,
-                                  ),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.business,
-                                        color: AppColors.secondaryAccent,
-                                        size: 16.sp,
-                                      ),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        'Нэхэмжлэгч',
-                                        style: TextStyle(
-                                          color: AppColors.secondaryAccent,
-                                          fontSize: 13.sp,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  _buildInfoText(
-                                    context,
-                                    'Байгууллагын нэр:\n${invoice.baiguullagiinNer}',
-                                  ),
-                                  if (invoice.khayag.isNotEmpty) ...[
-                                    SizedBox(height: 6.h),
-                                    _buildInfoText(
-                                      context,
-                                      'Хаяг: ${invoice.khayag}',
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          // Төлөгч section
-                          Expanded(
-                            child: Container(
-                              padding: EdgeInsets.all(12.w),
-                              constraints: BoxConstraints(minHeight: 120.h),
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(12.w),
-                                border: Border.all(
-                                  color: AppColors.secondaryAccent.withOpacity(
-                                    0.3,
-                                  ),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.person,
-                                        color: AppColors.secondaryAccent,
-                                        size: 16.sp,
-                                      ),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        'Төлөгч',
-                                        style: TextStyle(
-                                          color: AppColors.secondaryAccent,
-                                          fontSize: 13.sp,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  _buildInfoText(
-                                    context,
-                                    'Нэр: ${invoice.displayName}',
-                                  ),
-                                  if (invoice.register.isNotEmpty) ...[
-                                    SizedBox(height: 6.h),
-                                    _buildInfoText(
-                                      context,
-                                      'Регистр: ${invoice.register}',
-                                    ),
-                                  ],
-                                  if (invoice.phoneNumber.isNotEmpty) ...[
-                                    SizedBox(height: 6.h),
-                                    _buildInfoText(
-                                      context,
-                                      'Утас: ${invoice.phoneNumber}',
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20.h),
-                      // Price breakdown
-                      if (invoice.ekhniiUldegdel != null &&
-                          invoice.ekhniiUldegdel! != 0) ...[
-                        _buildPriceRow(
-                          context,
-                          'Эхний үлдэгдэл',
-                          '${invoice.ekhniiUldegdel!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
-                        ),
-                      ],
-                      if (invoice.medeelel != null &&
-                          invoice.medeelel!.zardluud.isNotEmpty) ...[
-                        SizedBox(height: 8.h),
-                        ...invoice.medeelel!.zardluud.map(
-                          (zardal) => _buildPriceRow(
-                            context,
-                            zardal.ner,
-                            zardal.formattedTariff,
-                          ),
-                        ),
-                      ],
-                      // Tailbar field
-                      if (invoice.medeelel != null &&
-                          invoice.medeelel!.tailbar != null &&
-                          invoice.medeelel!.tailbar!.isNotEmpty) ...[
-                        SizedBox(height: 16.h),
-                        Container(
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(12.w),
-                            border: Border.all(
-                              color: AppColors.secondaryAccent.withOpacity(0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.note_outlined,
-                                    color: AppColors.secondaryAccent,
-                                    size: 16.sp,
-                                  ),
-                                  SizedBox(width: 6.w),
-                                  Text(
-                                    'Тайлбар',
-                                    style: TextStyle(
-                                      color: AppColors.secondaryAccent,
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8.h),
-                              Text(
-                                invoice.medeelel!.tailbar!,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 13.sp,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: 16.h),
-                      // Total amount with gold accent
-                      Container(
-                        padding: EdgeInsets.all(16.w),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(12.w),
-                          border: Border.all(
-                            color: AppColors.secondaryAccent.withOpacity(0.4),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Нийт дүн:',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              invoice.formattedAmount,
-                              style: TextStyle(
-                                color: AppColors.secondaryAccent,
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isHistory) ...[
-                        SizedBox(height: 12.h),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _showVATReceiptModal(invoice.id),
-                            icon: Icon(Icons.receipt_long, size: 18.sp),
-                            label: Text(
-                              'Баримт харах',
-                              style: TextStyle(fontSize: 14.sp),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondaryAccent,
-                              foregroundColor: AppColors.darkBackground,
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.w),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Widget _buildInfoText(BuildContext context, String text) {
-  final screenHeight = MediaQuery.of(context).size.height;
-  final screenWidth = MediaQuery.of(context).size.width;
-  final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-  final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
-
-  return Padding(
-    padding: EdgeInsets.only(
-      bottom: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: Colors.white.withOpacity(0.9),
-        fontSize: isVerySmallScreen ? 11 : (isSmallScreen ? 12 : 13),
-        height: 1.4,
-      ),
-    ),
-  );
-}
-
-Widget _buildPriceRow(BuildContext context, String label, String amount) {
-  final screenHeight = MediaQuery.of(context).size.height;
-  final screenWidth = MediaQuery.of(context).size.width;
-  final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-  final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
-
-  return Padding(
-    padding: EdgeInsets.symmetric(
-      vertical: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
-            fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
-          ),
-        ),
-        Text(
-          amount,
-          style: TextStyle(
-            color: AppColors.secondaryAccent,
-            fontSize: isVerySmallScreen ? 12 : (isSmallScreen ? 13 : 14),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-// Nekhemjlekh data models
-class NekhemjlekhItem {
-  final String id;
-  final String baiguullagiinNer;
-  final String ovog;
-  final String ner;
-  final String register;
-  final String khayag;
-  final String gereeniiDugaar;
-  final String nekhemjlekhiinOgnoo;
-  final double niitTulbur;
-  final List<String> utas;
-  final String dansniiDugaar;
-  final String tuluv;
-  final NekhemjlekhMedeelel? medeelel;
-  final double? ekhniiUldegdel;
-  bool isSelected;
-  bool isExpanded;
-
-  NekhemjlekhItem({
-    required this.id,
-    required this.baiguullagiinNer,
-    required this.ovog,
-    required this.ner,
-    required this.register,
-    required this.khayag,
-    required this.gereeniiDugaar,
-    required this.nekhemjlekhiinOgnoo,
-    required this.niitTulbur,
-    required this.utas,
-    required this.dansniiDugaar,
-    required this.tuluv,
-    this.medeelel,
-    this.ekhniiUldegdel,
-    this.isSelected = false,
-    this.isExpanded = false,
-  });
-
-  factory NekhemjlekhItem.fromJson(Map<String, dynamic> json) {
-    return NekhemjlekhItem(
-      id: json['_id']?.toString() ?? '',
-      baiguullagiinNer: json['baiguullagiinNer']?.toString() ?? '',
-      ovog: json['ovog']?.toString() ?? '',
-      ner: json['ner']?.toString() ?? '',
-      register: json['register']?.toString() ?? '',
-      khayag: json['khayag']?.toString() ?? '',
-      gereeniiDugaar: json['gereeniiDugaar']?.toString() ?? '',
-      nekhemjlekhiinOgnoo:
-          json['nekhemjlekhiinOgnoo']?.toString() ??
-          json['ognoo']?.toString() ??
-          '',
-      niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),
-      utas: json['utas'] != null
-          ? (json['utas'] as List).map((e) => e.toString()).toList()
-          : [],
-      dansniiDugaar: json['dansniiDugaar']?.toString() ?? '',
-      tuluv: json['tuluv']?.toString() ?? 'Төлөөгүй',
-      medeelel: json['medeelel'] != null
-          ? NekhemjlekhMedeelel.fromJson(json['medeelel'])
-          : null,
-      ekhniiUldegdel: json['ekhniiUldegdel'] != null
-          ? (json['ekhniiUldegdel'] as num).toDouble()
-          : null,
-    );
-  }
-
-  String get formattedDate {
-    try {
-      final date = DateTime.parse(nekhemjlekhiinOgnoo);
-      return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return nekhemjlekhiinOgnoo;
-    }
-  }
-
-  String get formattedAmount {
-    final formatted = niitTulbur
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]},',
-        );
-    return '$formatted₮';
-  }
-
-  String get displayName =>
-      '$ovog $ner'.trim().isNotEmpty ? '$ovog $ner' : baiguullagiinNer;
-  String get phoneNumber => utas.isNotEmpty ? utas.first : '';
-}
-
-class NekhemjlekhMedeelel {
-  final List<Zardal> zardluud;
-  final List<Guilgee>? guilgeenuud;
-  final String toot;
-  final String temdeglel;
-  final String? tailbar;
-
-  NekhemjlekhMedeelel({
-    required this.zardluud,
-    this.guilgeenuud,
-    required this.toot,
-    required this.temdeglel,
-    this.tailbar,
-  });
-
-  factory NekhemjlekhMedeelel.fromJson(Map<String, dynamic> json) {
-    return NekhemjlekhMedeelel(
-      zardluud: json['zardluud'] != null
-          ? (json['zardluud'] as List).map((z) => Zardal.fromJson(z)).toList()
-          : [],
-      guilgeenuud: json['guilgeenuud'] != null
-          ? (json['guilgeenuud'] as List)
-                .map((g) => Guilgee.fromJson(g))
-                .toList()
-          : null,
-      toot: json['toot']?.toString() ?? '',
-      temdeglel: json['temdeglel']?.toString() ?? '',
-      tailbar: json['tailbar']?.toString(),
-    );
-  }
-}
-
-class Zardal {
-  final String ner;
-  final String turul;
-  final double tariff;
-  final String tariffUsgeer;
-  final String zardliinTurul;
-  final double dun;
-
-  Zardal({
-    required this.ner,
-    required this.turul,
-    required this.tariff,
-    required this.tariffUsgeer,
-    required this.zardliinTurul,
-    required this.dun,
-  });
-
-  factory Zardal.fromJson(Map<String, dynamic> json) {
-    return Zardal(
-      ner: json['ner']?.toString() ?? '',
-      turul: json['turul']?.toString() ?? '',
-      tariff: (json['tariff'] ?? 0).toDouble(),
-      tariffUsgeer: json['tariffUsgeer']?.toString() ?? '₮',
-      zardliinTurul: json['zardliinTurul']?.toString() ?? '',
-      dun: (json['dun'] ?? 0).toDouble(),
-    );
-  }
-
-  String get formattedTariff {
-    final formatted = tariff
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]},',
-        );
-    return '$formatted$tariffUsgeer';
-  }
-}
-
-class Guilgee {
-  final String? ognoo;
-  final double? tulukhDun;
-  final double? tulsunDun;
-  final String? tailbar;
-  final String? turul;
-  final String? gereeniiId;
-  final String? guilgeeKhiisenOgnoo;
-  final String? guilgeeKhiisenAjiltniiNer;
-  final String? guilgeeKhiisenAjiltniiId;
-  final int? avlagaGuilgeeIndex;
-  final String? id;
-
-  Guilgee({
-    this.ognoo,
-    this.tulukhDun,
-    this.tulsunDun,
-    this.tailbar,
-    this.turul,
-    this.gereeniiId,
-    this.guilgeeKhiisenOgnoo,
-    this.guilgeeKhiisenAjiltniiNer,
-    this.guilgeeKhiisenAjiltniiId,
-    this.avlagaGuilgeeIndex,
-    this.id,
-  });
-
-  factory Guilgee.fromJson(Map<String, dynamic> json) {
-    return Guilgee(
-      ognoo: json['ognoo']?.toString(),
-      tulukhDun: json['tulukhDun'] != null
-          ? (json['tulukhDun'] as num).toDouble()
-          : null,
-      tulsunDun: json['tulsunDun'] != null
-          ? (json['tulsunDun'] as num).toDouble()
-          : null,
-      tailbar: json['tailbar']?.toString(),
-      turul: json['turul']?.toString(),
-      gereeniiId: json['gereeniiId']?.toString(),
-      guilgeeKhiisenOgnoo: json['guilgeeKhiisenOgnoo']?.toString(),
-      guilgeeKhiisenAjiltniiNer: json['guilgeeKhiisenAjiltniiNer']?.toString(),
-      guilgeeKhiisenAjiltniiId: json['guilgeeKhiisenAjiltniiId']?.toString(),
-      avlagaGuilgeeIndex: json['avlagaGuilgeeIndex'] as int?,
-      id: json['_id']?.toString(),
-    );
-  }
-}
-
-class QPayBank {
-  final String name;
-  final String description;
-  final String logo;
-  final String link;
-
-  QPayBank({
-    required this.name,
-    required this.description,
-    required this.logo,
-    required this.link,
-  });
-
-  factory QPayBank.fromJson(Map<String, dynamic> json) {
-    return QPayBank(
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
-      logo: json['logo'] ?? '',
-      link: json['link'] ?? '',
-    );
-  }
-}
-
-// VAT Receipt data models
-class VATReceipt {
-  final String id;
-  final String qrData;
-  final String? lottery;
-  final double totalAmount;
-  final double totalVAT;
-  final double totalCityTax;
-  final String districtCode;
-  final String merchantTin;
-  final String branchNo;
-  final String posNo;
-  final String type;
-  final String date;
-  final List<VATReceiptItem> receipts;
-  final List<VATPayment> payments;
-  final String nekhemjlekhiinId;
-  final String gereeniiDugaar;
-  final int utas;
-  final String? receiptId;
-
-  VATReceipt({
-    required this.id,
-    required this.qrData,
-    this.lottery,
-    required this.totalAmount,
-    required this.totalVAT,
-    required this.totalCityTax,
-    required this.districtCode,
-    required this.merchantTin,
-    required this.branchNo,
-    required this.posNo,
-    required this.type,
-    required this.date,
-    required this.receipts,
-    required this.payments,
-    required this.nekhemjlekhiinId,
-    required this.gereeniiDugaar,
-    required this.utas,
-    this.receiptId,
-  });
-
-  factory VATReceipt.fromJson(Map<String, dynamic> json) {
-    return VATReceipt(
-      id: json['_id'] ?? json['id'] ?? '',
-      qrData: json['qrData'] ?? '',
-      lottery: json['lottery'],
-      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
-      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
-      totalCityTax: (json['totalCityTax'] ?? 0).toDouble(),
-      districtCode: json['districtCode'] ?? '',
-      merchantTin: json['merchantTin'] ?? '',
-      branchNo: json['branchNo'] ?? '',
-      posNo: json['posNo'] ?? '',
-      type: json['type'] ?? '',
-      date: json['date'] ?? '',
-      receipts: json['receipts'] != null
-          ? (json['receipts'] as List)
-                .map((r) => VATReceiptItem.fromJson(r))
-                .toList()
-          : [],
-      payments: json['payments'] != null
-          ? (json['payments'] as List)
-                .map((p) => VATPayment.fromJson(p))
-                .toList()
-          : [],
-      nekhemjlekhiinId: json['nekhemjlekhiinId'] ?? '',
-      gereeniiDugaar: json['gereeniiDugaar'] ?? '',
-      utas: json['utas'] ?? '',
-      receiptId: json['receiptId'],
-    );
-  }
-
-  String get formattedAmount {
-    final formatted = totalAmount
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]},',
-        );
-    return '$formatted₮';
-  }
-
-  String get formattedDate {
-    try {
-      final dateTime = DateTime.parse(date.replaceAll(' ', 'T'));
-      return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return date;
-    }
-  }
-}
-
-class VATReceiptItem {
-  final double totalAmount;
-  final double totalVAT;
-  final double totalCityTax;
-  final String taxType;
-  final String merchantTin;
-  final List<VATItem> items;
-
-  VATReceiptItem({
-    required this.totalAmount,
-    required this.totalVAT,
-    required this.totalCityTax,
-    required this.taxType,
-    required this.merchantTin,
-    required this.items,
-  });
-
-  factory VATReceiptItem.fromJson(Map<String, dynamic> json) {
-    return VATReceiptItem(
-      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
-      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
-      totalCityTax: (json['totalCityTax'] ?? 0).toDouble(),
-      taxType: json['taxType'] ?? '',
-      merchantTin: json['merchantTin'] ?? '',
-      items: json['items'] != null
-          ? (json['items'] as List).map((i) => VATItem.fromJson(i)).toList()
-          : [],
-    );
-  }
-}
-
-class VATItem {
-  final String name;
-  final String barCodeType;
-  final String classificationCode;
-  final String measureUnit;
-  final String qty;
-  final String unitPrice;
-  final String totalCityTax;
-  final String totalAmount;
-
-  VATItem({
-    required this.name,
-    required this.barCodeType,
-    required this.classificationCode,
-    required this.measureUnit,
-    required this.qty,
-    required this.unitPrice,
-    required this.totalCityTax,
-    required this.totalAmount,
-  });
-
-  factory VATItem.fromJson(Map<String, dynamic> json) {
-    return VATItem(
-      name: json['name'] ?? '',
-      barCodeType: json['barCodeType'] ?? '',
-      classificationCode: json['classificationCode'] ?? '',
-      measureUnit: json['measureUnit'] ?? '',
-      qty: json['qty']?.toString() ?? '0',
-      unitPrice: json['unitPrice']?.toString() ?? '0',
-      totalCityTax: json['totalCityTax']?.toString() ?? '0',
-      totalAmount: json['totalAmount']?.toString() ?? '0',
-    );
-  }
-}
-
-class VATPayment {
-  final String code;
-  final String paidAmount;
-  final String status;
-
-  VATPayment({
-    required this.code,
-    required this.paidAmount,
-    required this.status,
-  });
-
-  factory VATPayment.fromJson(Map<String, dynamic> json) {
-    return VATPayment(
-      code: json['code'] ?? '',
-      paidAmount: json['paidAmount']?.toString() ?? '0',
-      status: json['status'] ?? '',
-    );
-  }
+  // _buildInvoiceCard moved to components/Nekhemjlekh/invoice_card.dart
+  // Removed old implementation - using InvoiceCard component instead
 }

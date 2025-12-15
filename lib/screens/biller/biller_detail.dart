@@ -117,8 +117,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
           }
           
-          print('🔍 [BILLER-DETAIL] Billing data: $billingData');
-          
           // Check if billing already exists in list (use customerId or customerCode if billingId doesn't exist)
           final identifier = billingData['billingId'] ?? 
                            billingData['customerId'] ?? 
@@ -144,10 +142,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   customerCode: billingData['customerCode'],
                 );
               } catch (e) {
-                print('Error saving billing: $e');
+                // Error saving billing
               }
-            } else {
-              print('⚠️ [BILLER-DETAIL] No billingId found, cannot save billing yet');
             }
           } else {
             setState(() {

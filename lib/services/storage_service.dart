@@ -37,13 +37,18 @@ class StorageService {
   static const String _tukhainBaaziinKholboltKey = 'tukhain_baaziin_kholbolt';
   static const String _walletBairIdKey = 'wallet_bair_id';
   static const String _walletDoorNoKey = 'wallet_door_no';
+  static const String _walletBairSourceKey =
+      'wallet_bair_source'; // 'WALLET_API' or 'OWN_ORG'
+  static const String _walletBairBaiguullagiinIdKey =
+      'wallet_bair_baiguullagiin_id';
+  static const String _walletBairBarilgiinIdKey = 'wallet_bair_barilgiin_id';
+  static const String _walletBillingIdKey = 'wallet_billing_id';
 
   static Future<bool> saveToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setString(_tokenKey, token);
     } catch (e) {
-      print('Error saving token: $e');
       return false;
     }
   }
@@ -54,7 +59,6 @@ class StorageService {
 
       return prefs.getString(_tokenKey);
     } catch (e) {
-      print('Token алдаа: $e');
       return null;
     }
   }
@@ -103,25 +107,24 @@ class StorageService {
 
       // Save tukhainBaaziinKholbolt - check multiple possible locations
       String? tukhainBaaziinKholbolt;
-      
+
       // Check in result object first
       if (userData['result']?['tukhainBaaziinKholbolt'] != null) {
-        tukhainBaaziinKholbolt = userData['result']['tukhainBaaziinKholbolt'].toString();
+        tukhainBaaziinKholbolt = userData['result']['tukhainBaaziinKholbolt']
+            .toString();
       }
       // Check in root of userData
       else if (userData['tukhainBaaziinKholbolt'] != null) {
         tukhainBaaziinKholbolt = userData['tukhainBaaziinKholbolt'].toString();
       }
       // If not found, will use default below
-      
+
       // Save the value (or default)
       await prefs.setString(
         _tukhainBaaziinKholboltKey,
         tukhainBaaziinKholbolt ?? 'amarSukh',
       );
-      
-      // Debug log to see what we're saving
-      print('Saved tukhainBaaziinKholbolt: ${tukhainBaaziinKholbolt ?? 'amarSukh'}');
+
 
       // Save duusakhOgnoo
       if (userData['duusakhOgnoo'] != null) {
@@ -138,7 +141,6 @@ class StorageService {
 
       return true;
     } catch (e) {
-      print('Error saving user data: $e');
       return false;
     }
   }
@@ -149,7 +151,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_userIdKey);
     } catch (e) {
-      print('Error getting user ID: $e');
       return null;
     }
   }
@@ -160,7 +161,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_userNerKey);
     } catch (e) {
-      print('Error getting user name: $e');
       return null;
     }
   }
@@ -171,7 +171,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_baiguullagiinIdKey);
     } catch (e) {
-      print('Error getting baiguullagiinId: $e');
       return null;
     }
   }
@@ -182,7 +181,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_baiguullagiinNerKey);
     } catch (e) {
-      print('Error getting baiguullagiinNer: $e');
       return null;
     }
   }
@@ -193,7 +191,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_barilgiinIdKey);
     } catch (e) {
-      print('Error getting barilgiinId: $e');
       return null;
     }
   }
@@ -204,7 +201,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_duusakhOgnooKey);
     } catch (e) {
-      print('Error getting duusakhOgnoo: $e');
       return null;
     }
   }
@@ -216,7 +212,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_taniltsuulgaKharakhEsekhKey) ?? true;
     } catch (e) {
-      print('Error getting taniltsuulgaKharakhEsekh: $e');
       return true;
     }
   }
@@ -227,7 +222,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setBool(_taniltsuulgaKharakhEsekhKey, value);
     } catch (e) {
-      print('Error setting taniltsuulgaKharakhEsekh: $e');
       return false;
     }
   }
@@ -238,7 +232,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.clear();
     } catch (e) {
-      print('Error clearing storage: $e');
       return false;
     }
   }
@@ -262,7 +255,6 @@ class StorageService {
       // Note: _shakeHintShownKey is NOT removed - it persists across sessions
       return true;
     } catch (e) {
-      print('Error clearing auth data: $e');
       return false;
     }
   }
@@ -275,7 +267,6 @@ class StorageService {
       await prefs.setBool(_rememberMeKey, true);
       return true;
     } catch (e) {
-      print('Error saving phone number: $e');
       return false;
     }
   }
@@ -290,7 +281,6 @@ class StorageService {
       }
       return null;
     } catch (e) {
-      print('Error getting saved phone number: $e');
       return null;
     }
   }
@@ -303,7 +293,6 @@ class StorageService {
       await prefs.setBool(_rememberMeKey, false);
       return true;
     } catch (e) {
-      print('Error clearing saved phone number: $e');
       return false;
     }
   }
@@ -314,7 +303,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_rememberMeKey) ?? false;
     } catch (e) {
-      print('Error checking remember me: $e');
       return false;
     }
   }
@@ -345,7 +333,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setString(_savedPasswordKey, password);
     } catch (e) {
-      print('Error saving password for biometric: $e');
       return false;
     }
   }
@@ -356,7 +343,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_savedPasswordKey);
     } catch (e) {
-      print('Error getting saved password: $e');
       return null;
     }
   }
@@ -369,7 +355,6 @@ class StorageService {
       await prefs.setBool(_biometricEnabledKey, false);
       return true;
     } catch (e) {
-      print('Error clearing saved password: $e');
       return false;
     }
   }
@@ -390,7 +375,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setBool(_biometricEnabledKey, enabled);
     } catch (e) {
-      print('Error setting biometric enabled: $e');
       return false;
     }
   }
@@ -401,23 +385,37 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_tukhainBaaziinKholboltKey) ?? 'amarSukh';
     } catch (e) {
-      print('Error getting tukhainBaaziinKholbolt: $e');
       return 'amarSukh'; // Default fallback
     }
   }
 
   /// Save Wallet API address (bairId and doorNo)
+  /// Also supports OWN_ORG bair with additional fields
   static Future<bool> saveWalletAddress({
     required String bairId,
     required String doorNo,
+    String? source, // 'WALLET_API' or 'OWN_ORG'
+    String? baiguullagiinId, // Required for OWN_ORG
+    String? barilgiinId, // Required for OWN_ORG (same as bairId for OWN_ORG)
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_walletBairIdKey, bairId);
       await prefs.setString(_walletDoorNoKey, doorNo);
+
+      // Save OWN_ORG specific fields if provided
+      if (source != null) {
+        await prefs.setString(_walletBairSourceKey, source);
+      }
+      if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+        await prefs.setString(_walletBairBaiguullagiinIdKey, baiguullagiinId);
+      }
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        await prefs.setString(_walletBairBarilgiinIdKey, barilgiinId);
+      }
+
       return true;
     } catch (e) {
-      print('Error saving wallet address: $e');
       return false;
     }
   }
@@ -428,7 +426,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_walletBairIdKey);
     } catch (e) {
-      print('Error getting wallet bairId: $e');
       return null;
     }
   }
@@ -439,7 +436,56 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_walletDoorNoKey);
     } catch (e) {
-      print('Error getting wallet doorNo: $e');
+      return null;
+    }
+  }
+
+  /// Get saved bair source ('WALLET_API' or 'OWN_ORG')
+  static Future<String?> getWalletBairSource() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairSourceKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved OWN_ORG baiguullagiinId
+  static Future<String?> getWalletBairBaiguullagiinId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairBaiguullagiinIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved OWN_ORG barilgiinId
+  static Future<String?> getWalletBairBarilgiinId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairBarilgiinIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Save Wallet API billingId
+  static Future<bool> saveWalletBillingId(String billingId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_walletBillingIdKey, billingId);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get saved Wallet API billingId
+  static Future<String?> getWalletBillingId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBillingIdKey);
+    } catch (e) {
       return null;
     }
   }
@@ -448,7 +494,10 @@ class StorageService {
   static Future<bool> hasSavedAddress() async {
     final bairId = await getWalletBairId();
     final doorNo = await getWalletDoorNo();
-    return bairId != null && bairId.isNotEmpty && doorNo != null && doorNo.isNotEmpty;
+    return bairId != null &&
+        bairId.isNotEmpty &&
+        doorNo != null &&
+        doorNo.isNotEmpty;
   }
 
   /// Clear saved Wallet API address
@@ -457,9 +506,12 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_walletBairIdKey);
       await prefs.remove(_walletDoorNoKey);
+      await prefs.remove(_walletBairSourceKey);
+      await prefs.remove(_walletBairBaiguullagiinIdKey);
+      await prefs.remove(_walletBairBarilgiinIdKey);
+      await prefs.remove(_walletBillingIdKey);
       return true;
     } catch (e) {
-      print('Error clearing wallet address: $e');
       return false;
     }
   }

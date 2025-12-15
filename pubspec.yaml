@@ -29,6 +29,8 @@ dependencies:
   local_auth: ^3.0.0
   snow_fall_animation: ^0.0.1+2
   socket_io_client: ^2.0.3+1
+  flutter_svg: ^2.0.9
+  liquid_glass_renderer: ^0.2.0-dev.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

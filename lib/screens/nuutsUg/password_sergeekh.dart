@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -370,25 +370,20 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                 child: SafeArea(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(100),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
+                    child: OptimizedGlass(
+                      borderRadius: BorderRadius.circular(16),
+                      opacity: 0.12,
+                      child: IconButton(
+                        padding: const EdgeInsets.only(left: 7),
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
+                          size: 20,
                         ),
-                        child: IconButton(
-                          padding: const EdgeInsets.only(left: 7),
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(
-                            Icons.arrow_back_ios,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
                       ),
                     ),
                   ),

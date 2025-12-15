@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -407,25 +407,20 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 child: SafeArea(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(100.r),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16.r),
+                    child: OptimizedGlass(
+                      borderRadius: BorderRadius.circular(16.r),
+                      opacity: 0.12,
+                      child: IconButton(
+                        padding: EdgeInsets.only(left: 7.w),
+                        constraints: const BoxConstraints(),
+                        icon: Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
+                          size: 20.sp,
                         ),
-                        child: IconButton(
-                          padding: EdgeInsets.only(left: 7.w),
-                          constraints: const BoxConstraints(),
-                          icon: Icon(
-                            Icons.arrow_back_ios,
-                            color: Colors.white,
-                            size: 20.sp,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
                       ),
                     ),
                   ),

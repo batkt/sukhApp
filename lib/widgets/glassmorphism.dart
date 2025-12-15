@@ -1,34 +1,28 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 
+/// Backwards-compatible lightweight glass widget.
+///
+/// NOTE: This intentionally does NOT use blur to avoid GPU overload.
 class Glassmorphism extends StatelessWidget {
-  final double blur;
+  final double blur; // kept for API compatibility (ignored)
   final double opacity;
-  final double child;
+  final Widget child;
+  final BorderRadius borderRadius;
   const Glassmorphism({
     super.key,
     required this.blur,
     required this.opacity,
     required this.child,
+    this.borderRadius = const BorderRadius.all(Radius.circular(50)),
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(50),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(opacity),
-            borderRadius: BorderRadius.all(Radius.circular(50)),
-            border: Border.all(
-              width: 1.5,
-              color: Colors.white.withOpacity(0.2),
-            ),
-          ),
-        ),
-      ),
+    return OptimizedGlass(
+      borderRadius: borderRadius,
+      opacity: opacity,
+      child: child,
     );
   }
 }

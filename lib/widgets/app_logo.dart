@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'dart:math';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 
 class AppLogo extends StatelessWidget {
   final double? minHeight;
@@ -39,6 +39,8 @@ class AppLogo extends StatelessWidget {
     final effectiveMinWidth = minWidth ?? 154.w;
     final effectiveMaxWidth = maxWidth ?? 154.w;
     final effectiveBorderRadius = borderRadius ?? 36.w;
+    // blurSigma kept for API compatibility; no blur applied.
+    // ignore: unused_local_variable
     final effectiveBlurSigma = blurSigma ?? 10.w;
     final isDecember = _isDecember();
 
@@ -93,17 +95,11 @@ class AppLogo extends StatelessWidget {
             )
           : AspectRatio(
               aspectRatio: 1,
-              child: ClipRRect(
+              child: OptimizedGlass(
                 borderRadius: BorderRadius.circular(effectiveBorderRadius),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(
-                    sigmaX: effectiveBlurSigma,
-                    sigmaY: effectiveBlurSigma,
-                  ),
-                  child: Container(
-                    color: Colors.white.withValues(alpha: opacity),
-                  ),
-                ),
+                // blurSigma kept for API compatibility; no blur applied.
+                opacity: opacity,
+                child: const SizedBox.expand(),
               ),
             ),
     );

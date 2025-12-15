@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 
 void showGlassSnackBar(
   BuildContext context, {
@@ -10,7 +10,7 @@ void showGlassSnackBar(
   Color textColor = Colors.white,
   Color iconColor = Colors.white,
   double opacity = 0.1,
-  double blur = 10,
+  double blur = 10, // kept for API compatibility (ignored)
   Duration duration = const Duration(seconds: 2),
 }) {
   try {
@@ -143,39 +143,29 @@ class _SnackBarWidgetState extends State<_SnackBarWidget>
                   });
                 }
               },
-              child: ClipRRect(
+              child: OptimizedGlass(
                 borderRadius: BorderRadius.circular(16.w),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(
-                    sigmaX: widget.blur,
-                    sigmaY: widget.blur,
+                opacity: widget.opacity,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 16.h,
                   ),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 16.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(widget.opacity),
-                      borderRadius: BorderRadius.circular(16.w),
-                      border: Border.all(color: Colors.white.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(widget.icon, color: widget.iconColor, size: 32.sp),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Text(
-                            widget.message,
-                            style: TextStyle(
-                              color: widget.textColor,
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
+                  child: Row(
+                    children: [
+                      Icon(widget.icon, color: widget.iconColor, size: 32.sp),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Text(
+                          widget.message,
+                          style: TextStyle(
+                            color: widget.textColor,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),

@@ -85,19 +85,12 @@ class _ProfileSettingsState extends State<ProfileSettings>
         _biometricAvailable = isAvailable;
         _biometricEnabled = isEnabled;
       });
-      // Debug: verify state was loaded
-      print(
-        'Biometric status loaded - Available: $isAvailable, Enabled: $isEnabled',
-      );
     }
   }
 
   Future<void> _handleBiometricToggle(bool value) async {
-    print('Toggling biometric to: $value');
-
     // Save to storage first
     final success = await StorageService.setBiometricEnabled(value);
-    print('Save result: $success');
 
     if (!success) {
       // If save failed, show error and don't update UI
@@ -114,7 +107,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
     // Verify it was saved
     final verifyEnabled = await StorageService.isBiometricEnabled();
-    print('Verified saved state: $verifyEnabled');
 
     if (verifyEnabled != value) {
       // State mismatch - something went wrong

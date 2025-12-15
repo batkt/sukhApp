@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'dart:ui';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 
 /// Show help modal with frequently asked questions
 Future<void> showHelpModal(BuildContext context) {
@@ -144,17 +144,16 @@ class _HelpModalState extends State<HelpModal> {
           topRight: Radius.circular(30.w),
         ),
       ),
-      child: ClipRRect(
+      child: OptimizedGlass(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30.w),
           topRight: Radius.circular(30.w),
         ),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
+        opacity: 0.06,
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
                 margin: EdgeInsets.only(top: 12.h),
                 width: 40.w,
                 height: 4.h,
@@ -162,9 +161,9 @@ class _HelpModalState extends State<HelpModal> {
                   color: Colors.white.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(2.w),
                 ),
-              ),
-              // Header
-              Padding(
+            ),
+            // Header
+            Padding(
                 padding: EdgeInsets.all(20.w),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -215,8 +214,8 @@ class _HelpModalState extends State<HelpModal> {
                   ],
                 ),
               ),
-              // Search bar
-              Padding(
+            // Search bar
+            Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
                 child: TextField(
                   controller: _searchController,
@@ -318,8 +317,7 @@ class _HelpModalState extends State<HelpModal> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildFAQItem(FAQItem faq) {

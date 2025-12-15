@@ -1059,6 +1059,45 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> validateOwnOrgToot({
+    required String toot,
+    required String baiguullagiinId,
+    required String barilgiinId,
+  }) async {
+    try {
+      final requestBody = <String, dynamic>{
+        'toot': toot,
+        'baiguullagiinId': baiguullagiinId,
+        'barilgiinId': barilgiinId,
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/validateOwnOrgToot'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return data;
+      } else {
+        if (data['message'] != null) {
+          throw Exception(data['message']);
+        } else if (data['aldaa'] != null) {
+          throw Exception(data['aldaa']);
+        } else {
+          throw Exception('Тоот баталгаажуулахад алдаа гарлаа');
+        }
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Тоот баталгаажуулахад алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> fetchWalletBilling({
     required String bairId,
     required String doorNo,
@@ -1068,6 +1107,8 @@ class ApiService {
     String? toot,
     String? davkhar,
     String? orts,
+    String? baiguullagiinId,
+    String? barilgiinId,
   }) async {
     try {
       final requestBody = <String, dynamic>{'bairId': bairId, 'doorNo': doorNo};
@@ -1089,6 +1130,12 @@ class ApiService {
       }
       if (orts != null && orts.isNotEmpty) {
         requestBody['orts'] = orts;
+      }
+      if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+        requestBody['baiguullagiinId'] = baiguullagiinId;
+      }
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        requestBody['barilgiinId'] = barilgiinId;
       }
 
       final headers = await getWalletApiHeaders();
@@ -1214,6 +1261,7 @@ class ApiService {
     String? bairId,
     String? doorNo,
     String? barilgiinId,
+    String? baiguullagiinId,
     String? duureg,
     String? horoo,
     String? soh,
