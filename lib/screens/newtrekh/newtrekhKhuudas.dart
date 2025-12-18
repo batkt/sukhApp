@@ -696,77 +696,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               '📱 [LOGIN] Phone number saved',
                                             );
 
-                                            // CRITICAL: Check phone verification FIRST, before address/profile checks
-                                            // OTP is automatically sent on login, so we need to verify it immediately
-                                            print(
-                                              '📱 [LOGIN] ========== PHONE VERIFICATION CHECK ==========',
-                                            );
-                                            print(
-                                              '📱 [LOGIN] Checking if phone verification is needed...',
-                                            );
-                                            final needsVerification =
-                                                await StorageService.needsPhoneVerification();
-                                            print(
-                                              '📱 [LOGIN] needsVerification result: $needsVerification',
-                                            );
-
-                                            // FORCE OTP verification for now to debug - always show OTP screen
-                                            // TODO: Remove this and use needsVerification check once working
-                                            print(
-                                              '📱 [LOGIN] FORCING OTP verification - showing verification screen',
-                                            );
-
-                                            // Show phone verification screen IMMEDIATELY after login
-                                            // OTP is automatically sent on login, so we just need to verify it
-                                            final verificationResult =
-                                                await context.push<bool>(
-                                                  '/phone_verification',
-                                                  extra: {
-                                                    'phoneNumber': inputPhone,
-                                                    'baiguullagiinId':
-                                                        userData?['baiguullagiinId']
-                                                            ?.toString(),
-                                                    'duureg':
-                                                        userData?['duureg']
-                                                            ?.toString(),
-                                                    'horoo': userData?['horoo']
-                                                        ?.toString(),
-                                                    'soh': userData?['soh']
-                                                        ?.toString(),
-                                                  },
-                                                );
-
-                                            print(
-                                              '📱 [LOGIN] Verification result: $verificationResult',
-                                            );
-
-                                            // If verification was cancelled or failed, don't proceed
-                                            if (verificationResult != true) {
-                                              print(
-                                                '⚠️ [LOGIN] Phone verification cancelled or failed - staying on login screen',
-                                              );
-
-                                              // IMPORTANT: Logout user if they cancel OTP verification
-                                              // This prevents router from redirecting to home page
-                                              // because the token was already saved during login
-                                              print(
-                                                '🔓 [LOGIN] Logging out user because OTP verification was cancelled',
-                                              );
-                                              await SessionService.logout();
-
-                                              setState(() {
-                                                _isLoading = false;
-                                              });
-                                              return;
-                                            }
-
-                                            print(
-                                              '✅ [LOGIN] Phone verification successful - continuing with login flow',
-                                            );
-
                                             // Determine if this is a WEB-created user (has baiguullagiinId)
                                             // or a MOBILE-created user (no baiguullagiinId).
-                                            // Only WEB-created users should go through Wallet address selection.
+                                            // Only WEB-created users should go through OTP verification and Wallet address selection.
                                             final loginOrgId =
                                                 userData?['baiguullagiinId']
                                                     ?.toString();
@@ -782,18 +714,147 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
                                             );
 
+                                            // CRITICAL: Only require OTP verification for users WITH baiguullagiinId
+                                            // Users without baiguullagiinId (MOBILE-created) can login directly without OTP
+                                            if (hasBaiguullagiinId) {
+                                              print(
+                                                '📱 [LOGIN] ========== PHONE VERIFICATION CHECK ==========',
+                                              );
+                                              print(
+                                                '📱 [LOGIN] User has baiguullagiinId - checking if phone verification is needed...',
+                                              );
+                                              final needsVerification =
+                                                  await StorageService.needsPhoneVerification();
+                                              print(
+                                                '📱 [LOGIN] needsVerification result: $needsVerification',
+                                              );
+
+                                              // Show phone verification screen if needed
+                                              if (needsVerification) {
+                                                print(
+                                                  '📱 [LOGIN] Phone verification required - showing verification screen',
+                                                );
+
+                                                // Show phone verification screen IMMEDIATELY after login
+                                                // OTP is automatically sent on login, so we just need to verify it
+                                                final verificationResult =
+                                                    await context.push<bool>(
+                                                      '/phone_verification',
+                                                      extra: {
+                                                        'phoneNumber': inputPhone,
+                                                        'baiguullagiinId':
+                                                            loginOrgId,
+                                                        'duureg':
+                                                            userData?['duureg']
+                                                                ?.toString(),
+                                                        'horoo': userData?['horoo']
+                                                            ?.toString(),
+                                                        'soh': userData?['soh']
+                                                            ?.toString(),
+                                                      },
+                                                    );
+
+                                                print(
+                                                  '📱 [LOGIN] Verification result: $verificationResult',
+                                                );
+
+                                                // If verification was cancelled or failed, don't proceed
+                                                if (verificationResult != true) {
+                                                  print(
+                                                    '⚠️ [LOGIN] Phone verification cancelled or failed - staying on login screen',
+                                                  );
+
+                                                  // IMPORTANT: Logout user if they cancel OTP verification
+                                                  // This prevents router from redirecting to home page
+                                                  // because the token was already saved during login
+                                                  print(
+                                                    '🔓 [LOGIN] Logging out user because OTP verification was cancelled',
+                                                  );
+                                                  await SessionService.logout();
+
+                                                  setState(() {
+                                                    _isLoading = false;
+                                                  });
+                                                  return;
+                                                }
+
+                                                print(
+                                                  '✅ [LOGIN] Phone verification successful - continuing with login flow',
+                                                );
+                                              } else {
+                                                print(
+                                                  '✅ [LOGIN] Phone verification not needed - skipping OTP',
+                                                );
+                                              }
+                                            } else {
+                                              print(
+                                                '✅ [LOGIN] User without baiguullagiinId - skipping OTP verification',
+                                              );
+                                            }
+
+                                            print(
+                                              '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
+                                            );
+
                                             // Check if user has address in their profile
                                             // The login response has walletBairId and walletDoorNo
                                             bool hasAddress = false;
 
-                                            // MOBILE-created users: do not require Wallet address selection on login.
-                                            // Their "Хаягийн мэдээлэл" is collected during signup.
+                                            // MOBILE-created users: Check if they have address saved
+                                            // If not, show address selection screen
                                             if (!hasBaiguullagiinId) {
-                                              hasAddress =
-                                                  true; // skip address selection block below
-                                              print(
-                                                '📍 [LOGIN] NO-ORG user detected -> skipping wallet address checks and address_selection screen',
-                                              );
+                                              // Check if user has address in profile or local storage
+                                              final walletBairId =
+                                                  userData?['walletBairId']
+                                                      ?.toString();
+                                              final walletDoorNo =
+                                                  userData?['walletDoorNo']
+                                                      ?.toString();
+
+                                              if (walletBairId != null &&
+                                                  walletBairId.isNotEmpty &&
+                                                  walletDoorNo != null &&
+                                                  walletDoorNo.isNotEmpty) {
+                                                // Save address from user profile to local storage
+                                                await StorageService.saveWalletAddress(
+                                                  bairId: walletBairId,
+                                                  doorNo: walletDoorNo,
+                                                );
+                                                hasAddress = true;
+                                                print(
+                                                  '📍 [LOGIN] NO-ORG user - Address found in profile: $walletBairId / $walletDoorNo',
+                                                );
+                                              } else {
+                                                // Check if address is already saved locally
+                                                hasAddress =
+                                                    await StorageService.hasSavedAddress();
+                                                print(
+                                                  '📍 [LOGIN] NO-ORG user - Address not in profile, checking local storage: $hasAddress',
+                                                );
+                                              }
+
+                                              // If NO-ORG user doesn't have address, show address selection
+                                              if (!hasAddress) {
+                                                print(
+                                                  '📍 [LOGIN] NO-ORG user has no address - showing address selection screen',
+                                                );
+                                                final addressSaved =
+                                                    await context.push<bool>(
+                                                      '/address_selection',
+                                                    );
+
+                                                // Only navigate to home if address was successfully saved
+                                                if (addressSaved != true) {
+                                                  print(
+                                                    '⚠️ [LOGIN] Address selection cancelled or failed, staying on login screen',
+                                                  );
+                                                  setState(() {
+                                                    _isLoading = false;
+                                                  });
+                                                  return; // Exit early, don't navigate to home
+                                                }
+                                                hasAddress = true;
+                                              }
                                             } else if (userData != null) {
                                               final walletBairId =
                                                   userData['walletBairId']

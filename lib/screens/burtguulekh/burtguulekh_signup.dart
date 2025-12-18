@@ -65,12 +65,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _nerController = TextEditingController();
   final TextEditingController _ovogController = TextEditingController();
-  // Address controllers (used when baiguullagiinId is not available)
-  final TextEditingController _duuregController = TextEditingController();
-  final TextEditingController _horooController = TextEditingController();
-  final TextEditingController _bairController = TextEditingController();
-  final TextEditingController _ortsController = TextEditingController();
-  final TextEditingController _tootController = TextEditingController();
 
   // Hidden fields (auto-filled, not displayed)
   String? _baiguullagiinId;
@@ -81,21 +75,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  // Step 1: Хэрэглэгчийн мэдээлэл
-  // Step 2: Хаягийн мэдээлэл (only when NO-ORG)
-  int _currentStep = 1;
-
-  // Address dropdown data (Wallet Address API)
-  bool _isLoadingAddressData = false;
-  List<Map<String, dynamic>> _walletCities = [];
-  List<Map<String, dynamic>> _walletDistricts = [];
-  List<Map<String, dynamic>> _walletKhoroos = [];
-  List<Map<String, dynamic>> _walletBuildings = [];
-
-  String? _selectedCityId; // hidden (auto-selected: ULAANBAATAR)
-  String? _selectedDistrictId; // duureg
-  String? _selectedKhorooId; // horoo
-  String? _selectedBuildingId; // bair
 
   @override
   void initState() {
@@ -174,16 +153,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     return id.isNotEmpty && id.toLowerCase() != 'null';
   }
 
-  // Step 2 should be shown ONLY for true NO-ORG (mobile) signups.
-  // If user has baiguullagiinId (web-created user), NEVER go to step 2,
-  // even if forceNoOrg was accidentally passed as true.
-  bool get _needsAddressStep {
-    final routeOrgId = (widget.baiguullagiinId ?? '').trim();
-    final hasRouteOrgId =
-        routeOrgId.isNotEmpty && routeOrgId.toLowerCase() != 'null';
-    final hasOrg = _hasBaiguullagiinId || hasRouteOrgId;
-    return widget.forceNoOrg == true && !hasOrg;
-  }
 
   bool _validateUserInfoOnly() {
     return _phoneController.text.trim().isNotEmpty &&
@@ -207,11 +176,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     _emailController.dispose();
     _nerController.dispose();
     _ovogController.dispose();
-    _duuregController.dispose();
-    _horooController.dispose();
-    _bairController.dispose();
-    _ortsController.dispose();
-    _tootController.dispose();
     super.dispose();
   }
 
@@ -228,17 +192,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         _confirmPasswordController.text.trim().length == 4 &&
         _passwordController.text.trim() ==
             _confirmPasswordController.text.trim();
-
-    // If this is NO-ORG signup, require full address as well
-    if (_needsAddressStep) {
-      final hasAddress =
-          _duuregController.text.trim().isNotEmpty &&
-          _horooController.text.trim().isNotEmpty &&
-          _bairController.text.trim().isNotEmpty &&
-          _ortsController.text.trim().isNotEmpty &&
-          _tootController.text.trim().isNotEmpty;
-      return hasBasicFields && hasAddress;
-    }
 
     return hasBasicFields;
   }
@@ -295,25 +248,12 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
       };
 
       // ORG signup: must include baiguullagiinId
-      if (!_needsAddressStep) {
-        final id = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim();
-        if (id.isEmpty || id.toLowerCase() == 'null') {
-          throw Exception('Байгууллагын мэдээлэл олдсонгүй');
-        }
+      final id = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim();
+      if (id.isNotEmpty && id.toLowerCase() != 'null') {
         registrationData['baiguullagiinId'] = id;
         registrationData['tsahilgaaniiZaalt'] = _tsahilgaaniiZaalt;
-      } else {
-        // User WITHOUT baiguullagiinId – require and send full address
-        registrationData.addAll({
-          'duureg': _duuregController.text.trim(),
-          'horoo': _horooController.text.trim(),
-          'bairniiNer': _bairController.text.trim(),
-          'orts': _ortsController.text.trim(),
-          // NOTE: Davkhar field removed from UI; send a safe default so backend won't reject.
-          'davkhar': _defaultDavkhar,
-          'toot': _tootController.text.trim(),
-        });
       }
+      // Note: Address will be selected separately after registration
 
       print('🔍 [REGISTRATION] Registration data: $registrationData');
 
@@ -350,9 +290,17 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         // Add loading animation before redirect
         await Future.delayed(const Duration(milliseconds: 800));
 
-        // Navigate to login with smooth transition
+        // If user doesn't have baiguullagiinId, navigate to address selection
+        // Otherwise, navigate to login
         if (mounted) {
-          context.go('/newtrekh');
+          final hasOrgId = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim().isNotEmpty;
+          if (!hasOrgId) {
+            // Navigate to address selection screen for users without organization
+            context.go('/address_selection');
+          } else {
+            // Navigate to login for users with organization
+            context.go('/newtrekh');
+          }
         }
       }
     } catch (e) {
@@ -382,485 +330,19 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   Future<void> _onPrimaryAction() async {
     if (_isLoading) return;
 
-    // Step 1: validate user info first
-    if (_currentStep == 1) {
-      // Log ONLY when user clicks "Дараах" / "Бүртгүүлэх" on Step 1
-      debugPrint(
-        '🧭 [SIGNUP][STEP1_CLICK] '
-        'forceNoOrg=${widget.forceNoOrg}, '
-        'route.baiguullagiinId=${widget.baiguullagiinId}, '
-        '_baiguullagiinId=$_baiguullagiinId, '
-        '_hasBaiguullagiinId=$_hasBaiguullagiinId, '
-        '_needsAddressStep=$_needsAddressStep',
+    if (!_formKey.currentState!.validate() || !_validateUserInfoOnly()) {
+      showGlassSnackBar(
+        context,
+        message: 'Хэрэглэгчийн мэдээллээ зөв бөглөнө үү',
+        icon: Icons.error,
+        iconColor: Colors.red,
       );
-
-      if (!_formKey.currentState!.validate() || !_validateUserInfoOnly()) {
-        showGlassSnackBar(
-          context,
-          message: 'Хэрэглэгчийн мэдээллээ зөв бөглөнө үү',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-        return;
-      }
-
-      // If NO-ORG, go to step 2 (address). If ORG, submit immediately.
-      if (_needsAddressStep) {
-        setState(() {
-          _currentStep = 2;
-        });
-        await _ensureWalletAddressDataLoaded();
-        return;
-      }
-
-      await _handleRegistration();
       return;
     }
 
-    // Step 2: submit full form (includes address)
     await _handleRegistration();
   }
 
-  String _pickString(Map<String, dynamic> m, List<String> keys) {
-    for (final k in keys) {
-      final v = m[k];
-      if (v != null) return v.toString();
-    }
-    return '';
-  }
-
-  String _getCityId(Map<String, dynamic> m) =>
-      _pickString(m, ['cityId', 'id', '_id']);
-  String _getDistrictId(Map<String, dynamic> m) =>
-      _pickString(m, ['districtId', 'id', '_id']);
-  String _getKhorooId(Map<String, dynamic> m) =>
-      _pickString(m, ['khorooId', 'id', '_id']);
-  String _getBuildingId(Map<String, dynamic> m) =>
-      _pickString(m, ['bairId', 'buildingId', 'id', '_id']);
-
-  String _getName(Map<String, dynamic> m) => _pickString(m, [
-    'name',
-    'districtName',
-    'khorooName',
-    'bairNer',
-    'cityName',
-  ]);
-
-  Future<void> _ensureWalletAddressDataLoaded() async {
-    if (_walletDistricts.isNotEmpty || _isLoadingAddressData) return;
-
-    setState(() {
-      _isLoadingAddressData = true;
-    });
-
-    try {
-      _walletCities = await ApiService.getWalletCities();
-
-      // Auto-select ULAANBAATAR if present
-      Map<String, dynamic>? ulaan;
-      for (final c in _walletCities) {
-        final name = _getName(c).toUpperCase();
-        if (name.contains('УЛААНБААТАР') || name.contains('ULAANBAATAR')) {
-          ulaan = c;
-          break;
-        }
-      }
-      final city =
-          ulaan ?? (_walletCities.isNotEmpty ? _walletCities.first : null);
-      _selectedCityId = city != null ? _getCityId(city) : null;
-
-      if (_selectedCityId != null && _selectedCityId!.isNotEmpty) {
-        _walletDistricts = await ApiService.getWalletDistricts(
-          _selectedCityId!,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Хаягийн мэдээлэл татахад алдаа гарлаа: $e',
-          icon: Icons.error_outline,
-          iconColor: Colors.red,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingAddressData = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _onSelectDuureg(String? districtId) async {
-    if (districtId == null || districtId.isEmpty) return;
-
-    setState(() {
-      _selectedDistrictId = districtId;
-      _selectedKhorooId = null;
-      _selectedBuildingId = null;
-      _walletKhoroos = [];
-      _walletBuildings = [];
-      _horooController.text = '';
-      _bairController.text = '';
-    });
-
-    final district = _walletDistricts.firstWhere(
-      (d) => _getDistrictId(d) == districtId,
-      orElse: () => <String, dynamic>{},
-    );
-    _duuregController.text = _getName(district);
-
-    setState(() {
-      _isLoadingAddressData = true;
-    });
-    try {
-      _walletKhoroos = await ApiService.getWalletKhoroos(districtId);
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Хороо татахад алдаа гарлаа: $e',
-          icon: Icons.error_outline,
-          iconColor: Colors.red,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingAddressData = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _onSelectHoroo(String? khorooId) async {
-    if (khorooId == null || khorooId.isEmpty) return;
-
-    setState(() {
-      _selectedKhorooId = khorooId;
-      _selectedBuildingId = null;
-      _walletBuildings = [];
-      _bairController.text = '';
-    });
-
-    final khoroo = _walletKhoroos.firstWhere(
-      (h) => _getKhorooId(h) == khorooId,
-      orElse: () => <String, dynamic>{},
-    );
-    _horooController.text = _getName(khoroo);
-
-    setState(() {
-      _isLoadingAddressData = true;
-    });
-    try {
-      _walletBuildings = await ApiService.getWalletBuildings(khorooId);
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Байр татахад алдаа гарлаа: $e',
-          icon: Icons.error_outline,
-          iconColor: Colors.red,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingAddressData = false;
-        });
-      }
-    }
-  }
-
-  void _onSelectBair(String? buildingId) {
-    if (buildingId == null || buildingId.isEmpty) return;
-    setState(() {
-      _selectedBuildingId = buildingId;
-    });
-
-    final building = _walletBuildings.firstWhere(
-      (b) => _getBuildingId(b) == buildingId,
-      orElse: () => <String, dynamic>{},
-    );
-    _bairController.text = _getName(building);
-  }
-
-  Future<String?> _showPickerBottomSheet({
-    required String title,
-    required List<Map<String, dynamic>> items,
-    required String Function(Map<String, dynamic>) getId,
-    required String Function(Map<String, dynamic>) getLabel,
-    required String? selectedId,
-  }) async {
-    return showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        String query = '';
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final filtered = items.where((m) {
-              final name = getLabel(m).toLowerCase();
-              return query.isEmpty || name.contains(query.toLowerCase());
-            }).toList();
-
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.75,
-              decoration: BoxDecoration(
-                color: context.cardBackgroundColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24.r),
-                  topRight: Radius.circular(24.r),
-                ),
-                border: Border.all(color: context.borderColor),
-              ),
-              child: Column(
-                children: [
-                  SizedBox(height: 10.h),
-                  Container(
-                    width: 42.w,
-                    height: 4.h,
-                    decoration: BoxDecoration(
-                      color: context.borderColor,
-                      borderRadius: BorderRadius.circular(2.r),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 14.h, 12.w, 8.h),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: context.titleStyle(
-                              color: context.textPrimaryColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: Icon(
-                            Icons.close_rounded,
-                            color: context.textSecondaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
-                    child: TextField(
-                      onChanged: (v) => setModalState(() => query = v),
-                      style: TextStyle(color: context.textPrimaryColor),
-                      decoration: InputDecoration(
-                        hintText: 'Хайх...',
-                        hintStyle: TextStyle(color: context.textSecondaryColor),
-                        filled: true,
-                        fillColor: context.accentBackgroundColor,
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          color: context.textSecondaryColor,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? Center(
-                            child: Text(
-                              'Мэдээлэл олдсонгүй',
-                              style: context.descriptionStyle(
-                                color: context.textSecondaryColor,
-                              ),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: EdgeInsets.only(bottom: 20.h),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, __) =>
-                                Divider(height: 1, color: context.borderColor),
-                            itemBuilder: (context, index) {
-                              final item = filtered[index];
-                              final id = getId(item);
-                              final label = getLabel(item);
-                              final isSelected = selectedId == id;
-
-                              return ListTile(
-                                onTap: () => Navigator.of(context).pop(id),
-                                title: Text(
-                                  label,
-                                  style: context.descriptionStyle(
-                                    color: context.textPrimaryColor,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : null,
-                                  ),
-                                ),
-                                trailing: isSelected
-                                    ? Icon(
-                                        Icons.check_circle_rounded,
-                                        color: AppColors.deepGreen,
-                                      )
-                                    : null,
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildPickerField({
-    required String hintText,
-    required String title,
-    required String displayText,
-    required String? value,
-    required List<Map<String, dynamic>> items,
-    required String Function(Map<String, dynamic>) getId,
-    required String Function(Map<String, dynamic>) getLabel,
-    required Future<void> Function(String?) onSelected,
-    required String? Function(String?) validator,
-    bool enabled = true,
-    bool loading = false,
-  }) {
-    return FormField<String>(
-      initialValue: value,
-      validator: validator,
-      builder: (state) {
-        final isDark = context.isDarkMode;
-        final hasValue = displayText.trim().isNotEmpty;
-        final showText = hasValue ? displayText : hintText;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              margin: EdgeInsets.only(bottom: state.hasError ? 6.h : 16.h),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    offset: const Offset(0, 4),
-                    blurRadius: 12,
-                    spreadRadius: 0,
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16.r),
-                  onTap: (!enabled || loading)
-                      ? null
-                      : () async {
-                          final picked = await _showPickerBottomSheet(
-                            title: title,
-                            items: items,
-                            getId: getId,
-                            getLabel: getLabel,
-                            selectedId: value,
-                          );
-                          if (picked == null) return;
-                          state.didChange(picked);
-                          await onSelected(picked);
-                        },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 20.w,
-                      vertical: 16.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.secondaryAccent.withOpacity(0.3)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(16.r),
-                      border: Border.all(
-                        color: state.hasError
-                            ? Colors.red
-                            : (isDark
-                                  ? Colors.white.withOpacity(0.1)
-                                  : AppColors.lightInputGray),
-                        width: state.hasError ? 1.5 : 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            showText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: (!enabled)
-                                  ? (isDark
-                                        ? Colors.white.withOpacity(0.5)
-                                        : AppColors.lightTextSecondary
-                                              .withOpacity(0.6))
-                                  : (hasValue
-                                        ? (isDark
-                                              ? Colors.white
-                                              : AppColors.lightTextPrimary)
-                                        : (isDark
-                                              ? Colors.white.withOpacity(0.5)
-                                              : AppColors.lightTextSecondary
-                                                    .withOpacity(0.6))),
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (loading)
-                          SizedBox(
-                            width: 18.w,
-                            height: 18.w,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.deepGreen,
-                            ),
-                          )
-                        else
-                          Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: isDark
-                                ? Colors.white.withOpacity(0.6)
-                                : AppColors.lightTextSecondary,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (state.hasError)
-              Padding(
-                padding: EdgeInsets.only(left: 12.w, bottom: 10.h),
-                child: Text(
-                  state.errorText ?? '',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -1106,112 +588,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     );
   }
 
-  Widget _buildAddressContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Хаягийн мэдээлэл',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppColors.goldLight,
-            fontSize: 20.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        _buildPickerField(
-          hintText: 'Дүүрэг *',
-          title: 'Дүүрэг сонгох',
-          displayText: _duuregController.text,
-          value: _selectedDistrictId,
-          items: _walletDistricts,
-          getId: _getDistrictId,
-          getLabel: _getName,
-          loading: _isLoadingAddressData,
-          onSelected: (v) async => _onSelectDuureg(v),
-          validator: (_) {
-            if (_currentStep == 2 && _needsAddressStep) {
-              if (_selectedDistrictId == null || _selectedDistrictId!.isEmpty) {
-                return 'Дүүрэг сонгоно уу';
-              }
-            }
-            return null;
-          },
-          enabled: true,
-        ),
-        _buildPickerField(
-          hintText: 'Хороо *',
-          title: 'Хороо сонгох',
-          displayText: _horooController.text,
-          value: _selectedKhorooId,
-          items: _walletKhoroos,
-          getId: _getKhorooId,
-          getLabel: _getName,
-          loading: _isLoadingAddressData,
-          onSelected: (v) async => _onSelectHoroo(v),
-          validator: (_) {
-            if (_currentStep == 2 && _needsAddressStep) {
-              if (_selectedKhorooId == null || _selectedKhorooId!.isEmpty) {
-                return 'Хороо сонгоно уу';
-              }
-            }
-            return null;
-          },
-          enabled:
-              _selectedDistrictId != null && _selectedDistrictId!.isNotEmpty,
-        ),
-        _buildPickerField(
-          hintText: 'Байрны нэр *',
-          title: 'Байр сонгох',
-          displayText: _bairController.text,
-          value: _selectedBuildingId,
-          items: _walletBuildings,
-          getId: _getBuildingId,
-          getLabel: _getName,
-          loading: _isLoadingAddressData,
-          onSelected: (v) async {
-            _onSelectBair(v);
-          },
-          validator: (_) {
-            if (_currentStep == 2 && _needsAddressStep) {
-              if (_selectedBuildingId == null || _selectedBuildingId!.isEmpty) {
-                return 'Байр сонгоно уу';
-              }
-            }
-            return null;
-          },
-          enabled: _selectedKhorooId != null && _selectedKhorooId!.isNotEmpty,
-        ),
-        _buildTextField(
-          controller: _ortsController,
-          hintText: 'Орц *',
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Орц оруулна уу';
-            }
-            return null;
-          },
-        ),
-        _buildTextField(
-          controller: _tootController,
-          hintText: 'Тоот *',
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(4),
-          ],
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Тоот оруулна уу';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1271,29 +647,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
                     _buildUserInfoContent(),
                     SizedBox(height: 16.h),
 
-                    // Step 2 only AFTER step 1 is completed (NO-ORG users)
-                    if (_currentStep == 2 && _needsAddressStep) ...[
-                      _buildAddressContent(),
-                      SizedBox(height: 8.h),
-                      TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                setState(() {
-                                  _currentStep = 1;
-                                });
-                              },
-                        child: Text(
-                          'Буцах',
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.h),
-                    ],
                     // Action button
                     GestureDetector(
                       onTap: _onPrimaryAction,
@@ -1318,9 +671,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
                                 ),
                               )
                             : Text(
-                                (_currentStep == 1 && _needsAddressStep)
-                                    ? 'Дараах'
-                                    : 'Бүртгүүлэх',
+                                'Бүртгүүлэх',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,

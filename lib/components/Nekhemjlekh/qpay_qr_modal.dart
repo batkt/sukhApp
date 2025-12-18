@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 
 class QPayQRModal extends StatefulWidget {
   final String? qrImageOwnOrg;
   final String? qrImageWallet;
+  final String? qrText; // For Wallet API - QR code text to generate QR from
 
   /// Async payment check (preferred). Return:
   /// - true: paid
@@ -25,6 +27,7 @@ class QPayQRModal extends StatefulWidget {
     super.key,
     this.qrImageOwnOrg,
     this.qrImageWallet,
+    this.qrText,
     this.onCheckPaymentAsync,
     this.onCheckPayment,
     this.closeOnSuccess = false,
@@ -81,14 +84,56 @@ class _QPayQRModalState extends State<QPayQRModal> {
     }
   }
 
+  Widget _buildQRCode(String? qrText, String? qrImage, {double size = 250}) {
+    if (qrText != null && qrText.isNotEmpty) {
+      // Generate QR code from text
+      return QrImageView(
+        data: qrText,
+        version: QrVersions.auto,
+        size: size,
+        backgroundColor: Colors.white,
+        errorCorrectionLevel: QrErrorCorrectLevel.M,
+      );
+    } else if (qrImage != null && qrImage.isNotEmpty) {
+      // Show QR image (base64 or URL)
+      try {
+        // Try to decode as base64 first
+        return Image.memory(
+          base64Decode(qrImage),
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+        );
+      } catch (e) {
+        // If not base64, try as URL
+        return Image.network(
+          qrImage,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              width: size,
+              height: size,
+              color: Colors.grey[300],
+              child: const Icon(Icons.error),
+            );
+          },
+        );
+      }
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasOwnOrg =
         widget.qrImageOwnOrg != null && widget.qrImageOwnOrg!.isNotEmpty;
     final hasWallet =
         widget.qrImageWallet != null && widget.qrImageWallet!.isNotEmpty;
+    final hasQrText = widget.qrText != null && widget.qrText!.isNotEmpty;
 
-    if (!hasOwnOrg && !hasWallet) {
+    if (!hasOwnOrg && !hasWallet && !hasQrText) {
       return Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
@@ -146,7 +191,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
             ),
             SizedBox(height: 20.h),
             // Show 2 QR codes side by side if both exist, otherwise show single
-            if (hasOwnOrg && hasWallet)
+            if (hasOwnOrg && (hasWallet || hasQrText))
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -171,12 +216,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
                                 : AppColors.lightSurface,
                             borderRadius: BorderRadius.circular(12.w),
                           ),
-                          child: Image.memory(
-                            base64Decode(widget.qrImageOwnOrg!),
-                            width: 150.w,
-                            height: 150.w,
-                            fit: BoxFit.contain,
-                          ),
+                          child: _buildQRCode(null, widget.qrImageOwnOrg, size: 150.w),
                         ),
                       ],
                     ),
@@ -203,11 +243,10 @@ class _QPayQRModalState extends State<QPayQRModal> {
                                 : AppColors.lightSurface,
                             borderRadius: BorderRadius.circular(12.w),
                           ),
-                          child: Image.memory(
-                            base64Decode(widget.qrImageWallet!),
-                            width: 150.w,
-                            height: 150.w,
-                            fit: BoxFit.contain,
+                          child: _buildQRCode(
+                            widget.qrText,
+                            widget.qrImageWallet,
+                            size: 150.w,
                           ),
                         ),
                       ],
@@ -225,13 +264,10 @@ class _QPayQRModalState extends State<QPayQRModal> {
                       : AppColors.lightSurface,
                   borderRadius: BorderRadius.circular(12.w),
                 ),
-                child: Image.memory(
-                  base64Decode(
-                    hasOwnOrg ? widget.qrImageOwnOrg! : widget.qrImageWallet!,
-                  ),
-                  width: 250.w,
-                  height: 250.w,
-                  fit: BoxFit.contain,
+                child: _buildQRCode(
+                  widget.qrText,
+                  hasOwnOrg ? widget.qrImageOwnOrg : widget.qrImageWallet,
+                  size: 250.w,
                 ),
               ),
             SizedBox(height: 20.h),

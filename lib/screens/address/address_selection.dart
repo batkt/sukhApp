@@ -11,7 +11,12 @@ import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
-  const AddressSelectionScreen({super.key});
+  final bool fromMenu; // Flag to indicate if accessed from menu
+  
+  const AddressSelectionScreen({
+    super.key,
+    this.fromMenu = false, // Default to false for backward compatibility
+  });
 
   @override
   State<AddressSelectionScreen> createState() => _AddressSelectionScreenState();
@@ -45,12 +50,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   bool _hasBaiguullagiinId = false;
   bool _hasExistingAddress = false;
   bool _isCheckingAddress = true;
+  String? _currentAddressDisplay;
 
   @override
   void initState() {
     super.initState();
     _checkUserAddressStatus();
     _loadCities();
+    _loadExistingAddress();
     // Add listener to validate toot when door number changes
     _doorNoController.addListener(() {
       final source = _selectedBuilding?['source']?.toString();
@@ -72,6 +79,61 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     });
   }
 
+  Future<void> _loadExistingAddress() async {
+    try {
+      // Check if user is logged in
+      final isLoggedIn = await StorageService.isLoggedIn();
+      if (!isLoggedIn) return;
+
+      // Load saved address from storage
+      final savedBairId = await StorageService.getWalletBairId();
+      final savedDoorNo = await StorageService.getWalletDoorNo();
+
+      if (savedBairId != null && savedDoorNo != null) {
+        // Set door number
+        if (mounted) {
+          _doorNoController.text = savedDoorNo;
+        }
+
+        // Try to get address display from user profile
+        try {
+          final profile = await ApiService.getUserProfile();
+          if (profile['result'] != null) {
+            final userData = profile['result'];
+            String? addressText;
+            
+            if (userData['bairniiNer'] != null &&
+                userData['bairniiNer'].toString().isNotEmpty) {
+              addressText = userData['bairniiNer'].toString();
+              if (savedDoorNo.isNotEmpty) {
+                addressText += ', Тоот: $savedDoorNo';
+              }
+            } else if (savedDoorNo.isNotEmpty) {
+              addressText = 'Тоот: $savedDoorNo';
+            }
+            
+            if (mounted && addressText != null) {
+              setState(() {
+                _currentAddressDisplay = addressText;
+                _hasExistingAddress = true;
+              });
+            }
+          }
+        } catch (e) {
+          // If profile fetch fails, just show door number
+          if (mounted && savedDoorNo.isNotEmpty) {
+            setState(() {
+              _currentAddressDisplay = 'Тоот: $savedDoorNo';
+              _hasExistingAddress = true;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore errors when loading existing address
+    }
+  }
+
   @override
   void dispose() {
     _doorNoController.dispose();
@@ -81,6 +143,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
   Future<void> _checkUserAddressStatus() async {
     try {
+      print('🔍 [ADDRESS] Checking address status, fromMenu: ${widget.fromMenu}');
+      
       // Check if user already has address on the server
       try {
         final profile = await ApiService.getUserProfile();
@@ -90,21 +154,35 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           final walletDoorNo = userData['walletDoorNo']?.toString();
 
           // If user has both walletBairId and walletDoorNo, they already have address
+          // But if accessed from menu, allow viewing/editing
           if (walletBairId != null &&
               walletBairId.isNotEmpty &&
               walletDoorNo != null &&
               walletDoorNo.isNotEmpty) {
-            // User already has address - redirect to main page instead of showing the page
+            print('🔍 [ADDRESS] User has existing address, fromMenu: ${widget.fromMenu}');
+            // If NOT from menu, redirect to main page (during registration/login flow)
+            // If from menu, allow access to view/edit address
+            if (!widget.fromMenu) {
+              print('🔍 [ADDRESS] Redirecting to homepage (not from menu)');
+              // User already has address - redirect to main page instead of showing the page
+              if (mounted) {
+                // Use post-frame callback to ensure navigation happens after build
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    // Redirect to main page for existing users
+                    context.go('/nuur');
+                  }
+                });
+              }
+              return;
+            }
+            // If from menu, set existing address flag and continue
+            print('🔍 [ADDRESS] Allowing access (from menu), setting existing address flag');
             if (mounted) {
-              // Use post-frame callback to ensure navigation happens after build
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  // Redirect to main page for existing users
-                  context.go('/nuur');
-                }
+              setState(() {
+                _hasExistingAddress = true;
               });
             }
-            return;
           }
         }
       } catch (e) {
@@ -113,19 +191,25 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
       // Check if user has baiguullagiinId in storage
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      print('🔍 [ADDRESS] baiguullagiinId: ${baiguullagiinId != null && baiguullagiinId.isNotEmpty ? "exists" : "null"}, fromMenu: ${widget.fromMenu}');
       if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
-        // Check if user is already logged in - if so, redirect to main page
-        final isLoggedIn = await StorageService.isLoggedIn();
-        if (isLoggedIn) {
-          // Existing logged-in user with baiguullagiinId - redirect to main page
-          if (mounted) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                context.go('/nuur');
-              }
-            });
+        // If accessed from menu, allow viewing/editing even if they have baiguullagiinId
+        // Only redirect if NOT from menu (e.g., during registration/login flow)
+        if (!widget.fromMenu) {
+          print('🔍 [ADDRESS] User has baiguullagiinId, checking if logged in (not from menu)');
+          // Check if user is already logged in - if so, redirect to main page
+          final isLoggedIn = await StorageService.isLoggedIn();
+          if (isLoggedIn) {
+            // Existing logged-in user with baiguullagiinId - redirect to main page
+            if (mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  context.go('/nuur');
+                }
+              });
+            }
+            return;
           }
-          return;
         }
         if (mounted) {
           setState(() {
@@ -139,18 +223,22 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           final profile = await ApiService.getUserProfile();
           if (profile['result']?['baiguullagiinId'] != null &&
               profile['result']['baiguullagiinId'].toString().isNotEmpty) {
-            // Check if user is already logged in - if so, redirect to main page
-            final isLoggedIn = await StorageService.isLoggedIn();
-            if (isLoggedIn) {
-              // Existing logged-in user with baiguullagiinId - redirect to main page
-              if (mounted) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    context.go('/nuur');
-                  }
-                });
+            // If accessed from menu, allow viewing/editing even if they have baiguullagiinId
+            // Only redirect if NOT from menu (e.g., during registration/login flow)
+            if (!widget.fromMenu) {
+              // Check if user is already logged in - if so, redirect to main page
+              final isLoggedIn = await StorageService.isLoggedIn();
+              if (isLoggedIn) {
+                // Existing logged-in user with baiguullagiinId - redirect to main page
+                if (mounted) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      context.go('/nuur');
+                    }
+                  });
+                }
+                return;
               }
-              return;
             }
             if (mounted) {
               setState(() {
@@ -260,6 +348,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           _cities = cities;
           _isLoadingCities = false;
         });
+        // After cities are loaded, try to load existing address if available
+        _tryLoadExistingAddressFromStorage();
       }
     } catch (e) {
       if (mounted) {
@@ -273,6 +363,38 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           iconColor: Colors.red,
         );
       }
+    }
+  }
+
+  Future<void> _tryLoadExistingAddressFromStorage() async {
+    try {
+      final savedBairId = await StorageService.getWalletBairId();
+      final savedDoorNo = await StorageService.getWalletDoorNo();
+
+      if (savedBairId != null && savedDoorNo != null && _cities.isNotEmpty) {
+        // Auto-select Ulaanbaatar city (most common)
+        Map<String, dynamic>? ulaanCity;
+        for (final city in _cities) {
+          final name = (city['name'] ?? city['cityName'] ?? '').toString().toUpperCase();
+          if (name.contains('УЛААНБААТАР') || name.contains('ULAANBAATAR')) {
+            ulaanCity = city;
+            break;
+          }
+        }
+        
+        if (ulaanCity != null) {
+          final cityId = ulaanCity['id']?.toString() ?? ulaanCity['_id']?.toString();
+          if (cityId != null) {
+            setState(() {
+              _selectedCity = ulaanCity;
+            });
+            await _loadDistricts(cityId);
+            // Continue loading address in _loadDistricts callback
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore errors
     }
   }
 
@@ -294,6 +416,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           _districts = districts;
           _isLoadingDistricts = false;
         });
+        // Try to continue loading existing address
+        _tryContinueLoadingExistingAddress();
       }
     } catch (e) {
       if (mounted) {
@@ -307,6 +431,20 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           iconColor: Colors.red,
         );
       }
+    }
+  }
+
+  Future<void> _tryContinueLoadingExistingAddress() async {
+    try {
+      final savedBairId = await StorageService.getWalletBairId();
+      if (savedBairId == null || _districts.isEmpty) return;
+
+      // Try to find the building by searching through districts and khoroos
+      // This is a simplified approach - in a real scenario, you might want to
+      // store the full address path or use an API to get building details by ID
+      // For now, we'll just ensure the door number is displayed
+    } catch (e) {
+      // Ignore errors
     }
   }
 
@@ -1157,19 +1295,54 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       tablet: 24,
                     ),
                   ),
-              child: Text(
-                (_hasExistingAddress || _hasBaiguullagiinId)
-                    ? 'Таны хаягийн мэдээлэл автоматаар хадгалагдах тул хадгалах товч дарж үргэлжлүүлнэ үү'
-                    : 'Хаягаа сонгосноор таны мэдээлэл автоматаар бүртгэгдэнэ',
-                style: TextStyle(
-                  color: context.textSecondaryColor,
-                  fontSize: context.responsiveFontSize(
-                    small: 13,
-                    medium: 14,
-                    large: 15,
-                    tablet: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_currentAddressDisplay != null) ...[
+                    Text(
+                      'Одоогийн хаяг:',
+                      style: TextStyle(
+                        color: context.textSecondaryColor,
+                        fontSize: context.responsiveFontSize(
+                          small: 12,
+                          medium: 13,
+                          large: 14,
+                          tablet: 15,
+                        ),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      _currentAddressDisplay!,
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: context.responsiveFontSize(
+                          small: 14,
+                          medium: 15,
+                          large: 16,
+                          tablet: 17,
+                        ),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                  ],
+                  Text(
+                    (_hasExistingAddress || _hasBaiguullagiinId)
+                        ? 'Хаягаа шинэчлэх бол доорх талбаруудыг бөглөнө үү'
+                        : 'Хаягаа сонгосноор таны мэдээлэл автоматаар бүртгэгдэнэ',
+                    style: TextStyle(
+                      color: context.textSecondaryColor,
+                      fontSize: context.responsiveFontSize(
+                        small: 13,
+                        medium: 14,
+                        large: 15,
+                        tablet: 16,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             // Search Bar
@@ -1341,8 +1514,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Only show address fields if user doesn't have existing address or baiguullagiinId
-                    if (!_hasExistingAddress && !_hasBaiguullagiinId) ...[
+                    // Show address fields for users without baiguullagiinId (allow editing existing address)
+                    if (!_hasBaiguullagiinId) ...[
                       _buildDropdown(
                         label: 'Хот',
                         items: _cities,

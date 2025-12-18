@@ -289,59 +289,9 @@ class _PaymentModalState extends State<PaymentModal> {
         }
       }
 
-      // Create WALLET QPay invoice (if user has WALLET address)
-      if (hasWallet) {
-        try {
-          // Get walletUserId from user profile
-          String? walletUserId;
-          try {
-            final userProfile = await ApiService.getUserProfile();
-            if (userProfile['result']?['walletCustomerId'] != null) {
-              walletUserId = userProfile['result']['walletCustomerId']
-                  .toString();
-            } else if (userProfile['result']?['utas'] != null) {
-              walletUserId = userProfile['result']['utas'].toString();
-            }
-          } catch (e) {
-            print('Error getting walletUserId: $e');
-          }
-
-          final walletResponse = await ApiService.qpayGargaya(
-            walletUserId: walletUserId,
-            walletBairId: walletBairId,
-            dun: totalAmount,
-            turul: turul,
-          );
-
-          // Handle Wallet QPay response - check for qrText or qr_image
-          if (walletResponse['qrText'] != null) {
-            // If qrText is provided, we need to generate QR code from it
-            // For now, check if qr_image is also provided
-            setState(() {
-              _qrImageWallet = walletResponse['qr_image']?.toString();
-            });
-            // TODO: If only qrText is provided, generate QR code from qrText
-          } else if (walletResponse['qr_image'] != null) {
-            setState(() {
-              _qrImageWallet = walletResponse['qr_image']?.toString();
-            });
-          }
-
-          // If we don't have bank list yet, try to load from WALLET response
-          if (_qpayBanks.isEmpty &&
-              walletResponse['urls'] != null &&
-              walletResponse['urls'] is List) {
-            final banks = (walletResponse['urls'] as List)
-                .map((e) => QPayBank.fromJson(e as Map<String, dynamic>))
-                .toList();
-            setState(() {
-              _qpayBanks = banks;
-            });
-          }
-        } catch (e) {
-          print('Error creating WALLET QPay invoice: $e');
-        }
-      }
+      // Note: Wallet API QPay requires billingId + billIds, not dun + walletUserId
+      // This modal is for OWN_ORG invoices, so we don't create Wallet QPay here
+      // Wallet QPay should only be created from billing flow (total_balance_modal.dart)
 
       if (_qrImageOwnOrg == null && _qrImageWallet == null) {
         if (mounted) {

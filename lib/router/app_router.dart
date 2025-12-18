@@ -104,11 +104,13 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/address_selection',
-      pageBuilder: (context, state) =>
-          PageTransitions.buildFadeThroughTransition(
-            key: state.pageKey,
-            child: const AddressSelectionScreen(),
-          ),
+      pageBuilder: (context, state) {
+        final fromMenu = state.uri.queryParameters['fromMenu'] == 'true';
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: AddressSelectionScreen(fromMenu: fromMenu),
+        );
+      },
     ),
     GoRoute(
       path: '/phone_verification',

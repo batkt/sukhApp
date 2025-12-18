@@ -295,6 +295,18 @@ class _SideMenuState extends State<SideMenu> {
                               context.push('/tokhirgoo');
                             },
                           ),
+                          // Show address selection only for users without baiguullagiinId
+                          if (_baiguullagiinId == null ||
+                              _baiguullagiinId!.isEmpty)
+                            _buildMenuItem(
+                              context,
+                              icon: Icons.location_on_outlined,
+                              title: 'Хаяг сонгох',
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push('/address_selection?fromMenu=true');
+                              },
+                            ),
                           // Show contract / invoice / parking only for users
                           // that are linked to an organization (have baiguullagiinId)
                           if (_baiguullagiinId != null &&

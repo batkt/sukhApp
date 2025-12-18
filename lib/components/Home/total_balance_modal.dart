@@ -33,6 +33,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
   List<QPayBank> _qpayBanks = [];
   String? _qrImageOwnOrg;
   String? _qrImageWallet;
+  String? _walletQrText; // For Wallet API - QR code text
 
   // Internal state for payments
   List<Map<String, dynamic>> _payments = [];
@@ -155,6 +156,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                   'amount': billingTotal,
                   'bills': bills,
                   'billing': billing,
+                  'billingId': billingId, // Add billingId for QPay payment
                 });
               }
             } catch (e) {
@@ -252,6 +254,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       _qpayBanks = [];
       _qrImageOwnOrg = null;
       _qrImageWallet = null;
+      _walletQrText = null;
     });
 
     try {
@@ -326,36 +329,60 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
               .toList();
         }
       } else if (source == 'WALLET_API' && hasWallet) {
-        // Get walletUserId from user profile
-        String? walletUserId;
-        try {
-          final userProfile = await ApiService.getUserProfile();
-          if (userProfile['result']?['walletCustomerId'] != null) {
-            walletUserId = userProfile['result']['walletCustomerId'].toString();
-          } else if (userProfile['result']?['utas'] != null) {
-            walletUserId = userProfile['result']['utas'].toString();
+        // Use new Wallet API QPay flow with billingId and billIds
+        String? billingId;
+        List<String> billIds = [];
+
+        // Extract billingId and billIds from selected payments
+        for (var payment in selectedPayments) {
+          // Get billingId from payment
+          billingId ??= payment['billingId']?.toString();
+          
+          // Get billIds from bills
+          final bills = payment['bills'] as List<dynamic>?;
+          if (bills != null) {
+            for (var bill in bills) {
+              if (bill is Map<String, dynamic>) {
+                // Try billId first (Wallet API format), then fallback to id/_id
+                final billId = bill['billId']?.toString() ?? 
+                              bill['id']?.toString() ?? 
+                              bill['_id']?.toString();
+                if (billId != null && billId.isNotEmpty && !billIds.contains(billId)) {
+                  billIds.add(billId);
+                }
+              }
+            }
           }
-        } catch (e) {
-          print('Error getting walletUserId: $e');
         }
 
-        final walletResponse = await ApiService.qpayGargaya(
-          walletUserId: walletUserId,
-          walletBairId: walletBairId,
-          dun: totalAmount,
-          turul: turul ?? '',
-          zakhialgiinDugaar: '$orderNumber-WALLET',
+        if (billingId == null || billIds.isEmpty) {
+          throw Exception('Биллинг эсвэл биллүүдийн мэдээлэл олдсонгүй');
+        }
+
+        // Create Wallet QPay payment using new endpoint
+        final walletResponse = await ApiService.createWalletQPayPayment(
+          billingId: billingId,
+          billIds: billIds,
+          vatReceiveType: 'CITIZEN', // Default to CITIZEN, can be made configurable
         );
 
-        _qrImageWallet =
-            walletResponse['qr_image']?.toString() ??
-            walletResponse['qrText']?.toString();
+        // Extract QR code data
+        _qrImageWallet = walletResponse['qrImage']?.toString();
+        final qrText = walletResponse['qrText']?.toString();
+        
+        // Store qrText for QR modal (will be passed separately)
+        _walletQrText = qrText;
 
-        if (walletResponse['urls'] != null && walletResponse['urls'] is List) {
-          _qpayBanks = (walletResponse['urls'] as List)
-              .map((bank) => QPayBank.fromJson(bank))
-              .toList();
-        }
+        // Note: New Wallet API QPay doesn't return bank URLs
+        // We'll show QPay Wallet option directly
+        _qpayBanks = [
+          QPayBank(
+            name: 'QPay Wallet',
+            description: 'qPay хэтэвч',
+            logo: '',
+            link: '',
+          ),
+        ];
       } else {
         throw Exception(
           '${source == 'OWN_ORG' ? 'OWN_ORG' : 'WALLET'} хаяг олдсонгүй',
@@ -461,6 +488,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       builder: (context) => QPayQRModal(
         qrImageOwnOrg: _qrImageOwnOrg,
         qrImageWallet: _qrImageWallet,
+        qrText: _walletQrText, // Pass qrText for Wallet API
         closeOnSuccess: true,
         onCheckPaymentAsync: () async {
           // We don't have an exact invoice status here; refresh and close.

@@ -361,36 +361,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         }
       }
 
-      // Create WALLET QPay invoice (if user has WALLET address)
-      if (hasWallet) {
-        try {
-          // Get walletUserId from user profile or use phone number
-          String? walletUserId;
-          try {
-            final userProfile = await ApiService.getUserProfile();
-            if (userProfile['result']?['walletCustomerId'] != null) {
-              walletUserId = userProfile['result']['walletCustomerId']
-                  .toString();
-            } else if (userProfile['result']?['utas'] != null) {
-              walletUserId = userProfile['result']['utas'].toString();
-            }
-          } catch (e) {
-            print('Error getting walletUserId: $e');
-          }
-
-          final walletResponse = await ApiService.qpayGargaya(
-            walletUserId: walletUserId,
-            walletBairId: walletBairId,
-            dun: totalAmount,
-            turul: turul,
-            zakhialgiinDugaar: '$orderNumber-WALLET',
-          );
-
-          qpayQrImageWallet = walletResponse['qr_image']?.toString();
-        } catch (e) {
-          print('Error creating WALLET QPay invoice: $e');
-        }
-      }
+      // Note: Wallet API QPay requires billingId + billIds, not dun + walletUserId
+      // This screen is for OWN_ORG invoices, so we don't create Wallet QPay here
+      // Wallet QPay should only be created from billing flow (total_balance_modal.dart)
 
       // Fallback to single QR if only one source or if both failed
       if (qpayQrImageOwnOrg == null && qpayQrImageWallet == null) {
