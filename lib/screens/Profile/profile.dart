@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -115,24 +117,39 @@ class _CreateProfileState extends State<CreateProfile>
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.all(16.w),
+                padding: context.responsivePadding(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 24,
+                ),
                 child: Row(
                   children: [
                     IconButton(
                       icon: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: 28.sp,
+                        size: context.responsiveIconSize(
+                          small: 28,
+                          medium: 30,
+                          large: 32,
+                          tablet: 34,
+                        ),
                       ),
                       onPressed: () => context.pop(),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(
+                      width: context.responsiveSpacing(
+                        small: 12,
+                        medium: 14,
+                        large: 16,
+                        tablet: 18,
+                      ),
+                    ),
                     Text(
                       'Хувийн мэдээлэл',
-                      style: TextStyle(
+                      style: context.largeTitleStyle(
                         color: Colors.white,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -144,7 +161,12 @@ class _CreateProfileState extends State<CreateProfile>
                     : FadeTransition(
                         opacity: _fadeAnimation,
                         child: SingleChildScrollView(
-                          padding: EdgeInsets.all(16.w),
+                          padding: context.responsivePadding(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 24,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -152,8 +174,18 @@ class _CreateProfileState extends State<CreateProfile>
                                 child: Stack(
                                   children: [
                                     Container(
-                                      width: 100.w,
-                                      height: 100.w,
+                                      width: context.responsiveSpacing(
+                                        small: 100,
+                                        medium: 110,
+                                        large: 120,
+                                        tablet: 130,
+                                      ),
+                                      height: context.responsiveSpacing(
+                                        small: 100,
+                                        medium: 110,
+                                        large: 120,
+                                        tablet: 130,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: const Color(
                                           0xFFe6ff00,
@@ -166,7 +198,12 @@ class _CreateProfileState extends State<CreateProfile>
                                       ),
                                       child: Icon(
                                         Icons.person,
-                                        size: 50.sp,
+                                        size: context.responsiveIconSize(
+                                          small: 50,
+                                          medium: 55,
+                                          large: 60,
+                                          tablet: 65,
+                                        ),
                                         color: const Color(0xFFe6ff00),
                                       ),
                                     ),
@@ -191,7 +228,12 @@ class _CreateProfileState extends State<CreateProfile>
                                           icon: Icon(
                                             Icons.camera_alt,
                                             color: Colors.black,
-                                            size: 20.sp,
+                                            size: context.responsiveIconSize(
+                                              small: 20,
+                                              medium: 22,
+                                              large: 24,
+                                              tablet: 26,
+                                            ),
                                           ),
                                           onPressed: () {},
                                         ),
@@ -200,16 +242,28 @@ class _CreateProfileState extends State<CreateProfile>
                                   ],
                                 ),
                               ),
-                              SizedBox(height: 32.h),
-                              Text(
-                                'Хэрэглэгчийн мэдээлэл',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.bold,
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 32,
+                                  medium: 36,
+                                  large: 40,
+                                  tablet: 44,
                                 ),
                               ),
-                              SizedBox(height: 16.h),
+                              Text(
+                                'Хэрэглэгчийн мэдээлэл',
+                                style: context.titleStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 16,
+                                  medium: 18,
+                                  large: 20,
+                                  tablet: 22,
+                                ),
+                              ),
                               Form(
                                 key: _formKey,
                                 child: Column(
@@ -220,7 +274,14 @@ class _CreateProfileState extends State<CreateProfile>
                                       icon: Icons.person_outline,
                                       enabled: false,
                                     ),
-                                    SizedBox(height: 16.h),
+                                    SizedBox(
+                                      height: context.responsiveSpacing(
+                                        small: 16,
+                                        medium: 18,
+                                        large: 20,
+                                        tablet: 22,
+                                      ),
+                                    ),
                                     _buildTextField(
                                       controller: _phoneController,
                                       label: 'Утас',
@@ -231,7 +292,14 @@ class _CreateProfileState extends State<CreateProfile>
                                   ],
                                 ),
                               ),
-                              SizedBox(height: 32.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 32,
+                                  medium: 36,
+                                  large: 40,
+                                  tablet: 44,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -246,15 +314,30 @@ class _CreateProfileState extends State<CreateProfile>
 
   Widget _buildLoadingSkeleton() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
+      padding: context.responsivePadding(
+        small: 16,
+        medium: 18,
+        large: 20,
+        tablet: 24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Profile avatar skeleton
           Center(
             child: Container(
-              width: 100.w,
-              height: 100.w,
+              width: context.responsiveSpacing(
+                small: 100,
+                medium: 110,
+                large: 120,
+                tablet: 130,
+              ),
+              height: context.responsiveSpacing(
+                small: 100,
+                medium: 110,
+                large: 120,
+                tablet: 130,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
@@ -267,20 +350,51 @@ class _CreateProfileState extends State<CreateProfile>
               ),
             ),
           ),
-          SizedBox(height: 32.h),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 32,
+              medium: 36,
+              large: 40,
+              tablet: 44,
+            ),
+          ),
           // User info section title
           Container(
-            height: 24.h,
-            width: 180.w,
+            height: context.responsiveSpacing(
+              small: 24,
+              medium: 26,
+              large: 28,
+              tablet: 30,
+            ),
+            width: context.responsiveSpacing(
+              small: 180,
+              medium: 200,
+              large: 220,
+              tablet: 240,
+            ),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+            ),
+          ),
           // Loading shimmer fields
           _buildSkeletonField(),
-          SizedBox(height: 16.h),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+            ),
+          ),
           _buildSkeletonField(),
         ],
       ),
@@ -289,36 +403,80 @@ class _CreateProfileState extends State<CreateProfile>
 
   Widget _buildSkeletonField() {
     return Container(
-      height: 60.h,
+      height: context.responsiveSpacing(
+        small: 60,
+        medium: 65,
+        large: 70,
+        tablet: 75,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12.w),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+          ),
+        ),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Padding(
-        padding: EdgeInsets.all(16.w),
+        padding: context.responsivePadding(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 22,
+        ),
         child: Row(
           children: [
             Container(
-              width: 24.w,
-              height: 24.w,
+              width: context.responsiveSpacing(
+                small: 24,
+                medium: 26,
+                large: 28,
+                tablet: 30,
+              ),
+              height: context.responsiveSpacing(
+                small: 24,
+                medium: 26,
+                large: 28,
+                tablet: 30,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
             ),
-            SizedBox(width: 16.w),
+            SizedBox(
+              width: context.responsiveSpacing(
+                small: 16,
+                medium: 18,
+                large: 20,
+                tablet: 22,
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    height: 12.h,
-                    width: 80.w,
+                    height: context.responsiveSpacing(
+                      small: 12,
+                      medium: 13,
+                      large: 14,
+                      tablet: 15,
+                    ),
+                    width: context.responsiveSpacing(
+                      small: 80,
+                      medium: 90,
+                      large: 100,
+                      tablet: 110,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4.w),
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
                 ],

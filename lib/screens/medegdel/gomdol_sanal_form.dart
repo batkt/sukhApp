@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class GomdolSanalFormScreen extends StatefulWidget {
   const GomdolSanalFormScreen({super.key});
@@ -50,7 +52,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
               : 'Санал амжилттай илгээгдлээ',
           icon: Icons.check_circle_outline,
           iconColor: Colors.green,
-          textColor: Colors.white,
+          textColor: context.textPrimaryColor,
           opacity: 0.3,
           blur: 15,
         );
@@ -69,7 +71,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
           message: 'Алдаа гарлаа: $e',
           icon: Icons.error_outline,
           iconColor: Colors.red,
-          textColor: Colors.white,
+          textColor: context.textPrimaryColor,
           opacity: 0.3,
           blur: 15,
         );
@@ -86,44 +88,16 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.backgroundColor,
+      appBar: buildStandardAppBar(
+        context,
+        title: _selectedType == 'gomdol' ? 'Гомдол илгээх' : 'Санал илгээх',
+      ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.darkBackground, AppColors.darkSurface],
-          ),
-        ),
+        color: context.backgroundColor,
         child: SafeArea(
           child: Column(
             children: [
-              // Header
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 28.sp,
-                      ),
-                      onPressed: () => context.pop(),
-                    ),
-                    SizedBox(width: 12.w),
-                    Text(
-                      _selectedType == 'gomdol'
-                          ? 'Гомдол илгээх'
-                          : 'Санал илгээх',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               // Form
               Expanded(
                 child: SingleChildScrollView(
@@ -137,7 +111,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                         Text(
                           'Төрөл сонгох',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                           ),
@@ -167,7 +141,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                         Text(
                           'Гарчиг',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                           ),
@@ -176,32 +150,32 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                         TextFormField(
                           controller: _titleController,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                             fontSize: 16.sp,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Гарчиг оруулах',
                             hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
+                              color: context.textSecondaryColor,
                             ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.1),
+                            fillColor: context.cardBackgroundColor,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.w),
                               borderSide: BorderSide(
-                                color: Colors.white.withOpacity(0.3),
+                                color: context.borderColor,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.w),
                               borderSide: BorderSide(
-                                color: Colors.white.withOpacity(0.3),
+                                color: context.borderColor,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.w),
                               borderSide: BorderSide(
-                                color: AppColors.secondaryAccent,
+                                color: AppColors.deepGreen,
                                 width: 2,
                               ),
                             ),
@@ -229,7 +203,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                         Text(
                           'Дэлгэрэнгүй',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
                           ),
@@ -238,33 +212,33 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                         TextFormField(
                           controller: _messageController,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                             fontSize: 16.sp,
                           ),
                           maxLines: 8,
                           decoration: InputDecoration(
                             hintText: 'Дэлгэрэнгүй мэдээлэл оруулах',
                             hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
+                              color: context.textSecondaryColor,
                             ),
                             filled: true,
-                            fillColor: Colors.white.withOpacity(0.1),
+                            fillColor: context.cardBackgroundColor,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.w),
                               borderSide: BorderSide(
-                                color: Colors.white.withOpacity(0.3),
+                                color: context.borderColor,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.w),
                               borderSide: BorderSide(
-                                color: Colors.white.withOpacity(0.3),
+                                color: context.borderColor,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.w),
                               borderSide: BorderSide(
-                                color: AppColors.secondaryAccent,
+                                color: AppColors.deepGreen,
                                 width: 2,
                               ),
                             ),
@@ -297,15 +271,14 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           child: ElevatedButton(
                             onPressed: _isSubmitting ? null : _submitForm,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondaryAccent,
-                              foregroundColor: AppColors.darkBackground,
+                              backgroundColor: AppColors.deepGreen,
+                              foregroundColor: Colors.white,
                               padding: EdgeInsets.symmetric(vertical: 16.h),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12.w),
                               ),
-                              disabledBackgroundColor: Colors.white.withOpacity(
-                                0.3,
-                              ),
+                              disabledBackgroundColor:
+                                  context.textSecondaryColor,
                             ),
                             child: _isSubmitting
                                 ? SizedBox(
@@ -314,7 +287,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppColors.darkBackground,
+                                        Colors.white,
                                       ),
                                     ),
                                   )
@@ -323,6 +296,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                                     style: TextStyle(
                                       fontSize: 16.sp,
                                       fontWeight: FontWeight.bold,
+                                      color: Colors.white,
                                     ),
                                   ),
                           ),
@@ -341,6 +315,23 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
 
   Widget _buildTypeButton(String label, String type, IconData icon) {
     final isSelected = _selectedType == type;
+    final isGomdol = type == 'gomdol';
+    final isDark = context.isDarkMode;
+
+    // Colors for selected state
+    final selectedColor = isGomdol ? Colors.orange : AppColors.secondaryAccent;
+
+    // Colors for unselected state - theme-aware
+    final unselectedBgColor = isDark
+        ? context.textPrimaryColor.withOpacity(0.1)
+        : context.surfaceColor;
+    final unselectedBorderColor = isDark
+        ? context.textPrimaryColor.withOpacity(0.3)
+        : context.borderColor;
+    final unselectedTextColor = isDark
+        ? context.textPrimaryColor.withOpacity(0.7)
+        : context.textSecondaryColor;
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -351,13 +342,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
         padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.secondaryAccent.withOpacity(0.2)
-              : Colors.white.withOpacity(0.1),
+              ? selectedColor.withOpacity(0.2)
+              : unselectedBgColor,
           borderRadius: BorderRadius.circular(12.w),
           border: Border.all(
-            color: isSelected
-                ? AppColors.secondaryAccent
-                : Colors.white.withOpacity(0.3),
+            color: isSelected ? selectedColor : unselectedBorderColor,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -366,18 +355,14 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected
-                  ? AppColors.secondaryAccent
-                  : Colors.white.withOpacity(0.7),
+              color: isSelected ? selectedColor : unselectedTextColor,
               size: 20.sp,
             ),
             SizedBox(width: 8.w),
             Text(
               label,
               style: TextStyle(
-                color: isSelected
-                    ? AppColors.secondaryAccent
-                    : Colors.white.withOpacity(0.7),
+                color: isSelected ? selectedColor : unselectedTextColor,
                 fontSize: 14.sp,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class HomeHeader extends StatelessWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -45,7 +46,7 @@ class HomeHeader extends StatelessWidget {
                     padding: EdgeInsets.all(11.w),
                     child: Icon(
                       Icons.menu_rounded,
-                      color: Colors.white,
+                      color: context.textPrimaryColor,
                       size: 22.sp,
                     ),
                   ),
@@ -79,7 +80,7 @@ class HomeHeader extends StatelessWidget {
                             children: [
                               Icon(
                                 Icons.account_balance_wallet_rounded,
-                                color: AppColors.goldPrimary,
+                                color: AppColors.deepGreen,
                                 size: 22.sp,
                               ),
                               SizedBox(width: 11.w),
@@ -87,7 +88,7 @@ class HomeHeader extends StatelessWidget {
                                 child: Text(
                                   'Нийт үлдэгдэл',
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.8),
+                                    color: context.textSecondaryColor,
                                     fontSize: 11.sp,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -100,7 +101,7 @@ class HomeHeader extends StatelessWidget {
                                 child: Text(
                                   '${formatNumberWithComma(totalNiitTulbur)}₮',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: context.textPrimaryColor,
                                     fontSize: 11.sp,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: -0.3,
@@ -140,7 +141,7 @@ class HomeHeader extends StatelessWidget {
                               padding: EdgeInsets.all(11.w),
                               child: Icon(
                                 Icons.notifications_outlined,
-                                color: Colors.white,
+                                color: context.textPrimaryColor,
                                 size: 22.sp,
                               ),
                             ),
@@ -166,7 +167,7 @@ class HomeHeader extends StatelessWidget {
                             ),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppColors.darkBackground,
+                              color: context.backgroundColor,
                               width: 2,
                             ),
                             boxShadow: [
@@ -189,7 +190,7 @@ class HomeHeader extends StatelessWidget {
                                   ? '99+'
                                   : '$unreadNotificationCount',
                               style: TextStyle(
-                                color: AppColors.darkBackground,
+                                color: context.backgroundColor,
                                 fontSize: 11.sp,
                                 fontWeight: FontWeight.bold,
                               ),

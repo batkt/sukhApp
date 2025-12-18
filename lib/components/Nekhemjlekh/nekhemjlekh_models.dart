@@ -39,6 +39,36 @@ class NekhemjlekhItem {
   });
 
   factory NekhemjlekhItem.fromJson(Map<String, dynamic> json) {
+    // Check if medeelel exists, otherwise create it from root-level fields
+    NekhemjlekhMedeelel? medeelel;
+    
+    if (json['medeelel'] != null) {
+      // Use medeelel if it exists
+      medeelel = NekhemjlekhMedeelel.fromJson(json['medeelel']);
+    } else {
+      // Check if zardluud exists at root level
+      final rootZardluud = json['zardluud'];
+      final rootToot = json['toot']?.toString() ?? '';
+      final rootTemdeglel = json['temdeglel']?.toString() ?? '';
+      final rootTailbar = json['tailbar']?.toString();
+      final rootGuilgeenuud = json['guilgeenuud'];
+      
+      // If zardluud or other medeelel fields exist at root, create medeelel
+      if (rootZardluud != null || rootToot.isNotEmpty || rootTemdeglel.isNotEmpty || rootGuilgeenuud != null) {
+        medeelel = NekhemjlekhMedeelel(
+          zardluud: rootZardluud != null
+              ? (rootZardluud as List).map((z) => Zardal.fromJson(z)).toList()
+              : [],
+          guilgeenuud: rootGuilgeenuud != null
+              ? (rootGuilgeenuud as List).map((g) => Guilgee.fromJson(g)).toList()
+              : null,
+          toot: rootToot,
+          temdeglel: rootTemdeglel,
+          tailbar: rootTailbar,
+        );
+      }
+    }
+    
     return NekhemjlekhItem(
       id: json['_id']?.toString() ?? '',
       baiguullagiinNer: json['baiguullagiinNer']?.toString() ?? '',
@@ -57,9 +87,7 @@ class NekhemjlekhItem {
           : [],
       dansniiDugaar: json['dansniiDugaar']?.toString() ?? '',
       tuluv: json['tuluv']?.toString() ?? 'Төлөөгүй',
-      medeelel: json['medeelel'] != null
-          ? NekhemjlekhMedeelel.fromJson(json['medeelel'])
-          : null,
+      medeelel: medeelel,
       ekhniiUldegdel: json['ekhniiUldegdel'] != null
           ? (json['ekhniiUldegdel'] as num).toDouble()
           : null,
@@ -129,6 +157,9 @@ class Zardal {
   final String tariffUsgeer;
   final String zardliinTurul;
   final double dun;
+  final double? zaaltDefaultDun;
+  final double? togtmolUtga;
+  final double? zaaltTariff;
 
   Zardal({
     required this.ner,
@@ -137,6 +168,9 @@ class Zardal {
     required this.tariffUsgeer,
     required this.zardliinTurul,
     required this.dun,
+    this.zaaltDefaultDun,
+    this.togtmolUtga,
+    this.zaaltTariff,
   });
 
   factory Zardal.fromJson(Map<String, dynamic> json) {
@@ -147,6 +181,15 @@ class Zardal {
       tariffUsgeer: json['tariffUsgeer']?.toString() ?? '₮',
       zardliinTurul: json['zardliinTurul']?.toString() ?? '',
       dun: (json['dun'] ?? 0).toDouble(),
+      zaaltDefaultDun: json['zaaltDefaultDun'] != null
+          ? (json['zaaltDefaultDun'] as num).toDouble()
+          : null,
+      togtmolUtga: json['togtmolUtga'] != null
+          ? (json['togtmolUtga'] as num).toDouble()
+          : null,
+      zaaltTariff: json['zaaltTariff'] != null
+          ? (json['zaaltTariff'] as num).toDouble()
+          : null,
     );
   }
 
@@ -158,6 +201,50 @@ class Zardal {
           (match) => '${match[1]},',
         );
     return '$formatted$tariffUsgeer';
+  }
+
+  // Get the actual amount to display (prioritize zaaltDefaultDun, then togtmolUtga, then dun)
+  double get displayAmount {
+    // Debug logging for amount decision
+    print(
+      '🔎 ZARDAL displayAmount calc for "$ner": '
+      'dun=$dun, zaaltDefaultDun=$zaaltDefaultDun, '
+      'togtmolUtga=$togtmolUtga, tariff=$tariff',
+    );
+
+    if (zaaltDefaultDun != null && zaaltDefaultDun! > 0) {
+      print('🔎 ZARDAL "$ner": using zaaltDefaultDun=$zaaltDefaultDun');
+      return zaaltDefaultDun!;
+    }
+    if (togtmolUtga != null && togtmolUtga! > 0) {
+      print('🔎 ZARDAL "$ner": using togtmolUtga=$togtmolUtga');
+      return togtmolUtga!;
+    }
+    // If dun is explicitly set and > 0, use it
+    if (dun > 0) {
+      print('🔎 ZARDAL "$ner": using dun=$dun');
+      return dun;
+    }
+    // Backend sometimes sends dun = 0 but tariff > 0 (e.g. "Хог" fixed fee).
+    // In that case, fall back to tariff so the user doesn't see 0.00₮.
+    if (tariff > 0) {
+      print('🔎 ZARDAL "$ner": using tariff fallback=$tariff');
+      return tariff;
+    }
+    print('🔎 ZARDAL "$ner": all values 0, returning 0');
+    return 0;
+  }
+
+  String get formattedDisplayAmount {
+    final amount = displayAmount;
+    print('🔎 ZARDAL "$ner": final displayAmount=$amount');
+    final formatted = amount
+        .toStringAsFixed(2)
+        .replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (match) => '${match[1]},',
+        );
+    return '$formatted₮';
   }
 }
 

@@ -13,8 +13,9 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/models/ajiltan_model.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
-import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_header.dart';
 import 'package:sukh_app/components/Nekhemjlekh/filter_tabs.dart';
 import 'package:sukh_app/components/Nekhemjlekh/payment_section.dart';
 import 'package:sukh_app/components/Nekhemjlekh/invoice_card.dart';
@@ -22,6 +23,8 @@ import 'package:sukh_app/components/Nekhemjlekh/contract_selection_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/bank_selection_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/payment_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
+import 'package:sukh_app/services/socket_service.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -53,17 +56,212 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
   String? qpayQrImage;
+  String? qpayQrImageOwnOrg;
+  String? qpayQrImageWallet;
   String contactPhone = '';
+
+  Function(Map<String, dynamic>)? _notificationCallback;
 
   @override
   void initState() {
     super.initState();
+    print('📬📬📬 NEKHEMJLEKH PAGE: initState called!');
     _loadNekhemjlekh();
+    print(
+      '📬📬📬 NEKHEMJLEKH PAGE: About to call _connectSocketAndSetupListener',
+    );
+    _connectSocketAndSetupListener();
+    print('📬📬📬 NEKHEMJLEKH PAGE: _connectSocketAndSetupListener called');
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Re-establish socket listener when screen comes back into focus
+    if (_notificationCallback == null) {
+      _connectSocketAndSetupListener();
+    }
+  }
+
+  Future<void> _connectSocketAndSetupListener() async {
+    print('📬📬📬 NEKHEMJLEKH: _connectSocketAndSetupListener STARTED!');
+    print('📬 Nekhemjlekh: Setting up socket connection and listener');
+
+    // Check if socket is already connected
+    if (SocketService.instance.isConnected) {
+      print('📬 Nekhemjlekh: Socket already connected, setting up listener');
+      _setupSocketListener();
+    } else {
+      print('📬 Nekhemjlekh: Socket not connected, connecting now...');
+      try {
+        await SocketService.instance.connect();
+        // Wait a bit for connection to establish
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (SocketService.instance.isConnected) {
+          print('📬 Nekhemjlekh: Socket connected successfully');
+          _setupSocketListener();
+        } else {
+          print('⚠️ Nekhemjlekh: Socket connection failed or pending');
+          // Still set up listener in case it connects later
+          _setupSocketListener();
+        }
+      } catch (e) {
+        print('❌ Nekhemjlekh: Error connecting socket: $e');
+        // Still set up listener in case it connects later
+        _setupSocketListener();
+      }
+    }
+    print('📬📬📬 NEKHEMJLEKH: _connectSocketAndSetupListener COMPLETED!');
+  }
+
+  void _setupSocketListener() {
+    print('📬 Nekhemjlekh: Setting up notification callback');
+
+    // Listen for real-time invoice notifications via socket
+    _notificationCallback = (Map<String, dynamic> notification) {
+      // CRITICAL: Print immediately at the start - no conditions, no try-catch, no mounted check
+      print('📬📬📬 NEKHEMJLEKH CALLBACK CALLED!');
+      print('📬📬📬 NEKHEMJLEKH: This is the nekhemjlekh callback!');
+      print(
+        '📬📬📬 NEKHEMJLEKH: Notification received: ${notification.toString()}',
+      );
+      print('📬📬📬 Nekhemjlekh: Socket notification received: $notification');
+      print('📬 Nekhemjlekh: Notification keys: ${notification.keys.toList()}');
+
+      if (!mounted) {
+        print('📬 Nekhemjlekh: Widget not mounted, ignoring notification');
+        return;
+      }
+
+      // Check if it's an invoice creation notification
+      // Handle two notification formats:
+      // 1. Standard notification format: {title, message, turul}
+      // 2. Transaction/invoice format: {baiguullagiinId, guilgee: {turul: "avlaga", ...}}
+
+      final title = notification['title']?.toString() ?? '';
+      final message = notification['message']?.toString() ?? '';
+      final turul = notification['turul']?.toString().toLowerCase() ?? '';
+
+      // Check for guilgee (transaction/invoice) format
+      final guilgee = notification['guilgee'];
+      final guilgeeTurul = guilgee is Map
+          ? (guilgee['turul']?.toString().toLowerCase() ?? '')
+          : '';
+      final baiguullagiinId = notification['baiguullagiinId']?.toString();
+
+      print(
+        '📬 Nekhemjlekh: Parsed values - title="$title", message="$message", turul="$turul", guilgeeTurul="$guilgeeTurul", baiguullagiinId="$baiguullagiinId"',
+      );
+      print(
+        '📬 Nekhemjlekh: guilgee is Map: ${guilgee is Map}, guilgee value: $guilgee',
+      );
+
+      // Check if this is a new invoice notification
+      // Based on the documentation and actual payload:
+      // - Standard format: title: "Шинэ нэхэмжлэх үүссэн", turul: "мэдэгдэл"
+      // - Transaction format: guilgee.turul: "avlaga" (invoice)
+      final isInvoiceNotification =
+          // Check for transaction/invoice format (guilgee with turul="avlaga")
+          (guilgeeTurul == 'avlaga') ||
+          // Check title for invoice keywords
+          (title.toLowerCase().contains('нэхэмжлэх') ||
+              title.toLowerCase().contains('нэхэмжлэл') ||
+              title.toLowerCase().contains('invoice') ||
+              title.toLowerCase().contains('шинэ')) ||
+          // Check message for invoice keywords
+          (message.toLowerCase().contains('нэхэмжлэх') ||
+              message.toLowerCase().contains('нэхэмжлэл') ||
+              message.toLowerCase().contains('гэрээний дугаар') ||
+              message.toLowerCase().contains('нийт төлбөр') ||
+              message.toLowerCase().contains('гэрээ')) ||
+          // Check if turul is "мэдэгдэл" (notification type for invoices)
+          (turul == 'мэдэгдэл' || turul == 'medegdel' || turul == 'app');
+
+      print(
+        '📬 Nekhemjlekh: isInvoiceNotification=$isInvoiceNotification, mounted=$mounted',
+      );
+      print(
+        '📬 Nekhemjlekh: guilgeeTurul check: "$guilgeeTurul" == "avlaga" = ${guilgeeTurul == "avlaga"}',
+      );
+
+      if (isInvoiceNotification) {
+        print(
+          '📬 Nekhemjlekh: ✅ Processing invoice notification, showing toast and refreshing list',
+        );
+
+        // Invoice notification detected - refresh the invoice list
+        print(
+          '📬 Nekhemjlekh: Invoice notification detected, refreshing invoice list',
+        );
+
+        // Refresh invoice list after a short delay to ensure backend has updated
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            print('📬 Nekhemjlekh: Refreshing invoice list');
+            _loadNekhemjlekh();
+          }
+        });
+      } else {
+        print(
+          '📬 Nekhemjlekh: ⚠️ Notification ignored (not an invoice notification)',
+        );
+        print(
+          '📬 Nekhemjlekh: Debug - guilgeeTurul="$guilgeeTurul", title="$title", message="$message", turul="$turul"',
+        );
+      }
+    };
+    print('📬 Nekhemjlekh: Registering callback...');
+    print(
+      '📬 Nekhemjlekh: Callback function before registration: $_notificationCallback',
+    );
+    print('📬 Nekhemjlekh: Callback is null: ${_notificationCallback == null}');
+
+    if (_notificationCallback == null) {
+      print('❌❌❌ Nekhemjlekh: CRITICAL - Callback is NULL! Cannot register!');
+      return;
+    }
+
+    SocketService.instance.setNotificationCallback(_notificationCallback!);
+    print('📬 Nekhemjlekh: ✅ Socket listener callback registered');
+    print(
+      '📬 Nekhemjlekh: Socket connected status: ${SocketService.instance.isConnected}',
+    );
+
+    // Verify callback was registered by checking if socket service has it
+    print(
+      '📬 Nekhemjlekh: Callback function after registration: $_notificationCallback',
+    );
+
+    // Check socket connection status periodically
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        final isConnected = SocketService.instance.isConnected;
+        print('📬 Nekhemjlekh: Socket status check - connected: $isConnected');
+        if (!isConnected) {
+          print(
+            '⚠️ Nekhemjlekh: Socket not connected, attempting to reconnect...',
+          );
+          _connectSocketAndSetupListener();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Remove socket callback when screen is disposed
+    if (_notificationCallback != null) {
+      SocketService.instance.removeNotificationCallback(_notificationCallback);
+    }
+    super.dispose();
   }
 
   Future<void> _createQPayInvoice() async {
     setState(() {
       isLoadingQPay = true;
+      qpayQrImageOwnOrg = null;
+      qpayQrImageWallet = null;
     });
 
     try {
@@ -79,13 +277,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
 
     try {
-      final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      final barilgiinId = await StorageService.getBarilgiinId();
-
-      if (baiguullagiinId == null || barilgiinId == null) {
-        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
-      }
-
       double totalAmount = 0;
       String? turul;
 
@@ -111,34 +302,115 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final orderNumber = 'TEST-$timestamp';
 
-      final response = await ApiService.qpayGargaya(
-        baiguullagiinId: baiguullagiinId,
-        barilgiinId: barilgiinId,
-        dun: totalAmount,
-        turul: turul,
-        zakhialgiinDugaar: orderNumber,
+      // Check if user has both OWN_ORG and WALLET addresses
+      final ownOrgBaiguullagiinId = await StorageService.getBaiguullagiinId();
+      final ownOrgBarilgiinId = await StorageService.getBarilgiinId();
+      final walletBairId = await StorageService.getWalletBairId();
+      final walletSource = await StorageService.getWalletBairSource();
 
-        nekhemjlekhiinTuukh: selectedInvoiceIds,
-      );
+      final hasOwnOrg =
+          ownOrgBaiguullagiinId != null && ownOrgBarilgiinId != null;
+      final hasWallet = walletBairId != null && walletSource == 'WALLET_API';
 
-      qpayInvoiceId = response['invoice_id']?.toString();
+      // Get invoice details for Custom QPay (dansniiDugaar and burtgeliinDugaar)
+      String? dansniiDugaar;
+      String? burtgeliinDugaar;
+      String? firstInvoiceId;
 
-      qpayQrImage = response['qr_image']?.toString();
-
-      if (response['urls'] != null && response['urls'] is List) {
-        setState(() {
-          qpayBanks = (response['urls'] as List)
-              .map((bank) => QPayBank.fromJson(bank))
-              .toList();
-          isLoadingQPay = false;
-        });
-      } else {
-        throw Exception(
-          contactPhone.isNotEmpty
-              ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
-              : 'Банкны мэдээлэл олдсонгүй',
+      if (selectedInvoiceIds.isNotEmpty) {
+        final firstInvoice = invoices.firstWhere(
+          (inv) => inv.id == selectedInvoiceIds.first,
+          orElse: () => invoices.firstWhere((inv) => inv.isSelected),
         );
+        dansniiDugaar = firstInvoice.dansniiDugaar.isNotEmpty
+            ? firstInvoice.dansniiDugaar
+            : null;
+        burtgeliinDugaar = firstInvoice.register.isNotEmpty
+            ? firstInvoice.register
+            : null;
+        firstInvoiceId = firstInvoice.id;
       }
+
+      // Create OWN_ORG QPay invoice (Custom QPay)
+      if (hasOwnOrg) {
+        try {
+          final ownOrgResponse = await ApiService.qpayGargaya(
+            baiguullagiinId: ownOrgBaiguullagiinId,
+            barilgiinId: ownOrgBarilgiinId,
+            dun: totalAmount,
+            turul: turul,
+            zakhialgiinDugaar: '$orderNumber-OWN_ORG',
+            nekhemjlekhiinId: firstInvoiceId,
+            dansniiDugaar: dansniiDugaar,
+            burtgeliinDugaar: burtgeliinDugaar,
+          );
+
+          qpayQrImageOwnOrg = ownOrgResponse['qr_image']?.toString();
+          if (qpayInvoiceId == null) {
+            qpayInvoiceId = ownOrgResponse['invoice_id']?.toString();
+          }
+
+          if (ownOrgResponse['urls'] != null &&
+              ownOrgResponse['urls'] is List) {
+            qpayBanks = (ownOrgResponse['urls'] as List)
+                .map((bank) => QPayBank.fromJson(bank))
+                .toList();
+          }
+        } catch (e) {
+          print('Error creating OWN_ORG QPay invoice: $e');
+        }
+      }
+
+      // Create WALLET QPay invoice (if user has WALLET address)
+      if (hasWallet) {
+        try {
+          // Get walletUserId from user profile or use phone number
+          String? walletUserId;
+          try {
+            final userProfile = await ApiService.getUserProfile();
+            if (userProfile['result']?['walletCustomerId'] != null) {
+              walletUserId = userProfile['result']['walletCustomerId']
+                  .toString();
+            } else if (userProfile['result']?['utas'] != null) {
+              walletUserId = userProfile['result']['utas'].toString();
+            }
+          } catch (e) {
+            print('Error getting walletUserId: $e');
+          }
+
+          final walletResponse = await ApiService.qpayGargaya(
+            walletUserId: walletUserId,
+            walletBairId: walletBairId,
+            dun: totalAmount,
+            turul: turul,
+            zakhialgiinDugaar: '$orderNumber-WALLET',
+          );
+
+          qpayQrImageWallet = walletResponse['qr_image']?.toString();
+        } catch (e) {
+          print('Error creating WALLET QPay invoice: $e');
+        }
+      }
+
+      // Fallback to single QR if only one source or if both failed
+      if (qpayQrImageOwnOrg == null && qpayQrImageWallet == null) {
+        if (hasOwnOrg) {
+          throw Exception(
+            contactPhone.isNotEmpty
+                ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
+                : 'Банкны мэдээлэл олдсонгүй',
+          );
+        } else {
+          throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+        }
+      }
+
+      // Set legacy qpayQrImage for backward compatibility
+      qpayQrImage = qpayQrImageOwnOrg ?? qpayQrImageWallet;
+
+      setState(() {
+        isLoadingQPay = false;
+      });
     } catch (e) {
       setState(() {
         isLoadingQPay = false;
@@ -196,7 +468,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         final response = await ApiService.fetchNekhemjlekhiinTuukh(
           gereeniiDugaar: gereeniiDugaar,
           khuudasniiDugaar: 1,
-          khuudasniiKhemjee: 10,
+          khuudasniiKhemjee: 200, // Increased to show all invoices
         );
 
         if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
@@ -298,6 +570,33 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       filtered = filtered
           .where((invoice) => invoice.tuluv == 'Төлсөн')
           .toList();
+    } else if (selectedFilter == 'Avlaga') {
+      // Show only invoices with avlaga (has guilgeenuud with turul="avlaga")
+      filtered = filtered
+          .where(
+            (invoice) =>
+                invoice.tuluv != 'Төлсөн' &&
+                invoice.medeelel != null &&
+                invoice.medeelel!.guilgeenuud != null &&
+                invoice.medeelel!.guilgeenuud!.any(
+                  (guilgee) => guilgee.turul == 'avlaga',
+                ),
+          )
+          .toList();
+    } else if (selectedFilter == 'AshiglaltiinZardal') {
+      // Show only invoices with ashiglaltiinZardal (items with turul "Тогтмол" or "Дурын")
+      filtered = filtered
+          .where(
+            (invoice) =>
+                invoice.tuluv != 'Төлсөн' &&
+                invoice.medeelel != null &&
+                invoice.medeelel!.zardluud.isNotEmpty &&
+                invoice.medeelel!.zardluud.any(
+                  (zardal) =>
+                      zardal.turul == 'Тогтмол' || zardal.turul == 'Дурын',
+                ),
+          )
+          .toList();
     } else {
       // 'All' shows all unpaid invoices
       filtered = filtered
@@ -314,6 +613,32 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     switch (filterKey) {
       case 'All':
         return invoices.where((invoice) => invoice.tuluv != 'Төлсөн').length;
+      case 'Avlaga':
+        return invoices
+            .where(
+              (invoice) =>
+                  invoice.tuluv != 'Төлсөн' &&
+                  invoice.medeelel != null &&
+                  invoice.medeelel!.guilgeenuud != null &&
+                  invoice.medeelel!.guilgeenuud!.any(
+                    (guilgee) => guilgee.turul == 'avlaga',
+                  ),
+            )
+            .length;
+      case 'AshiglaltiinZardal':
+        // Count invoices with zardluud items that have turul "Тогтмол" or "Дурын"
+        return invoices
+            .where(
+              (invoice) =>
+                  invoice.tuluv != 'Төлсөн' &&
+                  invoice.medeelel != null &&
+                  invoice.medeelel!.zardluud.isNotEmpty &&
+                  invoice.medeelel!.zardluud.any(
+                    (zardal) =>
+                        zardal.turul == 'Тогтмол' || zardal.turul == 'Дурын',
+                  ),
+            )
+            .length;
       case 'Paid':
         return invoices.where((invoice) => invoice.tuluv == 'Төлсөн').length;
       default:
@@ -441,7 +766,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             return Dialog(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              insetPadding: EdgeInsets.symmetric(horizontal: 20.w),
+              insetPadding: context.responsiveHorizontalPadding(
+                small: 20,
+                medium: 24,
+                large: 28,
+                tablet: 32,
+              ),
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
                 duration: const Duration(milliseconds: 300),
@@ -453,191 +783,256 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   );
                 },
                 child: OptimizedGlass(
-                  borderRadius: BorderRadius.circular(24.w),
+                  borderRadius: BorderRadius.circular(
+                    context.responsiveBorderRadius(
+                      small: 24,
+                      medium: 26,
+                      large: 28,
+                      tablet: 30,
+                    ),
+                  ),
                   opacity: 0.10,
                   child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.darkBackground.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(24.w),
-                        border: Border.all(
-                          color: AppColors.secondaryAccent.withOpacity(0.3),
-                          width: 1.5,
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBackground.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 24,
+                          medium: 26,
+                          large: 28,
+                          tablet: 30,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.secondaryAccent.withOpacity(0.2),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.5),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
                       ),
-                      padding: EdgeInsets.all(24.w),
-                      child: Container(
-                        padding: EdgeInsets.all(20.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12.w),
-                          border: Border.all(
-                            color: AppColors.secondaryAccent.withOpacity(0.2),
-                            width: 1,
+                      border: Border.all(
+                        color: AppColors.secondaryAccent.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.secondaryAccent.withOpacity(0.2),
+                          blurRadius: 20,
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    padding: context.responsivePadding(
+                      small: 24,
+                      medium: 26,
+                      large: 28,
+                      tablet: 30,
+                    ),
+                    child: Container(
+                      padding: context.responsivePadding(
+                        small: 20,
+                        medium: 22,
+                        large: 24,
+                        tablet: 26,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Close button
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.close_rounded,
-                                    color: Colors.white70,
-                                  ),
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  iconSize: 20.sp,
+                        border: Border.all(
+                          color: AppColors.deepGreen.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Close button
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.close_rounded,
+                                  color: context.textSecondaryColor,
                                 ),
-                              ],
-                            ),
-                            SizedBox(height: 8.h),
-                            // Message
-                            Text(
-                              "И-Баримтын тохиргоо хийгдээгүй байна.",
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withOpacity(0.8),
-                                height: 1.4,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 16.h),
-                            // Phone number label
-                            Text(
-                              "СӨХ-тэй холбогдох утасны дугаар:",
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withOpacity(0.6),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 8.h),
-                            if (suhUtas.isNotEmpty) ...[
-                              // Phone number
-                              GestureDetector(
-                                onLongPress: () {
-                                  Clipboard.setData(
-                                    ClipboardData(text: suhUtas),
-                                  );
-                                  HapticFeedback.lightImpact();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Дугаар хуулагдлаа: $suhUtas',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      backgroundColor: AppColors.secondaryAccent
-                                          .withOpacity(0.9),
-                                      duration: const Duration(seconds: 2),
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Text(
-                                  suhUtas,
-                                  style: TextStyle(
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.secondaryAccent,
-                                    letterSpacing: 1.0,
-                                  ),
-                                  textAlign: TextAlign.center,
+                                onPressed: () => Navigator.of(context).pop(),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                iconSize: context.responsiveIconSize(
+                                  small: 20,
+                                  medium: 22,
+                                  large: 24,
+                                  tablet: 26,
                                 ),
                               ),
-                              SizedBox(height: 16.h),
-                              // Call button
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    HapticFeedback.mediumImpact();
-                                    final uri = Uri.parse('tel:$suhUtas');
-                                    if (await canLaunchUrl(uri)) {
-                                      await launchUrl(uri);
-                                    } else {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Утас дуудах боломжгүй',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          backgroundColor: Colors.red,
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  icon: Icon(Icons.phone_rounded, size: 18.sp),
-                                  label: Text(
-                                    'Залгах',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
+                            ],
+                          ),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 8,
+                              medium: 10,
+                              large: 12,
+                              tablet: 14,
+                            ),
+                          ),
+                          // Message
+                          Text(
+                            "И-Баримтын тохиргоо хийгдээгүй байна.",
+                            style: TextStyle(
+                              fontSize: context.responsiveFontSize(
+                                small: 14,
+                                medium: 15,
+                                large: 16,
+                                tablet: 17,
+                              ),
+                              fontWeight: FontWeight.w500,
+                              color: context.textPrimaryColor,
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 16,
+                              medium: 18,
+                              large: 20,
+                              tablet: 22,
+                            ),
+                          ),
+                          // Phone number label
+                          Text(
+                            "СӨХ-тэй холбогдох утасны дугаар:",
+                            style: TextStyle(
+                              fontSize: context.responsiveFontSize(
+                                small: 12,
+                                medium: 13,
+                                large: 14,
+                                tablet: 15,
+                              ),
+                              fontWeight: FontWeight.w500,
+                              color: context.textSecondaryColor,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 8,
+                              medium: 10,
+                              large: 12,
+                              tablet: 14,
+                            ),
+                          ),
+                          if (suhUtas.isNotEmpty) ...[
+                            // Phone number
+                            GestureDetector(
+                              onLongPress: () {
+                                Clipboard.setData(ClipboardData(text: suhUtas));
+                                HapticFeedback.lightImpact();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Дугаар хуулагдлаа: $suhUtas',
+                                      style: TextStyle(
+                                        color: context.textPrimaryColor,
+                                      ),
                                     ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.secondaryAccent,
-                                    foregroundColor: AppColors.darkBackground,
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: 12.h,
-                                    ),
+                                    backgroundColor: AppColors.secondaryAccent
+                                        .withOpacity(0.9),
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10.w),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    elevation: 0,
                                   ),
-                                ),
-                              ),
-                            ] else ...[
-                              // Empty state
-                              Text(
-                                '.............',
+                                );
+                              },
+                              child: Text(
+                                suhUtas,
                                 style: TextStyle(
-                                  fontSize: 16.sp,
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: AppColors.secondaryAccent,
                                   letterSpacing: 1.0,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: 6.h),
-                              Text(
-                                'Утасны дугаар олдсонгүй',
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: Colors.white.withOpacity(0.5),
+                            ),
+                            SizedBox(height: 16.h),
+                            // Call button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  HapticFeedback.mediumImpact();
+                                  final uri = Uri.parse('tel:$suhUtas');
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Утас дуудах боломжгүй',
+                                          style: TextStyle(
+                                            color: context.textPrimaryColor,
+                                          ),
+                                        ),
+                                        backgroundColor: Colors.red,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: Icon(Icons.phone_rounded, size: 18.sp),
+                                label: Text(
+                                  'Залгах',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.deepGreen,
+                                  foregroundColor: context.textPrimaryColor,
+                                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10.w),
+                                  ),
+                                  elevation: 0,
                                 ),
                               ),
-                            ],
+                            ),
+                          ] else ...[
+                            // Empty state
+                            Text(
+                              '.............',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: context.textSecondaryColor.withOpacity(
+                                  0.4,
+                                ),
+                                letterSpacing: 1.0,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 6.h),
+                            Text(
+                              'Утасны дугаар олдсонгүй',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: context.textSecondaryColor,
+                              ),
+                            ),
                           ],
-                        ),
+                        ],
                       ),
                     ),
+                  ),
                 ),
               ),
             );
@@ -728,7 +1123,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         return Container(
           height: MediaQuery.of(context).size.height * 0.5,
           decoration: BoxDecoration(
-            color: AppColors.darkBackground,
+            color: context.cardBackgroundColor,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(30.w),
               topRight: Radius.circular(30.w),
@@ -742,121 +1137,120 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             opacity: 0.08,
             child: Column(
               children: [
-                  // Handle bar
-                  Container(
-                    margin: EdgeInsets.only(top: 12.h),
-                    width: 40.w,
-                    height: 4.h,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(2.w),
-                    ),
+                // Handle bar
+                Container(
+                  margin: EdgeInsets.only(top: 12.h),
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: context.borderColor,
+                    borderRadius: BorderRadius.circular(2.w),
                   ),
-                  // Header
-                  Padding(
-                    padding: EdgeInsets.all(20.w),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Төлбөр баталгаажуулах',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 24.sp,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Bank logo and info
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Container(
-                      padding: EdgeInsets.all(20.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20.w),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 60.w,
-                            height: 60.w,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8.w),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8.w),
-                              child: Image.network(
-                                bank.logo,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.account_balance,
-                                    color: Colors.grey,
-                                    size: 30.sp,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 16.w),
-                          Expanded(
-                            child: Text(
-                              bank.description,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  // Check payment button
-                  Padding(
-                    padding: EdgeInsets.all(20.w),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => _checkPaymentStatus(bank),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondaryAccent,
-                          foregroundColor: AppColors.darkBackground,
-                          padding: EdgeInsets.symmetric(vertical: 16.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.w),
-                          ),
-                        ),
+                ),
+                // Header
+                Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
                         child: Text(
-                          'Төлбөр шалгах',
+                          'Төлбөр баталгаажуулах',
                           style: TextStyle(
-                            fontSize: 16.sp,
+                            color: context.textPrimaryColor,
+                            fontSize: 24.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: context.textPrimaryColor,
+                          size: 24.sp,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                // Bank logo and info
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: Container(
+                    padding: EdgeInsets.all(20.w),
+                    decoration: BoxDecoration(
+                      color: context.accentBackgroundColor,
+                      borderRadius: BorderRadius.circular(20.w),
+                      border: Border.all(color: context.borderColor, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60.w,
+                          height: 60.w,
+                          decoration: BoxDecoration(
+                            color: context.isDarkMode
+                                ? Colors.white
+                                : AppColors.lightSurface,
+                            borderRadius: BorderRadius.circular(8.w),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8.w),
+                            child: Image.network(
+                              bank.logo,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.account_balance,
+                                  color: context.textSecondaryColor,
+                                  size: 30.sp,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 16.w),
+                        Expanded(
+                          child: Text(
+                            bank.description,
+                            style: TextStyle(
+                              color: context.textPrimaryColor,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ),
+                const Spacer(),
+                // Check payment button
+                Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _checkPaymentStatus(bank),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.deepGreen,
+                        foregroundColor: context.textPrimaryColor,
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.w),
+                        ),
+                      ),
+                      child: Text(
+                        'Төлбөр шалгах',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -914,7 +1308,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             message: 'Төлбөр амжилттай төлөгдлөө',
             icon: Icons.check_circle_outline,
             iconColor: Colors.green,
-            textColor: Colors.white,
+            textColor: context.textPrimaryColor,
             opacity: 0.3,
             blur: 15,
           );
@@ -941,7 +1335,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             message: 'Төлбөр төлөгдөөгүй байна',
             icon: Icons.error_outline,
             iconColor: Colors.red,
-            textColor: Colors.white,
+            textColor: context.textPrimaryColor,
             opacity: 0.3,
             blur: 15,
           );
@@ -1086,7 +1480,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   void _showQPayQRCodeModal() {
-    if (qpayQrImage == null || qpayQrImage!.isEmpty) {
+    final hasOwnOrg =
+        qpayQrImageOwnOrg != null && qpayQrImageOwnOrg!.isNotEmpty;
+    final hasWallet =
+        qpayQrImageWallet != null && qpayQrImageWallet!.isNotEmpty;
+
+    if (!hasOwnOrg && !hasWallet) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('QR код олдсонгүй'),
@@ -1103,43 +1502,121 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           backgroundColor: Colors.transparent,
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.darkBackground,
+              color: context.cardBackgroundColor,
               borderRadius: BorderRadius.circular(20.w),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-                width: 1,
-              ),
+              border: Border.all(color: context.borderColor, width: 1),
             ),
             padding: EdgeInsets.all(20.w),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'QPay хэтэвч QR код',
+                  hasOwnOrg && hasWallet
+                      ? 'QPay хэтэвч QR код'
+                      : 'QPay хэтэвч QR код',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.textPrimaryColor,
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 SizedBox(height: 20.h),
-                Container(
-                  padding: EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.w),
+                // Show 2 QR codes side by side if both exist, otherwise show single
+                if (hasOwnOrg && hasWallet)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // OWN_ORG QR
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              'OWN_ORG',
+                              style: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            Container(
+                              padding: EdgeInsets.all(12.w),
+                              decoration: BoxDecoration(
+                                color: context.isDarkMode
+                                    ? Colors.white
+                                    : AppColors.lightSurface,
+                                borderRadius: BorderRadius.circular(12.w),
+                              ),
+                              child: Image.memory(
+                                base64Decode(qpayQrImageOwnOrg!),
+                                width: 150.w,
+                                height: 150.w,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      // WALLET QR
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              'WALLET',
+                              style: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            Container(
+                              padding: EdgeInsets.all(12.w),
+                              decoration: BoxDecoration(
+                                color: context.isDarkMode
+                                    ? Colors.white
+                                    : AppColors.lightSurface,
+                                borderRadius: BorderRadius.circular(12.w),
+                              ),
+                              child: Image.memory(
+                                base64Decode(qpayQrImageWallet!),
+                                width: 150.w,
+                                height: 150.w,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  // Single QR code
+                  Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: context.isDarkMode
+                          ? Colors.white
+                          : AppColors.lightSurface,
+                      borderRadius: BorderRadius.circular(12.w),
+                    ),
+                    child: Image.memory(
+                      base64Decode(
+                        hasOwnOrg ? qpayQrImageOwnOrg! : qpayQrImageWallet!,
+                      ),
+                      width: 250.w,
+                      height: 250.w,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  child: Image.memory(
-                    base64Decode(qpayQrImage!),
-                    width: 250.w,
-                    height: 250.w,
-                    fit: BoxFit.contain,
-                  ),
-                ),
                 SizedBox(height: 20.h),
                 Text(
                   'QPay апп-аараа QR кодыг уншуулна уу',
-                  style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+                  style: TextStyle(
+                    color: context.textSecondaryColor,
+                    fontSize: 14.sp,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 20.h),
@@ -1149,8 +1626,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     _startPaymentStatusCheck();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondaryAccent,
-                    foregroundColor: AppColors.darkBackground,
+                    backgroundColor: AppColors.deepGreen,
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(
                       vertical: 12.h,
                       horizontal: 40.w,
@@ -1180,21 +1657,21 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.darkBackground,
-          title: const Text(
+          backgroundColor: context.cardBackgroundColor,
+          title: Text(
             'Банкны апп олдсонгүй',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: context.textPrimaryColor),
           ),
           content: Text(
             '${bank.description} апп суулгагдаагүй эсвэл нээгдэхгүй байна. Та апп татах эсвэл QR кодыг хуулж авах уу?',
-            style: const TextStyle(color: Colors.white70),
+            style: TextStyle(color: context.textSecondaryColor),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
+              child: Text(
                 'Болих',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: context.textSecondaryColor),
               ),
             ),
             TextButton(
@@ -1202,9 +1679,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 Navigator.of(context).pop();
                 _copyQRCodeToClipboard(bank.link);
               },
-              child: const Text(
+              child: Text(
                 'QR код хуулах',
-                style: TextStyle(color: AppColors.secondaryAccent),
+                style: TextStyle(color: AppColors.deepGreen),
               ),
             ),
             TextButton(
@@ -1212,9 +1689,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 Navigator.of(context).pop();
                 _openAppStore(bank);
               },
-              child: const Text(
+              child: Text(
                 'Апп татах',
-                style: TextStyle(color: AppColors.secondaryAccent),
+                style: TextStyle(color: AppColors.deepGreen),
               ),
             ),
           ],
@@ -1363,10 +1840,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       builder: (context) => PaymentModal(
         totalSelectedAmount: totalSelectedAmount,
         selectedCount: selectedCount,
+        invoices: invoices,
         onPaymentTap: () async {
-          Navigator.pop(context);
-          await Future.delayed(const Duration(milliseconds: 100));
-          _showBankInfoModal();
+          // Refresh invoice list after payment check
+          await _loadNekhemjlekh();
         },
       ),
     );
@@ -1381,24 +1858,83 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
 
     return Scaffold(
+      appBar: buildStandardAppBar(
+        context,
+        title: 'Нэхэмжлэх',
+        actions: availableContracts.length > 1
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.swap_horiz, color: Colors.white),
+                  onPressed: _showContractSelectionModal,
+                  tooltip: 'Гэрээ солих',
+                ),
+              ]
+            : null,
+      ),
       body: AppBackground(
         child: SafeArea(
           child: Column(
             children: [
-              // Header
-              NekhemjlekhHeader(
-                selectedContractDisplay: selectedContractDisplay,
-                availableContractsCount: availableContracts.length,
-                onContractSelect: availableContracts.length > 1
-                    ? _showContractSelectionModal
-                    : null,
-              ),
+              // Contract info (if multiple contracts)
+              if (selectedContractDisplay != null &&
+                  availableContracts.length > 1)
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 8.h,
+                  ),
+                  child: GestureDetector(
+                    onTap: _showContractSelectionModal,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 8.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.accentBackgroundColor,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: AppColors.deepGreen.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.business_rounded,
+                            color: AppColors.deepGreen,
+                            size: 16.sp,
+                          ),
+                          SizedBox(width: 8.w),
+                          Flexible(
+                            child: Text(
+                              selectedContractDisplay!,
+                              style: TextStyle(
+                                color: context.textPrimaryColor,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppColors.deepGreen,
+                            size: 16.sp,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               Expanded(
                 child: isLoading
                     ? Center(
                         child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.secondaryAccent,
+                            AppColors.deepGreen,
                           ),
                         ),
                       )
@@ -1412,54 +1948,53 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             child: Padding(
                               padding: EdgeInsets.all(24.w),
                               child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.error_outline_rounded,
-                                        color: Colors.red.withOpacity(0.8),
-                                        size: 48.sp,
-                                      ),
-                                      SizedBox(height: 16.h),
-                                      Text(
-                                        errorMessage!,
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.9),
-                                          fontSize: 14.sp,
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline_rounded,
+                                    color: Colors.red.withOpacity(0.8),
+                                    size: 48.sp,
+                                  ),
+                                  SizedBox(height: 16.h),
+                                  Text(
+                                    errorMessage!,
+                                    style: TextStyle(
+                                      color: context.textPrimaryColor,
+                                      fontSize: 14.sp,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  SizedBox(height: 24.h),
+                                  OptimizedGlass(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    opacity: 0.10,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: _loadNekhemjlekh,
+                                        borderRadius: BorderRadius.circular(
+                                          12.r,
                                         ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      SizedBox(height: 24.h),
-                                      OptimizedGlass(
-                                        borderRadius:
-                                            BorderRadius.circular(12.r),
-                                        opacity: 0.10,
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: _loadNekhemjlekh,
-                                            borderRadius: BorderRadius.circular(
-                                              12.r,
-                                            ),
-                                            child: Container(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 24.w,
-                                                vertical: 12.h,
-                                              ),
-                                              child: Text(
-                                                'Дахин оролдох',
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 24.w,
+                                            vertical: 12.h,
+                                          ),
+                                          child: Text(
+                                            'Дахин оролдох',
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: context.textPrimaryColor,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ],
+                                    ),
                                   ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -1496,8 +2031,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                   child: Padding(
                                     padding: EdgeInsets.all(20.w),
                                     child: OptimizedGlass(
-                                      borderRadius:
-                                          BorderRadius.circular(22.r),
+                                      borderRadius: BorderRadius.circular(22.r),
                                       opacity: 0.10,
                                       child: Padding(
                                         padding: EdgeInsets.all(24.w),
@@ -1507,18 +2041,18 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                             Container(
                                               padding: EdgeInsets.all(24.w),
                                               decoration: BoxDecoration(
-                                                color: Colors.white
-                                                    .withOpacity(0.05),
+                                                color: context
+                                                    .accentBackgroundColor,
                                                 shape: BoxShape.circle,
                                               ),
                                               child: Icon(
                                                 selectedFilter == 'Paid'
                                                     ? Icons.history_rounded
                                                     : Icons
-                                                        .receipt_long_rounded,
+                                                          .receipt_long_rounded,
                                                 size: 48.sp,
-                                                color: Colors.white
-                                                    .withOpacity(0.5),
+                                                color:
+                                                    context.textSecondaryColor,
                                               ),
                                             ),
                                             SizedBox(height: 24.h),
@@ -1527,8 +2061,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                   ? 'Төлөгдсөн нэхэмжлэл байхгүй'
                                                   : 'Одоогоор нэхэмжлэл байхгүй',
                                               style: TextStyle(
-                                                color: Colors.white
-                                                    .withOpacity(0.9),
+                                                color: context.textPrimaryColor,
                                                 fontSize: 18.sp,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -1540,8 +2073,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                   ? 'Төлөгдсөн нэхэмжлэлийн түүх энд харагдана'
                                                   : 'Шинэ нэхэмжлэл үүсэхэд энд харагдана',
                                               style: TextStyle(
-                                                color: Colors.white
-                                                    .withOpacity(0.6),
+                                                color:
+                                                    context.textSecondaryColor,
                                                 fontSize: 14.sp,
                                               ),
                                               textAlign: TextAlign.center,
@@ -1571,8 +2104,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               : (isSmallScreen ? 16 : 18),
                                         ),
                                         child: OptimizedGlass(
-                                          borderRadius:
-                                              BorderRadius.circular(12.r),
+                                          borderRadius: BorderRadius.circular(
+                                            12.r,
+                                          ),
                                           opacity: 0.08,
                                           child: Material(
                                             color: Colors.transparent,
@@ -1581,101 +2115,95 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               borderRadius:
                                                   BorderRadius.circular(12.r),
                                               child: Padding(
-                                                    padding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 12.w,
-                                                          vertical: 8.h,
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 12.w,
+                                                  vertical: 8.h,
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Container(
+                                                      width: isVerySmallScreen
+                                                          ? 18
+                                                          : (isSmallScreen
+                                                                ? 20
+                                                                : 22),
+                                                      height: isVerySmallScreen
+                                                          ? 18
+                                                          : (isSmallScreen
+                                                                ? 20
+                                                                : 22),
+                                                      decoration: BoxDecoration(
+                                                        gradient: allSelected
+                                                            ? LinearGradient(
+                                                                colors: [
+                                                                  AppColors
+                                                                      .deepGreen,
+                                                                  AppColors
+                                                                      .deepGreen
+                                                                      .withOpacity(
+                                                                        0.8,
+                                                                      ),
+                                                                ],
+                                                              )
+                                                            : null,
+                                                        color: allSelected
+                                                            ? null
+                                                            : Colors
+                                                                  .transparent,
+                                                        border: Border.all(
+                                                          color: allSelected
+                                                              ? AppColors
+                                                                    .deepGreen
+                                                              : context
+                                                                    .borderColor,
+                                                          width: 2,
                                                         ),
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Container(
-                                                          width:
-                                                              isVerySmallScreen
-                                                              ? 18
-                                                              : (isSmallScreen
-                                                                    ? 20
-                                                                    : 22),
-                                                          height:
-                                                              isVerySmallScreen
-                                                              ? 18
-                                                              : (isSmallScreen
-                                                                    ? 20
-                                                                    : 22),
-                                                          decoration: BoxDecoration(
-                                                            gradient:
-                                                                allSelected
-                                                                ? LinearGradient(
-                                                                    colors: [
-                                                                      AppColors
-                                                                          .secondaryAccent,
-                                                                      AppColors
-                                                                          .secondaryAccent
-                                                                          .withOpacity(
-                                                                            0.8,
-                                                                          ),
-                                                                    ],
-                                                                  )
-                                                                : null,
-                                                            color: allSelected
-                                                                ? null
-                                                                : Colors
-                                                                      .transparent,
-                                                            border: Border.all(
-                                                              color: allSelected
-                                                                  ? AppColors
-                                                                        .secondaryAccent
-                                                                  : Colors.white
-                                                                        .withOpacity(
-                                                                          0.5,
-                                                                        ),
-                                                              width: 2,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              6.r,
                                                             ),
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  6.r,
-                                                                ),
-                                                          ),
-                                                          child: allSelected
-                                                              ? Icon(
-                                                                  Icons
-                                                                      .check_rounded,
-                                                                  color: Colors
-                                                                      .white,
-                                                                  size:
-                                                                      isVerySmallScreen
-                                                                      ? 12
-                                                                      : (isSmallScreen
-                                                                            ? 14
-                                                                            : 16),
-                                                                )
-                                                              : null,
-                                                        ),
-                                                        SizedBox(
-                                                          width:
-                                                              isVerySmallScreen
-                                                              ? 10
-                                                              : (isSmallScreen
-                                                                    ? 12
-                                                                    : 14),
-                                                        ),
-                                                        Text(
-                                                          'Бүгдийг сонгох',
-                                                          style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize:
-                                                                isVerySmallScreen
-                                                                ? 13
-                                                                : (isSmallScreen
-                                                                      ? 14
-                                                                      : 16),
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                          ),
-                                                        ),
-                                                      ],
+                                                      ),
+                                                      child: allSelected
+                                                          ? Icon(
+                                                              Icons
+                                                                  .check_rounded,
+                                                              color:
+                                                                  Colors.white,
+                                                              size:
+                                                                  isVerySmallScreen
+                                                                  ? 12
+                                                                  : (isSmallScreen
+                                                                        ? 14
+                                                                        : 16),
+                                                            )
+                                                          : null,
                                                     ),
+                                                    SizedBox(
+                                                      width: isVerySmallScreen
+                                                          ? 10
+                                                          : (isSmallScreen
+                                                                ? 12
+                                                                : 14),
+                                                    ),
+                                                    Text(
+                                                      'Бүгдийг сонгох',
+                                                      style: TextStyle(
+                                                        color: context
+                                                            .textPrimaryColor,
+                                                        fontSize:
+                                                            isVerySmallScreen
+                                                            ? 13
+                                                            : (isSmallScreen
+                                                                  ? 14
+                                                                  : 16),
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),

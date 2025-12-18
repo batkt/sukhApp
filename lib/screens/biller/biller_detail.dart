@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class BillerDetailScreen extends StatefulWidget {
   final String billerCode;
@@ -24,13 +25,13 @@ class BillerDetailScreen extends StatefulWidget {
 class _BillerDetailScreenState extends State<BillerDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   List<Map<String, dynamic>> _billings = [];
   Map<String, dynamic>? _selectedBilling;
   List<Map<String, dynamic>> _bills = [];
   List<Map<String, dynamic>> _payments = [];
   List<Map<String, dynamic>> _invoices = [];
-  
+
   bool _isLoadingBillings = true;
   bool _isLoadingBills = false;
   bool _isLoadingPayments = false;
@@ -103,7 +104,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       if (mounted) {
         if (response['success'] == true && response['data'] != null) {
           dynamic dataField = response['data'];
-          
+
           // Handle if data is a List
           Map<String, dynamic> billingData;
           if (dataField is List) {
@@ -116,13 +117,16 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           } else {
             throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
           }
-          
+
           // Check if billing already exists in list (use customerId or customerCode if billingId doesn't exist)
-          final identifier = billingData['billingId'] ?? 
-                           billingData['customerId'] ?? 
-                           billingData['customerCode'];
+          final identifier =
+              billingData['billingId'] ??
+              billingData['customerId'] ??
+              billingData['customerCode'];
           final existingIndex = _billings.indexWhere(
-            (b) => (b['billingId'] ?? b['customerId'] ?? b['customerCode']) == identifier,
+            (b) =>
+                (b['billingId'] ?? b['customerId'] ?? b['customerCode']) ==
+                identifier,
           );
 
           if (existingIndex == -1) {
@@ -131,13 +135,14 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               _selectedBilling = billingData;
               _isLoadingBillings = false;
             });
-            
+
             // Save billing only if billingId exists (might need to find billing first)
             if (billingData['billingId'] != null) {
               try {
                 await ApiService.saveWalletBilling(
                   billingId: billingData['billingId'],
-                  billingName: billingData['billingName'] ?? billingData['customerName'],
+                  billingName:
+                      billingData['billingName'] ?? billingData['customerName'],
                   customerId: billingData['customerId'],
                   customerCode: billingData['customerCode'],
                 );
@@ -195,7 +200,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       if (mounted) {
         setState(() {
           // Extract bills from the response
-          if (billingData['newBills'] != null && billingData['newBills'] is List) {
+          if (billingData['newBills'] != null &&
+              billingData['newBills'] is List) {
             _bills = List<Map<String, dynamic>>.from(billingData['newBills']);
           } else {
             _bills = [];
@@ -310,7 +316,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
         if (response['success'] == true && response['data'] != null) {
           final paymentData = response['data'];
           final paymentUrl = paymentData['paymentUrl'];
-          
+
           if (paymentUrl != null) {
             // Open payment URL
             // You might want to use url_launcher here
@@ -352,59 +358,20 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.backgroundColor,
+      appBar: buildStandardAppBar(context, title: widget.billerName),
       body: Container(
         child: SafeArea(
           child: Column(
             children: [
-              // Header
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: 28.sp,
-                      ),
-                      onPressed: () => context.pop(),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.billerName,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (widget.description != null)
-                            Text(
-                              widget.description!,
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14.sp,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
               // Tabs
               Container(
-                color: Colors.white.withOpacity(0.05),
+                color: context.surfaceColor,
                 child: TabBar(
                   controller: _tabController,
-                  indicatorColor: AppColors.goldPrimary,
-                  labelColor: AppColors.goldPrimary,
-                  unselectedLabelColor: Colors.white70,
+                  indicatorColor: AppColors.deepGreen,
+                  labelColor: AppColors.deepGreen,
+                  unselectedLabelColor: context.textSecondaryColor,
                   tabs: const [
                     Tab(text: 'Биллинг'),
                     Tab(text: 'Билл'),
@@ -413,7 +380,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   ],
                 ),
               ),
-              
+
               // Tab Content
               Expanded(
                 child: TabBarView(
@@ -443,10 +410,10 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: context.surfaceColor,
               borderRadius: BorderRadius.circular(16.w),
               border: Border.all(
-                color: AppColors.goldPrimary.withOpacity(0.3),
+                color: AppColors.deepGreen.withOpacity(0.3),
                 width: 1,
               ),
             ),
@@ -456,7 +423,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 Text(
                   'Харилцагчийн код оруулах',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.textPrimaryColor,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -464,26 +431,24 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 SizedBox(height: 12.h),
                 TextField(
                   controller: _customerCodeController,
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: context.textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'Харилцагчийн код',
-                    hintStyle: TextStyle(color: Colors.white60),
+                    hintStyle: TextStyle(color: context.textSecondaryColor),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: context.surfaceColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.w),
                       borderSide: BorderSide.none,
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.w),
-                      borderSide: BorderSide(
-                        color: Colors.white.withOpacity(0.2),
-                      ),
+                      borderSide: BorderSide(color: context.borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.w),
                       borderSide: BorderSide(
-                        color: AppColors.goldPrimary,
+                        color: AppColors.deepGreen,
                         width: 2,
                       ),
                     ),
@@ -495,8 +460,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   child: ElevatedButton(
                     onPressed: _findBillingByCustomerCode,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.goldPrimary,
-                      foregroundColor: Colors.black,
+                      backgroundColor: AppColors.deepGreen,
+                      foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.w),
@@ -514,27 +479,25 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               ],
             ),
           ),
-          
+
           SizedBox(height: 24.h),
-          
+
           Text(
             'Миний биллингууд',
             style: TextStyle(
-              color: Colors.white,
+              color: context.textPrimaryColor,
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
             ),
           ),
-          
+
           SizedBox(height: 12.h),
-          
+
           if (_isLoadingBillings)
             Center(
               child: Padding(
                 padding: EdgeInsets.all(32.h),
-                child: CircularProgressIndicator(
-                  color: AppColors.goldPrimary,
-                ),
+                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_billings.isEmpty)
@@ -544,7 +507,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 child: Text(
                   'Биллинг олдсонгүй',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: context.textSecondaryColor,
                     fontSize: 16.sp,
                   ),
                 ),
@@ -559,18 +522,16 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
 
   Widget _buildBillingCard(Map<String, dynamic> billing) {
     final isSelected = _selectedBilling?['billingId'] == billing['billingId'];
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppColors.goldPrimary.withOpacity(0.2)
-            : Colors.white.withOpacity(0.05),
+            ? AppColors.deepGreen.withOpacity(0.2)
+            : context.surfaceColor,
         borderRadius: BorderRadius.circular(16.w),
         border: Border.all(
-          color: isSelected
-              ? AppColors.goldPrimary
-              : Colors.white.withOpacity(0.1),
+          color: isSelected ? AppColors.deepGreen : context.borderColor,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -597,7 +558,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       child: Text(
                         billing['billingName']?.toString() ?? 'Биллинг',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: context.textPrimaryColor,
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -606,7 +567,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                     if (isSelected)
                       Icon(
                         Icons.check_circle,
-                        color: AppColors.goldPrimary,
+                        color: AppColors.deepGreen,
                         size: 24.sp,
                       ),
                   ],
@@ -616,7 +577,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   Text(
                     'Харилцагч: ${billing['customerName']}',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: context.textSecondaryColor,
                       fontSize: 14.sp,
                     ),
                   ),
@@ -626,7 +587,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   Text(
                     'Хаяг: ${billing['customerAddress']}',
                     style: TextStyle(
-                      color: Colors.white60,
+                      color: context.textSecondaryColor,
                       fontSize: 12.sp,
                     ),
                   ),
@@ -644,10 +605,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       return Center(
         child: Text(
           'Биллинг сонгоно уу',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 16.sp,
-          ),
+          style: TextStyle(color: context.textSecondaryColor, fontSize: 16.sp),
         ),
       );
     }
@@ -665,9 +623,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Center(
               child: Padding(
                 padding: EdgeInsets.all(32.h),
-                child: CircularProgressIndicator(
-                  color: AppColors.goldPrimary,
-                ),
+                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_bills.isEmpty)
@@ -677,7 +633,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 child: Text(
                   'Билл олдсонгүй',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: context.textSecondaryColor,
                     fontSize: 16.sp,
                   ),
                 ),
@@ -695,17 +651,14 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     final dueDate = bill['dueDate']?.toString() ?? '';
     final billNo = bill['billNo']?.toString() ?? '';
     final billPeriod = bill['billPeriod']?.toString() ?? '';
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        border: Border.all(color: context.borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,7 +670,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 child: Text(
                   billNo,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.textPrimaryColor,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -726,7 +679,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               Text(
                 '${billAmount.toStringAsFixed(2)}₮',
                 style: TextStyle(
-                  color: AppColors.goldPrimary,
+                  color: AppColors.deepGreen,
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -738,7 +691,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Text(
               'Хугацаа: $billPeriod',
               style: TextStyle(
-                color: Colors.white70,
+                color: context.textSecondaryColor,
                 fontSize: 14.sp,
               ),
             ),
@@ -748,7 +701,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Text(
               'Төлөх огноо: $dueDate',
               style: TextStyle(
-                color: Colors.white60,
+                color: context.textSecondaryColor,
                 fontSize: 12.sp,
               ),
             ),
@@ -763,10 +716,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       return Center(
         child: Text(
           'Биллинг сонгоно уу',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 16.sp,
-          ),
+          style: TextStyle(color: context.textSecondaryColor, fontSize: 16.sp),
         ),
       );
     }
@@ -784,9 +734,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Center(
               child: Padding(
                 padding: EdgeInsets.all(32.h),
-                child: CircularProgressIndicator(
-                  color: AppColors.goldPrimary,
-                ),
+                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_payments.isEmpty)
@@ -796,7 +744,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 child: Text(
                   'Төлбөрийн түүх олдсонгүй',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: context.textSecondaryColor,
                     fontSize: 16.sp,
                   ),
                 ),
@@ -813,17 +761,14 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     final amount = payment['amount']?.toDouble() ?? 0.0;
     final paymentDate = payment['paymentDate']?.toString() ?? '';
     final status = payment['status']?.toString() ?? '';
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        border: Border.all(color: context.borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -835,7 +780,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 child: Text(
                   'Төлбөр',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.textPrimaryColor,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -844,7 +789,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               Text(
                 '${amount.toStringAsFixed(2)}₮',
                 style: TextStyle(
-                  color: AppColors.goldPrimary,
+                  color: AppColors.deepGreen,
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -856,7 +801,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Text(
               'Огноо: $paymentDate',
               style: TextStyle(
-                color: Colors.white70,
+                color: context.textSecondaryColor,
                 fontSize: 14.sp,
               ),
             ),
@@ -866,7 +811,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Text(
               'Төлөв: $status',
               style: TextStyle(
-                color: Colors.white60,
+                color: context.textSecondaryColor,
                 fontSize: 12.sp,
               ),
             ),
@@ -881,10 +826,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       return Center(
         child: Text(
           'Биллинг сонгоно уу',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 16.sp,
-          ),
+          style: TextStyle(color: context.textSecondaryColor, fontSize: 16.sp),
         ),
       );
     }
@@ -902,9 +844,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Center(
               child: Padding(
                 padding: EdgeInsets.all(32.h),
-                child: CircularProgressIndicator(
-                  color: AppColors.goldPrimary,
-                ),
+                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_invoices.isEmpty)
@@ -916,7 +856,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                     Text(
                       'Нэхэмжлэх олдсонгүй',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: context.textSecondaryColor,
                         fontSize: 16.sp,
                       ),
                     ),
@@ -935,8 +875,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.goldPrimary,
-                        foregroundColor: Colors.black,
+                        backgroundColor: AppColors.deepGreen,
+                        foregroundColor: Colors.white,
                       ),
                       child: Text('Нэхэмжлэх үүсгэх'),
                     ),
@@ -954,19 +894,18 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
   Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
     final invoiceAmount = invoice['invoiceAmount']?.toDouble() ?? 0.0;
     final invoiceId = invoice['invoiceId']?.toString() ?? '';
-    final status = invoice['invoiceStatusText']?.toString() ?? 
-                  invoice['invoiceStatus']?.toString() ?? '';
-    
+    final status =
+        invoice['invoiceStatusText']?.toString() ??
+        invoice['invoiceStatus']?.toString() ??
+        '';
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: context.surfaceColor,
         borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+        border: Border.all(color: context.borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -978,7 +917,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 child: Text(
                   invoiceId,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.textPrimaryColor,
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -987,7 +926,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               Text(
                 '${invoiceAmount.toStringAsFixed(2)}₮',
                 style: TextStyle(
-                  color: AppColors.goldPrimary,
+                  color: AppColors.deepGreen,
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -999,7 +938,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             Text(
               'Төлөв: $status',
               style: TextStyle(
-                color: Colors.white70,
+                color: context.textSecondaryColor,
                 fontSize: 14.sp,
               ),
             ),
@@ -1021,4 +960,3 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     );
   }
 }
-

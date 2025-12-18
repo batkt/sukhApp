@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class BillingCard extends StatelessWidget {
   final Map<String, dynamic> billing;
@@ -69,17 +70,17 @@ class BillingCard extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(11.w),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
+                        color: context.accentBackgroundColor,
                         borderRadius: BorderRadius.circular(11.r),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.12),
+                          color: context.borderColor,
                           width: 1,
                         ),
                       ),
                       child: Icon(
                         Icons.home_rounded,
-                        color: AppColors.goldPrimary,
-                        size: 24.sp,
+                        color: AppColors.deepGreen,
+                        size: 32.sp, // Increased from 24 to match larger text
                       ),
                     ),
                     SizedBox(width: 14.w),
@@ -94,8 +95,9 @@ class BillingCard extends StatelessWidget {
                             Text(
                               customerName,
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11.sp,
+                                color: context.textPrimaryColor,
+                                fontSize: 20
+                                    .sp, // Increased from 11 for better readability
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.2,
                               ),
@@ -108,8 +110,9 @@ class BillingCard extends StatelessWidget {
                               Text(
                                 billingName,
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 11.sp,
+                                  color: context.textSecondaryColor,
+                                  fontSize: 18
+                                      .sp, // Increased from 11 for better readability
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
@@ -120,8 +123,9 @@ class BillingCard extends StatelessWidget {
                             Text(
                               billingName,
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11.sp,
+                                color: context.textPrimaryColor,
+                                fontSize: 20
+                                    .sp, // Increased from 11 for better readability
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.2,
                               ),
@@ -137,16 +141,18 @@ class BillingCard extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.location_on_rounded,
-                                  color: Colors.white.withOpacity(0.6),
-                                  size: 12.sp,
+                                  color: context.textSecondaryColor,
+                                  size: 20
+                                      .sp, // Increased from 12 to match larger text
                                 ),
                                 SizedBox(width: 4.w),
                                 Expanded(
                                   child: Text(
                                     '${expandAddressAbbreviations(bairniiNer)}${doorNo.isNotEmpty ? ", $doorNo" : ""}',
                                     style: TextStyle(
-                                      color: Colors.white.withOpacity(0.7),
-                                      fontSize: 11.sp,
+                                      color: context.textSecondaryColor,
+                                      fontSize: 18
+                                          .sp, // Increased from 11 for better readability
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -159,15 +165,17 @@ class BillingCard extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.tag_rounded,
-                                  color: Colors.white.withOpacity(0.6),
-                                  size: 12.sp,
+                                  color: context.textSecondaryColor,
+                                  size: 20
+                                      .sp, // Increased from 12 to match larger text
                                 ),
                                 SizedBox(width: 4.w),
                                 Text(
                                   customerCode,
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
-                                    fontSize: 11.sp,
+                                    color: context.textSecondaryColor,
+                                    fontSize: 18
+                                        .sp, // Increased from 11 for better readability
                                   ),
                                 ),
                               ],
@@ -197,14 +205,16 @@ class BillingCard extends StatelessWidget {
                                         Icon(
                                           Icons.warning_amber_rounded,
                                           color: Colors.orange,
-                                          size: 12.sp,
+                                          size: 20
+                                              .sp, // Increased from 12 to match larger text
                                         ),
                                         SizedBox(width: 4.w),
                                         Text(
                                           '$payableBillCount төлөх',
                                           style: TextStyle(
                                             color: Colors.orange,
-                                            fontSize: 11.sp,
+                                            fontSize: 18
+                                                .sp, // Increased from 11 for better readability
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -227,14 +237,16 @@ class BillingCard extends StatelessWidget {
                                         Icon(
                                           Icons.new_releases_rounded,
                                           color: Colors.blue,
-                                          size: 12.sp,
+                                          size: 20
+                                              .sp, // Increased from 12 to match larger text
                                         ),
                                         SizedBox(width: 4.w),
                                         Text(
                                           '$newBillsCount шинэ',
                                           style: TextStyle(
                                             color: Colors.blue,
-                                            fontSize: 11.sp,
+                                            fontSize: 18
+                                                .sp, // Increased from 11 for better readability
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),

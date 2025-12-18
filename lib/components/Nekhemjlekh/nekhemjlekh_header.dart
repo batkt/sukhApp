@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class NekhemjlekhHeader extends StatelessWidget {
   final String? selectedContractDisplay;
@@ -37,11 +38,11 @@ class NekhemjlekhHeader extends StatelessWidget {
                       borderRadius: BorderRadius.circular(11.r),
                       child: Padding(
                         padding: EdgeInsets.all(11.w),
-                        child: Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                          size: 22.sp,
-                        ),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: context.textPrimaryColor,
+                        size: 22.sp,
+                      ),
                       ),
                     ),
                   ),
@@ -61,14 +62,14 @@ class NekhemjlekhHeader extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.receipt_long_rounded,
-                              color: AppColors.secondaryAccent,
+                              color: AppColors.deepGreen,
                               size: 22.sp,
                             ),
                             SizedBox(width: 11.w),
                             Text(
                               'Нэхэмжлэх',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: context.textPrimaryColor,
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.3,
@@ -95,11 +96,11 @@ class NekhemjlekhHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(11.r),
                         child: Padding(
                           padding: EdgeInsets.all(11.w),
-                          child: Icon(
-                            Icons.swap_horiz_rounded,
-                            color: Colors.white,
-                            size: 22.sp,
-                          ),
+                        child: Icon(
+                          Icons.swap_horiz_rounded,
+                          color: context.textPrimaryColor,
+                          size: 22.sp,
+                        ),
                         ),
                       ),
                     ),
@@ -131,7 +132,7 @@ class NekhemjlekhHeader extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.business_rounded,
-                            color: AppColors.secondaryAccent,
+                            color: AppColors.deepGreen,
                             size: 16.sp,
                           ),
                           SizedBox(width: 8.w),
@@ -139,7 +140,7 @@ class NekhemjlekhHeader extends StatelessWidget {
                             child: Text(
                               selectedContractDisplay!,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: context.textPrimaryColor,
                                 fontSize: 13.sp,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -150,7 +151,7 @@ class NekhemjlekhHeader extends StatelessWidget {
                             SizedBox(width: 4.w),
                             Icon(
                               Icons.keyboard_arrow_down_rounded,
-                              color: AppColors.secondaryAccent,
+                              color: AppColors.deepGreen,
                               size: 16.sp,
                             ),
                           ],

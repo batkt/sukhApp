@@ -1,25 +1,119 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
-class BillingDetailModal extends StatelessWidget {
+class BillingDetailModal extends StatefulWidget {
   final Map<String, dynamic> billing;
-  final Map<String, dynamic> billingData;
-  final List<Map<String, dynamic>> bills;
+  final Map<String, dynamic>? billingData;
+  final List<Map<String, dynamic>>? bills;
   final String Function(String) expandAddressAbbreviations;
   final String Function(double) formatNumberWithComma;
 
   const BillingDetailModal({
     super.key,
     required this.billing,
-    required this.billingData,
-    required this.bills,
+    this.billingData,
+    this.bills,
     required this.expandAddressAbbreviations,
     required this.formatNumberWithComma,
   });
 
   @override
+  State<BillingDetailModal> createState() => _BillingDetailModalState();
+}
+
+class _BillingDetailModalState extends State<BillingDetailModal> {
+  Map<String, dynamic>? _billingData;
+  List<Map<String, dynamic>> _bills = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // If data is already provided, use it; otherwise fetch
+    if (widget.billingData != null && widget.bills != null) {
+      _billingData = widget.billingData;
+      _bills = widget.bills!;
+      _isLoading = false;
+    } else {
+      _loadBillingData();
+    }
+  }
+
+  Future<void> _loadBillingData() async {
+    final billingId = widget.billing['billingId']?.toString();
+    if (billingId == null || billingId.isEmpty) {
+      setState(() {
+        _billingData = {};
+        _bills = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      // Fetch detailed billing information
+      final billingData = await ApiService.getWalletBillingBills(
+        billingId: billingId,
+      );
+
+      if (!mounted) return;
+
+      // Extract bills from the response
+      List<Map<String, dynamic>> bills = [];
+
+      // Check if newBills is directly in billingData (correct structure)
+      if (billingData['newBills'] != null && billingData['newBills'] is List) {
+        final newBillsList = billingData['newBills'] as List;
+        if (newBillsList.isNotEmpty) {
+          final firstItem = newBillsList[0] as Map<String, dynamic>;
+          // Check if this is a billing object (has billingId) or a bill object (has billId)
+          if (firstItem.containsKey('billId')) {
+            // It's a list of bills directly - correct structure
+            bills = List<Map<String, dynamic>>.from(newBillsList);
+          } else if (firstItem.containsKey('billingId') &&
+              firstItem['newBills'] != null) {
+            // It's incorrectly wrapped - extract bills from the nested billing object
+            if (firstItem['newBills'] is List) {
+              bills = List<Map<String, dynamic>>.from(firstItem['newBills']);
+            }
+          }
+        }
+      } else if (billingData.containsKey('billingId') &&
+          billingData['newBills'] != null) {
+        // If billingData itself is the billing object (correct structure)
+        if (billingData['newBills'] is List) {
+          bills = List<Map<String, dynamic>>.from(billingData['newBills']);
+        }
+      }
+
+      setState(() {
+        _billingData = billingData;
+        _bills = bills;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Биллингийн мэдээлэл авахад алдаа гарлаа: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final billingData = _billingData ?? {};
+    final billing = widget.billing;
+
     final billingName =
         billingData['billingName']?.toString() ??
         billing['billingName']?.toString() ??
@@ -42,396 +136,467 @@ class BillingDetailModal extends StatelessWidget {
     final paidCount = (billingData['paidCount'] as num?)?.toInt() ?? 0;
     final paidTotal = (billingData['paidTotal'] as num?)?.toDouble() ?? 0.0;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [const Color(0xFF1A1A1A), const Color(0xFF0F0F0F)],
-        ),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24.r),
-          topRight: Radius.circular(24.r),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: EdgeInsets.fromLTRB(20.w, 16.h, 12.w, 16.h),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.goldPrimary.withOpacity(0.1),
-                  Colors.transparent,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.white.withOpacity(0.1),
-                  width: 1,
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          height: constraints.maxHeight * 0.9,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [context.backgroundColor, context.surfaceColor],
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(11.w),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.goldPrimary.withOpacity(0.3),
-                        AppColors.goldPrimary.withOpacity(0.15),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(11.r),
-                  ),
-                  child: Icon(
-                    Icons.home_rounded,
-                    color: AppColors.goldPrimary,
-                    size: 24.sp,
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        billingName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      if (customerName.isNotEmpty) ...[
-                        SizedBox(height: 4.h),
-                        Text(
-                          customerName,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 11.sp,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Container(
-                    padding: EdgeInsets.all(8.w),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.close_rounded,
-                      color: Colors.white,
-                      size: 20.sp,
-                    ),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24.r),
+              topRight: Radius.circular(24.r),
             ),
           ),
-          // Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Billing Info Section
-                  Container(
-                    padding: EdgeInsets.all(18.w),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.08),
-                          Colors.white.withOpacity(0.03),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: EdgeInsets.fromLTRB(20.w, 16.h, 12.w, 16.h),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.deepGreen.withOpacity(0.1),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: context.textPrimaryColor.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(11.w),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.deepGreen.withOpacity(0.3),
+                            AppColors.deepGreen.withOpacity(0.15),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(11.r),
                       ),
-                      borderRadius: BorderRadius.circular(22.r),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.15),
-                        width: 1,
+                      child: Icon(
+                        Icons.home_rounded,
+                        color: AppColors.deepGreen,
+                        size: 24.sp,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline_rounded,
-                              color: AppColors.goldPrimary,
-                              size: 20.sp,
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            billingName,
+                            style: TextStyle(
+                              color: context.textPrimaryColor,
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.5,
                             ),
-                            SizedBox(width: 11.w),
+                          ),
+                          if (customerName.isNotEmpty) ...[
+                            SizedBox(height: 4.h),
                             Text(
-                              'Биллингийн мэдээлэл',
+                              customerName,
                               style: TextStyle(
-                                color: AppColors.goldPrimary,
+                                color: context.textSecondaryColor,
                                 fontSize: 11.sp,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Container(
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          color: context.textPrimaryColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
                         ),
-                        SizedBox(height: 11.h),
-                        if (billing['customerCode']?.toString() != null)
-                          _buildModernModalInfoRow(
-                            Icons.tag_rounded,
-                            'Харилцагчийн код',
-                            billing['customerCode'].toString(),
-                          ),
-                        if (customerAddress.isNotEmpty) ...[
-                          if (billing['customerCode']?.toString() != null)
-                            SizedBox(height: 11.h),
-                          _buildModernModalInfoRow(
-                            Icons.location_on_rounded,
-                            'Хаяг',
-                            expandAddressAbbreviations(customerAddress),
-                          ),
-                        ],
-                        if (billing['walletDoorNo']?.toString() != null) ...[
-                          SizedBox(height: 11.h),
-                          _buildModernModalInfoRow(
-                            Icons.door_front_door_rounded,
-                            'Орц',
-                            billing['walletDoorNo'].toString(),
-                          ),
-                        ],
-                        if (hasNewBills && newBillsCount > 0) ...[
-                          SizedBox(height: 11.h),
-                          Container(
-                            padding: EdgeInsets.all(14.w),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.blue.withOpacity(0.2),
-                                  Colors.blue.withOpacity(0.1),
-                                ],
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: context.textPrimaryColor,
+                          size: 20.sp,
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.deepGreen,
+                        ),
+                      )
+                    : _errorMessage != null
+                    ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.w),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline_rounded,
+                                color: AppColors.error,
+                                size: 48.sp,
                               ),
-                              borderRadius: BorderRadius.circular(11.r),
-                              border: Border.all(
-                                color: Colors.blue.withOpacity(0.4),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(8.w),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(11.r),
-                                  ),
-                                  child: Icon(
-                                    Icons.new_releases_rounded,
-                                    color: Colors.blue,
-                                    size: 20.sp,
-                                  ),
+                              SizedBox(height: 16.h),
+                              Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: context.textPrimaryColor,
+                                  fontSize: 11.sp,
                                 ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 16.h),
+                              ElevatedButton(
+                                onPressed: _loadBillingData,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.deepGreen,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text('Дахин оролдох'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        padding: EdgeInsets.all(20.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Billing Info Section
+                            Container(
+                              padding: EdgeInsets.all(18.w),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    context.textPrimaryColor.withOpacity(0.08),
+                                    context.textPrimaryColor.withOpacity(0.03),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(22.r),
+                                border: Border.all(
+                                  color: context.textPrimaryColor.withOpacity(
+                                    0.15,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
                                     children: [
+                                      Icon(
+                                        Icons.info_outline_rounded,
+                                        color: AppColors.deepGreen,
+                                        size: 20.sp,
+                                      ),
+                                      SizedBox(width: 11.w),
                                       Text(
-                                        'Шинэ билл: $newBillsCount',
+                                        'Биллингийн мэдээлэл',
                                         style: TextStyle(
-                                          color: Colors.blue,
+                                          color: AppColors.deepGreen,
                                           fontSize: 11.sp,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      if (newBillsAmount > 0) ...[
-                                        SizedBox(height: 4.h),
+                                    ],
+                                  ),
+                                  SizedBox(height: 11.h),
+                                  if (widget.billing['customerCode']
+                                          ?.toString() !=
+                                      null)
+                                    _buildModernModalInfoRow(
+                                      Icons.tag_rounded,
+                                      'Харилцагчийн код',
+                                      widget.billing['customerCode'].toString(),
+                                    ),
+                                  if (customerAddress.isNotEmpty) ...[
+                                    if (widget.billing['customerCode']
+                                            ?.toString() !=
+                                        null)
+                                      SizedBox(height: 11.h),
+                                    _buildModernModalInfoRow(
+                                      Icons.location_on_rounded,
+                                      'Хаяг',
+                                      widget.expandAddressAbbreviations(
+                                        customerAddress,
+                                      ),
+                                    ),
+                                  ],
+                                  if (widget.billing['walletDoorNo']
+                                          ?.toString() !=
+                                      null) ...[
+                                    SizedBox(height: 11.h),
+                                    _buildModernModalInfoRow(
+                                      Icons.door_front_door_rounded,
+                                      'Орц',
+                                      widget.billing['walletDoorNo'].toString(),
+                                    ),
+                                  ],
+                                  if (hasNewBills && newBillsCount > 0) ...[
+                                    SizedBox(height: 11.h),
+                                    Container(
+                                      padding: EdgeInsets.all(14.w),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.blue.withOpacity(0.2),
+                                            Colors.blue.withOpacity(0.1),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          11.r,
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.blue.withOpacity(0.4),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.all(8.w),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.withOpacity(
+                                                0.2,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(11.r),
+                                            ),
+                                            child: Icon(
+                                              Icons.new_releases_rounded,
+                                              color: Colors.blue,
+                                              size: 20.sp,
+                                            ),
+                                          ),
+                                          SizedBox(width: 12.w),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Шинэ билл: $newBillsCount',
+                                                  style: TextStyle(
+                                                    color: Colors.blue,
+                                                    fontSize: 11.sp,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                if (newBillsAmount > 0) ...[
+                                                  SizedBox(height: 4.h),
+                                                  Text(
+                                                    'Дүн: ${widget.formatNumberWithComma(newBillsAmount)}₮',
+                                                    style: TextStyle(
+                                                      color: Colors.blue
+                                                          .withOpacity(0.8),
+                                                      fontSize: 11.sp,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  if (hiddenBillCount > 0) ...[
+                                    SizedBox(height: 11.h),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.visibility_off_rounded,
+                                          color: context.textSecondaryColor,
+                                          size: 16.sp,
+                                        ),
+                                        SizedBox(width: 11.w),
                                         Text(
-                                          'Дүн: ${formatNumberWithComma(newBillsAmount)}₮',
+                                          'Нуугдсан билл: $hiddenBillCount',
                                           style: TextStyle(
-                                            color: Colors.blue.withOpacity(0.8),
+                                            color: context.textSecondaryColor,
                                             fontSize: 11.sp,
                                           ),
                                         ),
                                       ],
-                                    ],
+                                    ),
+                                  ],
+                                  if (paidCount > 0) ...[
+                                    SizedBox(height: 11.h),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.check_circle_rounded,
+                                          color: Colors.green,
+                                          size: 16.sp,
+                                        ),
+                                        SizedBox(width: 11.w),
+                                        Text(
+                                          'Төлсөн: $paidCount билл, ${widget.formatNumberWithComma(paidTotal)}₮',
+                                          style: TextStyle(
+                                            color: Colors.green,
+                                            fontSize: 11.sp,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 20.h),
+                            // Bills Section Header
+                            Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(8.w),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.deepGreen.withOpacity(
+                                      0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(11.r),
+                                  ),
+                                  child: Icon(
+                                    Icons.receipt_long_rounded,
+                                    color: AppColors.deepGreen,
+                                    size: 20.sp,
+                                  ),
+                                ),
+                                SizedBox(width: 10.w),
+                                Text(
+                                  'Биллүүд (${_bills.length})',
+                                  style: TextStyle(
+                                    color: context.textPrimaryColor,
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.3,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                        if (hiddenBillCount > 0) ...[
-                          SizedBox(height: 11.h),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.visibility_off_rounded,
-                                color: Colors.white.withOpacity(0.6),
-                                size: 16.sp,
-                              ),
-                              SizedBox(width: 11.w),
-                              Text(
-                                'Нуугдсан билл: $hiddenBillCount',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
-                                  fontSize: 11.sp,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        if (paidCount > 0) ...[
-                          SizedBox(height: 11.h),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle_rounded,
-                                color: Colors.green,
-                                size: 16.sp,
-                              ),
-                              SizedBox(width: 11.w),
-                              Text(
-                                'Төлсөн: $paidCount билл, ${formatNumberWithComma(paidTotal)}₮',
-                                style: TextStyle(
-                                  color: Colors.green,
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 20.h),
-                  // Bills Section Header
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.goldPrimary.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(11.r),
-                        ),
-                        child: Icon(
-                          Icons.receipt_long_rounded,
-                          color: AppColors.goldPrimary,
-                          size: 20.sp,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Text(
-                        'Биллүүд (${bills.length})',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 11.h),
-                  if (bills.isEmpty)
-                    Container(
-                      padding: EdgeInsets.all(24.w),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withOpacity(0.05),
-                            Colors.white.withOpacity(0.02),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(22.r),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              color: Colors.white.withOpacity(0.4),
-                              size: 48.sp,
-                            ),
                             SizedBox(height: 11.h),
-                            Text(
-                              'Билл байхгүй байна',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.6),
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            if (_bills.isEmpty)
+                              Container(
+                                padding: EdgeInsets.all(24.w),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      context.textPrimaryColor.withOpacity(
+                                        0.05,
+                                      ),
+                                      context.textPrimaryColor.withOpacity(
+                                        0.02,
+                                      ),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(22.r),
+                                  border: Border.all(
+                                    color: context.textPrimaryColor.withOpacity(
+                                      0.1,
+                                    ),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.receipt_long_outlined,
+                                        color: context.textSecondaryColor,
+                                        size: 48.sp,
+                                      ),
+                                      SizedBox(height: 11.h),
+                                      Text(
+                                        'Билл байхгүй байна',
+                                        style: TextStyle(
+                                          color: context.textSecondaryColor,
+                                          fontSize: 11.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              ..._bills.map((bill) => _buildBillCard(bill)),
                           ],
                         ),
                       ),
-                    )
-                  else
-                    ...bills.map((bill) => _buildBillCard(bill)),
-                ],
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildModernModalInfoRow(IconData icon, String label, String value) {
     if (value.isEmpty) return const SizedBox.shrink();
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.all(8.w),
-          decoration: BoxDecoration(
-            color: AppColors.goldPrimary.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(11.r),
+    return Builder(
+      builder: (context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: AppColors.deepGreen.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(11.r),
+            ),
+            child: Icon(icon, color: AppColors.deepGreen, size: 18.sp),
           ),
-          child: Icon(icon, color: AppColors.goldPrimary, size: 18.sp),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w500,
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: context.textSecondaryColor,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                value,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
+                SizedBox(height: 4.h),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -453,14 +618,17 @@ class BillingDetailModal extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.08),
-            Colors.white.withOpacity(0.03),
+            context.textPrimaryColor.withOpacity(0.08),
+            context.textPrimaryColor.withOpacity(0.03),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
+        border: Border.all(
+          color: context.textPrimaryColor.withOpacity(0.15),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,15 +640,15 @@ class BillingDetailModal extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.goldPrimary.withOpacity(0.2),
-                      AppColors.goldPrimary.withOpacity(0.1),
+                      AppColors.deepGreen.withOpacity(0.2),
+                      AppColors.deepGreen.withOpacity(0.1),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(11.r),
                 ),
                 child: Icon(
                   Icons.receipt_rounded,
-                  color: AppColors.goldPrimary,
+                  color: AppColors.deepGreen,
                   size: 22.sp,
                 ),
               ),
@@ -495,7 +663,7 @@ class BillingDetailModal extends StatelessWidget {
                           child: Text(
                             billType,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: context.textPrimaryColor,
                               fontSize: 11.sp,
                               fontWeight: FontWeight.bold,
                               letterSpacing: -0.3,
@@ -538,7 +706,7 @@ class BillingDetailModal extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.business_rounded,
-                            color: Colors.white.withOpacity(0.6),
+                            color: context.textSecondaryColor,
                             size: 14.sp,
                           ),
                           SizedBox(width: 6.w),
@@ -546,7 +714,7 @@ class BillingDetailModal extends StatelessWidget {
                             child: Text(
                               billerName,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
+                                color: context.textSecondaryColor,
                                 fontSize: 11.sp,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -568,14 +736,14 @@ class BillingDetailModal extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.numbers_rounded,
-                                  color: Colors.white.withOpacity(0.6),
+                                  color: context.textSecondaryColor,
                                   size: 14.sp,
                                 ),
                                 SizedBox(width: 4.w),
                                 Text(
                                   billNo,
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
+                                    color: context.textSecondaryColor,
                                     fontSize: 11.sp,
                                   ),
                                 ),
@@ -587,14 +755,14 @@ class BillingDetailModal extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.calendar_today_rounded,
-                                  color: Colors.white.withOpacity(0.6),
+                                  color: context.textSecondaryColor,
                                   size: 14.sp,
                                 ),
                                 SizedBox(width: 4.w),
                                 Text(
                                   billPeriod,
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
+                                    color: context.textSecondaryColor,
                                     fontSize: 11.sp,
                                   ),
                                 ),
@@ -614,13 +782,13 @@ class BillingDetailModal extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.05),
-                  Colors.white.withOpacity(0.02),
+                  context.textPrimaryColor.withOpacity(0.05),
+                  context.textPrimaryColor.withOpacity(0.02),
                 ],
               ),
               borderRadius: BorderRadius.circular(11.r),
               border: Border.all(
-                color: Colors.white.withOpacity(0.1),
+                color: context.textPrimaryColor.withOpacity(0.1),
                 width: 1,
               ),
             ),
@@ -633,15 +801,15 @@ class BillingDetailModal extends StatelessWidget {
                     Text(
                       'Үндсэн дүн',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: context.textSecondaryColor,
                         fontSize: 11.sp,
                       ),
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      '${formatNumberWithComma(billAmount)}₮',
+                      '${widget.formatNumberWithComma(billAmount)}₮',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.textPrimaryColor,
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w600,
                       ),
@@ -661,7 +829,7 @@ class BillingDetailModal extends StatelessWidget {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        '${formatNumberWithComma(billLateFee)}₮',
+                        '${widget.formatNumberWithComma(billLateFee)}₮',
                         style: TextStyle(
                           color: Colors.orange,
                           fontSize: 11.sp,
@@ -677,14 +845,14 @@ class BillingDetailModal extends StatelessWidget {
                     Text(
                       'Нийт дүн',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: context.textSecondaryColor,
                         fontSize: 11.sp,
                       ),
                     ),
                     Text(
-                      '${formatNumberWithComma(billTotalAmount)}₮',
+                      '${widget.formatNumberWithComma(billTotalAmount)}₮',
                       style: TextStyle(
-                        color: AppColors.goldPrimary,
+                        color: AppColors.deepGreen,
                         fontSize: 11.sp,
                         fontWeight: FontWeight.bold,
                       ),
@@ -720,6 +888,3 @@ class BillingDetailModal extends StatelessWidget {
     );
   }
 }
-
-
-

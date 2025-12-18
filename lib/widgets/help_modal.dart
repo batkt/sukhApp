@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 /// Show help modal with frequently asked questions
 Future<void> showHelpModal(BuildContext context) {
@@ -136,12 +137,30 @@ class _HelpModalState extends State<HelpModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: context.responsiveModalHeight(
+        small: 0.85,
+        medium: 0.80,
+        large: 0.75,
+        tablet: 0.70,
+      ),
+      constraints: BoxConstraints(
+        maxHeight: context.isTablet ? 800.h : double.infinity,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFF0a0e27),
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.w),
-          topRight: Radius.circular(30.w),
+          topLeft: Radius.circular(context.responsiveBorderRadius(
+            small: 30,
+            medium: 35,
+            large: 40,
+            tablet: 45,
+          )),
+          topRight: Radius.circular(context.responsiveBorderRadius(
+            small: 30,
+            medium: 35,
+            large: 40,
+            tablet: 45,
+          )),
         ),
       ),
       child: OptimizedGlass(

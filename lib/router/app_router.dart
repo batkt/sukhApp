@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_neg.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_khoyor.dart';
+import 'package:sukh_app/screens/burtguulekh/burtguulekh_signup.dart';
 import 'package:sukh_app/screens/medegdel/medegdel.dart';
 import 'package:sukh_app/screens/Medegdel/medegdel_list.dart';
 import 'package:sukh_app/screens/Medegdel/gomdol_sanal_form.dart';
@@ -20,6 +21,11 @@ import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
 import 'package:sukh_app/screens/mashin/mashin.dart';
 import 'package:sukh_app/screens/address/address_selection.dart';
 import 'package:sukh_app/screens/biller/biller_detail.dart';
+import 'package:sukh_app/screens/newtrekh/phone_verification_screen.dart';
+import 'package:sukh_app/screens/pdf_viewer/pdf_viewer_screen.dart';
+import 'package:sukh_app/screens/gariinAvlaga/gariin_avlaga.dart';
+import 'package:sukh_app/screens/ebarimt/ebarimt_page.dart';
+import 'package:sukh_app/screens/contact/contact_page.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/main.dart';
@@ -105,6 +111,22 @@ final GoRouter appRouter = GoRouter(
           ),
     ),
     GoRoute(
+      path: '/phone_verification',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: PhoneVerificationScreen(
+            phoneNumber: extra?['phoneNumber'] ?? '',
+            baiguullagiinId: extra?['baiguullagiinId'],
+            duureg: extra?['duureg'],
+            horoo: extra?['horoo'],
+            soh: extra?['soh'],
+          ),
+        );
+      },
+    ),
+    GoRoute(
       path: '/biller-detail',
       pageBuilder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;
@@ -135,6 +157,21 @@ final GoRouter appRouter = GoRouter(
               locationData: state.extra as Map<String, dynamic>?,
             ),
           ),
+    ),
+    GoRoute(
+      path: '/burtguulekh_signup',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: BurtguulekhSignup(
+            forceNoOrg: extra?['forceNoOrg'] == true,
+            baiguullagiinId: extra?['baiguullagiinId']?.toString(),
+            prefillPhone: extra?['utas']?.toString(),
+            prefillEmail: extra?['mail']?.toString(),
+          ),
+        );
+      },
     ),
     GoRoute(
       path: '/tokhirgoo',
@@ -233,6 +270,43 @@ final GoRouter appRouter = GoRouter(
           child: MedegdelDetailScreen(notification: notification),
         );
       },
+    ),
+    GoRoute(
+      path: '/pdf-viewer',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: PdfViewerScreen(
+            pdfPath: extra?['pdfPath'],
+            pdfAsset: extra?['pdfAsset'] ?? 'lib/assets/pdf/АмарСӨХ.pdf',
+          ),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/gariin-avlaga',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const GariinAvlagaPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/ebarimt',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const EbarimtPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/contact',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const ContactPage(),
+          ),
     ),
   ],
 );

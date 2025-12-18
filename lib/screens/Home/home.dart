@@ -1,9 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/components/Menu/side_menu.dart';
-import 'package:sukh_app/components/Home/home_header.dart';
 import 'package:sukh_app/components/Home/billing_connection_section.dart';
 import 'package:sukh_app/components/Home/billing_list_section.dart';
 import 'package:sukh_app/components/Home/billers_grid.dart';
@@ -16,6 +16,8 @@ import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -27,6 +29,60 @@ class AppBackground extends StatelessWidget {
   }
 }
 
+// Custom painter for circular progress indicator
+class _CircularProgressPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final Color backgroundColor;
+  final double strokeWidth;
+
+  _CircularProgressPainter({
+    required this.progress,
+    required this.color,
+    required this.backgroundColor,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    // Draw background circle
+    final backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // Draw progress arc
+    final progressPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final sweepAngle = 2 * math.pi * progress;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2, // Start from top
+      sweepAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CircularProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.color != color ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.strokeWidth != strokeWidth;
+  }
+}
+
 class NuurKhuudas extends StatefulWidget {
   const NuurKhuudas({super.key});
 
@@ -34,10 +90,13 @@ class NuurKhuudas extends StatefulWidget {
   State<NuurKhuudas> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<NuurKhuudas> {
+class _BookingScreenState extends State<NuurKhuudas>
+    with SingleTickerProviderStateMixin {
   DateTime? paymentDate;
   bool isLoadingPaymentData = true;
   Geree? gereeData;
+  GereeResponse? _gereeResponse;
+  bool _isLoadingGeree = false;
   double totalNiitTulbur = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -45,6 +104,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
   int? nekhemjlekhUusgekhOgnoo;
   DateTime? oldestUnpaidInvoiceDate;
   bool hasUnpaidInvoice = false;
+
+  // Nekhemjlekh cron data for date calculation
+  Map<String, dynamic>? _nekhemjlekhCronData;
 
   // Notification count
   int _unreadNotificationCount = 0;
@@ -62,27 +124,60 @@ class _BookingScreenState extends State<NuurKhuudas> {
   Map<String, dynamic>? _userBillingData;
 
   // All billing payments for total balance modal
-  List<Map<String, dynamic>> _allBillingPayments = [];
-  bool _isLoadingAllPayments = false;
+
+  // Animation controller for circular progress
+  late AnimationController _progressAnimationController;
+  late Animation<double> _progressAnimation;
 
   @override
   void initState() {
     super.initState();
+    // Initialize animation controller
+    _progressAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _progressAnimation = CurvedAnimation(
+      parent: _progressAnimationController,
+      curve: Curves.easeOutCubic,
+    );
+
     _loadBillers();
     _loadBillingList();
     _loadNotificationCount();
     _setupSocketListener();
-    _loadAllBillingPayments();
+    _loadGereeData();
+    _loadNekhemjlekhCron(); // Load nekhemjlekh cron data for date calculation
+    _loadAllBillingPayments(); // Load total balance on init
+
+    // Trigger animation after a short delay to ensure data is loaded
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted && _gereeResponse != null) {
+        _progressAnimationController.forward();
+      }
+    });
   }
+
+  bool _hasLoadedBalance = false;
 
   void _setupSocketListener() {
     // Set up socket notification callback
     SocketService.instance.setNotificationCallback((notification) {
-      // Refresh notification count when new notification arrives
+      print('🔔 HOME: Notification callback triggered');
+      print('🔔 HOME: Notification data: $notification');
+
       if (mounted) {
+        // Refresh from API to get accurate count
+        // Don't increment locally to avoid double counting
+        print('🔔 HOME: Widget is mounted, calling _loadNotificationCount()');
         _loadNotificationCount();
+      } else {
+        print(
+          '⚠️ HOME: Widget not mounted, skipping notification count update',
+        );
       }
     });
+    print('🔔 HOME: Socket listener callback registered');
   }
 
   @override
@@ -91,35 +186,58 @@ class _BookingScreenState extends State<NuurKhuudas> {
     // Re-establish socket listener when screen comes back into focus
     // This ensures the callback is active even after modal closes
     _setupSocketListener();
+    // Also refresh notification count when page becomes visible
+    _loadNotificationCount();
+    // Reload total balance when page becomes visible (only once per mount)
+    if (!_hasLoadedBalance) {
+      _hasLoadedBalance = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadAllBillingPayments();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
     _billerPageController.dispose();
+    _progressAnimationController.dispose();
     // Don't remove callback on dispose - let it stay active
     // The socket service will handle cleanup on logout
     super.dispose();
   }
 
   Future<void> _loadNotificationCount() async {
+    print('🔔 HOME: _loadNotificationCount() called');
     try {
       // Check if user is logged in first
       final isLoggedIn = await StorageService.isLoggedIn();
       if (!isLoggedIn) {
+        print('🔔 HOME: User not logged in, skipping notification count');
         return;
       }
 
+      print('🔔 HOME: Fetching notifications from API...');
       final response = await ApiService.fetchMedegdel();
       final medegdelResponse = MedegdelResponse.fromJson(response);
       final unreadCount = medegdelResponse.data
           .where((n) => !n.kharsanEsekh)
           .length;
+      print('🔔 HOME: Unread notification count from API: $unreadCount');
+      print('🔔 HOME: Current badge count: $_unreadNotificationCount');
+
       if (mounted) {
+        // Use API count directly to avoid double counting
         setState(() {
           _unreadNotificationCount = unreadCount;
         });
+        print('🔔 HOME: ✅ Notification badge updated to $unreadCount');
+      } else {
+        print('⚠️ HOME: Widget not mounted, cannot update badge');
       }
     } catch (e) {
+      print('❌ HOME: Error loading notification count: $e');
       // Silently fail - notifications are optional
       // Reset count on error
       if (mounted) {
@@ -262,6 +380,80 @@ class _BookingScreenState extends State<NuurKhuudas> {
     }
   }
 
+  Future<void> _loadGereeData() async {
+    setState(() {
+      _isLoadingGeree = true;
+    });
+
+    try {
+      final userId = await StorageService.getUserId();
+      if (userId != null) {
+        final response = await ApiService.fetchGeree(userId);
+        if (mounted) {
+          setState(() {
+            _gereeResponse = GereeResponse.fromJson(response);
+            _isLoadingGeree = false;
+          });
+          // Trigger animation when data loads
+          _progressAnimationController.reset();
+          _progressAnimationController.forward();
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingGeree = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingGeree = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadNekhemjlekhCron() async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId != null) {
+        final response = await ApiService.fetchNekhemjlekhCron(
+          baiguullagiinId: baiguullagiinId,
+        );
+        if (mounted) {
+          setState(() {
+            // Handle both shapes:
+            // 1) { success, data: { ... } }
+            // 2) { success, data: [ { ... }, ... ] }
+            final rawData = response['data'];
+            if (rawData is Map<String, dynamic>) {
+              _nekhemjlekhCronData = rawData;
+            } else if (rawData is List && rawData.isNotEmpty) {
+              final first = rawData.first;
+              if (first is Map<String, dynamic>) {
+                _nekhemjlekhCronData = first;
+              }
+            } else {
+              _nekhemjlekhCronData = null;
+            }
+
+            if (_nekhemjlekhCronData != null) {
+              debugPrint(
+                '📅 [HOME] Loaded nekhemjlekhCron: nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
+              );
+            } else {
+              debugPrint('📅 [HOME] nekhemjlekhCron data is null/empty');
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading nekhemjlekh cron: $e');
+      // Silent fail - date calculation will fallback to contract date
+    }
+  }
+
   Future<void> _loadBillers() async {
     setState(() {
       _isLoadingBillers = true;
@@ -298,19 +490,14 @@ class _BookingScreenState extends State<NuurKhuudas> {
           message: displayMessage,
           icon: Icons.error_outline,
           iconColor: Colors.red,
-          textColor: Colors.white,
+          textColor: context.textPrimaryColor,
         );
       }
     }
   }
 
   Future<void> _loadAllBillingPayments() async {
-    setState(() {
-      _isLoadingAllPayments = true;
-    });
-
     try {
-      List<Map<String, dynamic>> allPayments = [];
       double total = 0.0;
 
       // Load OWN_ORG payments
@@ -341,12 +528,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
                           ? niitTulbur.toDouble()
                           : (niitTulbur as double);
                       total += amount;
-                      allPayments.add({
-                        'source': 'OWN_ORG',
-                        'billingName': 'Орон сууцны төлбөр',
-                        'amount': amount,
-                        'invoice': invoice,
-                      });
                     }
                   }
                 }
@@ -406,15 +587,6 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
               if (billingTotal > 0) {
                 total += billingTotal;
-                allPayments.add({
-                  'source': 'WALLET_API',
-                  'billingName':
-                      billing['billingName']?.toString() ?? 'Биллинг',
-                  'customerName': billing['customerName']?.toString() ?? '',
-                  'amount': billingTotal,
-                  'bills': bills,
-                  'billing': billing,
-                });
               }
             } catch (e) {
               // Error loading billing
@@ -427,17 +599,12 @@ class _BookingScreenState extends State<NuurKhuudas> {
 
       if (mounted) {
         setState(() {
-          _allBillingPayments = allPayments;
           totalNiitTulbur = total;
-          _isLoadingAllPayments = false;
+          _hasLoadedBalance = true;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingAllPayments = false;
-        });
-      }
+      // Silent fail - total will remain at current value
     }
   }
 
@@ -446,6 +613,303 @@ class _BookingScreenState extends State<NuurKhuudas> {
     final integerPart = parts[0];
     final regex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     return integerPart.replaceAllMapped(regex, (match) => '${match[1]},');
+  }
+
+  int _calculateDaysPassed(String gereeniiOgnoo) {
+    try {
+      // Calculate days from user/contract created date (gereeniiOgnoo)
+      // Do NOT use nekhemjlekhCron / previous month invoice date here.
+      final contractDate = DateTime.parse(gereeniiOgnoo);
+      final today = DateTime.now();
+      final difference = today.difference(contractDate);
+      return difference.inDays;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  String _getNextUnitDate(String gereeniiOgnoo) {
+    try {
+      // Use nekhemjlekhUusgekhOgnoo if available
+      if (_nekhemjlekhCronData != null &&
+          _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] != null) {
+        final nekhemjlekhUusgekhOgnoo =
+            _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] as int;
+        final today = DateTime.now();
+
+        // Calculate next invoice date based on nekhemjlekhUusgekhOgnoo
+        DateTime nextInvoiceDate;
+        if (today.day >= nekhemjlekhUusgekhOgnoo) {
+          // Next invoice will be next month
+          final nextMonth = today.month == 12 ? 1 : today.month + 1;
+          final nextYear = today.month == 12 ? today.year + 1 : today.year;
+          nextInvoiceDate = DateTime(
+            nextYear,
+            nextMonth,
+            nekhemjlekhUusgekhOgnoo,
+          );
+        } else {
+          // Next invoice will be this month
+          nextInvoiceDate = DateTime(
+            today.year,
+            today.month,
+            nekhemjlekhUusgekhOgnoo,
+          );
+        }
+
+        return '${nextInvoiceDate.year}-${nextInvoiceDate.month.toString().padLeft(2, '0')}-${nextInvoiceDate.day.toString().padLeft(2, '0')}';
+      } else {
+        // Fallback to contract date calculation
+        final contractDate = DateTime.parse(gereeniiOgnoo);
+        // Calculate next unit date (assuming monthly units, add 1 month)
+        final nextUnit = DateTime(
+          contractDate.year,
+          contractDate.month + 1,
+          contractDate.day,
+        );
+        return '${nextUnit.year}-${nextUnit.month.toString().padLeft(2, '0')}-${nextUnit.day.toString().padLeft(2, '0')}';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
+  Widget _buildRemainingDaysWidget(Geree geree) {
+    // Determine next invoice date from nekhemjlekhCron (if available)
+    DateTime? nextInvoiceDate;
+    if (_nekhemjlekhCronData != null &&
+        _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] != null) {
+      final nekhemjlekhUusgekhOgnoo =
+          _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] as int;
+      final today = DateTime.now();
+
+      if (today.day >= nekhemjlekhUusgekhOgnoo) {
+        // Next invoice will be next month
+        final nextMonth = today.month == 12 ? 1 : today.month + 1;
+        final nextYear = today.month == 12 ? today.year + 1 : today.year;
+        nextInvoiceDate = DateTime(
+          nextYear,
+          nextMonth,
+          nekhemjlekhUusgekhOgnoo,
+        );
+      } else {
+        // Next invoice will be this month
+        nextInvoiceDate = DateTime(
+          today.year,
+          today.month,
+          nekhemjlekhUusgekhOgnoo,
+        );
+      }
+    }
+
+    final today = DateTime.now();
+
+    int displayDays;
+    String centerLabel;
+    Color accentColor;
+    double targetProgress;
+
+    String nextUnitDateText = '';
+
+    if (nextInvoiceDate != null && today.isBefore(nextInvoiceDate)) {
+      // Future invoice date → show remaining days in green
+      final remainingDays = nextInvoiceDate
+          .difference(DateTime(today.year, today.month, today.day))
+          .inDays;
+      displayDays = remainingDays;
+      centerLabel = 'өдөр дутуу';
+      accentColor = AppColors.deepGreen;
+      nextUnitDateText =
+          '${nextInvoiceDate.year}-${nextInvoiceDate.month.toString().padLeft(2, '0')}-${nextInvoiceDate.day.toString().padLeft(2, '0')}';
+
+      // Progress: more filled as we get closer to the due date (assume 30-day cycle)
+      final clampedRemaining = remainingDays > 30 ? 30 : remainingDays;
+      targetProgress = 1.0 - (clampedRemaining / 30.0);
+    } else {
+      // Fallback: show days passed since user/contract created date
+      final daysPassed = _calculateDaysPassed(geree.gereeniiOgnoo);
+      displayDays = daysPassed;
+      centerLabel = 'өдөр өнгөрсөн';
+      // Use salmon-pink color when showing passed days
+      accentColor = const Color(0xFFFF6B6B);
+      // Progress based on days passed in current 30-day cycle
+      targetProgress = (daysPassed % 30) / 30.0;
+      // For fallback, keep old next unit date behavior
+      nextUnitDateText = _getNextUnitDate(geree.gereeniiOgnoo);
+    }
+
+    final isDark = context.isDarkMode;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        children: [
+          // Simple but unique circular dashboard
+          Container(
+            width: 220.w,
+            height: 220.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark ? Colors.black : Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withOpacity(0.2),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Circular progress ring with animation
+                SizedBox(
+                  width: 220.w,
+                  height: 220.w,
+                  child: AnimatedBuilder(
+                    animation: _progressAnimation,
+                    builder: (context, child) {
+                      final animatedProgress =
+                          targetProgress * _progressAnimation.value;
+                      return CustomPaint(
+                        painter: _CircularProgressPainter(
+                          progress: animatedProgress,
+                          color: accentColor,
+                          backgroundColor: accentColor.withOpacity(0.1),
+                          strokeWidth: 8,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // Center content with animation
+                AnimatedBuilder(
+                  animation: _progressAnimation,
+                  builder: (context, child) {
+                    return Opacity(
+                      opacity: _progressAnimation.value,
+                      child: Transform.scale(
+                        scale: 0.8 + (0.2 * _progressAnimation.value),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '$displayDays',
+                              style: TextStyle(
+                                fontSize: 72.sp,
+                                fontWeight: FontWeight.w800,
+                                color: accentColor,
+                                height: 1.0,
+                                letterSpacing: -1,
+                              ),
+                            ),
+                            SizedBox(height: 6.h),
+                            Text(
+                              centerLabel,
+                              style: context
+                                  .descriptionStyle(
+                                    color: accentColor.withOpacity(0.8),
+                                    fontWeight: FontWeight.w600,
+                                  )
+                                  .copyWith(letterSpacing: 0.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20.h),
+          // Modern calendar card
+          Container(
+            padding: EdgeInsets.all(22.w),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        Colors.white.withOpacity(0.08),
+                        Colors.white.withOpacity(0.03),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.9),
+                        Colors.white.withOpacity(0.7),
+                      ],
+              ),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : accentColor.withOpacity(0.2),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.black.withOpacity(0.3)
+                      : accentColor.withOpacity(0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        accentColor.withOpacity(0.2),
+                        accentColor.withOpacity(0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  child: Icon(
+                    Icons.calendar_today_rounded,
+                    color: accentColor,
+                    size: 24.sp,
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Дараагийн төлөлт',
+                        style: context
+                            .secondaryDescriptionStyle(
+                              color: context.textSecondaryColor,
+                              fontWeight: FontWeight.w500,
+                            )
+                            .copyWith(letterSpacing: 0.3),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        nextUnitDateText,
+                        style: context
+                            .titleStyle(
+                              color: accentColor,
+                              fontWeight: FontWeight.w700,
+                            )
+                            .copyWith(letterSpacing: -0.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String formatDate(String dateString) {
@@ -476,25 +940,191 @@ class _BookingScreenState extends State<NuurKhuudas> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: const SideMenu(),
-      body: AppBackground(
-        child: SafeArea(
-          child: Column(
+      appBar: AppBar(
+        backgroundColor: AppColors.getDeepGreen(context.isDarkMode),
+        toolbarHeight: context.responsiveSpacing(
+          small: 70,
+          medium: 75,
+          large: 80,
+          tablet: 85,
+        ),
+        leading: IconButton(
+          icon: Icon(
+            Icons.menu,
+            color: Colors.white,
+            size: context.responsiveIconSize(
+              small: 28,
+              medium: 30,
+              large: 32,
+              tablet: 34,
+            ),
+          ),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        ),
+        title: GestureDetector(
+          onTap: _showTotalBalanceModal,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsiveSpacing(
+                small: 16,
+                medium: 18,
+                large: 20,
+                tablet: 22,
+              ),
+              vertical: context.responsiveSpacing(
+                small: 10,
+                medium: 12,
+                large: 14,
+                tablet: 16,
+              ),
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 11,
+                  medium: 12,
+                  large: 13,
+                  tablet: 14,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: Colors.white,
+                  size: context.responsiveIconSize(
+                    small: 26,
+                    medium: 28,
+                    large: 30,
+                    tablet: 32,
+                  ),
+                ),
+                SizedBox(
+                  width: context.responsiveSpacing(
+                    small: 10,
+                    medium: 12,
+                    large: 14,
+                    tablet: 16,
+                  ),
+                ),
+                Flexible(
+                  child: Text(
+                    'Нийт үлдэгдэл ${_formatNumberWithComma(totalNiitTulbur)}₮',
+                    style: context.titleStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        actions: [
+          Stack(
+            clipBehavior: Clip.none,
             children: [
-              // Header Component
-              HomeHeader(
-                scaffoldKey: _scaffoldKey,
-                totalNiitTulbur: totalNiitTulbur,
-                unreadNotificationCount: _unreadNotificationCount,
-                onTotalBalanceTap: _showTotalBalanceModal,
-                onNotificationTap: () {
+              IconButton(
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                  size: context.responsiveIconSize(
+                    small: 28,
+                    medium: 30,
+                    large: 32,
+                    tablet: 34,
+                  ),
+                ),
+                onPressed: () {
                   context.push('/medegdel-list').then((_) {
                     _loadNotificationCount();
                   });
                 },
-                formatNumberWithComma: _formatNumberWithComma,
               ),
-
-              SizedBox(height: 20.h),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: context.responsiveSpacing(
+                    small: 8,
+                    medium: 10,
+                    large: 12,
+                    tablet: 14,
+                  ),
+                  top: context.responsiveSpacing(
+                    small: 8,
+                    medium: 10,
+                    large: 12,
+                    tablet: 14,
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.responsiveSpacing(
+                        small: 6,
+                        medium: 7,
+                        large: 8,
+                        tablet: 9,
+                      ),
+                      vertical: context.responsiveSpacing(
+                        small: 2,
+                        medium: 3,
+                        large: 4,
+                        tablet: 5,
+                      ),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.deepGreen, width: 2),
+                    ),
+                    constraints: BoxConstraints(
+                      minWidth: context.responsiveSpacing(
+                        small: 18,
+                        medium: 20,
+                        large: 22,
+                        tablet: 24,
+                      ),
+                      minHeight: context.responsiveSpacing(
+                        small: 18,
+                        medium: 20,
+                        large: 22,
+                        tablet: 24,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _unreadNotificationCount > 99
+                            ? '99+'
+                            : '$_unreadNotificationCount',
+                        style: context.secondaryDescriptionStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+      body: AppBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              SizedBox(
+                height: context.responsiveSpacing(
+                  small: 20,
+                  medium: 24,
+                  large: 28,
+                  tablet: 32,
+                ),
+              ),
 
               // Billing Connection Section
               if (_billingList.isEmpty && !_isLoadingBillingList)
@@ -504,7 +1134,14 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 ),
 
               if (_billingList.isEmpty && !_isLoadingBillingList)
-                SizedBox(height: 11.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 11,
+                    medium: 13,
+                    large: 15,
+                    tablet: 17,
+                  ),
+                ),
 
               // Billing List Section
               BillingListSection(
@@ -518,41 +1155,94 @@ class _BookingScreenState extends State<NuurKhuudas> {
               SizedBox(height: 11.h),
 
               Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // Billers Grid
-                      if (_isLoadingBillers)
-                        SizedBox(
-                          height: 300.h,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.secondaryAccent,
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    // Refresh all data
+                    await Future.wait([
+                      _loadBillers(),
+                      _loadBillingList(),
+                      _loadNotificationCount(),
+                      _loadAllBillingPayments(),
+                      _loadGereeData(),
+                      _loadNekhemjlekhCron(),
+                    ]);
+                  },
+                  color: AppColors.deepGreen,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      children: [
+                        // Billers Grid
+                        if (_isLoadingBillers)
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 300,
+                              medium: 350,
+                              large: 400,
+                              tablet: 450,
                             ),
-                          ),
-                        )
-                      else if (_billers.isEmpty)
-                        SizedBox(
-                          height: 300.h,
-                          child: Center(
-                            child: Text(
-                              'Биллер олдсонгүй',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11.sp,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.deepGreen,
                               ),
                             ),
+                          )
+                        else if (_billers.isEmpty)
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 300,
+                              medium: 350,
+                              large: 400,
+                              tablet: 450,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Биллер олдсонгүй',
+                                style: TextStyle(
+                                  color: context.textSecondaryColor,
+                                  fontSize: context.responsiveFontSize(
+                                    small: 20,
+                                    medium: 22,
+                                    large: 24,
+                                    tablet: 26,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          BillersGrid(
+                            billers: _billers,
+                            onDevelopmentTap: () =>
+                                _showDevelopmentModal(context),
                           ),
-                        )
-                      else
-                        BillersGrid(
-                          billers: _billers,
-                          onDevelopmentTap: () =>
-                              _showDevelopmentModal(context),
+
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 20,
+                            medium: 24,
+                            large: 28,
+                            tablet: 32,
+                          ),
                         ),
 
-                      SizedBox(height: 11.h),
-                    ],
+                        // Remaining Days Display
+                        if (_gereeResponse != null &&
+                            _gereeResponse!.jagsaalt.isNotEmpty)
+                          _buildRemainingDaysWidget(
+                            _gereeResponse!.jagsaalt.first,
+                          ),
+
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 11,
+                            medium: 13,
+                            large: 15,
+                            tablet: 17,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -570,8 +1260,8 @@ class _BookingScreenState extends State<NuurKhuudas> {
         context,
         message: 'Нэхэмжлэл үүсээгүй байна',
         icon: Icons.info_outline,
-        iconColor: AppColors.secondaryAccent,
-        textColor: Colors.white,
+        iconColor: AppColors.deepGreenAccent,
+        textColor: context.textPrimaryColor,
       );
       return;
     }
@@ -582,12 +1272,12 @@ class _BookingScreenState extends State<NuurKhuudas> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF0a0e27),
+          color: context.backgroundColor,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
           ),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: context.borderColor),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -596,9 +1286,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
             Container(
               padding: EdgeInsets.all(11.w),
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
-                ),
+                border: Border(bottom: BorderSide(color: context.borderColor)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -606,13 +1294,18 @@ class _BookingScreenState extends State<NuurKhuudas> {
                   Text(
                     'Төлбөр төлөх',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.sp,
+                      color: context.textPrimaryColor,
+                      fontSize:
+                          20.sp, // Increased from 11 for better readability
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.white, size: 22.sp),
+                    icon: Icon(
+                      Icons.close,
+                      color: context.textPrimaryColor,
+                      size: 22.sp,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -630,26 +1323,24 @@ class _BookingScreenState extends State<NuurKhuudas> {
                   Container(
                     padding: EdgeInsets.all(14.w),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: context.cardBackgroundColor,
                       borderRadius: BorderRadius.circular(12.w),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      border: Border.all(color: context.borderColor),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Төлөх дүн',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            color: Colors.white.withOpacity(0.6),
+                          style: context.secondaryDescriptionStyle(
+                            color: context.textSecondaryColor,
                           ),
                         ),
                         Text(
                           '${_formatNumberWithComma(totalNiitTulbur)}₮',
-                          style: TextStyle(
-                            fontSize: 11.sp,
+                          style: context.secondaryDescriptionStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                           ),
                         ),
                       ],
@@ -674,8 +1365,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                       ),
                       child: Text(
                         'Төлбөр төлөх',
-                        style: TextStyle(
-                          fontSize: 11.sp,
+                        style: context.secondaryDescriptionStyle(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -691,17 +1381,11 @@ class _BookingScreenState extends State<NuurKhuudas> {
   }
 
   void _showTotalBalanceModal() {
-    // Refresh payments when modal opens
-    _loadAllBillingPayments();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => TotalBalanceModal(
-        totalAmount: totalNiitTulbur,
-        payments: _allBillingPayments,
-        isLoading: _isLoadingAllPayments,
         formatNumberWithComma: _formatNumberWithComma,
         onPaymentTap: _showPaymentModal,
       ),
@@ -723,9 +1407,9 @@ class _BookingScreenState extends State<NuurKhuudas> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.darkSurface, AppColors.darkSurfaceElevated],
+                colors: [context.surfaceColor, context.surfaceElevatedColor],
               ),
-              border: Border.all(color: AppColors.secondaryAccent, width: 2),
+              border: Border.all(color: AppColors.deepGreen, width: 2),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -747,9 +1431,8 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 Text(
                   'Хөгжүүлэлт явагдаж байна',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11.sp,
+                  style: context.secondaryDescriptionStyle(
+                    color: context.textPrimaryColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -757,10 +1440,8 @@ class _BookingScreenState extends State<NuurKhuudas> {
                 Text(
                   'Энэ хуудас хөгжүүлэлт хийгдэж байгаа тул одоогоор ашиглах боломжгүй байна. Удахгүй ашиглах боломжтой болно.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11.sp,
-                    height: 1.5,
+                  style: context.secondaryDescriptionStyle(
+                    color: context.textSecondaryColor,
                   ),
                 ),
                 SizedBox(height: 22.h),
@@ -781,8 +1462,7 @@ class _BookingScreenState extends State<NuurKhuudas> {
                     ),
                     child: Text(
                       'Ойлголоо',
-                      style: TextStyle(
-                        fontSize: 11.sp,
+                      style: context.secondaryDescriptionStyle(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -882,95 +1562,19 @@ class _BookingScreenState extends State<NuurKhuudas> {
   // _buildBillingCard moved to BillingCard component
 
   Future<void> _showBillingDetailModal(Map<String, dynamic> billing) async {
-    final billingId = billing['billingId']?.toString();
-    if (billingId == null || billingId.isEmpty) {
-      // If no billingId, show user profile data in modal
-      if (!mounted) return;
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => BillingDetailModal(
-          billing: billing,
-          billingData: {},
-          bills: [],
-          expandAddressAbbreviations: _expandAddressAbbreviations,
-          formatNumberWithComma: _formatNumberWithComma,
-        ),
-      );
-      return;
-    }
+    if (!mounted) return;
 
-    // Show loading
-    showDialog(
+    // Show modal immediately - it will handle loading internally
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: CircularProgressIndicator(color: AppColors.goldPrimary),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => BillingDetailModal(
+        billing: billing,
+        expandAddressAbbreviations: _expandAddressAbbreviations,
+        formatNumberWithComma: _formatNumberWithComma,
       ),
     );
-
-    try {
-      // Fetch detailed billing information
-      final billingData = await ApiService.getWalletBillingBills(
-        billingId: billingId,
-      );
-
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading
-
-      // Extract bills from the response
-      List<Map<String, dynamic>> bills = [];
-
-      // Check if newBills is directly in billingData (correct structure)
-      if (billingData['newBills'] != null && billingData['newBills'] is List) {
-        final newBillsList = billingData['newBills'] as List;
-        if (newBillsList.isNotEmpty) {
-          final firstItem = newBillsList[0] as Map<String, dynamic>;
-          // Check if this is a billing object (has billingId) or a bill object (has billId)
-          if (firstItem.containsKey('billId')) {
-            // It's a list of bills directly - correct structure
-            bills = List<Map<String, dynamic>>.from(newBillsList);
-          } else if (firstItem.containsKey('billingId') &&
-              firstItem['newBills'] != null) {
-            // It's incorrectly wrapped - extract bills from the nested billing object
-            if (firstItem['newBills'] is List) {
-              bills = List<Map<String, dynamic>>.from(firstItem['newBills']);
-            }
-          }
-        }
-      } else if (billingData.containsKey('billingId') &&
-          billingData['newBills'] != null) {
-        // If billingData itself is the billing object (correct structure)
-        if (billingData['newBills'] is List) {
-          bills = List<Map<String, dynamic>>.from(billingData['newBills']);
-        }
-      }
-
-      // Show modal with billing details
-      if (!mounted) return;
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => BillingDetailModal(
-          billing: billing,
-          billingData: billingData,
-          bills: bills,
-          expandAddressAbbreviations: _expandAddressAbbreviations,
-          formatNumberWithComma: _formatNumberWithComma,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading
-      showGlassSnackBar(
-        context,
-        message: 'Биллингийн мэдээлэл авахад алдаа гарлаа: $e',
-        icon: Icons.error,
-        iconColor: Colors.red,
-      );
-    }
   }
 
   // All modal and helper methods moved to components

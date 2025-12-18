@@ -7,6 +7,8 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -62,7 +64,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
 
           showGlassSnackBar(
             context,
-            message: 'Хэтэвчний системд амжилттай бүртгүүллээ!',
+            message: 'Сөх системд амжилттай бүртгүүллээ!',
             icon: Icons.check_circle,
             iconColor: Colors.green,
           );
@@ -115,36 +117,76 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                         ),
                         child: IntrinsicHeight(
                           child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 40.w,
-                              vertical: 24.h,
-                            ),
+                            padding: context
+                                .responsiveHorizontalPadding(
+                                  small: 28,
+                                  medium: 32,
+                                  large: 36,
+                                  tablet: 40,
+                                )
+                                .copyWith(
+                                  top: context.responsiveSpacing(
+                                    small: 24,
+                                    medium: 28,
+                                    large: 32,
+                                    tablet: 36,
+                                  ),
+                                  bottom: context.responsiveSpacing(
+                                    small: 24,
+                                    medium: 28,
+                                    large: 32,
+                                    tablet: 36,
+                                  ),
+                                ),
                             child: Form(
                               key: _formKey,
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const AppLogo(),
-                                  SizedBox(height: 20.h),
+                                  SizedBox(
+                                    height: context.responsiveSpacing(
+                                      small: 20,
+                                      medium: 24,
+                                      large: 28,
+                                      tablet: 32,
+                                    ),
+                                  ),
                                   Text(
                                     'Бүртгэл',
-                                    style: TextStyle(
+                                    style: context.largeTitleStyle(
                                       color: AppColors.grayColor,
-                                      fontSize: 28.sp,
                                     ),
                                     maxLines: 1,
                                     softWrap: false,
                                   ),
-                                  SizedBox(height: 24.h),
+                                  SizedBox(
+                                    height: context.responsiveSpacing(
+                                      small: 24,
+                                      medium: 28,
+                                      large: 32,
+                                      tablet: 36,
+                                    ),
+                                  ),
                                   if (_isRegistered) ...[
                                     Container(
-                                      padding: EdgeInsets.all(20.w),
+                                      padding: context.responsivePadding(
+                                        small: 20,
+                                        medium: 22,
+                                        large: 24,
+                                        tablet: 26,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: AppColors.success.withOpacity(
                                           0.15,
                                         ),
                                         borderRadius: BorderRadius.circular(
-                                          16.r,
+                                          context.responsiveBorderRadius(
+                                            small: 16,
+                                            medium: 18,
+                                            large: 20,
+                                            tablet: 22,
+                                          ),
                                         ),
                                         border: Border.all(
                                           color: AppColors.success.withOpacity(
@@ -158,33 +200,55 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           Icon(
                                             Icons.check_circle,
                                             color: AppColors.success,
-                                            size: 48.sp,
+                                            size: context.responsiveIconSize(
+                                              small: 48,
+                                              medium: 52,
+                                              large: 56,
+                                              tablet: 60,
+                                            ),
                                           ),
-                                          SizedBox(height: 16.h),
+                                          SizedBox(
+                                            height: context.responsiveSpacing(
+                                              small: 16,
+                                              medium: 18,
+                                              large: 20,
+                                              tablet: 22,
+                                            ),
+                                          ),
                                           Text(
                                             'Амжилттай бүртгүүллээ!',
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(
+                                            style: context.titleStyle(
                                               color: AppColors.success,
-                                              fontSize: 20.sp,
-                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          SizedBox(height: 12.h),
+                                          SizedBox(
+                                            height: context.responsiveSpacing(
+                                              small: 12,
+                                              medium: 14,
+                                              large: 16,
+                                              tablet: 18,
+                                            ),
+                                          ),
                                           Text(
                                             'Одоо утасны дугаараараа нэвтэрч болно.',
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(
+                                            style: context.descriptionStyle(
                                               color: AppColors.grayColor
                                                   .withOpacity(0.8),
-                                              fontSize: 14.sp,
-                                              height: 1.5,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    SizedBox(height: 24.h),
+                                    SizedBox(
+                                      height: context.responsiveSpacing(
+                                        small: 24,
+                                        medium: 28,
+                                        large: 32,
+                                        tablet: 36,
+                                      ),
+                                    ),
                                     GestureDetector(
                                       onTap: () {
                                         context.pop();
@@ -192,12 +256,22 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                       child: Container(
                                         width: double.infinity,
                                         padding: EdgeInsets.symmetric(
-                                          vertical: 14.h,
+                                          vertical: context.responsiveSpacing(
+                                            small: 14,
+                                            medium: 16,
+                                            large: 18,
+                                            tablet: 20,
+                                          ),
                                         ),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFCAD2DB),
                                           borderRadius: BorderRadius.circular(
-                                            12.r,
+                                            context.responsiveBorderRadius(
+                                              small: 12,
+                                              medium: 14,
+                                              large: 16,
+                                              tablet: 18,
+                                            ),
                                           ),
                                           boxShadow: [
                                             BoxShadow(
@@ -214,7 +288,12 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             color: Colors.black,
-                                            fontSize: 15.sp,
+                                            fontSize: context.responsiveFontSize(
+                                              small: 15,
+                                              medium: 16,
+                                              large: 17,
+                                              tablet: 18,
+                                            ),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),

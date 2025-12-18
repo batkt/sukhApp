@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -348,7 +348,15 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
       child: TextFormField(
         controller: _passwordController,
         obscureText: _obscurePassword,
-        style: TextStyle(color: Colors.white, fontSize: 16.sp),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: context.responsiveFontSize(
+            small: 16,
+            medium: 17,
+            large: 18,
+            tablet: 19,
+          ),
+        ),
         keyboardType: TextInputType.number,
         maxLength: 4,
         inputFormatters: [
@@ -395,7 +403,12 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
         obscureText: _obscureConfirmPassword,
         style: TextStyle(
           color: Colors.white,
-          fontSize: 16.sp, // 👈 use .sp for responsive font size
+          fontSize: context.responsiveFontSize(
+            small: 16,
+            medium: 17,
+            large: 18,
+            tablet: 19,
+          ),
         ),
         keyboardType: TextInputType.number,
         maxLength: 4,
@@ -474,7 +487,17 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                   ),
                 )
-              : Text('Бүртгүүлэх', style: TextStyle(fontSize: 14.sp)),
+              : Text(
+                  'Бүртгүүлэх',
+                  style: TextStyle(
+                    fontSize: context.responsiveFontSize(
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 17,
+                    ),
+                  ),
+                ),
         ),
       ),
     );

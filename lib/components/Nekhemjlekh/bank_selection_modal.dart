@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/constants/constants.dart';
-import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class BankSelectionModal extends StatelessWidget {
   final List<QPayBank> qpayBanks;
@@ -25,102 +25,102 @@ class BankSelectionModal extends StatelessWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: BoxDecoration(
-        color: AppColors.darkBackground,
+        color: context.cardBackgroundColor,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30.w),
           topRight: Radius.circular(30.w),
+        ),
+        border: Border.all(
+          color: context.borderColor,
+          width: 1,
         ),
       ),
-      child: OptimizedGlass(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.w),
-          topRight: Radius.circular(30.w),
-        ),
-        opacity: 0.06,
-        child: Column(
-          children: [
-              // Handle bar
-              Container(
-                margin: EdgeInsets.only(top: 12.h),
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2.w),
-                ),
+      child: Column(
+        children: [
+            // Handle bar
+            Container(
+              margin: EdgeInsets.only(top: 12.h),
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: context.borderColor,
+                borderRadius: BorderRadius.circular(2.w),
               ),
-              // Header
-              Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Банк сонгох',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
+            ),
+            // Header
+            Padding(
+              padding: EdgeInsets.all(20.w),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Банк сонгох',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.bold,
                     ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 24.sp,
-                      ),
-                      onPressed: () => Navigator.pop(context),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: context.textPrimaryColor,
+                      size: 24.sp,
                     ),
-                  ],
-                ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
               ),
-              // Bank grid
-              Expanded(
-                child: isLoadingQPay
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
-                      )
-                    : qpayBanks.isEmpty
-                        ? Center(
+            ),
+            // Bank grid
+            Expanded(
+              child: isLoadingQPay
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.deepGreen,
+                      ),
+                    )
+                  : qpayBanks.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.w),
                             child: Text(
                               contactPhone.isNotEmpty
                                   ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
                                   : 'Банкны мэдээлэл олдсонгүй',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: context.textSecondaryColor,
                                 fontSize: 16.sp,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                          )
-                        : GridView.builder(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 20.w,
-                              vertical: 10.h,
-                            ),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 12.w,
-                              mainAxisSpacing: 12.h,
-                              childAspectRatio: 0.85,
-                            ),
-                            itemCount: qpayBanks.length,
-                            itemBuilder: (context, index) {
-                              final bank = qpayBanks[index];
-                              return _buildQPayBankItem(bank);
-                            },
                           ),
-              ),
-          ],
-        ),
+                        )
+                      : GridView.builder(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.w,
+                            vertical: 10.h,
+                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 12.w,
+                            mainAxisSpacing: 12.h,
+                            childAspectRatio: 0.85,
+                          ),
+                          itemCount: qpayBanks.length,
+                          itemBuilder: (context, index) {
+                            final bank = qpayBanks[index];
+                            return _buildQPayBankItem(context, bank);
+                          },
+                        ),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildQPayBankItem(QPayBank bank) {
+  Widget _buildQPayBankItem(BuildContext context, QPayBank bank) {
     return GestureDetector(
       onTap: () {
         // Check if it's qPay wallet - show QR code
@@ -133,9 +133,9 @@ class BankSelectionModal extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(12.w),
-          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+          border: Border.all(color: context.borderColor, width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -145,7 +145,7 @@ class BankSelectionModal extends StatelessWidget {
               width: 60.w,
               height: 60.w,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.isDarkMode ? Colors.white : AppColors.lightSurface,
                 borderRadius: BorderRadius.circular(8.w),
               ),
               child: ClipRRect(
@@ -156,7 +156,7 @@ class BankSelectionModal extends StatelessWidget {
                   errorBuilder: (context, error, stackTrace) {
                     return Icon(
                       Icons.account_balance,
-                      color: Colors.grey,
+                      color: context.textSecondaryColor,
                       size: 30.sp,
                     );
                   },
@@ -170,7 +170,7 @@ class BankSelectionModal extends StatelessWidget {
               child: Text(
                 bank.description,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.textPrimaryColor,
                   fontSize: 11.sp,
                   fontWeight: FontWeight.w500,
                 ),

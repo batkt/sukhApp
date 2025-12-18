@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/components/Home/billing_card.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class BillingListSection extends StatelessWidget {
   final bool isLoading;
@@ -34,7 +35,7 @@ class BillingListSection extends StatelessWidget {
                 padding: EdgeInsets.all(11.w),
                 child: Center(
                   child: CircularProgressIndicator(
-                    color: AppColors.goldPrimary,
+                    color: AppColors.deepGreen,
                     strokeWidth: 2,
                   ),
                 ),
@@ -49,7 +50,7 @@ class BillingListSection extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: Colors.white.withOpacity(0.6),
+                      color: context.textSecondaryColor,
                       size: 20.sp,
                     ),
                     SizedBox(width: 12.w),
@@ -57,8 +58,8 @@ class BillingListSection extends StatelessWidget {
                       child: Text(
                         'Холбогдсон биллинг байхгүй байна',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 11.sp,
+                          color: context.textSecondaryColor,
+                          fontSize: 20.sp, // Increased from 11 for better readability
                         ),
                       ),
                     ),

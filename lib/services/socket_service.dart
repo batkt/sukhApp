@@ -1,5 +1,6 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/notification_service.dart';
 
 class SocketService {
   static SocketService? _instance;
@@ -82,20 +83,71 @@ class SocketService {
 
     final eventName = 'orshinSuugch$_userId';
     
+    print('🔔 Setting up notification listener for event: $eventName');
+    print('🔔 User ID: $_userId');
+    print('🔔 Socket connected: ${socket?.connected}');
+    
     // Remove existing listener if any
     socket!.off(eventName);
     
     socket!.on(eventName, (data) {
-      print('📬 New notification received: $data');
+      print('📬 New notification received on $eventName: $data');
+      print('🔔 DEBUG: About to notify callbacks. Total callbacks: ${_notificationCallbacks.length}');
+      
+      // Show local notification if data contains title and message
+      try {
+        if (data is Map<String, dynamic>) {
+          final title = data['title']?.toString() ?? 'Шинэ мэдэгдэл';
+          final message = data['message']?.toString() ?? '';
+          final turul = data['turul']?.toString().toLowerCase() ?? '';
+          
+          // Only show notification for "App" type notifications
+          if (turul == 'app' && message.isNotEmpty) {
+            NotificationService.showNotification(
+              id: DateTime.now().millisecondsSinceEpoch % 100000,
+              title: title,
+              body: message,
+              payload: data['_id']?.toString(),
+            );
+          }
+        }
+      } catch (e) {
+        print('Error showing local notification: $e');
+      }
       
       // Notify all registered callbacks
-      for (final callback in _notificationCallbacks) {
+      print('🔔🔔🔔 Notifying ${_notificationCallbacks.length} registered callback(s)');
+      if (_notificationCallbacks.isEmpty) {
+        print('⚠️⚠️⚠️ WARNING: No callbacks registered!');
+      }
+      
+      for (int i = 0; i < _notificationCallbacks.length; i++) {
         try {
-          callback(data);
-        } catch (e) {
-          print('Error in notification callback: $e');
+          print('🔔 Calling callback #$i');
+          final callback = _notificationCallbacks[i];
+          print('🔔 Callback #$i function: $callback');
+          
+          // Ensure data is a Map before passing
+          Map<String, dynamic> notificationData;
+          if (data is Map<String, dynamic>) {
+            notificationData = data;
+          } else if (data is Map) {
+            // Convert to Map<String, dynamic>
+            notificationData = Map<String, dynamic>.from(data);
+          } else {
+            print('⚠️ Data is not a Map, skipping callback. Data type: ${data.runtimeType}');
+            continue;
+          }
+          
+          print('🔔 Invoking callback #$i with data: $notificationData');
+          callback(notificationData);
+          print('🔔✅ Callback #$i completed successfully');
+        } catch (e, stackTrace) {
+          print('❌❌❌ Error in notification callback #$i: $e');
+          print('❌ Stack trace: $stackTrace');
         }
       }
+      print('🔔 Finished notifying all callbacks');
     });
   }
 
@@ -149,13 +201,19 @@ class SocketService {
 
   /// Set callback for user notifications (adds to list, doesn't replace)
   void setNotificationCallback(Function(Map<String, dynamic>) callback) {
+    print('🔔 setNotificationCallback called. Current callbacks: ${_notificationCallbacks.length}');
     // Remove if already exists to avoid duplicates
     _notificationCallbacks.remove(callback);
     _notificationCallbacks.add(callback);
+    print('🔔 Callback added. Total callbacks now: ${_notificationCallbacks.length}');
+    print('🔔 Callback function: $callback');
     
     // If already connected, set up listener
     if (_isConnected && _userId != null) {
+      print('🔔 Socket already connected, re-setting up listener');
       _listenForUserNotifications();
+    } else {
+      print('🔔 Socket not connected yet (connected: $_isConnected, userId: $_userId)');
     }
   }
 

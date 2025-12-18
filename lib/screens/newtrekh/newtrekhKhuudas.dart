@@ -7,9 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
+import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -17,7 +20,18 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(child: child);
+    final isDark = context.isDarkMode;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.getGradientColors(isDark),
+          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+        ),
+      ),
+      child: child,
+    );
   }
 }
 
@@ -30,15 +44,18 @@ class Newtrekhkhuudas extends StatefulWidget {
 
 class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
 
   bool _isLoading = false;
   bool _showEmailField = false;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
     super.initState();
     phoneController.addListener(() => setState(() {}));
+    passwordController.addListener(() => setState(() {}));
     emailController.addListener(() => setState(() {}));
     _loadSavedPhoneNumber();
   }
@@ -77,6 +94,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   @override
   void dispose() {
     phoneController.dispose();
+    passwordController.dispose();
     emailController.dispose();
     super.dispose();
   }
@@ -96,15 +114,34 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxWidth: isTablet ? 300.w : double.infinity,
+                        maxWidth: isTablet
+                            ? context.maxContentWidth
+                            : double.infinity,
                         minHeight: constraints.maxHeight,
                       ),
                       child: IntrinsicHeight(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 28.w,
-                            vertical: 12.h,
-                          ),
+                          padding: context
+                              .responsiveHorizontalPadding(
+                                small: 28,
+                                medium: 32,
+                                large: 36,
+                                tablet: 40,
+                              )
+                              .copyWith(
+                                top: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 20,
+                                ),
+                                bottom: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 20,
+                                ),
+                              ),
                           child: Column(
                             children: [
                               const Spacer(),
@@ -113,8 +150,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               Text(
                                 'Тавтай морил',
                                 style: TextStyle(
-                                  color: AppColors.grayColor,
+                                  color: context.isDarkMode
+                                      ? AppColors.darkTextPrimary
+                                      : AppColors.accentColor,
                                   fontSize: 22.sp,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               SizedBox(height: 24.h),
@@ -130,64 +170,215 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     ),
                                   ],
                                 ),
-                                child: TextFormField(
-                                  controller: phoneController,
-                                  keyboardType: TextInputType.phone,
-                                  autofocus: false,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.5,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Утасны дугаар',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white.withOpacity(0.5),
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    filled: true,
-                                    fillColor: AppColors.inputGrayColor
-                                        .withOpacity(0.3),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 20.w,
-                                      vertical: 16.h,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(16.r),
-                                      borderSide: BorderSide(
-                                        color: Colors.white.withOpacity(0.1),
-                                        width: 1.5,
+                                child: Builder(
+                                  builder: (context) {
+                                    final isDark = context.isDarkMode;
+                                    return TextFormField(
+                                      controller: phoneController,
+                                      keyboardType: TextInputType.phone,
+                                      autofocus: false,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.lightTextPrimary,
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.5,
                                       ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(16.r),
-                                      borderSide: BorderSide(
-                                        color: AppColors.grayColor.withOpacity(
-                                          0.8,
+                                      decoration: InputDecoration(
+                                        hintText: 'Утасны дугаар',
+                                        hintStyle: TextStyle(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.5)
+                                              : AppColors.lightTextSecondary
+                                                    .withOpacity(0.6),
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w400,
                                         ),
-                                        width: 2,
+                                        filled: true,
+                                        fillColor: isDark
+                                            ? AppColors.secondaryAccent
+                                                  .withOpacity(0.3)
+                                            : Colors.white,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 20.w,
+                                          vertical: 16.h,
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: isDark
+                                                ? Colors.white.withOpacity(0.1)
+                                                : AppColors.lightInputGray,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: isDark
+                                                ? AppColors.grayColor
+                                                      .withOpacity(0.8)
+                                                : AppColors.deepGreen,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        suffixIcon:
+                                            phoneController.text.isNotEmpty
+                                            ? IconButton(
+                                                icon: Icon(
+                                                  Icons.clear_rounded,
+                                                  color: isDark
+                                                      ? Colors.grey.withOpacity(
+                                                          0.7,
+                                                        )
+                                                      : AppColors
+                                                            .lightTextSecondary,
+                                                  size: 20.sp,
+                                                ),
+                                                onPressed: () =>
+                                                    phoneController.clear(),
+                                              )
+                                            : null,
                                       ),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(8),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ),
+                              SizedBox(height: 12.h),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16.r),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.15),
+                                      offset: const Offset(0, 4),
+                                      blurRadius: 12,
+                                      spreadRadius: 0,
                                     ),
-                                    suffixIcon: phoneController.text.isNotEmpty
-                                        ? IconButton(
-                                            icon: Icon(
-                                              Icons.clear_rounded,
-                                              color: Colors.white.withOpacity(
-                                                0.7,
-                                              ),
-                                              size: 20.sp,
-                                            ),
-                                            onPressed: () =>
-                                                phoneController.clear(),
-                                          )
-                                        : null,
-                                  ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(8),
                                   ],
+                                ),
+                                child: Builder(
+                                  builder: (context) {
+                                    final isDark = context.isDarkMode;
+                                    return TextFormField(
+                                      controller: passwordController,
+                                      obscureText: _obscurePassword,
+                                      keyboardType: TextInputType.number,
+                                      autofocus: false,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.lightTextPrimary,
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: 0.5,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Нууц код',
+                                        hintStyle: TextStyle(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.5)
+                                              : AppColors.lightTextSecondary
+                                                    .withOpacity(0.6),
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                        filled: true,
+                                        fillColor: isDark
+                                            ? AppColors.secondaryAccent
+                                                  .withOpacity(0.3)
+                                            : Colors.white,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 20.w,
+                                          vertical: 16.h,
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: isDark
+                                                ? Colors.white.withOpacity(0.1)
+                                                : AppColors.lightInputGray,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: isDark
+                                                ? AppColors.grayColor
+                                                      .withOpacity(0.8)
+                                                : AppColors.deepGreen,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        suffixIcon: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (passwordController
+                                                .text
+                                                .isNotEmpty)
+                                              IconButton(
+                                                icon: Icon(
+                                                  _obscurePassword
+                                                      ? Icons
+                                                            .visibility_off_rounded
+                                                      : Icons
+                                                            .visibility_rounded,
+                                                  color: isDark
+                                                      ? Colors.grey.withOpacity(
+                                                          0.7,
+                                                        )
+                                                      : AppColors
+                                                            .lightTextSecondary,
+                                                  size: 20.sp,
+                                                ),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    _obscurePassword =
+                                                        !_obscurePassword;
+                                                  });
+                                                },
+                                              ),
+                                            if (passwordController
+                                                .text
+                                                .isNotEmpty)
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.clear_rounded,
+                                                  color: isDark
+                                                      ? Colors.grey.withOpacity(
+                                                          0.7,
+                                                        )
+                                                      : AppColors
+                                                            .lightTextSecondary,
+                                                  size: 20.sp,
+                                                ),
+                                                onPressed: () {
+                                                  passwordController.clear();
+                                                },
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(4),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                               SizedBox(height: 12.h),
@@ -195,11 +386,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 padding: EdgeInsets.symmetric(horizontal: 8.w),
                                 child: Text(
                                   _showEmailField
-                                      ? 'Хэтэвчний системд бүртгэлгүй байна. Имэйл хаягаа оруулна уу'
-                                      : 'Хэтэвчний системд бүртгэлтэй утасны дугаараа оруулна уу',
+                                      ? 'Системд бүртгэлгүй байна. Имэйл хаягаа оруулна уу'
+                                      : 'Системд бүртгэлтэй утасны дугаараа оруулна уу',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: AppColors.grayColor.withOpacity(0.7),
+                                    color: AppColors.secondaryAccent
+                                        .withOpacity(0.7),
                                     fontSize: 12.sp,
                                   ),
                                 ),
@@ -285,6 +477,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     : () async {
                                         String inputPhone = phoneController.text
                                             .trim();
+                                        String inputPassword =
+                                            passwordController.text.trim();
 
                                         if (inputPhone.isEmpty) {
                                           showGlassSnackBar(
@@ -300,6 +494,17 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                           showGlassSnackBar(
                                             context,
                                             message: "Зөвхөн тоо оруулна уу!",
+                                            icon: Icons.error,
+                                            iconColor: Colors.red,
+                                          );
+                                          return;
+                                        }
+
+                                        if (!_showEmailField &&
+                                            inputPassword.isEmpty) {
+                                          showGlassSnackBar(
+                                            context,
+                                            message: "Нууц код оруулна уу",
                                             icon: Icons.error,
                                             iconColor: Colors.red,
                                           );
@@ -382,12 +587,71 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                             '🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo',
                                           );
 
-                                          final loginResponse =
-                                              await ApiService.loginUser(
-                                                utas: inputPhone,
-                                                bairId: savedBairId,
-                                                doorNo: savedDoorNo,
-                                              );
+                                          // Some WEB-created users require baiguullagiinId to login.
+                                          // First try without orgId; if backend says "Хэрэглэгч олдсонгүй!",
+                                          // retry with stored baiguullagiinId (if we have one) before treating
+                                          // the user as a new NO-ORG signup.
+                                          Map<String, dynamic> loginResponse;
+                                          try {
+                                            loginResponse =
+                                                await ApiService.loginUser(
+                                                  utas: inputPhone,
+                                                  nuutsUg: inputPassword,
+                                                  bairId: savedBairId,
+                                                  doorNo: savedDoorNo,
+                                                );
+                                          } catch (e) {
+                                            final raw = e.toString();
+                                            final msg =
+                                                raw.startsWith('Exception: ')
+                                                ? raw.substring(11)
+                                                : raw;
+
+                                            final isUserNotFound =
+                                                msg.toLowerCase().contains(
+                                                  'олдсонгүй',
+                                                ) ||
+                                                msg.toLowerCase().contains(
+                                                  'not found',
+                                                );
+
+                                            if (isUserNotFound) {
+                                              final storedOrgId =
+                                                  await StorageService.getBaiguullagiinId();
+                                              if (storedOrgId != null &&
+                                                  storedOrgId
+                                                      .trim()
+                                                      .isNotEmpty) {
+                                                print(
+                                                  '🏢 [LOGIN] Retry login with stored baiguullagiinId=$storedOrgId',
+                                                );
+                                                loginResponse =
+                                                    await ApiService.loginUser(
+                                                      utas: inputPhone,
+                                                      nuutsUg: inputPassword,
+                                                      bairId: savedBairId,
+                                                      doorNo: savedDoorNo,
+                                                      baiguullagiinId:
+                                                          storedOrgId.trim(),
+                                                    );
+                                              } else {
+                                                // No orgId available to retry - keep original error behavior
+                                                rethrow;
+                                              }
+                                            } else {
+                                              rethrow;
+                                            }
+                                          }
+
+                                          // Normalize user payload key: backend may return `result` or `orshinSuugch`
+                                          final userDataDynamic =
+                                              loginResponse['result'] ??
+                                              loginResponse['orshinSuugch'];
+                                          final userData =
+                                              userDataDynamic
+                                                  is Map<String, dynamic>
+                                              ? userDataDynamic
+                                              : null;
 
                                           print(
                                             '✅ [LOGIN] Login response received',
@@ -400,6 +664,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                           );
                                           print(
                                             '   - Has result: ${loginResponse['result'] != null}',
+                                          );
+                                          print(
+                                            '   - Has orshinSuugch: ${loginResponse['orshinSuugch'] != null}',
                                           );
                                           print(
                                             '   - Has billingInfo: ${loginResponse['billingInfo'] != null}',
@@ -419,14 +686,115 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                           }
 
                                           if (mounted) {
+                                            print(
+                                              '📱 [LOGIN] ========== STARTING POST-LOGIN FLOW ==========',
+                                            );
+                                            await StorageService.savePhoneNumber(
+                                              inputPhone,
+                                            );
+                                            print(
+                                              '📱 [LOGIN] Phone number saved',
+                                            );
+
+                                            // CRITICAL: Check phone verification FIRST, before address/profile checks
+                                            // OTP is automatically sent on login, so we need to verify it immediately
+                                            print(
+                                              '📱 [LOGIN] ========== PHONE VERIFICATION CHECK ==========',
+                                            );
+                                            print(
+                                              '📱 [LOGIN] Checking if phone verification is needed...',
+                                            );
+                                            final needsVerification =
+                                                await StorageService.needsPhoneVerification();
+                                            print(
+                                              '📱 [LOGIN] needsVerification result: $needsVerification',
+                                            );
+
+                                            // FORCE OTP verification for now to debug - always show OTP screen
+                                            // TODO: Remove this and use needsVerification check once working
+                                            print(
+                                              '📱 [LOGIN] FORCING OTP verification - showing verification screen',
+                                            );
+
+                                            // Show phone verification screen IMMEDIATELY after login
+                                            // OTP is automatically sent on login, so we just need to verify it
+                                            final verificationResult =
+                                                await context.push<bool>(
+                                                  '/phone_verification',
+                                                  extra: {
+                                                    'phoneNumber': inputPhone,
+                                                    'baiguullagiinId':
+                                                        userData?['baiguullagiinId']
+                                                            ?.toString(),
+                                                    'duureg':
+                                                        userData?['duureg']
+                                                            ?.toString(),
+                                                    'horoo': userData?['horoo']
+                                                        ?.toString(),
+                                                    'soh': userData?['soh']
+                                                        ?.toString(),
+                                                  },
+                                                );
+
+                                            print(
+                                              '📱 [LOGIN] Verification result: $verificationResult',
+                                            );
+
+                                            // If verification was cancelled or failed, don't proceed
+                                            if (verificationResult != true) {
+                                              print(
+                                                '⚠️ [LOGIN] Phone verification cancelled or failed - staying on login screen',
+                                              );
+
+                                              // IMPORTANT: Logout user if they cancel OTP verification
+                                              // This prevents router from redirecting to home page
+                                              // because the token was already saved during login
+                                              print(
+                                                '🔓 [LOGIN] Logging out user because OTP verification was cancelled',
+                                              );
+                                              await SessionService.logout();
+
+                                              setState(() {
+                                                _isLoading = false;
+                                              });
+                                              return;
+                                            }
+
+                                            print(
+                                              '✅ [LOGIN] Phone verification successful - continuing with login flow',
+                                            );
+
+                                            // Determine if this is a WEB-created user (has baiguullagiinId)
+                                            // or a MOBILE-created user (no baiguullagiinId).
+                                            // Only WEB-created users should go through Wallet address selection.
+                                            final loginOrgId =
+                                                userData?['baiguullagiinId']
+                                                    ?.toString();
+                                            final hasBaiguullagiinId =
+                                                loginOrgId != null &&
+                                                loginOrgId.trim().isNotEmpty &&
+                                                loginOrgId
+                                                        .trim()
+                                                        .toLowerCase() !=
+                                                    'null';
+
+                                            print(
+                                              '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
+                                            );
+
                                             // Check if user has address in their profile
                                             // The login response has walletBairId and walletDoorNo
                                             bool hasAddress = false;
 
-                                            if (loginResponse['result'] !=
-                                                null) {
-                                              final userData =
-                                                  loginResponse['result'];
+                                            // MOBILE-created users: do not require Wallet address selection on login.
+                                            // Their "Хаягийн мэдээлэл" is collected during signup.
+                                            if (!hasBaiguullagiinId) {
+                                              hasAddress =
+                                                  true; // skip address selection block below
+                                              print(
+                                                '📍 [LOGIN] NO-ORG user detected -> skipping wallet address checks and address_selection screen',
+                                              );
+                                            } else if (userData != null) {
                                               final walletBairId =
                                                   userData['walletBairId']
                                                       ?.toString();
@@ -473,10 +841,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 '📍 [LOGIN] No user data in response, checking local storage: $hasAddress',
                                               );
                                             }
-
-                                            await StorageService.savePhoneNumber(
-                                              inputPhone,
-                                            );
 
                                             final taniltsuulgaKharakhEsekh =
                                                 await StorageService.getTaniltsuulgaKharakhEsekh();
@@ -601,22 +965,129 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 ? '/ekhniikh'
                                                 : '/nuur';
 
-                                            if (!hasAddress) {
-                                              // If user doesn't have address, show address selection screen
-                                              // Address selection will fetch billing data separately
+                                            // Only WEB-created (ORG) users should be forced to pick a wallet address
+                                            if (!hasAddress &&
+                                                hasBaiguullagiinId) {
+                                              // Check if user has address on server before showing address selection
+                                              // Check user profile to see if they have walletBairId and walletDoorNo
+                                              bool hasServerAddress = false;
+                                              try {
+                                                final userProfile =
+                                                    await ApiService.getUserProfile();
+                                                if (userProfile['result'] !=
+                                                    null) {
+                                                  final userData =
+                                                      userProfile['result'];
+                                                  final walletBairId =
+                                                      userData['walletBairId']
+                                                          ?.toString();
+                                                  final walletDoorNo =
+                                                      userData['walletDoorNo']
+                                                          ?.toString();
+
+                                                  if (walletBairId != null &&
+                                                      walletBairId.isNotEmpty &&
+                                                      walletDoorNo != null &&
+                                                      walletDoorNo.isNotEmpty) {
+                                                    // User has address on server, save it locally and skip address selection
+                                                    await StorageService.saveWalletAddress(
+                                                      bairId: walletBairId,
+                                                      doorNo: walletDoorNo,
+                                                    );
+                                                    hasServerAddress = true;
+                                                    hasAddress = true;
+                                                    print(
+                                                      '📍 [LOGIN] Address found on server, skipping address selection screen',
+                                                    );
+                                                  }
+                                                }
+                                              } catch (e) {
+                                                print(
+                                                  '⚠️ [LOGIN] Error checking server address: $e',
+                                                );
+                                                // Continue to address selection if check fails
+                                              }
+
+                                              if (!hasServerAddress) {
+                                                // If user doesn't have address on server, show address selection screen
+                                                // Address selection will fetch billing data separately
+                                                print(
+                                                  '📍 [LOGIN] No saved address, showing address selection screen',
+                                                );
+                                                final addressSaved =
+                                                    await context.push<bool>(
+                                                      '/address_selection',
+                                                    );
+
+                                                // Only navigate to home if address was successfully saved
+                                                // If user pressed back, addressSaved will be null/false, stay on login screen
+                                                if (addressSaved != true) {
+                                                  print(
+                                                    '⚠️ [LOGIN] Address selection cancelled or failed, staying on login screen',
+                                                  );
+                                                  return; // Exit early, don't navigate to home
+                                                }
+                                              }
+                                            }
+
+                                            // Check if user has profile (ner and ovog)
+                                            bool hasProfile = false;
+                                            if (userData != null) {
+                                              final hasNer =
+                                                  userData['ner'] != null &&
+                                                  userData['ner']
+                                                      .toString()
+                                                      .isNotEmpty;
+                                              final hasOvog =
+                                                  userData['ovog'] != null &&
+                                                  userData['ovog']
+                                                      .toString()
+                                                      .isNotEmpty;
+                                              hasProfile = hasNer || hasOvog;
+
                                               print(
-                                                '📍 [LOGIN] No saved address, showing address selection screen',
-                                              );
-                                              await context.push<bool>(
-                                                '/address_selection',
+                                                '👤 [LOGIN] Profile check - hasNer: $hasNer, hasOvog: $hasOvog, hasProfile: $hasProfile',
                                               );
                                             }
 
-                                            // Navigate to home (whether address was selected or not)
+                                            // If user has no profile, redirect to signup window
+                                            if (!hasProfile) {
+                                              print(
+                                                '⚠️ [LOGIN] User has no profile, redirecting to signup',
+                                              );
+                                              // Navigate to signup window
+                                              context.go(
+                                                '/burtguulekh_signup',
+                                                extra: {
+                                                  // WEB-created user -> has orgId, no address required here
+                                                  'baiguullagiinId': loginOrgId,
+                                                  'utas': inputPhone,
+                                                },
+                                              );
+                                              return;
+                                            }
+
+                                            // Navigate to home (phone verification was already handled earlier in the flow)
                                             print(
-                                              '🚀 [LOGIN] Navigating to: $targetRoute',
+                                              '🚀 [LOGIN] Preparing to navigate to: $targetRoute',
                                             );
+
+                                            // Small delay to ensure any screens are fully closed
+                                            await Future.delayed(
+                                              const Duration(milliseconds: 300),
+                                            );
+
+                                            if (!mounted) {
+                                              print(
+                                                '⚠️ [LOGIN] Widget not mounted, skipping navigation',
+                                              );
+                                              return;
+                                            }
+
                                             try {
+                                              print(
+                                                '🚀 [LOGIN] Navigating to: $targetRoute',
+                                              );
                                               context.go(targetRoute);
                                               print(
                                                 '✅ [LOGIN] Navigation successful',
@@ -668,7 +1139,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                   "Нэвтрэхэд алдаа гарлаа";
                                             }
 
-                                            // If login fails because user is not registered, show email field
+                                            // If login fails because user is not registered, show warning and redirect to signup page
                                             if (errorMessage.contains(
                                                   'бүртгэлгүй',
                                                 ) ||
@@ -681,11 +1152,36 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 errorMessage.contains(
                                                   'олдсонгүй',
                                                 )) {
-                                              setState(() {
-                                                _showEmailField = true;
-                                              });
-                                              errorMessage =
-                                                  "Хэтэвчний системд бүртгэлгүй байна. Имэйл хаягаа оруулна уу.";
+                                              print(
+                                                '⚠️ [LOGIN] User not found, redirecting to signup page',
+                                              );
+                                              // Show warning message
+                                              showGlassSnackBar(
+                                                context,
+                                                message:
+                                                    'Бүртгэлгүй хэрэглэгч бүртгүүлнэ үү',
+                                                icon: Icons.warning_rounded,
+                                                iconColor: Colors.orange,
+                                              );
+                                              // Wait a moment for user to see the message, then redirect
+                                              await Future.delayed(
+                                                const Duration(
+                                                  milliseconds: 1500,
+                                                ),
+                                              );
+                                              // Redirect to signup page instead of showing email field
+                                              if (mounted) {
+                                                context.go(
+                                                  '/burtguulekh_signup',
+                                                  extra: {
+                                                    // New MOBILE user -> force NO-ORG signup flow with address required
+                                                    'forceNoOrg': true,
+                                                    'utas': phoneController.text
+                                                        .trim(),
+                                                  },
+                                                );
+                                              }
+                                              return;
                                             }
 
                                             showGlassSnackBar(
@@ -701,7 +1197,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   width: double.infinity,
                                   padding: EdgeInsets.symmetric(vertical: 12.h),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFCAD2DB),
+                                    color: AppColors.primary,
                                     borderRadius: BorderRadius.circular(12.r),
                                   ),
                                   child: _isLoading
@@ -724,12 +1220,35 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                               : 'Нэвтрэх',
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Colors.black,
+                                            color: context.isDarkMode
+                                                ? AppColors.darkTextPrimary
+                                                : AppColors.darkTextPrimary,
                                             fontSize: 15.sp,
                                             fontWeight: FontWeight.w600,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
+                                ),
+                              ),
+                              SizedBox(height: 16.h),
+                              GestureDetector(
+                                onTap: () {
+                                  // Manual signup from login screen -> force NO-ORG flow
+                                  context.push(
+                                    '/burtguulekh_signup',
+                                    extra: {'forceNoOrg': true},
+                                  );
+                                },
+                                child: Text(
+                                  'Бүртгүүлэх',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    color: context.isDarkMode
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.accentColor,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                               const Spacer(),
@@ -743,7 +1262,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               ),
                               SizedBox(height: 8.h),
                               Text(
-                                'Version 1.0',
+                                'Version 1.1',
                                 style: TextStyle(
                                   fontSize: 11.sp,
                                   color: Colors.grey,

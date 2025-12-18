@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
-import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
 
 class VATReceiptModal extends StatelessWidget {
@@ -18,7 +18,7 @@ class VATReceiptModal extends StatelessWidget {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: AppColors.darkBackground,
+        color: context.cardBackgroundColor,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30.w),
           topRight: Radius.circular(30.w),
@@ -38,7 +38,7 @@ class VATReceiptModal extends StatelessWidget {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
+                  color: context.borderColor,
                   borderRadius: BorderRadius.circular(2.w),
                 ),
               ),
@@ -51,13 +51,13 @@ class VATReceiptModal extends StatelessWidget {
                     Text(
                       'НӨАТ-ын баримт',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.textPrimaryColor,
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close, color: Colors.white, size: 24.sp),
+                      icon: Icon(Icons.close, color: context.textPrimaryColor, size: 24.sp),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -90,30 +90,34 @@ class VATReceiptModal extends StatelessWidget {
                       Container(
                         padding: EdgeInsets.all(20.w),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: context.accentBackgroundColor,
                           borderRadius: BorderRadius.circular(20.w),
+                          border: Border.all(color: context.borderColor, width: 1),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (receipt.lottery != null)
                               _buildReceiptInfoRow(
+                                context,
                                 'Сугалааны дугаар:',
                                 receipt.lottery!,
                               ),
                             _buildReceiptInfoRow(
+                              context,
                               'Огноо:',
                               receipt.formattedDate,
                             ),
                             _buildReceiptInfoRow(
+                              context,
                               'Регистр:',
                               receipt.merchantTin,
                             ),
-                            Divider(color: Colors.white24, height: 24.h),
+                            Divider(color: context.borderColor, height: 24.h),
                             Text(
                               'Бараа, үйлчилгээ:',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: context.textPrimaryColor,
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -131,7 +135,7 @@ class VATReceiptModal extends StatelessWidget {
                                         Text(
                                           item.name,
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: context.textPrimaryColor,
                                             fontSize: 14.sp,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -144,16 +148,14 @@ class VATReceiptModal extends StatelessWidget {
                                             Text(
                                               '${item.qty} ${item.measureUnit} × ${item.unitPrice}₮',
                                               style: TextStyle(
-                                                color: Colors.white.withOpacity(
-                                                  0.7,
-                                                ),
+                                                color: context.textSecondaryColor,
                                                 fontSize: 12.sp,
                                               ),
                                             ),
                                             Text(
                                               '${item.totalAmount}₮',
                                               style: TextStyle(
-                                                color: Colors.white,
+                                                color: context.textPrimaryColor,
                                                 fontSize: 14.sp,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -164,26 +166,29 @@ class VATReceiptModal extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                            Divider(color: Colors.white24, height: 24.h),
+                            Divider(color: context.borderColor, height: 24.h),
                             _buildReceiptInfoRow(
+                              context,
                               'Нийт дүн:',
                               receipt.formattedAmount,
                               isBold: true,
                             ),
                             _buildReceiptInfoRow(
+                              context,
                               'НӨАТ:',
                               '${receipt.totalVAT.toStringAsFixed(2)}₮',
                             ),
                             if (receipt.totalCityTax > 0)
                               _buildReceiptInfoRow(
+                                context,
                                 'Хотын татвар:',
                                 '${receipt.totalCityTax.toStringAsFixed(2)}₮',
                               ),
-                            Divider(color: Colors.white24, height: 24.h),
+                            Divider(color: context.borderColor, height: 24.h),
                             Text(
                               'Төлбөр:',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: context.textPrimaryColor,
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -191,6 +196,7 @@ class VATReceiptModal extends StatelessWidget {
                             SizedBox(height: 8.h),
                             ...receipt.payments.map(
                               (payment) => _buildReceiptInfoRow(
+                                context,
                                 payment.code,
                                 '${payment.paidAmount}₮ (${payment.status})',
                               ),
@@ -210,6 +216,7 @@ class VATReceiptModal extends StatelessWidget {
   }
 
   Widget _buildReceiptInfoRow(
+    BuildContext context,
     String label,
     String value, {
     bool isBold = false,
@@ -222,14 +229,14 @@ class VATReceiptModal extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
+              color: context.textSecondaryColor,
               fontSize: 14.sp,
             ),
           ),
           Text(
             value,
             style: TextStyle(
-              color: Colors.white,
+              color: context.textPrimaryColor,
               fontSize: 14.sp,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),

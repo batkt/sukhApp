@@ -6,6 +6,9 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
   const AddressSelectionScreen({super.key});
@@ -39,10 +42,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   String? _tootValidationError;
   List<String>? _availableToonuud;
   bool _isTootValid = false;
+  bool _hasBaiguullagiinId = false;
+  bool _hasExistingAddress = false;
+  bool _isCheckingAddress = true;
 
   @override
   void initState() {
     super.initState();
+    _checkUserAddressStatus();
     _loadCities();
     // Add listener to validate toot when door number changes
     _doorNoController.addListener(() {
@@ -70,6 +77,111 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     _doorNoController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkUserAddressStatus() async {
+    try {
+      // Check if user already has address on the server
+      try {
+        final profile = await ApiService.getUserProfile();
+        if (profile['result'] != null) {
+          final userData = profile['result'];
+          final walletBairId = userData['walletBairId']?.toString();
+          final walletDoorNo = userData['walletDoorNo']?.toString();
+
+          // If user has both walletBairId and walletDoorNo, they already have address
+          if (walletBairId != null &&
+              walletBairId.isNotEmpty &&
+              walletDoorNo != null &&
+              walletDoorNo.isNotEmpty) {
+            // User already has address - redirect to main page instead of showing the page
+            if (mounted) {
+              // Use post-frame callback to ensure navigation happens after build
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  // Redirect to main page for existing users
+                  context.go('/nuur');
+                }
+              });
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        // Ignore error, continue checking baiguullagiinId
+      }
+
+      // Check if user has baiguullagiinId in storage
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+        // Check if user is already logged in - if so, redirect to main page
+        final isLoggedIn = await StorageService.isLoggedIn();
+        if (isLoggedIn) {
+          // Existing logged-in user with baiguullagiinId - redirect to main page
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                context.go('/nuur');
+              }
+            });
+          }
+          return;
+        }
+        if (mounted) {
+          setState(() {
+            _hasBaiguullagiinId = true;
+            _isCheckingAddress = false;
+          });
+        }
+      } else {
+        // Also check from API profile
+        try {
+          final profile = await ApiService.getUserProfile();
+          if (profile['result']?['baiguullagiinId'] != null &&
+              profile['result']['baiguullagiinId'].toString().isNotEmpty) {
+            // Check if user is already logged in - if so, redirect to main page
+            final isLoggedIn = await StorageService.isLoggedIn();
+            if (isLoggedIn) {
+              // Existing logged-in user with baiguullagiinId - redirect to main page
+              if (mounted) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    context.go('/nuur');
+                  }
+                });
+              }
+              return;
+            }
+            if (mounted) {
+              setState(() {
+                _hasBaiguullagiinId = true;
+                _isCheckingAddress = false;
+              });
+            }
+          } else {
+            if (mounted) {
+              setState(() {
+                _isCheckingAddress = false;
+              });
+            }
+          }
+        } catch (e) {
+          // Ignore error, user doesn't have baiguullagiinId
+          if (mounted) {
+            setState(() {
+              _isCheckingAddress = false;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore error
+      if (mounted) {
+        setState(() {
+          _isCheckingAddress = false;
+        });
+      }
+    }
   }
 
   // Numeric sorting function - properly handles numeric sorting
@@ -366,6 +478,46 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   }
 
   Future<void> _saveAddress() async {
+    // If user already has address on server or has baiguullagiinId, they don't need to fill address fields
+    // Just save and return success
+    if (_hasExistingAddress || _hasBaiguullagiinId) {
+      setState(() {
+        _isSaving = true;
+      });
+
+      try {
+        // User with baiguullagiinId doesn't need address, just save success
+        await Future.delayed(
+          const Duration(milliseconds: 500),
+        ); // Small delay for UX
+
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+
+          showGlassSnackBar(
+            context,
+            message: 'Мэдээлэл амжилттай хадгалагдлаа',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+
+          // Pop with true to indicate success
+          context.pop(true);
+        }
+        return;
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
+        return;
+      }
+    }
+
+    // For users without baiguullagiinId, require address fields
     if (_selectedBuilding == null || _doorNoController.text.trim().isEmpty) {
       showGlassSnackBar(
         context,
@@ -438,21 +590,31 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             // Get user phone number to call login endpoint
             final savedPhone = await StorageService.getSavedPhoneNumber();
             if (savedPhone != null && savedPhone.isNotEmpty) {
-              // Call login endpoint again with OWN_ORG IDs to update user profile
-              await ApiService.loginUser(
-                utas: savedPhone,
-                bairId: bairId,
-                doorNo: doorNo,
-                baiguullagiinId: baiguullagiinId,
-                barilgiinId: barilgiinId,
-                duureg:
-                    _selectedDistrict?['name']?.toString() ??
-                    _selectedDistrict?['ner']?.toString(),
-                horoo:
-                    _selectedKhoroo?['name']?.toString() ??
-                    _selectedKhoroo?['ner']?.toString(),
-                soh: _selectedKhoroo?['soh']?.toString(),
-              );
+              // Get saved password for re-login (only if biometric is enabled)
+              final savedPassword =
+                  await StorageService.getSavedPasswordForBiometric();
+
+              // Only proceed if we have a password (required by backend)
+              if (savedPassword != null && savedPassword.isNotEmpty) {
+                // Call login endpoint again with OWN_ORG IDs to update user profile
+                await ApiService.loginUser(
+                  utas: savedPhone,
+                  nuutsUg: savedPassword,
+                  bairId: bairId,
+                  doorNo: doorNo,
+                  baiguullagiinId: baiguullagiinId,
+                  barilgiinId: barilgiinId,
+                  duureg:
+                      _selectedDistrict?['name']?.toString() ??
+                      _selectedDistrict?['ner']?.toString(),
+                  horoo:
+                      _selectedKhoroo?['name']?.toString() ??
+                      _selectedKhoroo?['ner']?.toString(),
+                  soh: _selectedKhoroo?['soh']?.toString(),
+                );
+              }
+              // Note: If password is not available, we skip the profile update
+              // The address is already saved, so this is not critical
             }
           } catch (e) {
             // Failed to update user profile with OWN_ORG IDs
@@ -502,7 +664,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             iconColor: Colors.green,
           );
 
-          context.pop(true);
+          // Only pop with true if save was successful
+          if (mounted) {
+            context.pop(true);
+          }
         }
       } catch (billingError) {
         // Address saved but billing fetch/connect failed - still return success
@@ -522,7 +687,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             iconColor: Colors.orange,
           );
 
-          context.pop(true);
+          // Only pop with true if address was saved (even if billing failed)
+          if (mounted) {
+            context.pop(true);
+          }
         }
       }
     } catch (e) {
@@ -556,38 +724,71 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          final isDark = context.isDarkMode;
           return Container(
-            height: MediaQuery.of(context).size.height * 0.8,
+            height: context.responsiveModalHeight(
+              small: 0.8,
+              medium: 0.75,
+              large: 0.70,
+              tablet: 0.65,
+            ),
+            constraints: BoxConstraints(
+              maxHeight: context.isTablet ? 700.h : double.infinity,
+            ),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [const Color(0xFF1A1A1A), const Color(0xFF0F0F0F)],
-              ),
+              color: isDark
+                  ? context.cardBackgroundColor
+                  : AppColors.lightSurface,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24.r),
-                topRight: Radius.circular(24.r),
+                topLeft: Radius.circular(
+                  context.responsiveBorderRadius(
+                    small: 24,
+                    medium: 28,
+                    large: 32,
+                    tablet: 36,
+                  ),
+                ),
+                topRight: Radius.circular(
+                  context.responsiveBorderRadius(
+                    small: 24,
+                    medium: 28,
+                    large: 32,
+                    tablet: 36,
+                  ),
+                ),
               ),
             ),
             child: Column(
               children: [
                 // Header
                 Container(
-                  padding: EdgeInsets.fromLTRB(20.w, 16.h, 12.w, 16.h),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.goldPrimary.withOpacity(0.1),
-                        Colors.transparent,
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Colors.white.withOpacity(0.1),
-                        width: 1,
+                  padding: context
+                      .responsiveHorizontalPadding(
+                        small: 20,
+                        medium: 24,
+                        large: 28,
+                        tablet: 32,
+                      )
+                      .copyWith(
+                        top: context.responsiveSpacing(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 22,
+                        ),
+                        bottom: context.responsiveSpacing(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 22,
+                        ),
                       ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? context.surfaceElevatedColor
+                        : AppColors.lightSurface,
+                    border: Border(
+                      bottom: BorderSide(color: context.borderColor, width: 1),
                     ),
                   ),
                   child: Row(
@@ -596,7 +797,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                         child: Text(
                           title,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                             fontSize: 20.sp,
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.5,
@@ -607,12 +808,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                         icon: Container(
                           padding: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: context.accentBackgroundColor,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.close_rounded,
-                            color: Colors.white,
+                            color: context.textPrimaryColor,
                             size: 20.sp,
                           ),
                         ),
@@ -656,23 +857,26 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             }
                           });
                         },
-                        style: TextStyle(color: Colors.white, fontSize: 15.sp),
+                        style: TextStyle(
+                          color: context.textPrimaryColor,
+                          fontSize: 15.sp,
+                        ),
                         decoration: InputDecoration(
                           hintText: searchHint,
                           hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
+                            color: context.textSecondaryColor,
                             fontSize: 15.sp,
                           ),
                           prefixIcon: Icon(
                             Icons.search_rounded,
-                            color: AppColors.goldPrimary,
+                            color: AppColors.deepGreen,
                             size: 22.sp,
                           ),
                           suffixIcon: searchController.text.isNotEmpty
                               ? IconButton(
                                   icon: Icon(
                                     Icons.clear_rounded,
-                                    color: Colors.white.withOpacity(0.6),
+                                    color: context.textSecondaryColor,
                                     size: 20.sp,
                                   ),
                                   onPressed: () {
@@ -684,7 +888,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                 )
                               : null,
                           filled: true,
-                          fillColor: Colors.white.withOpacity(0.1),
+                          fillColor: context.cardBackgroundColor,
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 20.w,
                             vertical: 16.h,
@@ -692,14 +896,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16.r),
                             borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.2),
+                              color: context.borderColor,
                               width: 1.5,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16.r),
                             borderSide: BorderSide(
-                              color: AppColors.goldPrimary.withOpacity(0.8),
+                              color: AppColors.deepGreen.withOpacity(0.8),
                               width: 2,
                             ),
                           ),
@@ -716,14 +920,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             children: [
                               Icon(
                                 Icons.search_off_rounded,
-                                color: Colors.white.withOpacity(0.4),
+                                color: context.textSecondaryColor,
                                 size: 64.sp,
                               ),
                               SizedBox(height: 16.h),
                               Text(
                                 'Олдсонгүй',
                                 style: TextStyle(
-                                  color: Colors.white.withOpacity(0.6),
+                                  color: context.textSecondaryColor,
                                   fontSize: 16.sp,
                                 ),
                               ),
@@ -749,28 +953,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             return Container(
                               margin: EdgeInsets.only(bottom: 8.h),
                               decoration: BoxDecoration(
-                                gradient: isSelected
-                                    ? LinearGradient(
-                                        colors: [
-                                          AppColors.goldPrimary.withOpacity(
-                                            0.2,
-                                          ),
-                                          AppColors.goldPrimary.withOpacity(
-                                            0.1,
-                                          ),
-                                        ],
-                                      )
-                                    : LinearGradient(
-                                        colors: [
-                                          Colors.white.withOpacity(0.08),
-                                          Colors.white.withOpacity(0.03),
-                                        ],
-                                      ),
+                                color: isSelected
+                                    ? AppColors.deepGreen.withOpacity(0.2)
+                                    : context.cardBackgroundColor,
                                 borderRadius: BorderRadius.circular(16.r),
                                 border: Border.all(
                                   color: isSelected
-                                      ? AppColors.goldPrimary.withOpacity(0.5)
-                                      : Colors.white.withOpacity(0.15),
+                                      ? AppColors.deepGreen.withOpacity(0.5)
+                                      : context.borderColor,
                                   width: isSelected ? 2 : 1.5,
                                 ),
                               ),
@@ -790,7 +980,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                           child: Text(
                                             name,
                                             style: TextStyle(
-                                              color: Colors.white,
+                                              color: context.textPrimaryColor,
                                               fontSize: 16.sp,
                                               fontWeight: isSelected
                                                   ? FontWeight.bold
@@ -801,7 +991,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                         if (isSelected)
                                           Icon(
                                             Icons.check_circle_rounded,
-                                            color: AppColors.goldPrimary,
+                                            color: AppColors.deepGreen,
                                             size: 24.sp,
                                           ),
                                       ],
@@ -835,16 +1025,9 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     return Container(
       margin: EdgeInsets.only(bottom: 18.h),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withOpacity(0.08),
-            Colors.white.withOpacity(0.03),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: context.cardBackgroundColor,
         borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.5),
+        border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -880,7 +1063,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       Text(
                         label,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: context.textSecondaryColor,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                         ),
@@ -890,8 +1073,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                         selectedName ?? 'Сонгох...',
                         style: TextStyle(
                           color: selectedName != null
-                              ? Colors.white
-                              : Colors.white.withOpacity(0.5),
+                              ? context.textPrimaryColor
+                              : context.textSecondaryColor,
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -913,7 +1096,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 else
                   Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: Colors.white.withOpacity(0.6),
+                    color: context.textSecondaryColor,
                     size: 24.sp,
                   ),
               ],
@@ -926,502 +1109,728 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // If checking address status, show loading (will auto-pop if address exists)
+    if (_isCheckingAddress) {
+      return Scaffold(
+        backgroundColor: context.backgroundColor,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.deepGreen),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: context.backgroundColor,
+      appBar: buildStandardAppBar(
+        context,
+        title: 'Хаяг сонгох',
+        onBackPressed: () {
+          // Navigate back to login screen
+          context.pop(false);
+        },
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            // Modern Header
+            // Subtitle
             Container(
-              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.goldPrimary.withOpacity(0.1),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.white.withOpacity(0.1),
-                    width: 1,
+              padding: context
+                  .responsiveHorizontalPadding(
+                    small: 20,
+                    medium: 24,
+                    large: 28,
+                    tablet: 32,
+                  )
+                  .copyWith(
+                    top: context.responsiveSpacing(
+                      small: 12,
+                      medium: 14,
+                      large: 16,
+                      tablet: 18,
+                    ),
+                    bottom: context.responsiveSpacing(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 24,
+                    ),
+                  ),
+              child: Text(
+                (_hasExistingAddress || _hasBaiguullagiinId)
+                    ? 'Таны хаягийн мэдээлэл автоматаар хадгалагдах тул хадгалах товч дарж үргэлжлүүлнэ үү'
+                    : 'Хаягаа сонгосноор таны мэдээлэл автоматаар бүртгэгдэнэ',
+                style: TextStyle(
+                  color: context.textSecondaryColor,
+                  fontSize: context.responsiveFontSize(
+                    small: 13,
+                    medium: 14,
+                    large: 15,
+                    tablet: 16,
                   ),
                 ),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Container(
-                          padding: EdgeInsets.all(8.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_rounded,
-                            color: Colors.white,
-                            size: 20.sp,
-                          ),
-                        ),
-                        onPressed: () => context.pop(),
+            ),
+            // Search Bar
+            if (_selectedKhoroo != null && _buildings.isNotEmpty) ...[
+              Padding(
+                padding: context.responsiveHorizontalPadding(
+                  small: 20,
+                  medium: 24,
+                  large: 28,
+                  tablet: 32,
+                ),
+                child: SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 16,
+                    medium: 18,
+                    large: 20,
+                    tablet: 22,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: context.responsiveHorizontalPadding(
+                  small: 20,
+                  medium: 24,
+                  large: 28,
+                  tablet: 32,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 16,
+                        medium: 18,
+                        large: 20,
+                        tablet: 22,
                       ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Хаяг сонгох',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24.sp,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              'Хаягаа сонгосноор таны мэдээлэл автоматаар бүртгэгдэнэ',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
-                                fontSize: 13.sp,
-                              ),
-                            ),
-                          ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: context.responsiveSpacing(
+                          small: 12,
+                          medium: 14,
+                          large: 16,
+                          tablet: 18,
+                        ),
+                        spreadRadius: 0,
+                        offset: Offset(
+                          0,
+                          context.responsiveSpacing(
+                            small: 4,
+                            medium: 5,
+                            large: 6,
+                            tablet: 7,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  // Search Bar
-                  if (_selectedKhoroo != null && _buildings.isNotEmpty) ...[
-                    SizedBox(height: 16.h),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 12.r,
-                            spreadRadius: 0,
-                            offset: Offset(0, 4.h),
-                          ),
-                        ],
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterBuildings,
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: context.responsiveFontSize(
+                        small: 15,
+                        medium: 16,
+                        large: 17,
+                        tablet: 18,
                       ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _filterBuildings,
-                        style: TextStyle(color: Colors.white, fontSize: 15.sp),
-                        decoration: InputDecoration(
-                          hintText: 'Барилга хайх...',
-                          hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                            fontSize: 15.sp,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Барилга хайх...',
+                      hintStyle: TextStyle(
+                        color: context.textSecondaryColor,
+                        fontSize: context.responsiveFontSize(
+                          small: 15,
+                          medium: 16,
+                          large: 17,
+                          tablet: 18,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: AppColors.deepGreen,
+                        size: context.responsiveIconSize(
+                          small: 22,
+                          medium: 24,
+                          large: 26,
+                          tablet: 28,
+                        ),
+                      ),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(
+                                Icons.clear_rounded,
+                                color: context.textSecondaryColor,
+                                size: context.responsiveIconSize(
+                                  small: 20,
+                                  medium: 22,
+                                  large: 24,
+                                  tablet: 26,
+                                ),
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                _filterBuildings('');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: context.cardBackgroundColor,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: context.responsiveSpacing(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 26,
+                        ),
+                        vertical: context.responsiveSpacing(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 22,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
                           ),
-                          prefixIcon: Icon(
-                            Icons.search_rounded,
-                            color: AppColors.goldPrimary,
-                            size: 22.sp,
+                        ),
+                        borderSide: BorderSide(
+                          color: context.borderColor,
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
                           ),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(
-                                    Icons.clear_rounded,
-                                    color: Colors.white.withOpacity(0.6),
-                                    size: 20.sp,
-                                  ),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _filterBuildings('');
-                                  },
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.1),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 20.w,
-                            vertical: 16.h,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16.r),
-                            borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.2),
-                              width: 1.5,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16.r),
-                            borderSide: BorderSide(
-                              color: AppColors.goldPrimary.withOpacity(0.8),
-                              width: 2,
-                            ),
-                          ),
+                        ),
+                        borderSide: BorderSide(
+                          color: AppColors.deepGreen.withOpacity(0.8),
+                          width: 2,
                         ),
                       ),
                     ),
-                  ],
-                ],
+                  ),
+                ),
               ),
-            ),
+            ],
             // Content
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(20.w),
+                padding: context.responsivePadding(
+                  small: 20,
+                  medium: 24,
+                  large: 28,
+                  tablet: 32,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildDropdown(
-                      label: 'Хот',
-                      items: _cities,
-                      selected: _selectedCity,
-                      onChanged: (city) {
-                        if (city != null) {
-                          setState(() {
-                            _selectedCity = city;
-                          });
-                          final cityId =
-                              city['id']?.toString() ?? city['_id']?.toString();
-                          if (cityId != null && cityId.isNotEmpty) {
-                            _loadDistricts(cityId);
-                          }
-                        }
-                      },
-                      isLoading: _isLoadingCities,
-                    ),
-                    if (_selectedCity != null)
+                    // Only show address fields if user doesn't have existing address or baiguullagiinId
+                    if (!_hasExistingAddress && !_hasBaiguullagiinId) ...[
                       _buildDropdown(
-                        label: 'Дүүрэг',
-                        items: _districts,
-                        selected: _selectedDistrict,
-                        onChanged: (district) {
-                          if (district != null) {
+                        label: 'Хот',
+                        items: _cities,
+                        selected: _selectedCity,
+                        onChanged: (city) {
+                          if (city != null) {
                             setState(() {
-                              _selectedDistrict = district;
+                              _selectedCity = city;
                             });
-                            final districtId =
-                                district['id']?.toString() ??
-                                district['_id']?.toString();
-                            if (districtId != null && districtId.isNotEmpty) {
-                              _loadKhoroos(districtId);
+                            final cityId =
+                                city['id']?.toString() ??
+                                city['_id']?.toString();
+                            if (cityId != null && cityId.isNotEmpty) {
+                              _loadDistricts(cityId);
                             }
                           }
                         },
-                        isLoading: _isLoadingDistricts,
+                        isLoading: _isLoadingCities,
                       ),
-                    if (_selectedDistrict != null)
-                      _buildDropdown(
-                        label: 'Хороо',
-                        items: _khoroos,
-                        selected: _selectedKhoroo,
-                        onChanged: (khoroo) {
-                          if (khoroo != null) {
-                            setState(() {
-                              _selectedKhoroo = khoroo;
-                            });
-                            final khorooId =
-                                khoroo['id']?.toString() ??
-                                khoroo['_id']?.toString();
-                            if (khorooId != null && khorooId.isNotEmpty) {
-                              _loadBuildings(khorooId);
-                            }
-                          }
-                        },
-                        isLoading: _isLoadingKhoroos,
-                      ),
-                    if (_selectedKhoroo != null)
-                      _buildDropdown(
-                        label: 'Барилга',
-                        items: _filteredBuildings.isNotEmpty
-                            ? _filteredBuildings
-                            : _buildings,
-                        selected: _selectedBuilding,
-                        onChanged: (building) {
-                          if (building != null) {
-                            setState(() {
-                              _selectedBuilding = building;
-                              // Reset validation when building changes
-                              _isTootValid = false;
-                              _tootValidationError = null;
-                              _availableToonuud = null;
-                            });
-                            // If OWN_ORG and door number already entered, validate
-                            final source = building['source']?.toString();
-                            if (source == 'OWN_ORG' &&
-                                _doorNoController.text.trim().isNotEmpty) {
-                              _validateToot(_doorNoController.text);
-                            } else if (source != 'OWN_ORG') {
+                      if (_selectedCity != null)
+                        _buildDropdown(
+                          label: 'Дүүрэг',
+                          items: _districts,
+                          selected: _selectedDistrict,
+                          onChanged: (district) {
+                            if (district != null) {
                               setState(() {
-                                _isTootValid = true;
+                                _selectedDistrict = district;
                               });
-                            }
-                          }
-                        },
-                        isLoading: _isLoadingBuildings,
-                      ),
-                    if (_selectedBuilding != null) ...[
-                      SizedBox(height: 8.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withOpacity(0.08),
-                              Colors.white.withOpacity(0.03),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18.r),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 12.r,
-                              spreadRadius: 0,
-                              offset: Offset(0, 4.h),
-                            ),
-                          ],
-                        ),
-                        child: TextFormField(
-                          controller: _doorNoController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          onChanged: (value) {
-                            // Validation is handled by the listener in initState
-                            // But we can trigger it immediately for better UX
-                            final source = _selectedBuilding?['source']
-                                ?.toString();
-                            if (source == 'OWN_ORG' &&
-                                value.trim().isNotEmpty) {
-                              _validateToot(value);
+                              final districtId =
+                                  district['id']?.toString() ??
+                                  district['_id']?.toString();
+                              if (districtId != null && districtId.isNotEmpty) {
+                                _loadKhoroos(districtId);
+                              }
                             }
                           },
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w500,
+                          isLoading: _isLoadingDistricts,
+                        ),
+                      if (_selectedDistrict != null)
+                        _buildDropdown(
+                          label: 'Хороо',
+                          items: _khoroos,
+                          selected: _selectedKhoroo,
+                          onChanged: (khoroo) {
+                            if (khoroo != null) {
+                              setState(() {
+                                _selectedKhoroo = khoroo;
+                              });
+                              final khorooId =
+                                  khoroo['id']?.toString() ??
+                                  khoroo['_id']?.toString();
+                              if (khorooId != null && khorooId.isNotEmpty) {
+                                _loadBuildings(khorooId);
+                              }
+                            }
+                          },
+                          isLoading: _isLoadingKhoroos,
+                        ),
+                      if (_selectedKhoroo != null)
+                        _buildDropdown(
+                          label: 'Барилга',
+                          items: _filteredBuildings.isNotEmpty
+                              ? _filteredBuildings
+                              : _buildings,
+                          selected: _selectedBuilding,
+                          onChanged: (building) {
+                            if (building != null) {
+                              setState(() {
+                                _selectedBuilding = building;
+                                // Reset validation when building changes
+                                _isTootValid = false;
+                                _tootValidationError = null;
+                                _availableToonuud = null;
+                              });
+                              // If OWN_ORG and door number already entered, validate
+                              final source = building['source']?.toString();
+                              if (source == 'OWN_ORG' &&
+                                  _doorNoController.text.trim().isNotEmpty) {
+                                _validateToot(_doorNoController.text);
+                              } else if (source != 'OWN_ORG') {
+                                setState(() {
+                                  _isTootValid = true;
+                                });
+                              }
+                            }
+                          },
+                          isLoading: _isLoadingBuildings,
+                        ),
+                      if (_selectedBuilding != null) ...[
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 8,
+                            medium: 10,
+                            large: 12,
+                            tablet: 14,
                           ),
-                          decoration: InputDecoration(
-                            labelText: 'Хаалганы дугаар',
-                            labelStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
-                              fontSize: 14.sp,
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: context.cardBackgroundColor,
+                            borderRadius: BorderRadius.circular(
+                              context.responsiveBorderRadius(
+                                small: 18,
+                                medium: 20,
+                                large: 22,
+                                tablet: 24,
+                              ),
+                            ),
+                            border: Border.all(
+                              color: context.borderColor,
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                ),
+                                spreadRadius: 0,
+                                offset: Offset(
+                                  0,
+                                  context.responsiveSpacing(
+                                    small: 4,
+                                    medium: 5,
+                                    large: 6,
+                                    tablet: 7,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          child: TextFormField(
+                            controller: _doorNoController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            onChanged: (value) {
+                              // Validation is handled by the listener in initState
+                              // But we can trigger it immediately for better UX
+                              final source = _selectedBuilding?['source']
+                                  ?.toString();
+                              if (source == 'OWN_ORG' &&
+                                  value.trim().isNotEmpty) {
+                                _validateToot(value);
+                              }
+                            },
+                            style: TextStyle(
+                              color: context.textPrimaryColor,
+                              fontSize: context.responsiveFontSize(
+                                small: 16,
+                                medium: 17,
+                                large: 18,
+                                tablet: 19,
+                              ),
                               fontWeight: FontWeight.w500,
                             ),
-                            prefixIcon: Icon(
-                              Icons.door_front_door_rounded,
-                              color: AppColors.goldPrimary,
-                              size: 22.sp,
-                            ),
-                            suffixIcon: _isValidatingToot
-                                ? Padding(
-                                    padding: EdgeInsets.all(12.w),
-                                    child: SizedBox(
-                                      width: 20.w,
-                                      height: 20.h,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              AppColors.goldPrimary,
-                                            ),
-                                      ),
-                                    ),
-                                  )
-                                : (_isTootValid &&
-                                      _doorNoController.text
-                                          .trim()
-                                          .isNotEmpty &&
-                                      _selectedBuilding?['source']
-                                              ?.toString() ==
-                                          'OWN_ORG')
-                                ? Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                    size: 22.sp,
-                                  )
-                                : null,
-                            filled: true,
-                            fillColor: Colors.transparent,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 20.w,
-                              vertical: 18.h,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18.r),
-                              borderSide: BorderSide.none,
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18.r),
-                              borderSide: BorderSide(
-                                color: _tootValidationError != null
-                                    ? Colors.red
-                                    : AppColors.goldPrimary.withOpacity(0.8),
-                                width: 2,
+                            decoration: InputDecoration(
+                              labelText: 'Хаалганы дугаар',
+                              labelStyle: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: context.responsiveFontSize(
+                                  small: 14,
+                                  medium: 15,
+                                  large: 16,
+                                  tablet: 17,
+                                ),
+                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18.r),
-                              borderSide: BorderSide(
-                                color: Colors.red,
-                                width: 2,
+                              prefixIcon: Icon(
+                                Icons.door_front_door_rounded,
+                                color: AppColors.deepGreen,
+                                size: context.responsiveIconSize(
+                                  small: 22,
+                                  medium: 24,
+                                  large: 26,
+                                  tablet: 28,
+                                ),
                               ),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(18.r),
-                              borderSide: BorderSide(
-                                color: Colors.red,
-                                width: 2,
+                              suffixIcon: _isValidatingToot
+                                  ? Padding(
+                                      padding: EdgeInsets.all(
+                                        context.responsiveSpacing(
+                                          small: 12,
+                                          medium: 14,
+                                          large: 16,
+                                          tablet: 18,
+                                        ),
+                                      ),
+                                      child: SizedBox(
+                                        width: context.responsiveSpacing(
+                                          small: 20,
+                                          medium: 22,
+                                          large: 24,
+                                          tablet: 26,
+                                        ),
+                                        height: context.responsiveSpacing(
+                                          small: 20,
+                                          medium: 22,
+                                          large: 24,
+                                          tablet: 26,
+                                        ),
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                AppColors.deepGreen,
+                                              ),
+                                        ),
+                                      ),
+                                    )
+                                  : (_isTootValid &&
+                                        _doorNoController.text
+                                            .trim()
+                                            .isNotEmpty &&
+                                        _selectedBuilding?['source']
+                                                ?.toString() ==
+                                            'OWN_ORG')
+                                  ? Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: context.responsiveIconSize(
+                                        small: 22,
+                                        medium: 24,
+                                        large: 26,
+                                        tablet: 28,
+                                      ),
+                                    )
+                                  : null,
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: context.responsiveSpacing(
+                                  small: 20,
+                                  medium: 22,
+                                  large: 24,
+                                  tablet: 26,
+                                ),
+                                vertical: context.responsiveSpacing(
+                                  small: 18,
+                                  medium: 20,
+                                  large: 22,
+                                  tablet: 24,
+                                ),
                               ),
-                            ),
-                            errorText: _tootValidationError,
-                            errorStyle: TextStyle(
-                              color: Colors.red,
-                              fontSize: 12.sp,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (_selectedBuilding != null &&
-                        _tootValidationError != null &&
-                        _availableToonuud != null &&
-                        _availableToonuud!.isNotEmpty) ...[
-                      SizedBox(height: 8.h),
-                      Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: Colors.red.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Боломжтой тоотууд:',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 6.h),
-                            Wrap(
-                              spacing: 6.w,
-                              runSpacing: 6.h,
-                              children: _availableToonuud!.map((toot) {
-                                return GestureDetector(
-                                  onTap: () {
-                                    _doorNoController.text = toot;
-                                    _validateToot(toot);
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w,
-                                      vertical: 6.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.goldPrimary.withOpacity(
-                                        0.2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(8.r),
-                                      border: Border.all(
-                                        color: AppColors.goldPrimary
-                                            .withOpacity(0.5),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      toot,
-                                      style: TextStyle(
-                                        color: AppColors.goldPrimary,
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  context.responsiveBorderRadius(
+                                    small: 18,
+                                    medium: 20,
+                                    large: 22,
+                                    tablet: 24,
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  context.responsiveBorderRadius(
+                                    small: 18,
+                                    medium: 20,
+                                    large: 22,
+                                    tablet: 24,
+                                  ),
+                                ),
+                                borderSide: BorderSide(
+                                  color: _tootValidationError != null
+                                      ? Colors.red
+                                      : AppColors.deepGreen.withOpacity(0.8),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  context.responsiveBorderRadius(
+                                    small: 18,
+                                    medium: 20,
+                                    large: 22,
+                                    tablet: 24,
+                                  ),
+                                ),
+                                borderSide: BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  context.responsiveBorderRadius(
+                                    small: 18,
+                                    medium: 20,
+                                    large: 22,
+                                    tablet: 24,
+                                  ),
+                                ),
+                                borderSide: BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              errorText: _tootValidationError,
+                              errorStyle: TextStyle(
+                                color: Colors.red,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  tablet: 15,
+                                ),
+                              ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
+                      if (_selectedBuilding != null &&
+                          _tootValidationError != null &&
+                          _availableToonuud != null &&
+                          _availableToonuud!.isNotEmpty) ...[
+                        SizedBox(height: 8.h),
+                        Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: Colors.red.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Боломжтой тоотууд:',
+                                style: TextStyle(
+                                  color: context.textPrimaryColor,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 6.h),
+                              Wrap(
+                                spacing: 6.w,
+                                runSpacing: 6.h,
+                                children: _availableToonuud!.map((toot) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      _doorNoController.text = toot;
+                                      _validateToot(toot);
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12.w,
+                                        vertical: 6.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.deepGreen.withOpacity(
+                                          0.2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          8.r,
+                                        ),
+                                        border: Border.all(
+                                          color: AppColors.deepGreen
+                                              .withOpacity(0.5),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        toot,
+                                        style: TextStyle(
+                                          color: AppColors.deepGreen,
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
-                    SizedBox(height: 24.h),
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        small: 24,
+                        medium: 28,
+                        large: 32,
+                        tablet: 36,
+                      ),
+                    ),
                     GestureDetector(
-                      onTap:
-                          (_isSaving ||
-                              (_selectedBuilding != null &&
-                                  _selectedBuilding!['source']?.toString() ==
-                                      'OWN_ORG' &&
-                                  !_isTootValid &&
-                                  _doorNoController.text.trim().isNotEmpty))
+                      onTap: (_hasExistingAddress || _hasBaiguullagiinId)
+                          ? (_isSaving ? null : _saveAddress)
+                          : (_isSaving ||
+                                (_selectedCity == null ||
+                                    _selectedDistrict == null ||
+                                    _selectedKhoroo == null ||
+                                    _selectedBuilding == null ||
+                                    _doorNoController.text.trim().isEmpty ||
+                                    (_selectedBuilding!['source']?.toString() ==
+                                            'OWN_ORG' &&
+                                        !_isTootValid)))
                           ? null
                           : _saveAddress,
                       child: Container(
                         width: double.infinity,
-                        padding: EdgeInsets.symmetric(vertical: 16.h),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              (_isSaving ||
-                                      (_selectedBuilding != null &&
-                                          _selectedBuilding!['source']
-                                                  ?.toString() ==
-                                              'OWN_ORG' &&
-                                          !_isTootValid &&
-                                          _doorNoController.text
-                                              .trim()
-                                              .isNotEmpty))
-                                  ? AppColors.goldPrimary.withOpacity(0.5)
-                                  : AppColors.goldPrimary,
-                              (_isSaving ||
-                                      (_selectedBuilding != null &&
-                                          _selectedBuilding!['source']
-                                                  ?.toString() ==
-                                              'OWN_ORG' &&
-                                          !_isTootValid &&
-                                          _doorNoController.text
-                                              .trim()
-                                              .isNotEmpty))
-                                  ? AppColors.goldPrimary.withOpacity(0.4)
-                                  : AppColors.goldPrimary.withOpacity(0.8),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                        padding: EdgeInsets.symmetric(
+                          vertical: context.responsiveSpacing(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
                           ),
-                          borderRadius: BorderRadius.circular(18.r),
+                        ),
+                        decoration: BoxDecoration(
+                          color: (_hasExistingAddress || _hasBaiguullagiinId)
+                              ? (_isSaving
+                                    ? AppColors.deepGreen.withOpacity(0.5)
+                                    : AppColors.deepGreen)
+                              : (_isSaving ||
+                                    (_selectedCity == null ||
+                                        _selectedDistrict == null ||
+                                        _selectedKhoroo == null ||
+                                        _selectedBuilding == null ||
+                                        _doorNoController.text.trim().isEmpty ||
+                                        (_selectedBuilding!['source']
+                                                    ?.toString() ==
+                                                'OWN_ORG' &&
+                                            !_isTootValid)))
+                              ? AppColors.deepGreen.withOpacity(0.5)
+                              : AppColors.deepGreen,
+                          borderRadius: BorderRadius.circular(
+                            context.responsiveBorderRadius(
+                              small: 18,
+                              medium: 20,
+                              large: 22,
+                              tablet: 24,
+                            ),
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.goldPrimary.withOpacity(0.3),
-                              blurRadius: 20.r,
+                              color: AppColors.deepGreen.withOpacity(0.3),
+                              blurRadius: context.responsiveSpacing(
+                                small: 20,
+                                medium: 24,
+                                large: 28,
+                                tablet: 32,
+                              ),
                               spreadRadius: 0,
-                              offset: Offset(0, 8.h),
+                              offset: Offset(
+                                0,
+                                context.responsiveSpacing(
+                                  small: 8,
+                                  medium: 10,
+                                  large: 12,
+                                  tablet: 14,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                         child: _isSaving
                             ? Center(
                                 child: SizedBox(
-                                  height: 22.h,
-                                  width: 22.w,
+                                  height: context.responsiveSpacing(
+                                    small: 22,
+                                    medium: 24,
+                                    large: 26,
+                                    tablet: 28,
+                                  ),
+                                  width: context.responsiveSpacing(
+                                    small: 22,
+                                    medium: 24,
+                                    large: 26,
+                                    tablet: 28,
+                                  ),
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
-                                    valueColor:
-                                        const AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      context.textPrimaryColor,
+                                    ),
                                   ),
                                 ),
                               )
@@ -1430,16 +1839,33 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                 children: [
                                   Icon(
                                     Icons.check_circle_outline_rounded,
-                                    color: Colors.white,
-                                    size: 20.sp,
+                                    color: context.textPrimaryColor,
+                                    size: context.responsiveIconSize(
+                                      small: 20,
+                                      medium: 22,
+                                      large: 24,
+                                      tablet: 26,
+                                    ),
                                   ),
-                                  SizedBox(width: 8.w),
+                                  SizedBox(
+                                    width: context.responsiveSpacing(
+                                      small: 8,
+                                      medium: 10,
+                                      large: 12,
+                                      tablet: 14,
+                                    ),
+                                  ),
                                   Text(
                                     'Хадгалах',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16.sp,
+                                      color: context.textPrimaryColor,
+                                      fontSize: context.responsiveFontSize(
+                                        small: 16,
+                                        medium: 17,
+                                        large: 18,
+                                        tablet: 19,
+                                      ),
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.5,
                                     ),
@@ -1448,7 +1874,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                               ),
                       ),
                     ),
-                    SizedBox(height: 20.h),
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        small: 20,
+                        medium: 24,
+                        large: 28,
+                        tablet: 32,
+                      ),
+                    ),
                   ],
                 ),
               ),

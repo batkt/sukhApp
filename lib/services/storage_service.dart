@@ -43,6 +43,9 @@ class StorageService {
       'wallet_bair_baiguullagiin_id';
   static const String _walletBairBarilgiinIdKey = 'wallet_bair_barilgiin_id';
   static const String _walletBillingIdKey = 'wallet_billing_id';
+  static const String _phoneVerifiedKey = 'phone_verified';
+  static const String _deviceIdKey = 'device_id';
+  static const String _lastVerifiedDeviceIdKey = 'last_verified_device_id';
 
   static Future<bool> saveToken(String token) async {
     try {
@@ -72,46 +75,49 @@ class StorageService {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      if (userData['result']?['_id'] != null) {
-        await prefs.setString(_userIdKey, userData['result']['_id']);
+      // Backend may return user under `result` or `orshinSuugch` (login OTP flow).
+      final dynamic userDynamic =
+          userData['result'] ?? userData['orshinSuugch'];
+      final Map<String, dynamic>? user = userDynamic is Map<String, dynamic>
+          ? userDynamic
+          : null;
+
+      if (user?['_id'] != null) {
+        await prefs.setString(_userIdKey, user!['_id'].toString());
       }
 
       // Save user name
-      if (userData['result']?['ner'] != null) {
-        await prefs.setString(_userNerKey, userData['result']['ner']);
+      if (user?['ner'] != null) {
+        await prefs.setString(_userNerKey, user!['ner'].toString());
       }
 
       // Save baiguullagiinId
-      if (userData['result']?['baiguullagiinId'] != null) {
+      if (user?['baiguullagiinId'] != null) {
         await prefs.setString(
           _baiguullagiinIdKey,
-          userData['result']['baiguullagiinId'],
+          user!['baiguullagiinId'].toString(),
         );
       }
 
       // Save baiguullagiinNer
-      if (userData['result']?['baiguullagiinNer'] != null) {
+      if (user?['baiguullagiinNer'] != null) {
         await prefs.setString(
           _baiguullagiinNerKey,
-          userData['result']['baiguullagiinNer'],
+          user!['baiguullagiinNer'].toString(),
         );
       }
 
       // Save barilgiinId
-      if (userData['result']?['barilgiinId'] != null) {
-        await prefs.setString(
-          _barilgiinIdKey,
-          userData['result']['barilgiinId'],
-        );
+      if (user?['barilgiinId'] != null) {
+        await prefs.setString(_barilgiinIdKey, user!['barilgiinId'].toString());
       }
 
       // Save tukhainBaaziinKholbolt - check multiple possible locations
       String? tukhainBaaziinKholbolt;
 
       // Check in result object first
-      if (userData['result']?['tukhainBaaziinKholbolt'] != null) {
-        tukhainBaaziinKholbolt = userData['result']['tukhainBaaziinKholbolt']
-            .toString();
+      if (user?['tukhainBaaziinKholbolt'] != null) {
+        tukhainBaaziinKholbolt = user!['tukhainBaaziinKholbolt'].toString();
       }
       // Check in root of userData
       else if (userData['tukhainBaaziinKholbolt'] != null) {
@@ -125,17 +131,16 @@ class StorageService {
         tukhainBaaziinKholbolt ?? 'amarSukh',
       );
 
-
       // Save duusakhOgnoo
       if (userData['duusakhOgnoo'] != null) {
         await prefs.setString(_duusakhOgnooKey, userData['duusakhOgnoo']);
       }
 
       // Save taniltsuulgaKharakhEsekh from backend
-      if (userData['result']?['taniltsuulgaKharakhEsekh'] != null) {
+      if (user?['taniltsuulgaKharakhEsekh'] != null) {
         await prefs.setBool(
           _taniltsuulgaKharakhEsekhKey,
-          userData['result']['taniltsuulgaKharakhEsekh'],
+          user!['taniltsuulgaKharakhEsekh'] == true,
         );
       }
 
@@ -238,6 +243,8 @@ class StorageService {
 
   /// Clear only authentication data (keep other app data)
   /// Note: shake hint shown status is NOT cleared - it persists across logouts
+  /// Note: device ID is NOT cleared - it persists per device
+  /// Phone verified flag is cleared on logout so OTP is required on next login
   static Future<bool> clearAuthData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -252,7 +259,11 @@ class StorageService {
       // Clear wallet address on logout - each user should set their own address
       await prefs.remove(_walletBairIdKey);
       await prefs.remove(_walletDoorNoKey);
-      // Note: _shakeHintShownKey is NOT removed - it persists across sessions
+      // Clear phone verified flag on logout - OTP will be required on next login
+      // This ensures OTP verification screen shows after every logout/login cycle
+      await prefs.remove(_phoneVerifiedKey);
+      await prefs.remove(_lastVerifiedDeviceIdKey);
+      // Note: _shakeHintShownKey and _deviceIdKey are NOT removed - they persist across sessions
       return true;
     } catch (e) {
       return false;
@@ -513,6 +524,171 @@ class StorageService {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Save phone verification status
+  static Future<bool> setPhoneVerified(bool verified) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_phoneVerifiedKey, verified);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get phone verification status
+  static Future<bool> getPhoneVerified() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_phoneVerifiedKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Generate or get device ID (creates one if doesn't exist)
+  static Future<String> getOrCreateDeviceId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? deviceId = prefs.getString(_deviceIdKey);
+
+      if (deviceId == null || deviceId.isEmpty) {
+        // Generate a unique device ID based on timestamp and random
+        deviceId =
+            'device_${DateTime.now().millisecondsSinceEpoch}_${Uri.base.hashCode}';
+        await prefs.setString(_deviceIdKey, deviceId);
+        print('📱 [DEVICE] Generated new device ID: $deviceId');
+      }
+
+      return deviceId;
+    } catch (e) {
+      // Fallback device ID
+      return 'device_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  /// Save device ID
+  static Future<bool> saveDeviceId(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_deviceIdKey, deviceId);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get device ID
+  static Future<String?> getDeviceId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_deviceIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Save last verified device ID (device where phone was verified)
+  static Future<bool> saveLastVerifiedDeviceId(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_lastVerifiedDeviceIdKey, deviceId);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get last verified device ID
+  static Future<String?> getLastVerifiedDeviceId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_lastVerifiedDeviceIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Check if current device is the same as last verified device
+  static Future<bool> isSameDevice() async {
+    try {
+      final currentDeviceId = await getOrCreateDeviceId();
+      final lastVerifiedDeviceId = await getLastVerifiedDeviceId();
+
+      if (lastVerifiedDeviceId == null || lastVerifiedDeviceId.isEmpty) {
+        return false; // No previous verification, so it's a new device
+      }
+
+      return currentDeviceId == lastVerifiedDeviceId;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Check if phone verification is needed (new user or new device)
+  /// Since API sends OTP automatically on every login, we should check:
+  /// - ALWAYS require OTP unless BOTH conditions are met:
+  ///   1. Same device (current device ID matches last verified device ID)
+  ///   2. Phone was verified before (phoneVerified flag is true)
+  /// Returns true if verification is needed, false if it can be skipped
+  static Future<bool> needsPhoneVerification() async {
+    try {
+      print('📱 [VERIFY] ========== Checking phone verification ==========');
+
+      // Get current device ID (creates one if doesn't exist)
+      final currentDeviceId = await getOrCreateDeviceId();
+      print('📱 [VERIFY] Current device ID: $currentDeviceId');
+
+      // Get last verified device ID
+      final lastVerifiedDeviceId = await getLastVerifiedDeviceId();
+      print('📱 [VERIFY] Last verified device ID: $lastVerifiedDeviceId');
+
+      // Get phone verified flag
+      final phoneVerified = await getPhoneVerified();
+      print('📱 [VERIFY] Phone verified flag: $phoneVerified');
+
+      // CRITICAL: For new users (no device verification record) → ALWAYS require verification
+      // This is the most important check - new users should ALWAYS see OTP screen
+      if (lastVerifiedDeviceId == null || lastVerifiedDeviceId.isEmpty) {
+        print(
+          '📱 [VERIFY] ✅✅✅ Phone verification NEEDED: No device verification record (NEW USER or first-time)',
+        );
+        print('📱 [VERIFY] ✅✅✅ Returning TRUE - OTP screen MUST be shown');
+        return true;
+      }
+
+      // Check if it's the same device
+      final isSameDevice = currentDeviceId == lastVerifiedDeviceId;
+      print(
+        '📱 [VERIFY] Is same device: $isSameDevice (current: $currentDeviceId, last: $lastVerifiedDeviceId)',
+      );
+
+      // If different device → ALWAYS require verification
+      if (!isSameDevice) {
+        print('📱 [VERIFY] ✅ Phone verification NEEDED: New device detected');
+        return true;
+      }
+
+      // Same device: only skip if phone was verified before
+      // If phoneVerified is false (after logout or first login), we need to verify
+      if (!phoneVerified) {
+        print(
+          '📱 [VERIFY] ✅ Phone verification NEEDED: Same device but phoneVerified is false (after logout or first login)',
+        );
+        return true;
+      }
+
+      // Only skip if BOTH: same device AND phone was verified before
+      print(
+        '📱 [VERIFY] ❌ Phone verification NOT needed: Same device AND already verified (trusted device)',
+      );
+      return false;
+    } catch (e) {
+      print('📱 [VERIFY] ❌ Error checking verification status: $e');
+      // On error, require verification for safety
+      print(
+        '📱 [VERIFY] ✅ Phone verification NEEDED: Error occurred, requiring for safety',
+      );
+      return true;
     }
   }
 }

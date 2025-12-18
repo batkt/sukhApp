@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 class BillingConnectionSection extends StatelessWidget {
   final bool isConnecting;
@@ -31,14 +32,14 @@ class BillingConnectionSection extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.goldPrimary.withOpacity(0.3),
-                          AppColors.goldPrimary.withOpacity(0.15),
+                          AppColors.deepGreen.withOpacity(0.3),
+                          AppColors.deepGreen.withOpacity(0.15),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(11.r),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.goldPrimary.withOpacity(0.2),
+                          color: AppColors.deepGreen.withOpacity(0.2),
                           blurRadius: 8.w,
                           spreadRadius: 0,
                           offset: Offset(0, 2.h),
@@ -47,7 +48,7 @@ class BillingConnectionSection extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.info_outline,
-                      color: AppColors.goldPrimary,
+                      color: AppColors.deepGreen,
                       size: 11.sp,
                     ),
                   ),
@@ -56,7 +57,7 @@ class BillingConnectionSection extends StatelessWidget {
                     child: Text(
                       'Биллинг холбох',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.textPrimaryColor,
                         fontSize: 11.sp,
                         fontWeight: FontWeight.bold,
                         letterSpacing: -0.3,
@@ -69,7 +70,7 @@ class BillingConnectionSection extends StatelessWidget {
               Text(
                 'Хаягаар биллинг олж холбох',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: context.textSecondaryColor,
                   fontSize: 11.sp,
                 ),
               ),
@@ -85,7 +86,7 @@ class BillingConnectionSection extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: context.textPrimaryColor,
                         padding: EdgeInsets.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(11.r),
@@ -101,7 +102,7 @@ class BillingConnectionSection extends StatelessWidget {
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2.5,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.black,
+                                      context.textPrimaryColor,
                                     ),
                                   ),
                                 ),

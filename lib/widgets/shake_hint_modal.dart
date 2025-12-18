@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
 /// Show shake hint modal dialog (similar to tutorial overlay)
 /// [forceShow] - If true, shows modal even if it was shown before
@@ -164,7 +165,7 @@ class _ShakeHintModalState extends State<_ShakeHintModal>
                     'Утсаа сэгсрээрэй',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: context.textPrimaryColor,
                       fontSize: 22.sp,
                       fontWeight: FontWeight.bold,
                       height: 1.3,
@@ -182,7 +183,7 @@ class _ShakeHintModalState extends State<_ShakeHintModal>
                     'Хэрвээ танд тусламж хэрэгтэй бол утсаа сэгсрэхэд л болно',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                      color: context.textSecondaryColor,
                       fontSize: 15.sp,
                       height: 1.4,
                     ),

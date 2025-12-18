@@ -81,6 +81,10 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     _resendSeconds = 30;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         if (_resendSeconds > 0) {
           _resendSeconds--;

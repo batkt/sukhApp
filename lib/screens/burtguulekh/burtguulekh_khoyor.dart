@@ -9,6 +9,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_guraw.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -91,6 +92,10 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
     _resendSeconds = 30;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() {
         if (_resendSeconds > 0) {
           _resendSeconds--;
@@ -334,55 +339,121 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final screenHeight = MediaQuery.of(context).size.height;
-                    final screenWidth = MediaQuery.of(context).size.width;
                     final isSmallScreen = screenHeight < 700;
-                    final isNarrowScreen = screenWidth < 380;
                     final keyboardHeight = MediaQuery.of(
                       context,
                     ).viewInsets.bottom;
                     return SingleChildScrollView(
                       physics: const ClampingScrollPhysics(),
                       child: Padding(
-                        padding: EdgeInsets.only(
-                          left: 40.w,
-                          right: 40.w,
-                          top: 24.h,
-                          bottom: keyboardHeight > 0
-                              ? keyboardHeight + 20
-                              : 24.h,
-                        ),
+                        padding: context
+                            .responsiveHorizontalPadding(
+                              small: 28,
+                              medium: 32,
+                              large: 36,
+                              tablet: 40,
+                            )
+                            .copyWith(
+                              top: context.responsiveSpacing(
+                                small: 24,
+                                medium: 28,
+                                large: 32,
+                                tablet: 36,
+                              ),
+                              bottom: keyboardHeight > 0
+                                  ? keyboardHeight +
+                                      context.responsiveSpacing(
+                                        small: 20,
+                                        medium: 22,
+                                        large: 24,
+                                        tablet: 26,
+                                      )
+                                  : context.responsiveSpacing(
+                                      small: 24,
+                                      medium: 28,
+                                      large: 32,
+                                      tablet: 36,
+                                    ),
+                            ),
                         child: Form(
                           key: _formKey,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const AppLogo(),
-                              SizedBox(height: isSmallScreen ? 12.h : 20.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 16,
+                                  large: 20,
+                                  tablet: 24,
+                                ),
+                              ),
                               Text(
                                 'Бүртгэл',
                                 style: TextStyle(
                                   color: AppColors.grayColor,
-                                  fontSize: isSmallScreen ? 22.sp : 28.sp,
+                                  fontSize: context.responsiveFontSize(
+                                    small: 22,
+                                    medium: 25,
+                                    large: 28,
+                                    tablet: 30,
+                                  ),
                                 ),
                                 maxLines: 1,
                                 softWrap: false,
                               ),
 
-                              SizedBox(height: isSmallScreen ? 14.h : 18.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 14,
+                                  medium: 16,
+                                  large: 18,
+                                  tablet: 20,
+                                ),
+                              ),
                               // Овог input
                               _buildOvogField(isSmallScreen),
-                              SizedBox(height: 14.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 14,
+                                  medium: 16,
+                                  large: 18,
+                                  tablet: 20,
+                                ),
+                              ),
                               // Нэр input
                               _buildNerField(isSmallScreen),
-                              SizedBox(height: 14.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 14,
+                                  medium: 16,
+                                  large: 18,
+                                  tablet: 20,
+                                ),
+                              ),
                               // Phone number input
                               _buildPhoneNumberField(isSmallScreen),
                               // Secret code field (appears below phone after submission)
                               if (_isPhoneSubmitted) ...[
-                                SizedBox(height: 14.h),
+                                SizedBox(
+                                  height: context.responsiveSpacing(
+                                    small: 14,
+                                    medium: 16,
+                                    large: 18,
+                                    tablet: 20,
+                                  ),
+                                ),
                                 _buildSecretCodeField(isSmallScreen),
                               ],
-                              SizedBox(height: isSmallScreen ? 12.h : 14.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                ),
+                              ),
                               if (ovogController.text.isNotEmpty &&
                                   nerController.text.isNotEmpty &&
                                   _phoneController.text.length == 8 &&
@@ -402,16 +473,47 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 ),
               ),
               Positioned(
-                top: 16.h,
-                left: 16.w,
+                top: context.responsiveSpacing(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                ),
+                left: context.responsiveSpacing(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                ),
                 child: SafeArea(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100.r),
+                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 100,
+                        medium: 100,
+                        large: 100,
+                        tablet: 100,
+                      ),
+                    ),
                     child: OptimizedGlass(
-                      borderRadius: BorderRadius.circular(16.r),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 22,
+                        ),
+                      ),
                       opacity: 0.12,
                       child: IconButton(
-                        padding: EdgeInsets.only(left: 7.w),
+                        padding: EdgeInsets.only(
+                          left: context.responsiveSpacing(
+                            small: 7,
+                            medium: 8,
+                            large: 9,
+                            tablet: 10,
+                          ),
+                        ),
                         constraints: const BoxConstraints(),
                         icon: Icon(
                           Icons.arrow_back_ios,
@@ -531,7 +633,14 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
             }),
           ),
         ),
-        SizedBox(height: 10.sp),
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 10,
+            medium: 12,
+            large: 14,
+            tablet: 16,
+          ),
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -541,7 +650,12 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 _canResend ? 'Дахин илгээх' : 'Дахин илгээх ($_resendSeconds)',
                 style: TextStyle(
                   color: _canResend ? Colors.blue : Colors.grey,
-                  fontSize: 14.sp,
+                  fontSize: context.responsiveFontSize(
+                    small: 14,
+                    medium: 15,
+                    large: 16,
+                    tablet: 17,
+                  ),
                 ),
               ),
             ),
@@ -553,15 +667,45 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
 
   Widget _buildPinBox(int index, bool isSmallScreen) {
     return Container(
-      width: isSmallScreen ? 52.w : 60.w,
-      height: isSmallScreen ? 60.h : 70.h,
+      width: context.responsiveSpacing(
+        small: 52,
+        medium: 56,
+        large: 60,
+        tablet: 64,
+      ),
+      height: context.responsiveSpacing(
+        small: 60,
+        medium: 65,
+        large: 70,
+        tablet: 75,
+      ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(100.r),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 100,
+            medium: 100,
+            large: 100,
+            tablet: 100,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
-            offset: Offset(0, 10.h),
-            blurRadius: 8.r,
+            offset: Offset(
+              0,
+              context.responsiveSpacing(
+                small: 10,
+                medium: 12,
+                large: 14,
+                tablet: 16,
+              ),
+            ),
+            blurRadius: context.responsiveSpacing(
+              small: 8,
+              medium: 10,
+              large: 12,
+              tablet: 14,
+            ),
           ),
         ],
       ),
@@ -585,7 +729,12 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
-            fontSize: isSmallScreen ? 20.sp : 24.sp,
+            fontSize: context.responsiveFontSize(
+              small: 20,
+              medium: 22,
+              large: 24,
+              tablet: 26,
+            ),
             fontWeight: FontWeight.bold,
           ),
           keyboardType: TextInputType.number,
@@ -596,12 +745,29 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
             filled: true,
             fillColor: AppColors.inputGrayColor.withOpacity(0.5),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(100.r),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 100,
+                  medium: 100,
+                  large: 100,
+                  tablet: 100,
+                ),
+              ),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(100.r),
-              borderSide: BorderSide(color: AppColors.grayColor, width: 1.5.w),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 100,
+                  medium: 100,
+                  large: 100,
+                  tablet: 100,
+                ),
+              ),
+              borderSide: BorderSide(
+                color: AppColors.grayColor,
+                width: 1.5,
+              ),
             ),
             contentPadding: EdgeInsets.zero,
           ),
@@ -663,12 +829,32 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(100.r),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 100,
+            medium: 100,
+            large: 100,
+            tablet: 100,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
-            offset: Offset(0, 10.h),
-            blurRadius: 8.r,
+            offset: Offset(
+              0,
+              context.responsiveSpacing(
+                small: 10,
+                medium: 12,
+                large: 14,
+                tablet: 16,
+              ),
+            ),
+            blurRadius: context.responsiveSpacing(
+              small: 8,
+              medium: 10,
+              large: 12,
+              tablet: 14,
+            ),
             spreadRadius: 0,
           ),
         ],
@@ -680,25 +866,65 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
-            padding: EdgeInsets.symmetric(vertical: 11.h, horizontal: 16.w),
+            padding: EdgeInsets.symmetric(
+              vertical: context.responsiveSpacing(
+                small: 11,
+                medium: 13,
+                large: 15,
+                tablet: 17,
+              ),
+              horizontal: context.responsiveSpacing(
+                small: 16,
+                medium: 18,
+                large: 20,
+                tablet: 22,
+              ),
+            ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100.r),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 100,
+                  medium: 100,
+                  large: 100,
+                  tablet: 100,
+                ),
+              ),
             ),
             shadowColor: Colors.black.withOpacity(0.3),
             elevation: 8,
           ),
           child: _isLoading
               ? SizedBox(
-                  height: 18.h,
-                  width: 18.w,
+                  height: context.responsiveSpacing(
+                    small: 18,
+                    medium: 20,
+                    large: 22,
+                    tablet: 24,
+                  ),
+                  width: context.responsiveSpacing(
+                    small: 18,
+                    medium: 20,
+                    large: 22,
+                    tablet: 24,
+                  ),
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.w,
+                    strokeWidth: 2,
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       Colors.black,
                     ),
                   ),
                 )
-              : Text('Үргэлжлүүлэх', style: TextStyle(fontSize: 16.sp)),
+              : Text(
+                  'Үргэлжлүүлэх',
+                  style: TextStyle(
+                    fontSize: context.responsiveFontSize(
+                      small: 16,
+                      medium: 17,
+                      large: 18,
+                      tablet: 19,
+                    ),
+                  ),
+                ),
         ),
       ),
     );
@@ -706,12 +932,32 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
 
   BoxDecoration _boxShadowDecoration() {
     return BoxDecoration(
-      borderRadius: BorderRadius.circular(100.r),
+      borderRadius: BorderRadius.circular(
+        context.responsiveBorderRadius(
+          small: 100,
+          medium: 100,
+          large: 100,
+          tablet: 100,
+        ),
+      ),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(0.3),
-          offset: Offset(0, 10.h),
-          blurRadius: 8.r,
+          offset: Offset(
+            0,
+            context.responsiveSpacing(
+              small: 10,
+              medium: 12,
+              large: 14,
+              tablet: 16,
+            ),
+          ),
+          blurRadius: context.responsiveSpacing(
+            small: 8,
+            medium: 10,
+            large: 12,
+            tablet: 14,
+          ),
         ),
       ],
     );
@@ -723,30 +969,93 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
     bool isSmallScreen,
   ) {
     return InputDecoration(
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 11.h),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: context.responsiveSpacing(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 22,
+        ),
+        vertical: context.responsiveSpacing(
+          small: 11,
+          medium: 13,
+          large: 15,
+          tablet: 17,
+        ),
+      ),
       filled: true,
       fillColor: AppColors.inputGrayColor.withOpacity(0.5),
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.white70, fontSize: 15.sp),
+      hintStyle: TextStyle(
+        color: Colors.white70,
+        fontSize: context.responsiveFontSize(
+          small: 15,
+          medium: 16,
+          large: 17,
+          tablet: 18,
+        ),
+      ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100.r),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 100,
+            medium: 100,
+            large: 100,
+            tablet: 100,
+          ),
+        ),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100.r),
-        borderSide: BorderSide(color: AppColors.grayColor, width: 1.5.w),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 100,
+            medium: 100,
+            large: 100,
+            tablet: 100,
+          ),
+        ),
+        borderSide: BorderSide(
+          color: AppColors.grayColor,
+          width: 1.5,
+        ),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100.r),
-        borderSide: BorderSide(color: Colors.redAccent, width: 1.5.w),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 100,
+            medium: 100,
+            large: 100,
+            tablet: 100,
+          ),
+        ),
+        borderSide: BorderSide(
+          color: Colors.redAccent,
+          width: 1.5,
+        ),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100.r),
-        borderSide: BorderSide(color: Colors.redAccent, width: 1.5.w),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 100,
+            medium: 100,
+            large: 100,
+            tablet: 100,
+          ),
+        ),
+        borderSide: BorderSide(
+          color: Colors.redAccent,
+          width: 1.5,
+        ),
       ),
       errorStyle: TextStyle(
         color: Colors.redAccent,
-        fontSize: isSmallScreen ? 11.sp : 13.sp,
+        fontSize: context.responsiveFontSize(
+          small: 11,
+          medium: 12,
+          large: 13,
+          tablet: 14,
+        ),
       ),
     );
   }

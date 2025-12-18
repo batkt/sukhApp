@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/components/Home/biller_utils.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
 
 class BillerCard extends StatelessWidget {
@@ -64,8 +65,8 @@ class BillerCard extends StatelessWidget {
           Text(
             billerName,
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 9.sp,
+              color: context.textPrimaryColor,
+              fontSize: 18.sp, // Increased from 9 for better readability
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -106,8 +107,8 @@ class BillerCard extends StatelessWidget {
                   Text(
                     billerName,
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11.sp,
+                      color: context.textPrimaryColor,
+                      fontSize: 20.sp, // Increased from 11 for better readability
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines: 1,

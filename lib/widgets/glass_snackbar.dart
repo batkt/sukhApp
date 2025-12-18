@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 void showGlassSnackBar(
   BuildContext context, {
@@ -125,16 +125,32 @@ class _SnackBarWidgetState extends State<_SnackBarWidget>
 
   @override
   Widget build(BuildContext context) {
+    // Determine background color based on icon color (error = red, success = green)
+    final bool isError = widget.iconColor == Colors.red;
+    final bool isSuccess = widget.iconColor == Colors.green;
+    
+    // Use a more opaque background with a distinct color
+    Color backgroundColor;
+    if (isError) {
+      backgroundColor = Colors.red.withOpacity(0.95);
+    } else if (isSuccess) {
+      backgroundColor = Colors.green.withOpacity(0.95);
+    } else {
+      backgroundColor = Colors.black.withOpacity(0.85);
+    }
+    
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 10.h,
-      left: 16.w,
-      right: 16.w,
+      top: MediaQuery.of(context).padding.top + context.responsiveSpacing(small: 10, medium: 12, large: 14, tablet: 16),
+      left: context.responsiveSpacing(small: 16, medium: 20, large: 24, tablet: 28),
+      right: context.responsiveSpacing(small: 16, medium: 20, large: 24, tablet: 28),
       child: SlideTransition(
         position: _slideAnimation,
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Material(
             color: Colors.transparent,
+            elevation: 8,
+            borderRadius: BorderRadius.circular(16.w),
             child: GestureDetector(
               onVerticalDragUpdate: (details) {
                 if (details.delta.dy < 0) {
@@ -143,30 +159,82 @@ class _SnackBarWidgetState extends State<_SnackBarWidget>
                   });
                 }
               },
-              child: OptimizedGlass(
-                borderRadius: BorderRadius.circular(16.w),
-                opacity: widget.opacity,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 16.h,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                    small: 16,
+                    medium: 18,
+                    large: 20,
+                    tablet: 22,
+                  )),
+                  border: Border.all(
+                    color: widget.iconColor.withOpacity(0.3),
+                    width: 1.5,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(widget.icon, color: widget.iconColor, size: 32.sp),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Text(
-                          widget.message,
-                          style: TextStyle(
-                            color: widget.textColor,
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: widget.iconColor.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.responsiveSpacing(small: 20, medium: 24, large: 28, tablet: 32),
+                  vertical: context.responsiveSpacing(small: 16, medium: 18, large: 20, tablet: 22),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(context.responsiveSpacing(small: 8, medium: 10, large: 12, tablet: 14)),
+                      decoration: BoxDecoration(
+                        color: widget.iconColor.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        color: widget.iconColor,
+                        size: context.responsiveIconSize(
+                          small: 24,
+                          medium: 26,
+                          large: 28,
+                          tablet: 30,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: context.responsiveSpacing(small: 16, medium: 18, large: 20, tablet: 22)),
+                    Expanded(
+                      child: Text(
+                        widget.message,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: context.responsiveFontSize(
+                            small: 15,
+                            medium: 16,
+                            large: 17,
+                            tablet: 18,
+                          ),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.3),
+                              offset: const Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
