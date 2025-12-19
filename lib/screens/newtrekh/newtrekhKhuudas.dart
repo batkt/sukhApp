@@ -14,8 +14,6 @@ import 'package:sukh_app/main.dart' show navigatorKey;
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/services/biometric_service.dart';
-import 'package:local_auth/local_auth.dart';
-import 'dart:io';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -53,7 +51,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   bool _isLoading = false;
   bool _showEmailField = false;
   bool _obscurePassword = true;
-  bool _biometricEnabled = false;
   bool _biometricAvailable = false;
 
   @override
@@ -76,21 +73,20 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   }
 
   Future<void> _checkBiometricStatus() async {
-    final isEnabled = await StorageService.isBiometricEnabled();
     final isAvailable = await BiometricService.isAvailable();
+    print('🔐 [BIOMETRIC] Available: $isAvailable');
     if (mounted) {
       setState(() {
-        _biometricEnabled = isEnabled;
         _biometricAvailable = isAvailable;
       });
     }
   }
 
   Future<void> _handleBiometricLogin() async {
-    if (!_biometricEnabled || !_biometricAvailable) {
+    if (!_biometricAvailable) {
       showGlassSnackBar(
         context,
-        message: 'Биометрийн нэвтрэлт идэвхжээгүй байна',
+        message: 'Биометрийн баталгаажуулалт боломжгүй байна',
         icon: Icons.error,
         iconColor: Colors.orange,
       );
@@ -101,10 +97,28 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     final savedPhone = await StorageService.getSavedPhoneNumber();
     final savedPassword = await StorageService.getSavedPasswordForBiometric();
 
+    // If no saved credentials, we can't use biometric login
     if (savedPhone == null || savedPassword == null) {
+      // Check if user is currently logged in
+      final isLoggedIn = await StorageService.isLoggedIn();
+
+      if (!isLoggedIn) {
+        // User not logged in - need to login first to set up biometric
+        showGlassSnackBar(
+          context,
+          message: 'Эхлээд нэвтэрч, биометрийн мэдээлэл хадгалах шаардлагатай',
+          icon: Icons.info_outline,
+          iconColor: Colors.blue,
+        );
+        return;
+      }
+
+      // User is logged in but biometric not set up
+      // This shouldn't happen if setup was done after login, but handle it
       showGlassSnackBar(
         context,
-        message: 'Хадгалсан мэдээлэл олдсонгүй',
+        message:
+            'Биометрийн мэдээлэл олдсонгүй. Тохиргооноос биометрийн нэвтрэлтийг идэвхжүүлнэ үү',
         icon: Icons.error,
         iconColor: Colors.orange,
       );
@@ -1017,7 +1031,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                                       .trim(),
                                                             );
                                                       } else {
-                                                        // No orgId available to retry - keep original error behavior
                                                         rethrow;
                                                       }
                                                     } else {
@@ -1046,15 +1059,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                   );
                                                   print(
                                                     '   - Has token: ${loginResponse['token'] != null}',
-                                                  );
-                                                  print(
-                                                    '   - Has result: ${loginResponse['result'] != null}',
-                                                  );
-                                                  print(
-                                                    '   - Has orshinSuugch: ${loginResponse['orshinSuugch'] != null}',
-                                                  );
-                                                  print(
-                                                    '   - Has billingInfo: ${loginResponse['billingInfo'] != null}',
                                                   );
 
                                                   // Verify token was saved before proceeding
@@ -1181,6 +1185,17 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                         '✅ [LOGIN] User without baiguullagiinId - skipping OTP verification',
                                                       );
                                                     }
+
+                                                    // Always save credentials for biometric login
+                                                    await StorageService.savePhoneNumber(
+                                                      inputPhone,
+                                                    );
+                                                    await StorageService.savePasswordForBiometric(
+                                                      inputPassword,
+                                                    );
+                                                    print(
+                                                      '🔐 [LOGIN] Credentials saved for biometric login',
+                                                    );
 
                                                     print(
                                                       '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
@@ -1311,7 +1326,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                     print(
                                                       '📍 [LOGIN] Final hasAddress: $hasAddress',
                                                     );
-
                                                     print(
                                                       '📍 [LOGIN] Has saved address: $hasAddress',
                                                     );
@@ -1742,9 +1756,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         ),
                                       ),
                                     ),
-                                    // Biometric login button (only show if enabled and available)
-                                    if (_biometricEnabled &&
-                                        _biometricAvailable &&
+                                    // Biometric login button (show if available, even if not set up yet)
+                                    if (_biometricAvailable &&
                                         !_showEmailField) ...[
                                       SizedBox(
                                         width: context.responsiveSpacing(
@@ -1802,37 +1815,15 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                 ),
                                               ],
                                             ),
-                                            child: FutureBuilder<List<BiometricType>>(
+                                            child: FutureBuilder<IconData>(
                                               future:
-                                                  BiometricService.getAvailableBiometrics(),
+                                                  BiometricService.getBiometricIcon(),
                                               builder: (context, snapshot) {
-                                                // Show fingerprint on Android, face on iOS
-                                                IconData biometricIcon;
-                                                if (Platform.isIOS) {
-                                                  // iOS: prefer Face ID, fallback to fingerprint
-                                                  biometricIcon =
-                                                      snapshot.data?.contains(
-                                                            BiometricType.face,
-                                                          ) ==
-                                                          true
-                                                      ? Icons.face
-                                                      : Icons.fingerprint;
-                                                } else {
-                                                  // Android: prefer fingerprint, fallback to face
-                                                  biometricIcon =
-                                                      snapshot.data?.contains(
-                                                            BiometricType
-                                                                .fingerprint,
-                                                          ) ==
-                                                          true
-                                                      ? Icons.fingerprint
-                                                      : Icons.face;
-                                                }
-
                                                 return Icon(
-                                                  biometricIcon,
+                                                  snapshot.data ??
+                                                      Icons.fingerprint,
                                                   color:
-                                                      AppColors.darkTextPrimary,
+                                                      context.textPrimaryColor,
                                                   size: context
                                                       .responsiveIconSize(
                                                         small: 24,

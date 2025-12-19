@@ -9,6 +9,13 @@ class BillerUtils {
     if (name.contains('Юнивижн')) {
       return name.replaceAll('Юнивижн', 'Юнивишн');
     }
+    // Transform ЦАХИЛГААН to Цахилгаан (capitalize first letter only)
+    final nameLower = name.toLowerCase();
+    if (nameLower.contains('цахилгаан') ||
+        nameLower.contains('tsakhilgaan') ||
+        nameLower.contains('tukh')) {
+      return 'Цахилгаан';
+    }
     return name;
   }
 

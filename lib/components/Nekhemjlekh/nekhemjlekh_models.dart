@@ -96,7 +96,7 @@ class NekhemjlekhItem {
 
   String get formattedDate {
     try {
-      final date = DateTime.parse(nekhemjlekhiinOgnoo);
+      final date = DateTime.parse(nekhemjlekhiinOgnoo).toLocal();
       return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
     } catch (e) {
       return nekhemjlekhiinOgnoo;
@@ -404,7 +404,7 @@ class VATReceipt {
 
   String get formattedDate {
     try {
-      final dateTime = DateTime.parse(date.replaceAll(' ', 'T'));
+      final dateTime = DateTime.parse(date.replaceAll(' ', 'T')).toLocal();
       return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return date;

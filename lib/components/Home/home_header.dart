@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class HomeHeader extends StatelessWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -151,12 +152,36 @@ class HomeHeader extends StatelessWidget {
                     ),
                     if (unreadNotificationCount > 0)
                       Positioned(
-                        right: -2.w,
-                        top: -2.h,
+                        right: context.responsiveSpacing(
+                          small: -2,
+                          medium: -2,
+                          large: -2,
+                          tablet: -2,
+                          veryNarrow: -1.5,
+                        ),
+                        top: context.responsiveSpacing(
+                          small: -2,
+                          medium: -2,
+                          large: -2,
+                          tablet: -2,
+                          veryNarrow: -1.5,
+                        ),
                         child: Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: 6.w,
-                            vertical: 2.h,
+                            horizontal: context.responsiveSpacing(
+                              small: 5,
+                              medium: 6,
+                              large: 7,
+                              tablet: 8,
+                              veryNarrow: 4,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              small: 2,
+                              medium: 2,
+                              large: 3,
+                              tablet: 3,
+                              veryNarrow: 1.5,
+                            ),
                           ),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -168,21 +193,45 @@ class HomeHeader extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: context.backgroundColor,
-                              width: 2,
+                              width: context.responsiveSpacing(
+                                small: 1.5,
+                                medium: 2,
+                                large: 2,
+                                tablet: 2.5,
+                                veryNarrow: 1.5,
+                              ),
                             ),
                             boxShadow: [
                               BoxShadow(
                                 color: AppColors.secondaryAccent.withOpacity(
                                   0.5,
                                 ),
-                                blurRadius: 4.w,
+                                blurRadius: context.responsiveSpacing(
+                                  small: 3,
+                                  medium: 4,
+                                  large: 5,
+                                  tablet: 6,
+                                  veryNarrow: 2.5,
+                                ),
                                 spreadRadius: 0,
                               ),
                             ],
                           ),
                           constraints: BoxConstraints(
-                            minWidth: 20.w,
-                            minHeight: 20.w,
+                            minWidth: context.responsiveSpacing(
+                              small: 18,
+                              medium: 20,
+                              large: 22,
+                              tablet: 24,
+                              veryNarrow: 16,
+                            ),
+                            minHeight: context.responsiveSpacing(
+                              small: 18,
+                              medium: 20,
+                              large: 22,
+                              tablet: 24,
+                              veryNarrow: 16,
+                            ),
                           ),
                           child: Center(
                             child: Text(
@@ -191,7 +240,13 @@ class HomeHeader extends StatelessWidget {
                                   : '$unreadNotificationCount',
                               style: TextStyle(
                                 color: context.backgroundColor,
-                                fontSize: 11.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 10,
+                                  medium: 11,
+                                  large: 12,
+                                  tablet: 13,
+                                  veryNarrow: 9,
+                                ),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

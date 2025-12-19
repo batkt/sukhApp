@@ -3,13 +3,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/components/Home/biller_utils.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
 
 class BillerCard extends StatelessWidget {
   final Map<String, dynamic> biller;
   final bool isSquare;
+  final VoidCallback? onTapCallback;
 
-  const BillerCard({super.key, required this.biller, this.isSquare = true});
+  const BillerCard({
+    super.key,
+    required this.biller,
+    this.isSquare = true,
+    this.onTapCallback,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +41,8 @@ class BillerCard extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
+                  // Call callback if provided (to show empty message)
+                  onTapCallback?.call();
                   context.push(
                     '/biller-detail',
                     extra: {
@@ -49,11 +58,10 @@ class BillerCard extends StatelessWidget {
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(8.w),
-                    child: Center(
-                      child: BillerUtils.buildBillerLogo(
-                        rawBillerName,
-                        transformedName: billerName,
-                      ),
+                    alignment: Alignment.center,
+                    child: BillerUtils.buildBillerLogo(
+                      rawBillerName,
+                      transformedName: billerName,
                     ),
                   ),
                 ),
@@ -61,17 +69,45 @@ class BillerCard extends StatelessWidget {
             ),
           ),
           // Title outside box at bottom
-          SizedBox(height: 4.h),
-          Text(
-            billerName,
-            style: TextStyle(
-              color: context.textPrimaryColor,
-              fontSize: 18.sp, // Increased from 9 for better readability
-              fontWeight: FontWeight.w500,
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 4,
+              medium: 6,
+              large: 8,
+              tablet: 10,
+              veryNarrow: 3,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          ),
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.responsiveSpacing(
+                  small: 2,
+                  medium: 4,
+                  large: 6,
+                  tablet: 8,
+                  veryNarrow: 1,
+                ),
+              ),
+              child: Text(
+                billerName,
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: context.responsiveFontSize(
+                    small: 16,
+                    medium: 18,
+                    large: 20,
+                    tablet: 22,
+                    veryNarrow: 14,
+                  ),
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ),
         ],
       );

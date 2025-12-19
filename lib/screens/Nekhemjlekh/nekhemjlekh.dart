@@ -265,16 +265,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     });
 
     try {
+      print('📞 [EBARIMT] Fetching ajiltan for contact phone...');
       final ajiltanResponse = await ApiService.fetchAjiltan();
+      print('📞 [EBARIMT] Ajiltan response: $ajiltanResponse');
       if (ajiltanResponse['jagsaalt'] != null &&
           ajiltanResponse['jagsaalt'] is List &&
           (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
         final firstAjiltan = ajiltanResponse['jagsaalt'][0];
         contactPhone = firstAjiltan['utas'] ?? '';
+        print('📞 [EBARIMT] Contact phone found: $contactPhone');
+        print('📞 [EBARIMT] Contact phone is empty: ${contactPhone.isEmpty}');
+      } else {
+        print('📞 [EBARIMT] No ajiltan found in response');
+        contactPhone = '';
       }
     } catch (e) {
-      print('Error fetching ajiltan contact: $e');
+      print('❌ [EBARIMT] Error fetching ajiltan contact: $e');
+      contactPhone = '';
     }
+    print('📞 [EBARIMT] Final contactPhone value: $contactPhone');
 
     try {
       double totalAmount = 0;
@@ -792,13 +801,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         ),
                       ],
                     ),
-                      padding: context.responsivePadding(
-                        small: 24,
-                        medium: 26,
-                        large: 28,
-                        tablet: 30,
-                        veryNarrow: 18,
-                      ),
+                    padding: context.responsivePadding(
+                      small: 24,
+                      medium: 26,
+                      large: 28,
+                      tablet: 30,
+                      veryNarrow: 18,
+                    ),
                     child: Container(
                       padding: context.responsivePadding(
                         small: 20,
@@ -981,6 +990,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 label: Text(
                                   'Залгах',
                                   style: TextStyle(
+                                    color: context.textPrimaryColor,
                                     fontSize: 14.sp,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -1291,12 +1301,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   ),
                   child: Container(
                     padding: context.responsivePadding(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 26,
-                    veryNarrow: 14,
-                  ),
+                      small: 20,
+                      medium: 22,
+                      large: 24,
+                      tablet: 26,
+                      veryNarrow: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: context.accentBackgroundColor,
                       borderRadius: BorderRadius.circular(
@@ -1678,14 +1688,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             decoration: BoxDecoration(
               color: context.cardBackgroundColor,
               borderRadius: BorderRadius.circular(
-              context.responsiveBorderRadius(
-                small: 20,
-                medium: 22,
-                large: 24,
-                tablet: 26,
-                veryNarrow: 16,
+                context.responsiveBorderRadius(
+                  small: 20,
+                  medium: 22,
+                  large: 24,
+                  tablet: 26,
+                  veryNarrow: 16,
+                ),
               ),
-            ),
               border: Border.all(color: context.borderColor, width: 1),
             ),
             padding: context.responsivePadding(
@@ -2306,12 +2316,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     ? Center(
                         child: Padding(
                           padding: context.responsivePadding(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 26,
-                    veryNarrow: 14,
-                  ),
+                            small: 20,
+                            medium: 22,
+                            large: 24,
+                            tablet: 26,
+                            veryNarrow: 14,
+                          ),
                           child: OptimizedGlass(
                             borderRadius: BorderRadius.circular(22.r),
                             opacity: 0.10,
@@ -2437,13 +2447,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Container(
-                                              padding: context.responsivePadding(
-                                                small: 24,
-                                                medium: 26,
-                                                large: 28,
-                                                tablet: 30,
-                                                veryNarrow: 18,
-                                              ),
+                                              padding: context
+                                                  .responsivePadding(
+                                                    small: 24,
+                                                    medium: 26,
+                                                    large: 28,
+                                                    tablet: 30,
+                                                    veryNarrow: 18,
+                                                  ),
                                               decoration: BoxDecoration(
                                                 color: context
                                                     .accentBackgroundColor,
@@ -2454,13 +2465,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                     ? Icons.history_rounded
                                                     : Icons
                                                           .receipt_long_rounded,
-                                                size: context.responsiveIconSize(
-                                                  small: 48,
-                                                  medium: 52,
-                                                  large: 56,
-                                                  tablet: 60,
-                                                  veryNarrow: 40,
-                                                ),
+                                                size: context
+                                                    .responsiveIconSize(
+                                                      small: 48,
+                                                      medium: 52,
+                                                      large: 56,
+                                                      tablet: 60,
+                                                      veryNarrow: 40,
+                                                    ),
                                                 color:
                                                     context.textSecondaryColor,
                                               ),
@@ -2480,13 +2492,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                   : 'Одоогоор нэхэмжлэл байхгүй',
                                               style: TextStyle(
                                                 color: context.textPrimaryColor,
-                                                fontSize: context.responsiveFontSize(
-                                                  small: 18,
-                                                  medium: 20,
-                                                  large: 22,
-                                                  tablet: 24,
-                                                  veryNarrow: 16,
-                                                ),
+                                                fontSize: context
+                                                    .responsiveFontSize(
+                                                      small: 18,
+                                                      medium: 20,
+                                                      large: 22,
+                                                      tablet: 24,
+                                                      veryNarrow: 16,
+                                                    ),
                                                 fontWeight: FontWeight.w600,
                                               ),
                                               textAlign: TextAlign.center,
@@ -2507,13 +2520,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               style: TextStyle(
                                                 color:
                                                     context.textSecondaryColor,
-                                                fontSize: context.responsiveFontSize(
-                                                  small: 14,
-                                                  medium: 15,
-                                                  large: 16,
-                                                  tablet: 17,
-                                                  veryNarrow: 12,
-                                                ),
+                                                fontSize: context
+                                                    .responsiveFontSize(
+                                                      small: 14,
+                                                      medium: 15,
+                                                      large: 16,
+                                                      tablet: 17,
+                                                      veryNarrow: 12,
+                                                    ),
                                               ),
                                               textAlign: TextAlign.center,
                                             ),

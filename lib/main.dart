@@ -76,7 +76,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   bool _isDecember() {
-    return DateTime.now().month == 12;
+    final now = DateTime.now();
+    // Stop snowfall after December 31
+    if (now.month == 12 && now.day <= 31) {
+      return true;
+    }
+    return false;
   }
 
   ThemeData _buildLightTheme() {

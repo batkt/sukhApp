@@ -346,7 +346,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: AppColors.darkSurface,
+              backgroundColor: context.isDarkMode
+                  ? AppColors.darkSurface
+                  : AppColors.lightSurface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(
                   context.responsiveBorderRadius(
@@ -358,14 +360,14 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   ),
                 ),
                 side: BorderSide(
-                  color: AppColors.goldPrimary.withOpacity(0.2),
+                  color: AppColors.deepGreen.withOpacity(0.2),
                   width: 1,
                 ),
               ),
               title: Text(
                 'Нууц үг оруулах',
                 style: TextStyle(
-                  color: AppColors.goldPrimary,
+                  color: AppColors.deepGreen,
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.8,
@@ -377,7 +379,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   Text(
                     'Бүртгэл устгахын тулд одоогийн нууц үгээ оруулна уу',
                     style: TextStyle(
-                      color: AppColors.darkTextSecondary,
+                      color: context.textSecondaryColor,
                       fontSize: 14.sp,
                     ),
                   ),
@@ -503,11 +505,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: AppColors.darkSurface,
+          backgroundColor: context.isDarkMode
+              ? AppColors.darkSurface
+              : AppColors.lightSurface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.w),
             side: BorderSide(
-              color: AppColors.goldPrimary.withOpacity(0.2),
+              color: AppColors.deepGreen.withOpacity(0.2),
               width: 1,
             ),
           ),
@@ -522,10 +526,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
           ),
           content: Text(
             'Та өөрийн бүртгэлтэй хаягийг устгах хүсэлтэй байна уу?',
-            style: TextStyle(
-              color: context.textSecondaryColor,
-              fontSize: 16.sp,
-            ),
+            style: TextStyle(color: context.textPrimaryColor, fontSize: 16.sp),
           ),
           actions: [
             TextButton(
@@ -535,7 +536,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
               child: Text(
                 'Үгүй',
                 style: TextStyle(
-                  color: context.textSecondaryColor,
+                  color: context.textPrimaryColor,
                   fontSize: 16.sp,
                 ),
               ),
@@ -544,11 +545,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
-              child: const Text(
+              child: Text(
                 'Тийм',
                 style: TextStyle(
                   color: Colors.red,
-                  fontSize: 16,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -964,14 +965,14 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
-                          ),
-                        ),
+                              context.responsiveBorderRadius(
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 10,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -992,142 +993,235 @@ class _ProfileSettingsState extends State<ProfileSettings>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.9,
-        decoration: BoxDecoration(
-          color: context.cardBackgroundColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30.r),
-            topRight: Radius.circular(30.r),
-          ),
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: EdgeInsets.only(top: 12.h),
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: context.borderColor,
-                borderRadius: BorderRadius.circular(2.r),
+      builder: (BuildContext modalContext) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setModalState) {
+          return Container(
+            height: MediaQuery.of(modalContext).size.height * 0.9,
+            decoration: BoxDecoration(
+              color: modalContext.cardBackgroundColor,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(30.r),
+                topRight: Radius.circular(30.r),
               ),
             ),
-            // Header
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Нууц үг солих',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: EdgeInsets.only(top: 12.h),
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: modalContext.borderColor,
+                    borderRadius: BorderRadius.circular(2.r),
                   ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: context.textPrimaryColor),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Form(
-                  key: _passwordFormKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                // Header
+                Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Row(
                     children: [
-                      _buildPasswordField(
-                        controller: _currentPasswordController,
-                        label: 'Хуучин нууц үг',
-                        obscureText: _obscureCurrentPassword,
-                        onToggle: () {
-                          setState(() {
-                            _obscureCurrentPassword = !_obscureCurrentPassword;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildPasswordField(
-                        controller: _newPasswordController,
-                        label: 'Шинэ нууц үг',
-                        obscureText: _obscureNewPassword,
-                        onToggle: () {
-                          setState(() {
-                            _obscureNewPassword = !_obscureNewPassword;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildPasswordField(
-                        controller: _confirmPasswordController,
-                        label: 'Шинэ нууц үг',
-                        obscureText: _obscureConfirmPassword,
-                        onToggle: () {
-                          setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 32.h),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isChangingPassword
-                              ? null
-                              : () async {
-                                  await _handleChangePassword();
-                                  if (mounted &&
-                                      _passwordFormKey.currentState!
-                                          .validate()) {
-                                    Navigator.pop(context);
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.deepGreen,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            elevation: 0,
+                      Expanded(
+                        child: Text(
+                          'Нууц үг солих',
+                          style: TextStyle(
+                            color: modalContext.textPrimaryColor,
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
                           ),
-                          child: _isChangingPassword
-                              ? SizedBox(
-                                  height: 20.h,
-                                  width: 20.w,
-                                  child: const CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : Text(
-                                  'Хадгалах',
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
                         ),
                       ),
-                      SizedBox(height: 24.h),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: modalContext.textPrimaryColor,
+                        ),
+                        onPressed: () => Navigator.pop(modalContext),
+                      ),
                     ],
                   ),
                 ),
-              ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Form(
+                      key: _passwordFormKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildPasswordFieldForModal(
+                            controller: _currentPasswordController,
+                            label: 'Хуучин нууц үг',
+                            obscureText: _obscureCurrentPassword,
+                            onToggle: () {
+                              setModalState(() {
+                                _obscureCurrentPassword =
+                                    !_obscureCurrentPassword;
+                              });
+                            },
+                            context: context,
+                          ),
+                          SizedBox(height: 16.h),
+                          _buildPasswordFieldForModal(
+                            controller: _newPasswordController,
+                            label: 'Шинэ нууц үг',
+                            obscureText: _obscureNewPassword,
+                            onToggle: () {
+                              setModalState(() {
+                                _obscureNewPassword = !_obscureNewPassword;
+                              });
+                            },
+                            context: context,
+                          ),
+                          SizedBox(height: 16.h),
+                          _buildPasswordFieldForModal(
+                            controller: _confirmPasswordController,
+                            label: 'Шинэ нууц үг давтах',
+                            obscureText: _obscureConfirmPassword,
+                            onToggle: () {
+                              setModalState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              });
+                            },
+                            context: context,
+                          ),
+                          SizedBox(height: 32.h),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isChangingPassword
+                                  ? null
+                                  : () async {
+                                      await _handleChangePassword();
+                                      if (mounted &&
+                                          _passwordFormKey.currentState!
+                                              .validate()) {
+                                        Navigator.pop(modalContext);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.deepGreen,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: _isChangingPassword
+                                  ? SizedBox(
+                                      height: 20.h,
+                                      width: 20.w,
+                                      child: const CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                  : Text(
+                                      'Хадгалах',
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          SizedBox(height: 24.h),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPasswordFieldForModal({
+    required TextEditingController controller,
+    required String label,
+    required bool obscureText,
+    required VoidCallback onToggle,
+    required BuildContext context,
+  }) {
+    final isDark = context.isDarkMode;
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: TextInputType.text,
+      style: TextStyle(
+        color: context.textPrimaryColor,
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w500,
+      ),
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          color: isDark
+              ? Colors.white.withOpacity(0.6)
+              : AppColors.lightTextSecondary,
+        ),
+        prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepGreen),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscureText
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            color: isDark
+                ? Colors.white.withOpacity(0.6)
+                : AppColors.lightTextSecondary,
+          ),
+          onPressed: onToggle,
+        ),
+        filled: true,
+        fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : AppColors.deepGreen.withOpacity(0.2),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: BorderSide(color: AppColors.deepGreen, width: 2.w),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: const BorderSide(color: Colors.red),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.w),
+          borderSide: BorderSide(color: Colors.red, width: 2.w),
         ),
       ),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(4),
+      ],
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Энэ талбарыг бөглөнө үү';
+        }
+        if (value.length != 4) {
+          return 'Нууц код 4 оронтой тоо байх ёстой';
+        }
+        if (label == 'Шинэ нууц үг давтах' &&
+            value != _newPasswordController.text) {
+          return 'Нууц код хоорондоо таарахгүй байна';
+        }
+        return null;
+      },
     );
   }
 
@@ -1222,8 +1316,12 @@ class _ProfileSettingsState extends State<ProfileSettings>
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      keyboardType: TextInputType.number,
-      style: TextStyle(color: context.textPrimaryColor),
+      keyboardType: TextInputType.text,
+      style: TextStyle(
+        color: context.textPrimaryColor,
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w500,
+      ),
       autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: InputDecoration(
         labelText: label,
@@ -2026,8 +2124,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                           Text(
                                             'Бүртгэлээ устгаснаар бүх мэдээлэл устах бөгөөд энэ үйлдлийг буцаах боломжгүй.',
                                             style: TextStyle(
-                                              color:
-                                                  AppColors.darkTextSecondary,
+                                              color: context.textSecondaryColor,
                                               fontSize: 13.sp,
                                               height: 1.5,
                                             ),

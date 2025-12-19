@@ -629,11 +629,11 @@ class ApiService {
           return data;
         } else {
           print('❌ [FIND-BILLING] Success flag is false: ${data['message']}');
-          throw Exception(data['message'] ?? 'Биллингийн мэдээлэл олдсонгүй');
+          throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
         }
       } else if (response.statusCode == 404) {
         print('❌ [FIND-BILLING] 404 - Not found');
-        throw Exception('Биллингийн мэдээлэл олдсонгүй');
+        throw Exception('Төлбөр олдсонгүй');
       } else if (response.statusCode == 401) {
         print('❌ [FIND-BILLING] 401 - Unauthorized');
         await handleUnauthorized();
@@ -655,6 +655,11 @@ class ApiService {
         print('❌ [FIND-BILLING] Type casting error detected');
         throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
       }
+      // Check if the error already contains "Төлбөр олдсонгүй" to avoid nested messages
+      if (e.toString().contains('Төлбөр олдсонгүй') ||
+          e.toString().contains('Биллингийн мэдээлэл олдсонгүй')) {
+        throw Exception('Төлбөр олдсонгүй');
+      }
       throw Exception('Биллинг авахад алдаа гарлаа: $e');
     }
   }
@@ -674,10 +679,10 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Биллингийн мэдээлэл олдсонгүй');
+          throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
         }
       } else if (response.statusCode == 404) {
-        throw Exception('Биллингийн мэдээлэл олдсонгүй');
+        throw Exception('Төлбөр олдсонгүй');
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
@@ -685,6 +690,11 @@ class ApiService {
         throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
+      // Check if the error already contains "Төлбөр олдсонгүй" to avoid nested messages
+      if (e.toString().contains('Төлбөр олдсонгүй') ||
+          e.toString().contains('Биллингийн мэдээлэл олдсонгүй')) {
+        throw Exception('Төлбөр олдсонгүй');
+      }
       throw Exception('Биллинг авахад алдаа гарлаа: $e');
     }
   }
@@ -730,7 +740,12 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('📄 [API] Billing bills response: $data');
+        // Only print once, not on every call
+        if (data['success'] == true || data['responseCode'] == true) {
+          print(
+            '📄 [API] Billing bills response: ${data.toString().substring(0, data.toString().length > 500 ? 500 : data.toString().length)}...',
+          );
+        }
 
         if (data['responseCode'] == true && data['data'] != null) {
           // Return the full data object which includes billingId, billingName, newBills, etc.

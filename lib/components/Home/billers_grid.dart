@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/components/Home/biller_card.dart';
 import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class BillersGrid extends StatefulWidget {
   final List<Map<String, dynamic>> billers;
   final VoidCallback onDevelopmentTap;
+  final VoidCallback? onBillerTap;
 
   const BillersGrid({
     super.key,
     required this.billers,
     required this.onDevelopmentTap,
+    this.onBillerTap,
   });
 
   @override
@@ -22,6 +25,7 @@ class _BillersGridState extends State<BillersGrid> {
   Widget build(BuildContext context) {
     // Take first 5 billers (3 in first row, 2 in second row)
     final allBillers = widget.billers.take(5).toList();
+    final firstRowBillers = allBillers.take(3).toList();
     final secondRowBillers = allBillers.skip(3).take(2).toList();
 
     return Column(
@@ -29,48 +33,108 @@ class _BillersGridState extends State<BillersGrid> {
       children: [
         // Payment Services Grid
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          padding: EdgeInsets.symmetric(
+            horizontal: context.responsiveSpacing(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 12,
+            ),
+          ),
           child: Container(
-            margin: EdgeInsets.only(bottom: 12.h),
+            margin: EdgeInsets.only(
+              bottom: context.responsiveSpacing(
+                small: 12,
+                medium: 14,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 10,
+              ),
+            ),
             child: OptimizedGlass(
               borderRadius: BorderRadius.circular(12.r),
               child: Container(
-                padding: EdgeInsets.symmetric(vertical: 6.h),
+                padding: EdgeInsets.symmetric(
+                  vertical: context.responsiveSpacing(
+                    small: 6,
+                    medium: 8,
+                    large: 10,
+                    tablet: 12,
+                    veryNarrow: 4,
+                  ),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Header
-                    Padding(
-                      padding: EdgeInsets.only(
-                        left: 8.w,
-                        top: 6.h,
-                        bottom: 6.h,
-                      ),
-                    ),
-                    // Second row: 2 items filling the row
-                    if (secondRowBillers.isNotEmpty) ...[
-                      SizedBox(height: 4.h),
+                    // First row: 3 items
+                    if (firstRowBillers.isNotEmpty) ...[
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.w),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: context.responsiveSpacing(
+                            small: 8,
+                            medium: 10,
+                            large: 12,
+                            tablet: 14,
+                            veryNarrow: 6,
+                          ),
+                        ),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: firstRowBillers
+                              .map(
+                                (biller) => Expanded(
+                                  child: BillerCard(
+                                    biller: biller,
+                                    onTapCallback: widget.onDevelopmentTap,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ],
+
+                    // Second row: 2 items centered with same width as first row items
+                    if (secondRowBillers.isNotEmpty) ...[
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: context.responsiveSpacing(
+                            small: 8,
+                            medium: 10,
+                            large: 12,
+                            tablet: 14,
+                            veryNarrow: 6,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Expanded(
-                              child: secondRowBillers.length > 0
-                                  ? BillerCard(
-                                      biller: secondRowBillers[0],
-                                      isSquare: true,
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                            SizedBox(width: 6.w),
-                            Expanded(
-                              child: secondRowBillers.length > 1
-                                  ? BillerCard(
-                                      biller: secondRowBillers[1],
-                                      isSquare: true,
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
+                            // Add flex spacer on left
+                            Spacer(flex: 1),
+                            // Two items with same width as first row
+                            ...secondRowBillers
+                                .map(
+                                  (biller) => Expanded(
+                                    flex: 2,
+                                    child: BillerCard(
+                                      biller: biller,
+                                      onTapCallback: widget.onDevelopmentTap,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            // Add flex spacer on right
+                            Spacer(flex: 1),
                           ],
                         ),
                       ),
@@ -81,81 +145,6 @@ class _BillersGridState extends State<BillersGrid> {
             ),
           ),
         ),
-        // Зогсоол and Дуудлага - Separate containers
-        // Padding(
-        //   padding: EdgeInsets.symmetric(horizontal: 16.w),
-        //   child: Row(
-        //     children: [
-        //       Expanded(
-        //         child: GestureDetector(
-        //           onTap: widget.onDevelopmentTap,
-        //           child: OptimizedGlass(
-        //             borderRadius: BorderRadius.circular(12.r),
-        //             child: Container(
-        //               padding: EdgeInsets.symmetric(
-        //                 vertical: 12.h,
-        //                 horizontal: 12.w,
-        //               ),
-        //               child: Row(
-        //                 mainAxisAlignment: MainAxisAlignment.center,
-        //                 children: [
-        //                   Icon(
-        //                     Icons.local_parking_outlined,
-        //                     color: AppColors.secondaryAccent,
-        //                     size: 20.sp,
-        //                   ),
-        //                   SizedBox(width: 8.w),
-        //                   Text(
-        //                     'Зогсоол',
-        //                     style: TextStyle(
-        //                       color: Colors.white,
-        //                       fontSize: 11.sp,
-        //                       fontWeight: FontWeight.w600,
-        //                     ),
-        //                   ),
-        //                 ],
-        //               ),
-        //             ),
-        //           ),
-        //         ),
-        //       ),
-        //       SizedBox(width: 8.w),
-        //       Expanded(
-        //         child: GestureDetector(
-        //           onTap: widget.onDevelopmentTap,
-        //           child: OptimizedGlass(
-        //             borderRadius: BorderRadius.circular(12.r),
-        //             child: Container(
-        //               padding: EdgeInsets.symmetric(
-        //                 vertical: 12.h,
-        //                 horizontal: 12.w,
-        //               ),
-        //               child: Row(
-        //                 mainAxisAlignment: MainAxisAlignment.center,
-        //                 children: [
-        //                   Icon(
-        //                     Icons.phone_outlined,
-        //                     color: AppColors.secondaryAccent,
-        //                     size: 20.sp,
-        //                   ),
-        //                   SizedBox(width: 8.w),
-        //                   Text(
-        //                     'Дуудлага',
-        //                     style: TextStyle(
-        //                       color: Colors.white,
-        //                       fontSize: 11.sp,
-        //                       fontWeight: FontWeight.w600,
-        //                     ),
-        //                   ),
-        //                 ],
-        //               ),
-        //             ),
-        //           ),
-        //         ),
-        //       ),
-        //     ],
-        //   ),
-        // ),
       ],
     );
   }

@@ -38,6 +38,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
   bool _isLoadingPayments = false;
   bool _isLoadingInvoices = false;
   final TextEditingController _customerCodeController = TextEditingController();
+  bool _hasShownBillingNotFoundError =
+      false; // Track if error was already shown
 
   @override
   void initState() {
@@ -195,8 +197,74 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     });
 
     try {
+      // Check if billingId exists, if not try to find it using customerId
+      String? billingId = _selectedBilling!['billingId']?.toString();
+
+      if (billingId == null || billingId.isEmpty) {
+        // Try to find billing by customerId
+        final customerId = _selectedBilling!['customerId']?.toString();
+        if (customerId != null && customerId.isNotEmpty) {
+          try {
+            final billingResponse = await ApiService.findBillingByCustomerId(
+              customerId: customerId,
+            );
+            if (billingResponse['success'] == true &&
+                billingResponse['data'] != null) {
+              final billingData = billingResponse['data'] is Map
+                  ? billingResponse['data'] as Map<String, dynamic>
+                  : null;
+              billingId = billingData?['billingId']?.toString();
+
+              // Update selected billing with billingId if found
+              if (billingId != null && billingId.isNotEmpty) {
+                setState(() {
+                  _selectedBilling!['billingId'] = billingId;
+                });
+              }
+            } else {
+              // Billing not found - this is expected for new customers
+              print('Billing not yet created for customerId: $customerId');
+            }
+          } catch (e) {
+            // Check if it's a "not found" error vs actual error
+            final errorMsg = e.toString().toLowerCase();
+            if (errorMsg.contains('олдсонгүй') ||
+                errorMsg.contains('not found')) {
+              // Expected case - billing doesn't exist yet
+              print(
+                'Billing not yet created for customerId: $customerId (expected)',
+              );
+            } else {
+              // Unexpected error
+              print('Unexpected error finding billingId by customerId: $e');
+            }
+          }
+        }
+      }
+
+      // If we still don't have billingId, we can't load bills
+      if (billingId == null || billingId.isEmpty) {
+        // Show a user-friendly message that billing needs to be created first
+        if (mounted) {
+          setState(() {
+            _isLoadingBills = false;
+          });
+          // Only show error once
+          if (!_hasShownBillingNotFoundError) {
+            _hasShownBillingNotFoundError = true;
+            showGlassSnackBar(
+              context,
+              message: 'Төлбөр олдсонгүй',
+              icon: Icons.info_outline,
+              iconColor: Colors.orange,
+            );
+          }
+        }
+        return;
+      }
+
       final billingData = await ApiService.getWalletBillingBills(
-        billingId: _selectedBilling!['billingId'],
+        billingId: billingId,
       );
       if (mounted) {
         setState(() {
@@ -233,8 +301,80 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     });
 
     try {
+      // Check if billingId exists
+      String? billingId = _selectedBilling!['billingId']?.toString();
+
+      if (billingId == null || billingId.isEmpty) {
+        // Try to find billing by customerId
+        final customerId = _selectedBilling!['customerId']?.toString();
+        if (customerId != null && customerId.isNotEmpty) {
+          try {
+            final billingResponse = await ApiService.findBillingByCustomerId(
+              customerId: customerId,
+            );
+            if (billingResponse['success'] == true &&
+                billingResponse['data'] != null) {
+              final billingData = billingResponse['data'] is Map
+                  ? billingResponse['data'] as Map<String, dynamic>
+                  : null;
+              billingId = billingData?['billingId']?.toString();
+
+              // Update selected billing with billingId if found
+              if (billingId != null && billingId.isNotEmpty) {
+                setState(() {
+                  _selectedBilling!['billingId'] = billingId;
+                });
+              }
+            } else {
+              // Billing not found - this is expected for new customers
+              // Don't print - this is expected for new customers
+            }
+          } catch (e) {
+            // Check if it's a "not found" error vs actual error
+            final errorMsg = e.toString().toLowerCase();
+            if (errorMsg.contains('олдсонгүй') ||
+                errorMsg.contains('not found') ||
+                errorMsg.contains('төлбөр олдсонгүй')) {
+              // Expected case - billing doesn't exist yet
+              // Only print once to avoid spam
+              if (!_hasShownBillingNotFoundError) {
+                _hasShownBillingNotFoundError = true;
+                // Don't print - this is expected for new customers
+              }
+            } else {
+              // Unexpected error - only print once
+              if (!_hasShownBillingNotFoundError) {
+                _hasShownBillingNotFoundError = true;
+                print('Unexpected error finding billingId by customerId: $e');
+              }
+            }
+          }
+        }
+      }
+
+      // If we still don't have billingId, we can't load payments
+      if (billingId == null || billingId.isEmpty) {
+        // Show a user-friendly message that billing needs to be created first
+        if (mounted) {
+          setState(() {
+            _isLoadingPayments = false;
+          });
+          // Only show error once
+          if (!_hasShownBillingNotFoundError) {
+            _hasShownBillingNotFoundError = true;
+            showGlassSnackBar(
+              context,
+              message: 'Төлбөр олдсонгүй',
+              icon: Icons.info_outline,
+              iconColor: Colors.orange,
+            );
+          }
+        }
+        return;
+      }
+
       final payments = await ApiService.getWalletBillingPayments(
-        billingId: _selectedBilling!['billingId'],
+        billingId: billingId,
       );
       if (mounted) {
         setState(() {
@@ -416,12 +556,12 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           // Find Billing Section
           Container(
             padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 12,
+            ),
             decoration: BoxDecoration(
               color: context.surfaceColor,
               borderRadius: BorderRadius.circular(
@@ -534,14 +674,14 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 12,
-                          medium: 14,
-                          large: 16,
-                          tablet: 18,
-                          veryNarrow: 10,
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
                         ),
-                      ),
                       ),
                     ),
                     child: Text(
@@ -645,12 +785,12 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           borderRadius: BorderRadius.circular(16.w),
           child: Padding(
             padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 12,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

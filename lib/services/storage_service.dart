@@ -244,7 +244,8 @@ class StorageService {
   /// Clear only authentication data (keep other app data)
   /// Note: shake hint shown status is NOT cleared - it persists across logouts
   /// Note: device ID is NOT cleared - it persists per device
-  /// Phone verified flag is cleared on logout so OTP is required on next login
+  /// Note: lastVerifiedDeviceId is NOT cleared - it persists so same device doesn't need OTP again
+  /// Phone verified flag is cleared on logout, but device verification persists
   static Future<bool> clearAuthData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -259,11 +260,12 @@ class StorageService {
       // Clear wallet address on logout - each user should set their own address
       await prefs.remove(_walletBairIdKey);
       await prefs.remove(_walletDoorNoKey);
-      // Clear phone verified flag on logout - OTP will be required on next login
-      // This ensures OTP verification screen shows after every logout/login cycle
+      // Clear phone verified flag on logout
       await prefs.remove(_phoneVerifiedKey);
-      await prefs.remove(_lastVerifiedDeviceIdKey);
-      // Note: _shakeHintShownKey and _deviceIdKey are NOT removed - they persist across sessions
+      // NOTE: _lastVerifiedDeviceIdKey is NOT removed - it persists across logouts
+      // This allows the same device to skip OTP verification on subsequent logins
+      // Only new devices will require OTP verification
+      // Note: _shakeHintShownKey, _deviceIdKey, and _lastVerifiedDeviceIdKey are NOT removed - they persist across sessions
       return true;
     } catch (e) {
       return false;
@@ -624,11 +626,12 @@ class StorageService {
     }
   }
 
-  /// Check if phone verification is needed (new user or new device)
-  /// Since API sends OTP automatically on every login, we should check:
-  /// - ALWAYS require OTP unless BOTH conditions are met:
-  ///   1. Same device (current device ID matches last verified device ID)
-  ///   2. Phone was verified before (phoneVerified flag is true)
+  /// Check if phone verification is needed
+  /// OTP is required in these cases:
+  /// 1. First login after signup (no device verification record exists)
+  /// 2. New device (different device ID than last verified device)
+  /// OTP is NOT required if:
+  /// - Same device as previously verified (trusted device)
   /// Returns true if verification is needed, false if it can be skipped
   static Future<bool> needsPhoneVerification() async {
     try {
@@ -642,17 +645,11 @@ class StorageService {
       final lastVerifiedDeviceId = await getLastVerifiedDeviceId();
       print('📱 [VERIFY] Last verified device ID: $lastVerifiedDeviceId');
 
-      // Get phone verified flag
-      final phoneVerified = await getPhoneVerified();
-      print('📱 [VERIFY] Phone verified flag: $phoneVerified');
-
-      // CRITICAL: For new users (no device verification record) → ALWAYS require verification
-      // This is the most important check - new users should ALWAYS see OTP screen
+      // CRITICAL: For first login after signup (no device verification record) → ALWAYS require verification
       if (lastVerifiedDeviceId == null || lastVerifiedDeviceId.isEmpty) {
         print(
-          '📱 [VERIFY] ✅✅✅ Phone verification NEEDED: No device verification record (NEW USER or first-time)',
+          '📱 [VERIFY] ✅ Phone verification NEEDED: No device verification record (FIRST LOGIN after signup)',
         );
-        print('📱 [VERIFY] ✅✅✅ Returning TRUE - OTP screen MUST be shown');
         return true;
       }
 
@@ -662,24 +659,17 @@ class StorageService {
         '📱 [VERIFY] Is same device: $isSameDevice (current: $currentDeviceId, last: $lastVerifiedDeviceId)',
       );
 
-      // If different device → ALWAYS require verification
+      // If different device → ALWAYS require verification (new device)
       if (!isSameDevice) {
         print('📱 [VERIFY] ✅ Phone verification NEEDED: New device detected');
         return true;
       }
 
-      // Same device: only skip if phone was verified before
-      // If phoneVerified is false (after logout or first login), we need to verify
-      if (!phoneVerified) {
-        print(
-          '📱 [VERIFY] ✅ Phone verification NEEDED: Same device but phoneVerified is false (after logout or first login)',
-        );
-        return true;
-      }
-
-      // Only skip if BOTH: same device AND phone was verified before
+      // Same device → Skip OTP verification (trusted device)
+      // We don't check phoneVerified flag because it's cleared on logout
+      // But the device ID persists, so we can trust the same device
       print(
-        '📱 [VERIFY] ❌ Phone verification NOT needed: Same device AND already verified (trusted device)',
+        '📱 [VERIFY] ❌ Phone verification NOT needed: Same device (trusted device)',
       );
       return false;
     } catch (e) {

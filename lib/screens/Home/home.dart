@@ -123,6 +123,10 @@ class _BookingScreenState extends State<NuurKhuudas>
   // User billing data from profile
   Map<String, dynamic>? _userBillingData;
 
+  // GlobalKey to access BillingListSection state
+  final GlobalKey<BillingListSectionState> _billingListSectionKey =
+      GlobalKey<BillingListSectionState>();
+
   // All billing payments for total balance modal
 
   // Animation controller for circular progress
@@ -523,9 +527,35 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     try {
       final billers = await ApiService.getWalletBillers();
+
+      // Filter out excluded billers
+      final filteredBillers = billers.where((biller) {
+        final billerName =
+            (biller['billerName']?.toString() ??
+                    biller['name']?.toString() ??
+                    '')
+                .toLowerCase();
+
+        // Exclude Төрйин банк, Юнивишн, Скаймедиа
+        return !billerName.contains('төрйин банк') &&
+            !billerName.contains('төрийн банк') &&
+            !billerName.contains('toriin bank') &&
+            !billerName.contains('toryin bank') &&
+            !billerName.contains('юнивишн') &&
+            !billerName.contains('юнивижн') &&
+            !billerName.contains('univision') &&
+            !billerName.contains('univishn') &&
+            !billerName.contains('скаймедиа') &&
+            !billerName.contains('скай медиа') &&
+            !billerName.contains('скай-медиа') &&
+            !billerName.contains('skymedia') &&
+            !billerName.contains('sky media') &&
+            !billerName.contains('sky-media');
+      }).toList();
+
       if (mounted) {
         setState(() {
-          _billers = billers;
+          _billers = filteredBillers;
           _isLoadingBillers = false;
         });
       }
@@ -1221,7 +1251,16 @@ class _BookingScreenState extends State<NuurKhuudas>
                     decoration: BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.deepGreen, width: 2),
+                      border: Border.all(
+                        color: AppColors.deepGreen,
+                        width: context.responsiveSpacing(
+                          small: 1.5,
+                          medium: 2,
+                          large: 2,
+                          tablet: 2.5,
+                          veryNarrow: 1.5,
+                        ),
+                      ),
                     ),
                     constraints: BoxConstraints(
                       minWidth: context.responsiveSpacing(
@@ -1229,14 +1268,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                         medium: 20,
                         large: 22,
                         tablet: 24,
-                        veryNarrow: 16,
+                        veryNarrow: 14,
                       ),
                       minHeight: context.responsiveSpacing(
                         small: 18,
                         medium: 20,
                         large: 22,
                         tablet: 24,
-                        veryNarrow: 16,
+                        veryNarrow: 14,
                       ),
                     ),
                     child: Center(
@@ -1244,9 +1283,16 @@ class _BookingScreenState extends State<NuurKhuudas>
                         _unreadNotificationCount > 99
                             ? '99+'
                             : '$_unreadNotificationCount',
-                        style: context.secondaryDescriptionStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
+                          fontSize: context.responsiveFontSize(
+                            small: 10,
+                            medium: 11,
+                            large: 12,
+                            tablet: 13,
+                            veryNarrow: 9,
+                          ),
                         ),
                       ),
                     ),
@@ -1258,152 +1304,151 @@ class _BookingScreenState extends State<NuurKhuudas>
       ),
       body: AppBackground(
         child: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(
-                height: context.responsiveSpacing(
-                  small: 20,
-                  medium: 24,
-                  large: 28,
-                  tablet: 32,
-                  veryNarrow: 16,
-                ),
-              ),
-
-              // Billing Connection Section
-              if (_billingList.isEmpty && !_isLoadingBillingList)
-                BillingConnectionSection(
-                  isConnecting: _isConnectingBilling,
-                  onConnect: _connectBillingByAddress,
-                ),
-
-              if (_billingList.isEmpty && !_isLoadingBillingList)
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 11,
-                    medium: 13,
-                    large: 15,
-                    tablet: 17,
-                    veryNarrow: 8,
-                  ),
-                ),
-
-              // Billing List Section
-              BillingListSection(
-                isLoading: _isLoadingBillingList,
-                billingList: _billingList,
-                userBillingData: _userBillingData,
-                onBillingTap: _showBillingDetailModal,
-                expandAddressAbbreviations: _expandAddressAbbreviations,
-              ),
-
-              SizedBox(
-                height: context.responsiveSpacing(
-                  small: 11,
-                  medium: 13,
-                  large: 15,
-                  tablet: 17,
-                  veryNarrow: 8,
-                ),
-              ),
-
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    // Refresh all data
-                    await Future.wait([
-                      _loadBillers(),
-                      _loadBillingList(),
-                      _loadNotificationCount(),
-                      _loadAllBillingPayments(),
-                      _loadGereeData(),
-                      _loadNekhemjlekhCron(),
-                    ]);
-                  },
-                  color: AppColors.deepGreen,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      children: [
-                        // Billers Grid
-                        if (_isLoadingBillers)
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 300,
-                              medium: 350,
-                              large: 400,
-                              tablet: 450,
-                              veryNarrow: 250,
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.deepGreen,
-                              ),
-                            ),
-                          )
-                        else if (_billers.isEmpty)
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 300,
-                              medium: 350,
-                              large: 400,
-                              tablet: 450,
-                              veryNarrow: 250,
-                            ),
-                            child: Center(
-                              child: Text(
-                                'Биллер олдсонгүй',
-                                style: TextStyle(
-                                  color: context.textSecondaryColor,
-                                  fontSize: context.responsiveFontSize(
-                                    small: 20,
-                                    medium: 22,
-                                    large: 24,
-                                    tablet: 26,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          BillersGrid(
-                            billers: _billers,
-                            onDevelopmentTap: () =>
-                                _showDevelopmentModal(context),
-                          ),
-
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 20,
-                            medium: 24,
-                            large: 28,
-                            tablet: 32,
-                            veryNarrow: 16,
-                          ),
-                        ),
-
-                        // Remaining Days Display
-                        if (_gereeResponse != null &&
-                            _gereeResponse!.jagsaalt.isNotEmpty)
-                          _buildRemainingDaysWidget(
-                            _gereeResponse!.jagsaalt.first,
-                          ),
-
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 11,
-                            medium: 13,
-                            large: 15,
-                            tablet: 17,
-                            veryNarrow: 8,
-                          ),
-                        ),
-                      ],
+          child: RefreshIndicator(
+            onRefresh: () async {
+              // Refresh all data
+              await Future.wait([
+                _loadBillers(),
+                _loadBillingList(),
+                _loadNotificationCount(),
+                _loadAllBillingPayments(),
+                _loadGereeData(),
+                _loadNekhemjlekhCron(),
+              ]);
+            },
+            color: AppColors.deepGreen,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 20,
+                      medium: 24,
+                      large: 28,
+                      tablet: 32,
+                      veryNarrow: 16,
                     ),
                   ),
-                ),
+
+                  // Billing Connection Section
+                  if (_billingList.isEmpty && !_isLoadingBillingList)
+                    BillingConnectionSection(
+                      isConnecting: _isConnectingBilling,
+                      onConnect: _connectBillingByAddress,
+                    ),
+
+                  if (_billingList.isEmpty && !_isLoadingBillingList)
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        small: 11,
+                        medium: 13,
+                        large: 15,
+                        tablet: 17,
+                        veryNarrow: 8,
+                      ),
+                    ),
+
+                  // Billing List Section
+                  BillingListSection(
+                    key: _billingListSectionKey,
+                    isLoading: _isLoadingBillingList,
+                    billingList: _billingList,
+                    userBillingData: _userBillingData,
+                    onBillingTap: _showBillingDetailModal,
+                    expandAddressAbbreviations: _expandAddressAbbreviations,
+                  ),
+
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 11,
+                      medium: 13,
+                      large: 15,
+                      tablet: 17,
+                      veryNarrow: 8,
+                    ),
+                  ),
+
+                  // Billers Grid
+                  if (_isLoadingBillers)
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        small: 300,
+                        medium: 350,
+                        large: 400,
+                        tablet: 450,
+                        veryNarrow: 250,
+                      ),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.deepGreen,
+                        ),
+                      ),
+                    )
+                  else if (_billers.isEmpty)
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        small: 300,
+                        medium: 350,
+                        large: 400,
+                        tablet: 450,
+                        veryNarrow: 250,
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Биллер олдсонгүй',
+                          style: TextStyle(
+                            color: context.textSecondaryColor,
+                            fontSize: context.responsiveFontSize(
+                              small: 20,
+                              medium: 22,
+                              large: 24,
+                              tablet: 26,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    BillersGrid(
+                      billers: _billers,
+                      onDevelopmentTap: () => _showDevelopmentModal(context),
+                      onBillerTap: () {
+                        // Show empty message if billing list is empty
+                        if (_billingList.isEmpty && _userBillingData == null) {
+                          _billingListSectionKey.currentState
+                              ?.showEmptyMessage();
+                        }
+                      },
+                    ),
+
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 20,
+                      medium: 24,
+                      large: 28,
+                      tablet: 32,
+                      veryNarrow: 16,
+                    ),
+                  ),
+
+                  // Remaining Days Display
+                  if (_gereeResponse != null &&
+                      _gereeResponse!.jagsaalt.isNotEmpty)
+                    _buildRemainingDaysWidget(_gereeResponse!.jagsaalt.first),
+
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 11,
+                      medium: 13,
+                      large: 15,
+                      tablet: 17,
+                      veryNarrow: 8,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
