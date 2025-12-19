@@ -31,13 +31,27 @@ class StorageService {
       'taniltsuulga_kharakh_esekh';
   static const String _savedPhoneKey = 'saved_phone_number';
   static const String _rememberMeKey = 'remember_me';
+  static const String _shakeHintShownKey = 'shake_hint_shown';
+  static const String _savedPasswordKey = 'saved_password_biometric';
+  static const String _biometricEnabledKey = 'biometric_enabled';
+  static const String _tukhainBaaziinKholboltKey = 'tukhain_baaziin_kholbolt';
+  static const String _walletBairIdKey = 'wallet_bair_id';
+  static const String _walletDoorNoKey = 'wallet_door_no';
+  static const String _walletBairSourceKey =
+      'wallet_bair_source'; // 'WALLET_API' or 'OWN_ORG'
+  static const String _walletBairBaiguullagiinIdKey =
+      'wallet_bair_baiguullagiin_id';
+  static const String _walletBairBarilgiinIdKey = 'wallet_bair_barilgiin_id';
+  static const String _walletBillingIdKey = 'wallet_billing_id';
+  static const String _phoneVerifiedKey = 'phone_verified';
+  static const String _deviceIdKey = 'device_id';
+  static const String _lastVerifiedDeviceIdKey = 'last_verified_device_id';
 
   static Future<bool> saveToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setString(_tokenKey, token);
     } catch (e) {
-      print('Error saving token: $e');
       return false;
     }
   }
@@ -45,10 +59,9 @@ class StorageService {
   static Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       return prefs.getString(_tokenKey);
     } catch (e) {
-      print('Token алдаа: $e');
       return null;
     }
   }
@@ -62,38 +75,61 @@ class StorageService {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      if (userData['result']?['_id'] != null) {
-        await prefs.setString(_userIdKey, userData['result']['_id']);
+      // Backend may return user under `result` or `orshinSuugch` (login OTP flow).
+      final dynamic userDynamic =
+          userData['result'] ?? userData['orshinSuugch'];
+      final Map<String, dynamic>? user = userDynamic is Map<String, dynamic>
+          ? userDynamic
+          : null;
+
+      if (user?['_id'] != null) {
+        await prefs.setString(_userIdKey, user!['_id'].toString());
       }
 
       // Save user name
-      if (userData['result']?['ner'] != null) {
-        await prefs.setString(_userNerKey, userData['result']['ner']);
+      if (user?['ner'] != null) {
+        await prefs.setString(_userNerKey, user!['ner'].toString());
       }
 
       // Save baiguullagiinId
-      if (userData['result']?['baiguullagiinId'] != null) {
+      if (user?['baiguullagiinId'] != null) {
         await prefs.setString(
           _baiguullagiinIdKey,
-          userData['result']['baiguullagiinId'],
+          user!['baiguullagiinId'].toString(),
         );
       }
 
       // Save baiguullagiinNer
-      if (userData['result']?['baiguullagiinNer'] != null) {
+      if (user?['baiguullagiinNer'] != null) {
         await prefs.setString(
           _baiguullagiinNerKey,
-          userData['result']['baiguullagiinNer'],
+          user!['baiguullagiinNer'].toString(),
         );
       }
 
       // Save barilgiinId
-      if (userData['result']?['barilgiinId'] != null) {
-        await prefs.setString(
-          _barilgiinIdKey,
-          userData['result']['barilgiinId'],
-        );
+      if (user?['barilgiinId'] != null) {
+        await prefs.setString(_barilgiinIdKey, user!['barilgiinId'].toString());
       }
+
+      // Save tukhainBaaziinKholbolt - check multiple possible locations
+      String? tukhainBaaziinKholbolt;
+
+      // Check in result object first
+      if (user?['tukhainBaaziinKholbolt'] != null) {
+        tukhainBaaziinKholbolt = user!['tukhainBaaziinKholbolt'].toString();
+      }
+      // Check in root of userData
+      else if (userData['tukhainBaaziinKholbolt'] != null) {
+        tukhainBaaziinKholbolt = userData['tukhainBaaziinKholbolt'].toString();
+      }
+      // If not found, will use default below
+
+      // Save the value (or default)
+      await prefs.setString(
+        _tukhainBaaziinKholboltKey,
+        tukhainBaaziinKholbolt ?? 'amarSukh',
+      );
 
       // Save duusakhOgnoo
       if (userData['duusakhOgnoo'] != null) {
@@ -101,16 +137,15 @@ class StorageService {
       }
 
       // Save taniltsuulgaKharakhEsekh from backend
-      if (userData['result']?['taniltsuulgaKharakhEsekh'] != null) {
+      if (user?['taniltsuulgaKharakhEsekh'] != null) {
         await prefs.setBool(
           _taniltsuulgaKharakhEsekhKey,
-          userData['result']['taniltsuulgaKharakhEsekh'],
+          user!['taniltsuulgaKharakhEsekh'] == true,
         );
       }
 
       return true;
     } catch (e) {
-      print('Error saving user data: $e');
       return false;
     }
   }
@@ -121,7 +156,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_userIdKey);
     } catch (e) {
-      print('Error getting user ID: $e');
       return null;
     }
   }
@@ -132,7 +166,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_userNerKey);
     } catch (e) {
-      print('Error getting user name: $e');
       return null;
     }
   }
@@ -143,7 +176,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_baiguullagiinIdKey);
     } catch (e) {
-      print('Error getting baiguullagiinId: $e');
       return null;
     }
   }
@@ -154,7 +186,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_baiguullagiinNerKey);
     } catch (e) {
-      print('Error getting baiguullagiinNer: $e');
       return null;
     }
   }
@@ -165,7 +196,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_barilgiinIdKey);
     } catch (e) {
-      print('Error getting barilgiinId: $e');
       return null;
     }
   }
@@ -176,7 +206,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_duusakhOgnooKey);
     } catch (e) {
-      print('Error getting duusakhOgnoo: $e');
       return null;
     }
   }
@@ -188,7 +217,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_taniltsuulgaKharakhEsekhKey) ?? true;
     } catch (e) {
-      print('Error getting taniltsuulgaKharakhEsekh: $e');
       return true;
     }
   }
@@ -199,7 +227,6 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setBool(_taniltsuulgaKharakhEsekhKey, value);
     } catch (e) {
-      print('Error setting taniltsuulgaKharakhEsekh: $e');
       return false;
     }
   }
@@ -210,12 +237,15 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.clear();
     } catch (e) {
-      print('Error clearing storage: $e');
       return false;
     }
   }
 
   /// Clear only authentication data (keep other app data)
+  /// Note: shake hint shown status is NOT cleared - it persists across logouts
+  /// Note: device ID is NOT cleared - it persists per device
+  /// Note: lastVerifiedDeviceId is NOT cleared - it persists so same device doesn't need OTP again
+  /// Phone verified flag is cleared on logout, but device verification persists
   static Future<bool> clearAuthData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -227,9 +257,17 @@ class StorageService {
       await prefs.remove(_barilgiinIdKey);
       await prefs.remove(_duusakhOgnooKey);
       await prefs.remove(_taniltsuulgaKharakhEsekhKey);
+      // Clear wallet address on logout - each user should set their own address
+      await prefs.remove(_walletBairIdKey);
+      await prefs.remove(_walletDoorNoKey);
+      // Clear phone verified flag on logout
+      await prefs.remove(_phoneVerifiedKey);
+      // NOTE: _lastVerifiedDeviceIdKey is NOT removed - it persists across logouts
+      // This allows the same device to skip OTP verification on subsequent logins
+      // Only new devices will require OTP verification
+      // Note: _shakeHintShownKey, _deviceIdKey, and _lastVerifiedDeviceIdKey are NOT removed - they persist across sessions
       return true;
     } catch (e) {
-      print('Error clearing auth data: $e');
       return false;
     }
   }
@@ -242,7 +280,6 @@ class StorageService {
       await prefs.setBool(_rememberMeKey, true);
       return true;
     } catch (e) {
-      print('Error saving phone number: $e');
       return false;
     }
   }
@@ -257,7 +294,6 @@ class StorageService {
       }
       return null;
     } catch (e) {
-      print('Error getting saved phone number: $e');
       return null;
     }
   }
@@ -270,7 +306,6 @@ class StorageService {
       await prefs.setBool(_rememberMeKey, false);
       return true;
     } catch (e) {
-      print('Error clearing saved phone number: $e');
       return false;
     }
   }
@@ -281,8 +316,369 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_rememberMeKey) ?? false;
     } catch (e) {
-      print('Error checking remember me: $e');
       return false;
+    }
+  }
+
+  /// Check if shake hint has been shown
+  static Future<bool> hasShakeHintBeenShown() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_shakeHintShownKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Mark shake hint as shown
+  static Future<bool> setShakeHintShown(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_shakeHintShownKey, value);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Save password for biometric login (only when biometric is enabled)
+  static Future<bool> savePasswordForBiometric(String password) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_savedPasswordKey, password);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get saved password for biometric login
+  static Future<String?> getSavedPasswordForBiometric() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_savedPasswordKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Clear saved password for biometric
+  static Future<bool> clearSavedPasswordForBiometric() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_savedPasswordKey);
+      await prefs.setBool(_biometricEnabledKey, false);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Check if biometric login is enabled
+  static Future<bool> isBiometricEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_biometricEnabledKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Enable/disable biometric login
+  static Future<bool> setBiometricEnabled(bool enabled) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_biometricEnabledKey, enabled);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get tukhainBaaziinKholbolt (database connection identifier)
+  static Future<String?> getTukhainBaaziinKholbolt() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_tukhainBaaziinKholboltKey) ?? 'amarSukh';
+    } catch (e) {
+      return 'amarSukh'; // Default fallback
+    }
+  }
+
+  /// Save Wallet API address (bairId and doorNo)
+  /// Also supports OWN_ORG bair with additional fields
+  static Future<bool> saveWalletAddress({
+    required String bairId,
+    required String doorNo,
+    String? source, // 'WALLET_API' or 'OWN_ORG'
+    String? baiguullagiinId, // Required for OWN_ORG
+    String? barilgiinId, // Required for OWN_ORG (same as bairId for OWN_ORG)
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_walletBairIdKey, bairId);
+      await prefs.setString(_walletDoorNoKey, doorNo);
+
+      // Save OWN_ORG specific fields if provided
+      if (source != null) {
+        await prefs.setString(_walletBairSourceKey, source);
+      }
+      if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+        await prefs.setString(_walletBairBaiguullagiinIdKey, baiguullagiinId);
+      }
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        await prefs.setString(_walletBairBarilgiinIdKey, barilgiinId);
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get saved Wallet API bairId
+  static Future<String?> getWalletBairId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved Wallet API doorNo
+  static Future<String?> getWalletDoorNo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletDoorNoKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved bair source ('WALLET_API' or 'OWN_ORG')
+  static Future<String?> getWalletBairSource() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairSourceKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved OWN_ORG baiguullagiinId
+  static Future<String?> getWalletBairBaiguullagiinId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairBaiguullagiinIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved OWN_ORG barilgiinId
+  static Future<String?> getWalletBairBarilgiinId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairBarilgiinIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Save Wallet API billingId
+  static Future<bool> saveWalletBillingId(String billingId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_walletBillingIdKey, billingId);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get saved Wallet API billingId
+  static Future<String?> getWalletBillingId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBillingIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Check if user has saved address
+  static Future<bool> hasSavedAddress() async {
+    final bairId = await getWalletBairId();
+    final doorNo = await getWalletDoorNo();
+    return bairId != null &&
+        bairId.isNotEmpty &&
+        doorNo != null &&
+        doorNo.isNotEmpty;
+  }
+
+  /// Clear saved Wallet API address
+  static Future<bool> clearWalletAddress() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_walletBairIdKey);
+      await prefs.remove(_walletDoorNoKey);
+      await prefs.remove(_walletBairSourceKey);
+      await prefs.remove(_walletBairBaiguullagiinIdKey);
+      await prefs.remove(_walletBairBarilgiinIdKey);
+      await prefs.remove(_walletBillingIdKey);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Save phone verification status
+  static Future<bool> setPhoneVerified(bool verified) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_phoneVerifiedKey, verified);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get phone verification status
+  static Future<bool> getPhoneVerified() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_phoneVerifiedKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Generate or get device ID (creates one if doesn't exist)
+  static Future<String> getOrCreateDeviceId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? deviceId = prefs.getString(_deviceIdKey);
+
+      if (deviceId == null || deviceId.isEmpty) {
+        // Generate a unique device ID based on timestamp and random
+        deviceId =
+            'device_${DateTime.now().millisecondsSinceEpoch}_${Uri.base.hashCode}';
+        await prefs.setString(_deviceIdKey, deviceId);
+        print('📱 [DEVICE] Generated new device ID: $deviceId');
+      }
+
+      return deviceId;
+    } catch (e) {
+      // Fallback device ID
+      return 'device_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  /// Save device ID
+  static Future<bool> saveDeviceId(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_deviceIdKey, deviceId);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get device ID
+  static Future<String?> getDeviceId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_deviceIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Save last verified device ID (device where phone was verified)
+  static Future<bool> saveLastVerifiedDeviceId(String deviceId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_lastVerifiedDeviceIdKey, deviceId);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get last verified device ID
+  static Future<String?> getLastVerifiedDeviceId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_lastVerifiedDeviceIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Check if current device is the same as last verified device
+  static Future<bool> isSameDevice() async {
+    try {
+      final currentDeviceId = await getOrCreateDeviceId();
+      final lastVerifiedDeviceId = await getLastVerifiedDeviceId();
+
+      if (lastVerifiedDeviceId == null || lastVerifiedDeviceId.isEmpty) {
+        return false; // No previous verification, so it's a new device
+      }
+
+      return currentDeviceId == lastVerifiedDeviceId;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Check if phone verification is needed
+  /// OTP is required in these cases:
+  /// 1. First login after signup (no device verification record exists)
+  /// 2. New device (different device ID than last verified device)
+  /// OTP is NOT required if:
+  /// - Same device as previously verified (trusted device)
+  /// Returns true if verification is needed, false if it can be skipped
+  static Future<bool> needsPhoneVerification() async {
+    try {
+      print('📱 [VERIFY] ========== Checking phone verification ==========');
+
+      // Get current device ID (creates one if doesn't exist)
+      final currentDeviceId = await getOrCreateDeviceId();
+      print('📱 [VERIFY] Current device ID: $currentDeviceId');
+
+      // Get last verified device ID
+      final lastVerifiedDeviceId = await getLastVerifiedDeviceId();
+      print('📱 [VERIFY] Last verified device ID: $lastVerifiedDeviceId');
+
+      // CRITICAL: For first login after signup (no device verification record) → ALWAYS require verification
+      if (lastVerifiedDeviceId == null || lastVerifiedDeviceId.isEmpty) {
+        print(
+          '📱 [VERIFY] ✅ Phone verification NEEDED: No device verification record (FIRST LOGIN after signup)',
+        );
+        return true;
+      }
+
+      // Check if it's the same device
+      final isSameDevice = currentDeviceId == lastVerifiedDeviceId;
+      print(
+        '📱 [VERIFY] Is same device: $isSameDevice (current: $currentDeviceId, last: $lastVerifiedDeviceId)',
+      );
+
+      // If different device → ALWAYS require verification (new device)
+      if (!isSameDevice) {
+        print('📱 [VERIFY] ✅ Phone verification NEEDED: New device detected');
+        return true;
+      }
+
+      // Same device → Skip OTP verification (trusted device)
+      // We don't check phoneVerified flag because it's cleared on logout
+      // But the device ID persists, so we can trust the same device
+      print(
+        '📱 [VERIFY] ❌ Phone verification NOT needed: Same device (trusted device)',
+      );
+      return false;
+    } catch (e) {
+      print('📱 [VERIFY] ❌ Error checking verification status: $e');
+      // On error, require verification for safety
+      print(
+        '📱 [VERIFY] ✅ Phone verification NEEDED: Error occurred, requiring for safety',
+      );
+      return true;
     }
   }
 }

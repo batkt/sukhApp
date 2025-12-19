@@ -5,10 +5,11 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
-  const AppBackground({Key? key, required this.child}) : super(key: key);
+  const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class AppBackground extends StatelessWidget {
 }
 
 class Tokhirgoo extends StatefulWidget {
-  const Tokhirgoo({Key? key}) : super(key: key);
+  const Tokhirgoo({super.key});
 
   @override
   State<Tokhirgoo> createState() => _TokhirgooState();
@@ -132,24 +133,55 @@ class _TokhirgooState extends State<Tokhirgoo>
             return AlertDialog(
               backgroundColor: const Color(0xFF1a1a2e),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(
+                  context.responsiveBorderRadius(
+                    small: 16,
+                    medium: 18,
+                    large: 20,
+                    tablet: 22,
+                    veryNarrow: 12,
+                  ),
+                ),
               ),
-              title: const Text(
+              title: Text(
                 'Нууц үг оруулах',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: context.responsiveFontSize(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 26,
+                    veryNarrow: 18,
+                  ),
                   fontWeight: FontWeight.bold,
                 ),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'Бүртгэл устгахын тулд одоогийн нууц үгээ оруулна уу',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: context.responsiveFontSize(
+                        small: 14,
+                        medium: 15,
+                        large: 16,
+                        tablet: 17,
+                        veryNarrow: 12,
+                      ),
+                    ),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 12,
+                    ),
+                  ),
                   TextFormField(
                     controller: _deletePasswordController,
                     obscureText: _obscureDeletePassword,
@@ -180,16 +212,32 @@ class _TokhirgooState extends State<Tokhirgoo>
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.05),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                         borderSide: BorderSide(
                           color: Colors.white.withOpacity(0.1),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFFe6ff00),
-                          width: 2,
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
+                        borderSide: BorderSide(
+                          color: const Color(0xFFe6ff00),
+                          width: 2.w,
                         ),
                       ),
                     ),
@@ -247,7 +295,15 @@ class _TokhirgooState extends State<Tokhirgoo>
         return AlertDialog(
           backgroundColor: const Color(0xFF1a1a2e),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(
+              context.responsiveBorderRadius(
+                small: 16,
+                medium: 18,
+                large: 20,
+                tablet: 22,
+                veryNarrow: 12,
+              ),
+            ),
           ),
           title: const Text(
             'Бүртгэл устгах',
@@ -358,7 +414,13 @@ class _TokhirgooState extends State<Tokhirgoo>
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.all(16.w),
+                padding: context.responsivePadding(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
                 child: Row(
                   children: [
                     IconButton(
@@ -369,7 +431,15 @@ class _TokhirgooState extends State<Tokhirgoo>
                       ),
                       onPressed: () => context.pop(),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(
+                      width: context.responsiveSpacing(
+                        small: 12,
+                        medium: 14,
+                        large: 16,
+                        tablet: 18,
+                        veryNarrow: 8,
+                      ),
+                    ),
                     Text(
                       'Тохиргоо',
                       style: TextStyle(
@@ -385,7 +455,13 @@ class _TokhirgooState extends State<Tokhirgoo>
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(16.w),
+                    padding: context.responsivePadding(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -397,7 +473,15 @@ class _TokhirgooState extends State<Tokhirgoo>
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 16.h),
+                        SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 12,
+                    ),
+                  ),
                         Form(
                           key: _passwordFormKey,
                           child: Column(
@@ -413,7 +497,15 @@ class _TokhirgooState extends State<Tokhirgoo>
                                   });
                                 },
                               ),
-                              SizedBox(height: 16.h),
+                              SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 12,
+                    ),
+                  ),
                               _buildPasswordField(
                                 controller: _newPasswordController,
                                 label: 'Шинэ нууц код',
@@ -424,7 +516,15 @@ class _TokhirgooState extends State<Tokhirgoo>
                                   });
                                 },
                               ),
-                              SizedBox(height: 16.h),
+                              SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 12,
+                    ),
+                  ),
                               _buildPasswordField(
                                 controller: _confirmPasswordController,
                                 label: 'Нууц код давтах',
@@ -436,7 +536,15 @@ class _TokhirgooState extends State<Tokhirgoo>
                                   });
                                 },
                               ),
-                              SizedBox(height: 24.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 24,
+                                  medium: 28,
+                                  large: 32,
+                                  tablet: 36,
+                                  veryNarrow: 18,
+                                ),
+                              ),
                               SizedBox(
                                 width: double.infinity,
                                 height: 50.h,
@@ -448,7 +556,15 @@ class _TokhirgooState extends State<Tokhirgoo>
                                     backgroundColor: const Color(0xFFe6ff00),
                                     foregroundColor: Colors.black,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                                     ),
                                     elevation: 0,
                                   ),
@@ -474,14 +590,37 @@ class _TokhirgooState extends State<Tokhirgoo>
                             ],
                           ),
                         ),
-                        SizedBox(height: 32.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 32,
+                            medium: 36,
+                            large: 40,
+                            tablet: 44,
+                            veryNarrow: 24,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
               ),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.responsiveSpacing(
+                    small: 16,
+                    medium: 18,
+                    large: 20,
+                    tablet: 22,
+                    veryNarrow: 12,
+                  ),
+                  vertical: context.responsiveSpacing(
+                    small: 10,
+                    medium: 12,
+                    large: 14,
+                    tablet: 16,
+                    veryNarrow: 8,
+                  ),
+                ),
                 decoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
@@ -520,7 +659,15 @@ class _TokhirgooState extends State<Tokhirgoo>
                                     color: Colors.redAccent,
                                   ),
                                 ),
-                                SizedBox(width: 8.w),
+                                SizedBox(
+                                  width: context.responsiveSpacing(
+                                    small: 8,
+                                    medium: 10,
+                                    large: 12,
+                                    tablet: 14,
+                                    veryNarrow: 6,
+                                  ),
+                                ),
                                 Text(
                                   'Устгаж байна...',
                                   style: TextStyle(
@@ -570,20 +717,52 @@ class _TokhirgooState extends State<Tokhirgoo>
         filled: true,
         fillColor: Colors.white.withOpacity(0.05),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 12,
+              medium: 14,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 10,
+            ),
+          ),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFe6ff00), width: 2),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 12,
+              medium: 14,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 10,
+            ),
+          ),
+          borderSide: BorderSide(color: const Color(0xFFe6ff00), width: 2.w),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 12,
+              medium: 14,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 10,
+            ),
+          ),
           borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 12,
+              medium: 14,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 10,
+            ),
+          ),
+          borderSide: BorderSide(color: Colors.red, width: 2.w),
         ),
       ),
       inputFormatters: [

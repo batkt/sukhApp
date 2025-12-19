@@ -1,7 +1,7 @@
 /// Centralized API endpoints configuration
 class ApiEndpoints {
   // Base URL
-  static const String baseUrl = 'https://amarhome.mn/api/';
+  static const String baseUrl = 'https://amarhome.mn/api';
 
   // API Version (if needed in future)
   static const String apiVersion = 'v1';

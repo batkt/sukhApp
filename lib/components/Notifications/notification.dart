@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Notification Dropdown Widget
 class NotificationDropdown extends StatelessWidget {
-  const NotificationDropdown({Key? key}) : super(key: key);
+  const NotificationDropdown({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -12,16 +12,16 @@ class NotificationDropdown extends StatelessWidget {
       constraints: BoxConstraints(maxHeight: 400.h),
       decoration: BoxDecoration(
         color: const Color(0xFF1a1a2e),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.w),
         border: Border.all(
           color: const Color(0xFFe6ff00).withOpacity(0.3),
-          width: 1,
+          width: 1.w,
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 20.w,
+            offset: Offset(0, 10.h),
           ),
         ],
       ),
@@ -48,7 +48,10 @@ class NotificationDropdown extends StatelessWidget {
                   },
                   child: Text(
                     'Бүгдийг унших',
-                    style: TextStyle(color: const Color(0xFFe6ff00), fontSize: 12.sp),
+                    style: TextStyle(
+                      color: const Color(0xFFe6ff00),
+                      fontSize: 12.sp,
+                    ),
                   ),
                 ),
               ],
@@ -206,7 +209,7 @@ class NotificationDropdown extends StatelessWidget {
 
 // Full Notifications Page (keep this for "View All" functionality)
 class NotificationsPage extends StatelessWidget {
-  const NotificationsPage({Key? key}) : super(key: key);
+  const NotificationsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +229,11 @@ class NotificationsPage extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white, size: 24.sp),
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 24.sp,
+                      ),
                       onPressed: () {
                         Navigator.pop(context);
                       },
@@ -248,7 +255,10 @@ class NotificationsPage extends StatelessWidget {
                     },
                     child: Text(
                       'Бүгдийг унших',
-                      style: TextStyle(color: const Color(0xFFe6ff00), fontSize: 14.sp),
+                      style: TextStyle(
+                        color: const Color(0xFFe6ff00),
+                        fontSize: 14.sp,
+                      ),
                     ),
                   ),
                 ],
@@ -318,12 +328,12 @@ class NotificationsPage extends StatelessWidget {
         color: isUnread
             ? const Color(0xFFe6ff00).withOpacity(0.1)
             : Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.w),
         border: Border.all(
           color: isUnread
               ? const Color(0xFFe6ff00).withOpacity(0.3)
               : Colors.white.withOpacity(0.1),
-          width: 1,
+          width: 1.w,
         ),
       ),
       child: Row(
@@ -333,7 +343,7 @@ class NotificationsPage extends StatelessWidget {
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
               color: const Color(0xFFe6ff00).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.w),
             ),
             child: Icon(icon, color: const Color(0xFFe6ff00), size: 24.sp),
           ),

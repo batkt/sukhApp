@@ -1,17 +1,23 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/core/auth_config.dart';
 
 class SessionService {
   static const String _loginTimestampKey = 'login_timestamp';
-  static const Duration _sessionDuration = Duration(minutes: 15);
+  static const Duration _sessionDuration = Duration(minutes: 10);
 
   static Future<void> saveLoginTimestamp() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final now = DateTime.now();
+      final timestamp = now.millisecondsSinceEpoch;
       await prefs.setInt(_loginTimestampKey, timestamp);
+
+      // Schedule notification for when session expires
+      final expiryTime = now.add(_sessionDuration);
+      await NotificationService.scheduleSessionExpiryNotification(expiryTime);
     } catch (e) {}
   }
 
@@ -68,8 +74,13 @@ class SessionService {
 
   /// Logout the user and clear all data
   static Future<void> logout() async {
+    // Disconnect socket before logout
+    SocketService.instance.disconnect();
+
     await AuthConfig.instance.logout();
     await clearLoginTimestamp();
+    // Cancel any scheduled session expiry notification
+    await NotificationService.cancel(0);
   }
 
   /// Clear the login timestamp
@@ -77,6 +88,8 @@ class SessionService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_loginTimestampKey);
+      // Cancel any scheduled session expiry notification
+      await NotificationService.cancel(0);
     } catch (e) {
       // Silent fail
     }

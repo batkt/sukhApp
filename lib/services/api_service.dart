@@ -1,31 +1,18 @@
 import 'dart:convert';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/session_service.dart';
+import 'package:sukh_app/services/notification_service.dart';
+import 'package:sukh_app/main.dart';
+import 'package:go_router/go_router.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://amarhome.mn/api/';
+  static const String baseUrl = 'https://amarhome.mn/api';
+  static const String walletApiBaseUrl = 'https://dev-api.bpay.mn/v1';
 
   // Helper method to wrap HTTP calls with better error handling
-  static Future<T> _handleHttpRequest<T>(
-    Future<T> Function() request,
-    String errorMessage,
-  ) async {
-    try {
-      return await request();
-    } catch (e) {
-      // Check if it's a network/connection error
-      if (e.toString().contains('Failed host lookup') ||
-          e.toString().contains('SocketException') ||
-          e.toString().contains('No address associated with hostname') ||
-          e.toString().contains('NetworkException') ||
-          e.toString().contains('Connection') ||
-          e.toString().contains('Network is unreachable')) {
-        throw Exception('Интернэт холболт тасарсан байна');
-      }
-      throw Exception('$errorMessage: $e');
-    }
-  }
 
   static List<Map<String, dynamic>>? _cachedLocationData;
 
@@ -180,6 +167,72 @@ class ApiService {
     }
   }
 
+  /// Verify OTP code for login (OTP is automatically sent on successful login)
+  /// Endpoint: POST /orshinSuugch/utasBatalgaajuulakhLogin
+  static Future<Map<String, dynamic>> verifyLoginOTP({
+    required String utas,
+    required String code,
+    required String baiguullagiinId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/utasBatalgaajuulakhLogin'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'utas': utas,
+          'code': code,
+          'baiguullagiinId': baiguullagiinId,
+        }),
+      );
+
+      print(
+        '🔐 [VERIFY_LOGIN_OTP] Request body: {utas: $utas, code: $code, baiguullagiinId: $baiguullagiinId}',
+      );
+      print('🔐 [VERIFY_LOGIN_OTP] Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔐 [VERIFY_LOGIN_OTP] Response body: $data');
+
+        // Check for error in response
+        if (data['success'] == false ||
+            data['error'] != null ||
+            data['aldaa'] != null) {
+          final errorMessage =
+              data['message'] ??
+              data['aldaa'] ??
+              data['error'] ??
+              'Баталгаажуулах код буруу байна';
+          print('🔐 [VERIFY_LOGIN_OTP] Error: $errorMessage');
+          throw Exception(errorMessage);
+        }
+
+        // Check if success is explicitly true
+        if (data['success'] == true) {
+          print('🔐 [VERIFY_LOGIN_OTP] Verification successful');
+          return data;
+        }
+
+        // If no explicit success/error, assume success for 200 status
+        print('🔐 [VERIFY_LOGIN_OTP] Verification successful (200 status)');
+        return data;
+      } else {
+        final errorBody = json.decode(response.body);
+        final errorMessage =
+            errorBody['message'] ??
+            errorBody['aldaa'] ??
+            errorBody['error'] ??
+            'Баталгаажуулах код буруу байна: ${response.statusCode}';
+        print(
+          '🔐 [VERIFY_LOGIN_OTP] Error (${response.statusCode}): $errorMessage',
+        );
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception('Баталгаажуулах код шалгахад алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> verifySecretCode({
     required String utas,
     required String code,
@@ -198,17 +251,46 @@ class ApiService {
         }),
       );
 
+      print(
+        '🔐 [VERIFY_CODE] Request body: {utas: $utas, code: $code, baiguullagiinId: $baiguullagiinId, purpose: $purpose}',
+      );
+      print('🔐 [VERIFY_CODE] Response status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('🔐 [VERIFY_CODE] Response body: $data');
 
-        if (data['success'] == false || data['error'] != null) {
-          throw Exception(data['message'] ?? 'Баталгаажуулах код буруу байна');
+        // Check for error in response
+        if (data['success'] == false ||
+            data['error'] != null ||
+            data['aldaa'] != null) {
+          final errorMessage =
+              data['message'] ??
+              data['aldaa'] ??
+              data['error'] ??
+              'Баталгаажуулах код буруу байна';
+          print('🔐 [VERIFY_CODE] Error: $errorMessage');
+          throw Exception(errorMessage);
         }
+
+        // Check if success is explicitly true
+        if (data['success'] == true) {
+          print('🔐 [VERIFY_CODE] Verification successful');
+          return data;
+        }
+
+        // If no explicit success/error, assume success for 200 status
+        print('🔐 [VERIFY_CODE] Verification successful (200 status)');
         return data;
       } else {
-        throw Exception(
-          'Баталгаажуулах код буруу байна: ${response.statusCode}',
-        );
+        final errorBody = json.decode(response.body);
+        final errorMessage =
+            errorBody['message'] ??
+            errorBody['aldaa'] ??
+            errorBody['error'] ??
+            'Баталгаажуулах код буруу байна: ${response.statusCode}';
+        print('🔐 [VERIFY_CODE] Error (${response.statusCode}): $errorMessage');
+        throw Exception(errorMessage);
       }
     } catch (e) {
       throw Exception('Баталгаажуулах код шалгахад алдаа гарлаа: $e');
@@ -266,6 +348,1051 @@ class ApiService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> getWalletCities() async {
+    try {
+      final url = '$baseUrl/walletAddress/city';
+      print('🔍 [CITIES] Fetching cities from: $url');
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('🔍 [CITIES] Status code: ${response.statusCode}');
+      print('🔍 [CITIES] Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔍 [CITIES] Parsed data type: ${data.runtimeType}');
+        if (data['data'] != null && data['data'] is List) {
+          final list = List<Map<String, dynamic>>.from(data['data']);
+          print('🔍 [CITIES] Found ${list.length} cities in data.data');
+          return list;
+        } else if (data is List) {
+          final list = List<Map<String, dynamic>>.from(data);
+          print('🔍 [CITIES] Found ${list.length} cities in root array');
+          return list;
+        }
+        print('⚠️ [CITIES] No cities found in response');
+        return [];
+      } else {
+        throw Exception('Хот авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ [CITIES] Error: $e');
+      throw Exception('Хот авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWalletDistricts(
+    String cityId,
+  ) async {
+    try {
+      final url = '$baseUrl/walletAddress/district/$cityId';
+      print('🔍 [DISTRICTS] Fetching districts from: $url');
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('🔍 [DISTRICTS] Status code: ${response.statusCode}');
+      print('🔍 [DISTRICTS] Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔍 [DISTRICTS] Parsed data type: ${data.runtimeType}');
+        if (data['data'] != null && data['data'] is List) {
+          final list = List<Map<String, dynamic>>.from(data['data']);
+          print('🔍 [DISTRICTS] Found ${list.length} districts in data.data');
+          return list;
+        } else if (data is List) {
+          final list = List<Map<String, dynamic>>.from(data);
+          print('🔍 [DISTRICTS] Found ${list.length} districts in root array');
+          return list;
+        }
+        print('⚠️ [DISTRICTS] No districts found in response');
+        return [];
+      } else {
+        throw Exception('Дүүрэг авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ [DISTRICTS] Error: $e');
+      throw Exception('Дүүрэг авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWalletKhoroos(
+    String districtId,
+  ) async {
+    try {
+      final url = '$baseUrl/walletAddress/khoroo/$districtId';
+      print('🔍 [KHOROOS] Fetching khoroos from: $url');
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      print('🔍 [KHOROOS] Status code: ${response.statusCode}');
+      print('🔍 [KHOROOS] Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('🔍 [KHOROOS] Parsed data type: ${data.runtimeType}');
+        if (data['data'] != null && data['data'] is List) {
+          final list = List<Map<String, dynamic>>.from(data['data']);
+          print('🔍 [KHOROOS] Found ${list.length} khoroos in data.data');
+          return list;
+        } else if (data is List) {
+          final list = List<Map<String, dynamic>>.from(data);
+          print('🔍 [KHOROOS] Found ${list.length} khoroos in root array');
+          return list;
+        }
+        print('⚠️ [KHOROOS] No khoroos found in response');
+        return [];
+      } else {
+        throw Exception('Хороо авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ [KHOROOS] Error: $e');
+      throw Exception('Хороо авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWalletBuildings(
+    String khorooId,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/walletAddress/bair/$khorooId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['data'] != null && data['data'] is List) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        } else if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+        return [];
+      } else {
+        throw Exception('Барилга авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Барилга авахад алдаа гарлаа: $e');
+    }
+  }
+
+  // ==================== Wallet API Services ====================
+
+  // Biller Services
+  static Future<List<Map<String, dynamic>>> getWalletBillers() async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/billers'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          if (data['data'] is List) {
+            return List<Map<String, dynamic>>.from(data['data']);
+          }
+        }
+        return [];
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else if (response.statusCode == 404) {
+        print(
+          '❌ [GET-WALLET-BILLERS] 404 Error - URL: $baseUrl/wallet/billers',
+        );
+        print('❌ [GET-WALLET-BILLERS] Response body: ${response.body}');
+        try {
+          final errorData = json.decode(response.body);
+          final errorMessage =
+              errorData['message'] ??
+              'Биллерүүд авах endpoint олдсонгүй (404). URL: $baseUrl/wallet/billers';
+          throw Exception(errorMessage);
+        } catch (_) {
+          throw Exception(
+            'Биллерүүд авах endpoint олдсонгүй (404). URL: $baseUrl/wallet/billers',
+          );
+        }
+      } else {
+        final errorData = json.decode(response.body);
+        final errorMessage =
+            errorData['message'] ??
+            'Биллерүүд авахад алдаа гарлаа: ${response.statusCode}';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e.toString().contains('404')) {
+        rethrow;
+      }
+      throw Exception('Биллерүүд авахад алдаа гарлаа: $e');
+    }
+  }
+
+  // Billing Services
+  static Future<Map<String, dynamic>> findBillingByBillerAndCustomerCode({
+    required String billerCode,
+    required String customerCode,
+  }) async {
+    http.Response? response;
+    try {
+      final headers = await getWalletApiHeaders();
+      final url = '$baseUrl/wallet/billing/biller/$billerCode/$customerCode';
+
+      print('🔍 [FIND-BILLING] Starting request...');
+      print('🔍 [FIND-BILLING] URL: $url');
+      print('🔍 [FIND-BILLING] BillerCode: $billerCode');
+      print('🔍 [FIND-BILLING] CustomerCode: $customerCode');
+      print(
+        '🔍 [FIND-BILLING] Has Auth Header: ${headers.containsKey('Authorization')}',
+      );
+
+      response = await http.get(Uri.parse(url), headers: headers);
+
+      print('🔍 [FIND-BILLING] Response status: ${response.statusCode}');
+      print('🔍 [FIND-BILLING] Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        print('🔍 [FIND-BILLING] Decoded type: ${decoded.runtimeType}');
+        print('🔍 [FIND-BILLING] Decoded value: $decoded');
+
+        // Handle both Map and List responses
+        Map<String, dynamic> data;
+        if (decoded is Map<String, dynamic>) {
+          print('🔍 [FIND-BILLING] Response is Map');
+          data = decoded;
+        } else if (decoded is List) {
+          print(
+            '🔍 [FIND-BILLING] Response is List, length: ${decoded.length}',
+          );
+          if (decoded.isEmpty) {
+            print('❌ [FIND-BILLING] List is empty');
+            throw Exception('Биллингийн мэдээлэл олдсонгүй');
+          }
+          // If response is a list, wrap it in a map structure
+          final firstItem = decoded[0];
+          print('🔍 [FIND-BILLING] First item type: ${firstItem.runtimeType}');
+          print('🔍 [FIND-BILLING] First item value: $firstItem');
+          if (firstItem is Map<String, dynamic>) {
+            data = {'success': true, 'data': firstItem};
+            print('✅ [FIND-BILLING] Wrapped list item into Map structure');
+          } else {
+            print('❌ [FIND-BILLING] First item is not Map<String, dynamic>');
+            throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
+          }
+        } else {
+          print(
+            '❌ [FIND-BILLING] Response is neither Map nor List: ${decoded.runtimeType}',
+          );
+          throw Exception('Биллингийн мэдээлэл олдсонгүй');
+        }
+
+        print('🔍 [FIND-BILLING] Final data structure: $data');
+        if (data['success'] == true) {
+          // Check if data field is a List and extract first item
+          if (data['data'] is List) {
+            final dataList = data['data'] as List;
+            print(
+              '🔍 [FIND-BILLING] data field is List, length: ${dataList.length}',
+            );
+            if (dataList.isNotEmpty) {
+              print('🔍 [FIND-BILLING] Extracting first item from List');
+              final firstItem = dataList[0];
+              print(
+                '🔍 [FIND-BILLING] First item type: ${firstItem.runtimeType}',
+              );
+              print('🔍 [FIND-BILLING] First item: $firstItem');
+              if (firstItem is Map<String, dynamic>) {
+                data['data'] = Map<String, dynamic>.from(firstItem);
+                print('✅ [FIND-BILLING] Converted List to single Map object');
+              } else {
+                print(
+                  '❌ [FIND-BILLING] First item is not Map<String, dynamic>',
+                );
+                throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
+              }
+            } else {
+              print('❌ [FIND-BILLING] data List is empty');
+              throw Exception('Биллингийн мэдээлэл олдсонгүй');
+            }
+          } else {
+            print('🔍 [FIND-BILLING] data field is already a single object');
+          }
+          print('✅ [FIND-BILLING] Success! Returning data: $data');
+          return data;
+        } else {
+          print('❌ [FIND-BILLING] Success flag is false: ${data['message']}');
+          throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
+        }
+      } else if (response.statusCode == 404) {
+        print('❌ [FIND-BILLING] 404 - Not found');
+        throw Exception('Төлбөр олдсонгүй');
+      } else if (response.statusCode == 401) {
+        print('❌ [FIND-BILLING] 401 - Unauthorized');
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        print('❌ [FIND-BILLING] Error status: ${response.statusCode}');
+        throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ [FIND-BILLING] Exception caught: $e');
+      print('❌ [FIND-BILLING] Exception type: ${e.runtimeType}');
+      if (response != null) {
+        print('❌ [FIND-BILLING] Response status: ${response.statusCode}');
+        print('❌ [FIND-BILLING] Response body: ${response.body}');
+      }
+      if (e.toString().contains('is not a subtype') ||
+          e.toString().contains('List<dynamic>') ||
+          e.toString().contains('Map<String, dynamic>')) {
+        print('❌ [FIND-BILLING] Type casting error detected');
+        throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
+      }
+      // Check if the error already contains "Төлбөр олдсонгүй" to avoid nested messages
+      if (e.toString().contains('Төлбөр олдсонгүй') ||
+          e.toString().contains('Биллингийн мэдээлэл олдсонгүй')) {
+        throw Exception('Төлбөр олдсонгүй');
+      }
+      throw Exception('Биллинг авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> findBillingByCustomerId({
+    required String customerId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/billing/customer/$customerId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
+        }
+      } else if (response.statusCode == 404) {
+        throw Exception('Төлбөр олдсонгүй');
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Check if the error already contains "Төлбөр олдсонгүй" to avoid nested messages
+      if (e.toString().contains('Төлбөр олдсонгүй') ||
+          e.toString().contains('Биллингийн мэдээлэл олдсонгүй')) {
+        throw Exception('Төлбөр олдсонгүй');
+      }
+      throw Exception('Биллинг авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWalletBillingList() async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/billing/list'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          if (data['data'] is List) {
+            return List<Map<String, dynamic>>.from(data['data']);
+          }
+        }
+        return [];
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          'Биллингийн жагсаалт авахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Биллингийн жагсаалт авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getWalletBillingBills({
+    required String billingId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/billing/bills/$billingId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // Only print once, not on every call
+        if (data['success'] == true || data['responseCode'] == true) {
+          print(
+            '📄 [API] Billing bills response: ${data.toString().substring(0, data.toString().length > 500 ? 500 : data.toString().length)}...',
+          );
+        }
+
+        if (data['responseCode'] == true && data['data'] != null) {
+          // Return the full data object which includes billingId, billingName, newBills, etc.
+          final result = Map<String, dynamic>.from(data['data']);
+          print('📄 [API] Extracted data object: $result');
+          if (result['newBills'] != null) {
+            print(
+              '📄 [API] newBills found: ${result['newBills']} (type: ${result['newBills'].runtimeType})',
+            );
+            if (result['newBills'] is List) {
+              print(
+                '📄 [API] newBills is List with ${(result['newBills'] as List).length} items',
+              );
+            }
+          } else {
+            print('📄 [API] newBills is null or missing');
+          }
+          return result;
+        } else if (data['success'] == true && data['data'] != null) {
+          // Fallback for different response format
+          if (data['data'] is Map) {
+            return Map<String, dynamic>.from(data['data']);
+          } else if (data['data'] is List) {
+            // If it's a list, wrap it in a map with newBills key
+            return {'newBills': List<Map<String, dynamic>>.from(data['data'])};
+          }
+        }
+        print('📄 [API] No valid data found, returning empty map');
+        return {};
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception('Биллүүд авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Биллүүд авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getWalletBillingPayments({
+    required String billingId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/billing/payments/$billingId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          if (data['data'] is List) {
+            return List<Map<String, dynamic>>.from(data['data']);
+          }
+        }
+        return [];
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          'Төлбөрийн түүх авахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Төлбөрийн түүх авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> findBillingByAddress({
+    required String bairId,
+    required String doorNo,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/billing/address/$bairId/$doorNo'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Биллингийн мэдээлэл олдсонгүй');
+        }
+      } else if (response.statusCode == 404) {
+        throw Exception('Биллингийн мэдээлэл олдсонгүй');
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Биллинг авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> saveWalletBilling({
+    required String billingId,
+    String? billingName,
+    String? customerId,
+    String? customerCode,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final requestBody = <String, dynamic>{'billingId': billingId};
+
+      if (billingName != null && billingName.isNotEmpty) {
+        requestBody['billingName'] = billingName;
+      }
+      if (customerId != null && customerId.isNotEmpty) {
+        requestBody['customerId'] = customerId;
+      }
+      if (customerCode != null && customerCode.isNotEmpty) {
+        requestBody['customerCode'] = customerCode;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/wallet/billing'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Биллинг хадгалахад алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Биллинг хадгалахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Биллинг хадгалахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> removeWalletBilling({
+    required String billingId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/wallet/billing/$billingId'),
+        headers: headers,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Биллинг устгахад алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Биллинг устгахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Биллинг устгахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> removeWalletBill({
+    required String billingId,
+    required String billId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/wallet/billing/$billingId/bill/$billId'),
+        headers: headers,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Билл устгахад алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Билл устгахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Билл устгахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> recoverWalletBill({
+    required String billingId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.put(
+        Uri.parse('$baseUrl/wallet/billing/$billingId/recover'),
+        headers: headers,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Билл сэргээхэд алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Билл сэргээхэд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Билл сэргээхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> changeWalletBillingName({
+    required String billingId,
+    required String name,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.put(
+        Uri.parse('$baseUrl/wallet/billing/$billingId/name'),
+        headers: headers,
+        body: json.encode({'name': name}),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(
+            data['message'] ?? 'Биллингийн нэр өөрчлөхөд алдаа гарлаа',
+          );
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Биллингийн нэр өөрчлөхөд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Биллингийн нэр өөрчлөхөд алдаа гарлаа: $e');
+    }
+  }
+
+  // Invoice Services
+  static Future<Map<String, dynamic>> createWalletInvoice({
+    required String billingId,
+    required List<String> billIds,
+    required String vatReceiveType,
+    String? vatCompanyReg,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final requestBody = <String, dynamic>{
+        'billingId': billingId,
+        'billIds': billIds,
+        'vatReceiveType': vatReceiveType,
+      };
+
+      if (vatCompanyReg != null && vatCompanyReg.isNotEmpty) {
+        requestBody['vatCompanyReg'] = vatCompanyReg;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/wallet/invoice'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Нэхэмжлэх үүсгэхэд алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Нэхэмжлэх үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Нэхэмжлэх үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getWalletInvoice({
+    required String invoiceId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/invoice/$invoiceId'),
+        headers: headers,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Нэхэмжлэх олдсонгүй');
+        }
+      } else if (response.statusCode == 404) {
+        throw Exception('Нэхэмжлэх олдсонгүй');
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Нэхэмжлэх авахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Нэхэмжлэх авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> cancelWalletInvoice({
+    required String invoiceId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.put(
+        Uri.parse('$baseUrl/wallet/invoice/$invoiceId/cancel'),
+        headers: headers,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Нэхэмжлэх цуцлахад алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Нэхэмжлэх цуцлахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Нэхэмжлэх цуцлахад алдаа гарлаа: $e');
+    }
+  }
+
+  // Payment Services
+  static Future<Map<String, dynamic>> createWalletPayment({
+    required String invoiceId,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/wallet/payment'),
+        headers: headers,
+        body: json.encode({'invoiceId': invoiceId}),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(data['message'] ?? 'Төлбөр үүсгэхэд алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Төлбөр үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  // User Services
+  static Future<Map<String, dynamic>> updateWalletUser({
+    String? email,
+    String? phone,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final requestBody = <String, dynamic>{};
+
+      if (email != null && email.isNotEmpty) {
+        requestBody['email'] = email;
+      }
+      if (phone != null && phone.isNotEmpty) {
+        requestBody['phone'] = phone;
+      }
+
+      if (requestBody.isEmpty) {
+        throw Exception('Хамгийн багадаа нэг талбар бөглөх шаардлагатай');
+      }
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/wallet/user'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(
+            data['message'] ?? 'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа',
+          );
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> validateOwnOrgToot({
+    required String toot,
+    required String baiguullagiinId,
+    required String barilgiinId,
+  }) async {
+    try {
+      final requestBody = <String, dynamic>{
+        'toot': toot,
+        'baiguullagiinId': baiguullagiinId,
+        'barilgiinId': barilgiinId,
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/validateOwnOrgToot'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return data;
+      } else {
+        if (data['message'] != null) {
+          throw Exception(data['message']);
+        } else if (data['aldaa'] != null) {
+          throw Exception(data['aldaa']);
+        } else {
+          throw Exception('Тоот баталгаажуулахад алдаа гарлаа');
+        }
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Тоот баталгаажуулахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchWalletBilling({
+    required String bairId,
+    required String doorNo,
+    String? duureg,
+    String? horoo,
+    String? soh,
+    String? toot,
+    String? davkhar,
+    String? orts,
+    String? baiguullagiinId,
+    String? barilgiinId,
+  }) async {
+    try {
+      final requestBody = <String, dynamic>{'bairId': bairId, 'doorNo': doorNo};
+
+      if (duureg != null && duureg.isNotEmpty) {
+        requestBody['duureg'] = duureg;
+      }
+      if (horoo != null && horoo.isNotEmpty) {
+        requestBody['horoo'] = horoo;
+      }
+      if (soh != null && soh.isNotEmpty) {
+        requestBody['soh'] = soh;
+      }
+      if (toot != null && toot.isNotEmpty) {
+        requestBody['toot'] = toot;
+      }
+      if (davkhar != null && davkhar.isNotEmpty) {
+        requestBody['davkhar'] = davkhar;
+      }
+      if (orts != null && orts.isNotEmpty) {
+        requestBody['orts'] = orts;
+      }
+      if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+        requestBody['baiguullagiinId'] = baiguullagiinId;
+      }
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        requestBody['barilgiinId'] = barilgiinId;
+      }
+
+      final headers = await getWalletApiHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/walletBillingHavakh'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data['success'] == false) {
+          if (data['message'] != null) {
+            throw Exception(data['message']);
+          } else if (data['aldaa'] != null) {
+            throw Exception(data['aldaa']);
+          } else {
+            throw Exception('Биллингийн мэдээлэл авахад алдаа гарлаа');
+          }
+        }
+
+        // Save updated user data if result is present
+        if (data['result'] != null) {
+          await StorageService.saveUserData(data);
+        }
+
+        return data;
+      } else {
+        if (data['message'] != null) {
+          throw Exception(data['message']);
+        } else if (data['aldaa'] != null) {
+          throw Exception(data['aldaa']);
+        } else {
+          throw Exception(
+            'Биллингийн мэдээлэл авахад алдаа гарлаа: ${response.statusCode}',
+          );
+        }
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Биллингийн мэдээлэл авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> registerWalletUser({
+    required String utas,
+    required String mail,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/walletBurtgey'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'utas': utas, 'mail': mail}),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data['success'] == false) {
+          if (data['message'] != null) {
+            throw Exception(data['message']);
+          } else if (data['aldaa'] != null) {
+            throw Exception(data['aldaa']);
+          } else {
+            throw Exception('Бүртгэл үүсгэхэд алдаа гарлаа');
+          }
+        }
+        return data;
+      } else {
+        if (data['message'] != null) {
+          throw Exception(data['message']);
+        } else if (data['aldaa'] != null) {
+          throw Exception(data['aldaa']);
+        } else {
+          throw Exception(
+            'Бүртгэл үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+          );
+        }
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Бүртгэл үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> registerUser(
     Map<String, dynamic> registrationData,
   ) async {
@@ -298,26 +1425,73 @@ class ApiService {
   static Future<Map<String, dynamic>> loginUser({
     required String utas,
     required String nuutsUg,
+    String? firebaseToken,
+    String? bairId,
+    String? doorNo,
+    String? barilgiinId,
+    String? baiguullagiinId,
+    String? duureg,
+    String? horoo,
+    String? soh,
+    String? toot,
+    String? davkhar,
+    String? orts,
   }) async {
+    final requestBody = <String, dynamic>{'utas': utas, 'nuutsUg': nuutsUg};
+
+    if (firebaseToken != null && firebaseToken.isNotEmpty) {
+      requestBody['firebaseToken'] = firebaseToken;
+    }
+    if (bairId != null && bairId.isNotEmpty) {
+      requestBody['bairId'] = bairId;
+    }
+    if (doorNo != null && doorNo.isNotEmpty) {
+      requestBody['doorNo'] = doorNo;
+    }
+    if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+      requestBody['baiguullagiinId'] = baiguullagiinId;
+    }
+    if (barilgiinId != null && barilgiinId.isNotEmpty) {
+      requestBody['barilgiinId'] = barilgiinId;
+    }
+    if (duureg != null && duureg.isNotEmpty) {
+      requestBody['duureg'] = duureg;
+    }
+    if (horoo != null && horoo.isNotEmpty) {
+      requestBody['horoo'] = horoo;
+    }
+    if (soh != null && soh.isNotEmpty) {
+      requestBody['soh'] = soh;
+    }
+    if (toot != null && toot.isNotEmpty) {
+      requestBody['toot'] = toot;
+    }
+    if (davkhar != null && davkhar.isNotEmpty) {
+      requestBody['davkhar'] = davkhar;
+    }
+    if (orts != null && orts.isNotEmpty) {
+      requestBody['orts'] = orts;
+    }
+
     final response = await http.post(
       Uri.parse('$baseUrl/orshinSuugchNevtrey'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'utas': utas, 'nuutsUg': nuutsUg}),
+      body: json.encode(requestBody),
     );
 
-    // Try to decode the response body regardless of status code
     final loginData = json.decode(response.body);
 
-    // Check if login was unsuccessful (check for 'aldaa' field first)
     if (loginData['success'] == false) {
-      if (loginData['aldaa'] != null) {
+      if (loginData['message'] != null) {
+        throw Exception(loginData['message']);
+      } else if (loginData['aldaa'] != null) {
         throw Exception(loginData['aldaa']);
       } else {
-        throw Exception('Утасны дугаар эсвэл нууц үг буруу байна');
+        throw Exception('Нэвтрэхэд алдаа гарлаа');
       }
     }
 
-    if (response.statusCode == 200 || response.statusCode == 500) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       if (loginData['success'] == true && loginData['token'] != null) {
         await StorageService.saveToken(loginData['token']);
         await StorageService.saveUserData(loginData);
@@ -326,7 +1500,7 @@ class ApiService {
 
       return loginData;
     } else {
-      throw Exception('Утасны дугаар эсвэл нууц үг буруу байна');
+      throw Exception(loginData['message'] ?? 'Нэвтрэхэд алдаа гарлаа');
     }
   }
 
@@ -340,6 +1514,90 @@ class ApiService {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+
+  /// Handle 401 Unauthorized response - automatically logout and redirect to login
+  static Future<void> handleUnauthorized() async {
+    print('🔒 [API] 401 Unauthorized - Token expired, logging out...');
+
+    // Check if already logged out to avoid duplicate logout
+    final isLoggedIn = await StorageService.isLoggedIn();
+    if (!isLoggedIn) {
+      print('🔒 [API] Already logged out, skipping...');
+      return;
+    }
+
+    // Show session expired notification
+    await NotificationService.showSessionExpiredNotification();
+
+    // Logout user
+    await SessionService.logout();
+
+    // Navigate to login page
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      // Use post-frame callback to ensure navigation happens after logout
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final navContext = navigatorKey.currentContext;
+        if (navContext != null) {
+          try {
+            // Clear navigation stack and go to login
+            while (navContext.canPop()) {
+              navContext.pop();
+            }
+            navContext.go('/newtrekh');
+          } catch (e) {
+            print('⚠️ [API] Error navigating to login: $e');
+            // Fallback: try to go directly
+            try {
+              navContext.go('/newtrekh');
+            } catch (e2) {
+              print('⚠️ [API] Fallback navigation also failed: $e2');
+            }
+          }
+        }
+      });
+    }
+  }
+
+  /// Get auth headers for Wallet API calls
+  /// Wallet API requires userId header with phone number (NOT UUID)
+  static Future<Map<String, String>> getWalletApiHeaders() async {
+    final token = await StorageService.getToken();
+
+    // Get phone number from user profile (most reliable source)
+    String? userId;
+    try {
+      final userProfile = await getUserProfile();
+      if (userProfile['result']?['utas'] != null) {
+        userId = userProfile['result']['utas'].toString();
+      } else if (userProfile['result']?['nevtrekhNer'] != null) {
+        // Fallback to nevtrekhNer if utas is not available
+        userId = userProfile['result']['nevtrekhNer'].toString();
+      }
+    } catch (e) {
+      print('⚠️ [WALLET API] Could not get phone number from profile: $e');
+      // Try saved phone as fallback
+      userId = await StorageService.getSavedPhoneNumber();
+    }
+
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    // Wallet API requires userId header with phone number (NOT UUID)
+    if (userId != null && userId.isNotEmpty) {
+      headers['userId'] = userId;
+      print('📱 [WALLET API] Using phone number in userId header: $userId');
+    } else {
+      print(
+        '⚠️ [WALLET API] Warning: No phone number available for userId header',
+      );
+      print('   This may cause Wallet API calls to fail');
+    }
+
+    return headers;
   }
 
   static Future<Map<String, dynamic>> resetPassword({
@@ -498,15 +1756,19 @@ class ApiService {
   static Future<Map<String, dynamic>> fetchNekhemjlekhiinTuukh({
     required String gereeniiDugaar,
     int khuudasniiDugaar = 1,
-    int khuudasniiKhemjee = 10,
+    int khuudasniiKhemjee = 200,
   }) async {
     try {
       final headers = await getAuthHeaders();
 
       final queryJson = json.encode({'gereeniiDugaar': gereeniiDugaar});
-      final uri = Uri.parse(
-        '$baseUrl/nekhemjlekhiinTuukh',
-      ).replace(queryParameters: {'query': queryJson});
+      final uri = Uri.parse('$baseUrl/nekhemjlekhiinTuukh').replace(
+        queryParameters: {
+          'query': queryJson,
+          'khuudasniiDugaar': khuudasniiDugaar.toString(),
+          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+        },
+      );
 
       final response = await http.get(uri, headers: headers);
 
@@ -575,6 +1837,51 @@ class ApiService {
     }
   }
 
+  /// Save ebarimt connection code
+  static Future<Map<String, dynamic>> saveEbarimtConnection({
+    required String code,
+    bool printDocument = false,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final userId = await StorageService.getUserId();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      if (userId == null || baiguullagiinId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/ebarimtHavakh'),
+        headers: headers,
+        body: json.encode({
+          'orshinSuugchId': userId,
+          'baiguullagiinId': baiguullagiinId,
+          'code': code,
+          'printDocument': printDocument,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': 'E-barimt холболт амжилттай хадгалагдлаа',
+          'data': data,
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(
+          errorData['message']?.toString() ??
+              'E-barimt холболт хадгалахад алдаа гарлаа',
+        );
+      }
+    } catch (e) {
+      print('Error saving ebarimt connection: $e');
+      throw Exception('E-barimt холболт хадгалахад алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> checkPaymentStatus({
     required String invoiceId,
   }) async {
@@ -629,42 +1936,613 @@ class ApiService {
     }
   }
 
+  /// Create QPay invoice
+  /// Supports both Custom QPay (OWN_ORG) and Wallet QPay
+  /// Auto-detects based on presence of walletUserId/walletBairId
   static Future<Map<String, dynamic>> qpayGargaya({
-    required String baiguullagiinId,
-    required String barilgiinId,
+    String? baiguullagiinId, // For Custom QPay
+    String? barilgiinId, // For Custom QPay
+    String? walletUserId, // For Wallet QPay
+    String? walletBairId, // For Wallet QPay
     required double dun,
-    required String turul,
-    required String zakhialgiinDugaar,
-
-    required List<String> nekhemjlekhiinTuukh,
+    String? turul, // Optional for Wallet QPay
+    String? zakhialgiinDugaar, // Optional
+    String? nekhemjlekhiinId, // Single invoice ID (for Custom QPay)
+    String? dansniiDugaar, // Account number (for Custom QPay)
+    String? burtgeliinDugaar, // Registration number (for Custom QPay)
   }) async {
     try {
       final headers = await getAuthHeaders();
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/qpayGargaya'),
-        headers: headers,
-        body: json.encode({
-          'baiguullagiinId': baiguullagiinId,
-          'barilgiinId': barilgiinId,
-          'dun': dun,
-          'turul': turul,
-          'zakhialgiinDugaar': zakhialgiinDugaar,
+      // Build request body based on type (Custom QPay vs Wallet QPay)
+      final Map<String, dynamic> requestBody = {
+        'dun': dun.toString(), // Amount as string
+      };
 
-          'nekhemjlekhiinTuukh': nekhemjlekhiinTuukh,
-        }),
+      // Custom QPay (OWN_ORG) - requires baiguullagiinId
+      if (baiguullagiinId != null && barilgiinId != null) {
+        requestBody['baiguullagiinId'] = baiguullagiinId;
+        requestBody['barilgiinId'] = barilgiinId;
+
+        if (dansniiDugaar != null && dansniiDugaar.isNotEmpty) {
+          requestBody['dansniiDugaar'] = dansniiDugaar;
+        }
+
+        if (burtgeliinDugaar != null && burtgeliinDugaar.isNotEmpty) {
+          requestBody['burtgeliinDugaar'] = burtgeliinDugaar;
+        }
+
+        if (nekhemjlekhiinId != null && nekhemjlekhiinId.isNotEmpty) {
+          requestBody['nekhemjlekhiinId'] = nekhemjlekhiinId;
+        }
+
+        if (turul != null && turul.isNotEmpty) {
+          requestBody['turul'] = turul;
+        }
+
+        if (zakhialgiinDugaar != null && zakhialgiinDugaar.isNotEmpty) {
+          requestBody['zakhialgiinDugaar'] = zakhialgiinDugaar;
+        }
+      }
+      // Wallet QPay - DEPRECATED: Use createWalletQPayPayment() instead
+      // This old method with dun + walletUserId/walletBairId is no longer supported
+      // Wallet API QPay now requires billingId + billIds (see createWalletQPayPayment)
+      else if (walletUserId != null || walletBairId != null) {
+        throw Exception(
+          'Wallet API QPay энэ аргаар ажиллахгүй байна. '
+          'billingId + billIds ашиглах шаардлагатай. '
+          'createWalletQPayPayment() функцийг ашиглана уу.',
+        );
+      } else {
+        throw Exception('QPay төрөл тодорхойлогдоогүй байна');
+      }
+
+      final endpoint = '$baseUrl/qpayGargaya';
+      print('🔍 [QPAY] Calling OWN_ORG QPay endpoint: $endpoint');
+      print('🔍 [QPAY] Request body: ${json.encode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: headers,
+        body: json.encode(requestBody),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
-      } else {
+      print('🔍 [QPAY] Response status: ${response.statusCode}');
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        print(
+          '🔍 [QPAY] Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+        );
+      }
+
+      // Check if response is JSON before parsing
+      final contentType = response.headers['content-type'] ?? '';
+      final isJson =
+          contentType.contains('application/json') ||
+          (response.body.trim().startsWith('{') ||
+              response.body.trim().startsWith('['));
+
+      if (!isJson) {
+        // Server returned HTML or other non-JSON response
+        print(
+          'QPay API returned non-JSON response: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}',
+        );
         throw Exception(
-          'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+          'Сервер алдаатай хариу буцааллаа. Статус код: ${response.statusCode}',
+        );
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        Map<String, dynamic> responseData;
+        try {
+          responseData = json.decode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          print('Failed to parse QPay response as JSON: $e');
+          print(
+            'Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+          );
+          throw Exception('Серверийн хариуг уншихад алдаа гарлаа');
+        }
+
+        // Handle new response format: { "success": true, "data": { "invoice_id": "...", "qr_image": "..." } }
+        // For Wallet QPay: { "success": true, "data": { "qpayInvoiceId": "...", "qrText": "..." } }
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final data = responseData['data'];
+          return {
+            'invoice_id':
+                data['invoice_id']?.toString() ??
+                data['qpayInvoiceId']?.toString(),
+            'qr_image': data['qr_image']?.toString(),
+            'qrText': data['qrText']?.toString(), // For Wallet QPay
+            'urls': responseData['urls'], // Keep URLs if present
+          };
+        }
+        // Handle legacy format: { "invoice_id": "...", "qr_image": "..." }
+        return responseData;
+      } else {
+        // Try to parse error response
+        Map<String, dynamic>? errorBody;
+        try {
+          errorBody = json.decode(response.body) as Map<String, dynamic>?;
+        } catch (e) {
+          // If error response is not JSON, use status code
+          print('Failed to parse error response as JSON: $e');
+          throw Exception(
+            'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+          );
+        }
+        throw Exception(
+          errorBody?['message']?.toString() ??
+              'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
         );
       }
     } catch (e) {
       print('Error creating QPay payment: $e');
+      // Re-throw if it's already a formatted Exception
+      if (e is Exception) {
+        rethrow;
+      }
       throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  /// Create QPay payment for Wallet API
+  /// Endpoint: POST /qpay/qpayGargaya
+  /// Only for WALLET_API source
+  static Future<Map<String, dynamic>> createWalletQPayPayment({
+    required String billingId,
+    required List<String> billIds,
+    String? invoiceId, // Optional: use existing invoice
+    String vatReceiveType = 'CITIZEN', // 'CITIZEN' or 'COMPANY'
+    String? vatCompanyReg, // Optional, only if COMPANY
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      // Build request body
+      final Map<String, dynamic> requestBody;
+
+      if (invoiceId != null && invoiceId.isNotEmpty) {
+        // Option B: Use existing invoice
+        requestBody = {'invoiceId': invoiceId};
+      } else {
+        // Option A: Auto-create invoice (recommended)
+        requestBody = {
+          'billingId': billingId,
+          'billIds': billIds,
+          'vatReceiveType': vatReceiveType,
+        };
+
+        if (vatReceiveType == 'COMPANY' &&
+            vatCompanyReg != null &&
+            vatCompanyReg.isNotEmpty) {
+          requestBody['vatCompanyReg'] = vatCompanyReg;
+        }
+      }
+
+      final endpoint = '$baseUrl/qpayGargaya';
+      print('💳 [WALLET QPAY] Creating payment with billingId: $billingId');
+      print('💳 [WALLET QPAY] Bill IDs: $billIds');
+      print('💳 [WALLET QPAY] Calling Wallet QPay endpoint: $endpoint');
+      print('💳 [WALLET QPAY] Request body: ${json.encode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      print('💳 [WALLET QPAY] Response status: ${response.statusCode}');
+      print('💳 [WALLET QPAY] Response body length: ${response.body.length}');
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        print(
+          '❌ [WALLET QPAY] Error response: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+        );
+      } else {
+        print('✅ [WALLET QPAY] Success response received');
+        // Log first 500 chars of response for debugging
+        final responsePreview = response.body.length > 500
+            ? '${response.body.substring(0, 500)}...'
+            : response.body;
+        print('💳 [WALLET QPAY] Response preview: $responsePreview');
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        Map<String, dynamic> responseData;
+        try {
+          responseData = json.decode(response.body) as Map<String, dynamic>;
+          print('✅ [WALLET QPAY] Response: $responseData');
+        } catch (e) {
+          print('❌ [WALLET QPAY] Failed to parse response: $e');
+          print(
+            '❌ [WALLET QPAY] Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+          );
+          throw Exception('Серверийн хариуг уншихад алдаа гарлаа: $e');
+        }
+
+        // Handle success response format - check both 'success' and 'responseCode'
+        final isSuccess =
+            responseData['success'] == true ||
+            responseData['responseCode'] == true;
+
+        if (isSuccess) {
+          final data = responseData['data'] as Map<String, dynamic>?;
+
+          if (data != null) {
+            final qrText = data['qrText']?.toString();
+            final paymentId = data['paymentId']?.toString();
+            final paymentAmount = data['paymentAmount'];
+            String? receiverBankCode = data['receiverBankCode']?.toString();
+            String? receiverAccountNo = data['receiverAccountNo']?.toString();
+            String? receiverAccountName = data['receiverAccountName']
+                ?.toString();
+            final transactionDescrion = data['transactionDescrion']?.toString();
+
+            print('✅ [WALLET QPAY] Payment created!');
+            print('📱 [WALLET QPAY] Payment ID: $paymentId');
+            print('💰 [WALLET QPAY] Amount: $paymentAmount');
+            print('🏦 [WALLET QPAY] Bank Code: $receiverBankCode');
+            print('🏦 [WALLET QPAY] Account No: $receiverAccountNo');
+            print('🏦 [WALLET QPAY] Account Name: $receiverAccountName');
+
+            // If bank details are empty, fetch payment status to get full details
+            if ((receiverBankCode == null || receiverBankCode.isEmpty) ||
+                (receiverAccountNo == null || receiverAccountNo.isEmpty)) {
+              print(
+                '⚠️ [WALLET QPAY] Bank details empty, fetching payment status...',
+              );
+
+              if (paymentId != null) {
+                try {
+                  // Wait a moment for payment to be processed
+                  await Future.delayed(const Duration(milliseconds: 500));
+
+                  final paymentStatus = await getWalletPaymentStatus(
+                    paymentId: paymentId,
+                  );
+                  final statusData =
+                      paymentStatus['data'] as Map<String, dynamic>?;
+
+                  if (statusData != null) {
+                    // Try root level first
+                    receiverBankCode ??= statusData['receiverBankCode']
+                        ?.toString();
+                    receiverAccountNo ??= statusData['receiverAccountNo']
+                        ?.toString();
+                    receiverAccountName ??= statusData['receiverAccountName']
+                        ?.toString();
+
+                    // If still empty, try to get from lines
+                    if (receiverAccountNo == null ||
+                        receiverAccountNo.isEmpty) {
+                      final lines = statusData['lines'] as List<dynamic>?;
+                      if (lines != null && lines.isNotEmpty) {
+                        for (var line in lines) {
+                          final billTransactions =
+                              line['billTransactions'] as List<dynamic>?;
+                          if (billTransactions != null &&
+                              billTransactions.isNotEmpty) {
+                            final transaction =
+                                billTransactions.first as Map<String, dynamic>;
+                            receiverBankCode ??= transaction['receiverBankCode']
+                                ?.toString();
+                            receiverAccountNo ??=
+                                transaction['receiverAccountNo']?.toString();
+                            receiverAccountName ??=
+                                transaction['receiverAccountName']?.toString();
+                            if (receiverAccountNo != null &&
+                                receiverAccountNo.isNotEmpty) {
+                              break;
+                            }
+                          }
+                        }
+                      }
+                    }
+
+                    print(
+                      '🏦 [WALLET QPAY] After fetch - Bank Code: $receiverBankCode',
+                    );
+                    print(
+                      '🏦 [WALLET QPAY] After fetch - Account No: $receiverAccountNo',
+                    );
+                    print(
+                      '🏦 [WALLET QPAY] After fetch - Account Name: $receiverAccountName',
+                    );
+                  }
+                } catch (e) {
+                  print('⚠️ [WALLET QPAY] Error fetching payment status: $e');
+                }
+              }
+            }
+
+            // Generate QR code text if not provided
+            String? finalQrText = qrText;
+            if (finalQrText == null || finalQrText.isEmpty) {
+              // Generate QPay QR code from payment details
+              // Format: QPay QR code format with payment details
+              if (receiverAccountNo != null &&
+                  receiverAccountNo.isNotEmpty &&
+                  paymentAmount != null) {
+                // QPay QR format: bank code, account, amount, description
+                finalQrText = _generateQPayQRText(
+                  bankCode: receiverBankCode ?? '',
+                  accountNo: receiverAccountNo,
+                  amount: paymentAmount,
+                  description: transactionDescrion ?? '',
+                );
+                print(
+                  '📱 [WALLET QPAY] Generated QR code from payment details',
+                );
+              } else {
+                print(
+                  '⚠️ [WALLET QPAY] Cannot generate QR: missing accountNo or amount',
+                );
+              }
+            }
+
+            if (finalQrText != null) {
+              print(
+                '📱 [WALLET QPAY] QR Code: ${finalQrText.substring(0, finalQrText.length > 100 ? 100 : finalQrText.length)}...',
+              );
+            }
+
+            return {
+              'success': true,
+              'message':
+                  responseData['responseMessage']?.toString() ??
+                  responseData['message']?.toString() ??
+                  'QPay төлбөр амжилттай үүсгэлээ',
+              'source': responseData['source']?.toString() ?? 'WALLET_API',
+              'paymentId': paymentId,
+              'paymentAmount': paymentAmount,
+              'receiverBankCode': receiverBankCode,
+              'receiverAccountName': receiverAccountName,
+              'receiverAccountNo': receiverAccountNo,
+              'transactionDescrion': transactionDescrion,
+              'qrText': finalQrText, // Generated or from response
+              'qrImage': data['qrImage']?.toString(), // Optional: QR image URL
+              'invoiceId': responseData['invoiceId']
+                  ?.toString(), // Returned invoice ID
+            };
+          }
+        }
+
+        // Fallback: return raw response
+        final errorMsg =
+            responseData['responseMessage']?.toString() ??
+            responseData['message']?.toString() ??
+            'Unknown error';
+        print('⚠️ [WALLET QPAY] Response success flag is false: $errorMsg');
+        throw Exception(errorMsg);
+      } else {
+        // Try to parse error response
+        Map<String, dynamic>? errorBody;
+        try {
+          errorBody = json.decode(response.body) as Map<String, dynamic>?;
+        } catch (e) {
+          // If error response is not JSON, use status code
+        }
+
+        final errorMessage =
+            errorBody?['message']?.toString() ??
+            errorBody?['responseMsg']?.toString() ??
+            'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}';
+        final errorCode = errorBody?['error']?.toString();
+
+        // Handle "Bill already in invoice" error - check for existing payments
+        if (response.statusCode == 400 &&
+            (errorCode == 'BILL_ALREADY_IN_INVOICE' ||
+                errorMessage.contains(
+                  'өөр нэхэмжлэлээр төлөлт хийгдэж байна',
+                ))) {
+          print(
+            '⚠️ [WALLET QPAY] Bill already in invoice, checking for existing payments...',
+          );
+
+          try {
+            // Check for existing payments for this billing
+            final existingPayments = await getWalletBillingPayments(
+              billingId: billingId,
+            );
+
+            if (existingPayments.isNotEmpty) {
+              // Find payment that contains the selected billIds
+              for (var payment in existingPayments) {
+                final paymentBillIds = payment['billIds'] as List<dynamic>?;
+                if (paymentBillIds != null) {
+                  // Check if any of the selected billIds are in this payment
+                  final hasMatchingBills = billIds.any(
+                    (billId) =>
+                        paymentBillIds.any((pid) => pid.toString() == billId),
+                  );
+
+                  if (hasMatchingBills) {
+                    final paymentId = payment['paymentId']?.toString();
+                    if (paymentId != null) {
+                      print(
+                        '✅ [WALLET QPAY] Found existing payment: $paymentId',
+                      );
+
+                      // Get payment status to get bank details
+                      try {
+                        final paymentStatus = await getWalletPaymentStatus(
+                          paymentId: paymentId,
+                        );
+                        final paymentData =
+                            paymentStatus['data'] as Map<String, dynamic>?;
+
+                        if (paymentData != null) {
+                          // Extract bank details from payment status
+                          // First try root level (if payment is ready)
+                          String? receiverBankCode =
+                              paymentData['receiverBankCode']?.toString();
+                          String? receiverAccountNo =
+                              paymentData['receiverAccountNo']?.toString();
+                          String? receiverAccountName =
+                              paymentData['receiverAccountName']?.toString();
+                          final paymentAmount =
+                              paymentData['totalAmount'] ??
+                              paymentData['amount'] ??
+                              paymentData['paymentAmount'];
+
+                          // If not found at root, try to get from lines
+                          if (receiverAccountNo == null) {
+                            final lines =
+                                paymentData['lines'] as List<dynamic>?;
+                            if (lines != null && lines.isNotEmpty) {
+                              for (var line in lines) {
+                                final billTransactions =
+                                    line['billTransactions'] as List<dynamic>?;
+                                if (billTransactions != null &&
+                                    billTransactions.isNotEmpty) {
+                                  final transaction =
+                                      billTransactions.first
+                                          as Map<String, dynamic>;
+                                  receiverBankCode ??=
+                                      transaction['receiverBankCode']
+                                          ?.toString();
+                                  receiverAccountNo ??=
+                                      transaction['receiverAccountNo']
+                                          ?.toString();
+                                  receiverAccountName ??=
+                                      transaction['receiverAccountName']
+                                          ?.toString();
+                                  if (receiverAccountNo != null) break;
+                                }
+                              }
+                            }
+                          }
+
+                          // Generate QR code from payment details
+                          String? finalQrText;
+                          if (receiverAccountNo != null &&
+                              paymentAmount != null) {
+                            finalQrText = _generateQPayQRText(
+                              bankCode: receiverBankCode ?? '',
+                              accountNo: receiverAccountNo,
+                              amount: paymentAmount,
+                              description:
+                                  paymentData['transactionDescrion']
+                                      ?.toString() ??
+                                  paymentData['transactionDescription']
+                                      ?.toString() ??
+                                  '',
+                            );
+                            print(
+                              '📱 [WALLET QPAY] Generated QR code from existing payment',
+                            );
+                          } else {
+                            print(
+                              '⚠️ [WALLET QPAY] Cannot generate QR: missing accountNo or amount',
+                            );
+                          }
+
+                          return {
+                            'success': true,
+                            'message': 'Одоо байгаа төлбөрийн мэдээлэл',
+                            'source': 'WALLET_API',
+                            'paymentId': paymentId,
+                            'paymentAmount': paymentAmount,
+                            'receiverBankCode': receiverBankCode,
+                            'receiverAccountName': receiverAccountName,
+                            'receiverAccountNo': receiverAccountNo,
+                            'transactionDescrion':
+                                paymentData['transactionDescrion']
+                                    ?.toString() ??
+                                paymentData['transactionDescription']
+                                    ?.toString(),
+                            'qrText': finalQrText,
+                            'qrImage': null,
+                            'invoiceId': paymentData['invoiceId']?.toString(),
+                          };
+                        }
+                      } catch (e) {
+                        print(
+                          '⚠️ [WALLET QPAY] Error getting payment status: $e',
+                        );
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            print('⚠️ [WALLET QPAY] Error checking existing payments: $e');
+          }
+
+          // If no existing payment found, throw the original error
+          throw Exception(
+            '$errorMessage\n\nЭнэ биллийг өөр нэхэмжлэлээр төлөлт хийгдэж байна. Төлбөрийн түүхийг шалгана уу.',
+          );
+        }
+
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  /// Generate QPay QR code text from payment details
+  /// Format: QPay QR code string with bank code, account, amount, description
+  /// QPay QR format in Mongolia typically uses a structured string
+  static String _generateQPayQRText({
+    required String bankCode,
+    required String accountNo,
+    required dynamic amount,
+    required String description,
+  }) {
+    // QPay QR code format for Mongolia
+    // Common format: JSON string with payment details
+    // Format: {"bankCode":"XXX","account":"XXX","amount":XXX,"description":"XXX"}
+    final amountValue = amount is num
+        ? amount.toDouble()
+        : double.tryParse(amount.toString()) ?? 0.0;
+    final amountStr = amountValue.toStringAsFixed(2);
+
+    // Create JSON structure for QPay QR code
+    final qrData = {
+      'bankCode': bankCode,
+      'account': accountNo,
+      'amount': amountStr,
+      'description': description,
+    };
+
+    // Return as JSON string (QPay can parse this)
+    return json.encode(qrData);
+  }
+
+  /// Check Wallet payment status
+  /// Endpoint: GET /orshinSuugch/walletPayment/:paymentId
+  static Future<Map<String, dynamic>> getWalletPaymentStatus({
+    required String paymentId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/orshinSuugch/walletPayment/$paymentId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return data;
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          'Төлбөрийн статус авахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Төлбөрийн статус авахад алдаа гарлаа: $e');
     }
   }
 
@@ -698,18 +2576,23 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> fetchNekhemjlekhCron({
-    required String baiguullagiinId,
+    required String barilgiinId,
   }) async {
     try {
       final headers = await getAuthHeaders();
+      // Backend expects GET request with barilgiinId as query parameter
+      final uri = Uri.parse(
+        '$baseUrl/nekhemjlekhCron',
+      ).replace(queryParameters: {'barilgiinId': barilgiinId});
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/nekhemjlekhCron/$baiguullagiinId'),
-        headers: headers,
-      );
+      final response = await http.get(uri, headers: headers);
+
+      print('📅 [API] fetchNekhemjlekhCron GET $uri -> ${response.statusCode}');
+      print('📅 [API] fetchNekhemjlekhCron response body: ${response.body}');
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final data = json.decode(response.body);
+        return data;
       } else {
         throw Exception(
           'Нэхэмжлэхийн Cron мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
@@ -836,6 +2719,423 @@ class ApiService {
     } catch (e) {
       print('Error fetching ajiltan: $e');
       throw Exception('Ажилтны мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  // ============================================
+  // MEDEGDEL (Notifications) API Methods
+  // ============================================
+
+  static Future<Map<String, dynamic>> fetchMedegdel({
+    String? barilgiinId,
+  }) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      if (tukhainBaaziinKholbolt == 'amarSukh' ||
+          tukhainBaaziinKholbolt == null) {
+        try {
+          final userProfile = await getUserProfile();
+          if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
+            tukhainBaaziinKholbolt =
+                userProfile['result']['tukhainBaaziinKholbolt'].toString();
+            // Save it for future use
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(
+              'tukhain_baaziin_kholbolt',
+              tukhainBaaziinKholbolt,
+            );
+          }
+        } catch (e) {
+          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+        }
+      }
+
+      if (baiguullagiinId == null ||
+          tukhainBaaziinKholbolt == null ||
+          tukhainBaaziinKholbolt.isEmpty) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй. Та дахин нэвтэрнэ үү.');
+      }
+
+      final headers = await getAuthHeaders();
+
+      // Get current user ID for filtering notifications
+      final userId = await StorageService.getUserId();
+
+      // Build query parameters
+      // Note: Some APIs might not support turul filter, so we'll filter client-side
+      final queryParams = <String, String>{
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        // Try without turul first - filter client-side instead
+        // 'turul': 'мэдэгдэл',
+      };
+
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        queryParams['barilgiinId'] = barilgiinId;
+      }
+
+      // Add user ID filter to get only notifications for current user
+      if (userId != null && userId.isNotEmpty) {
+        queryParams['orshinSuugchId'] = userId;
+      }
+
+      // Ensure we're using the correct endpoint - construct URI explicitly
+      final endpoint = '/medegdel';
+      final uri = Uri.parse(
+        '$baseUrl$endpoint',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // Filter to only include notifications where turul = "app" or "мэдэгдэл"
+        // Also filter by userId as a fallback in case API doesn't filter properly
+        // (filtering client-side in case API doesn't support turul parameter)
+        if (data['data'] != null && data['data'] is List) {
+          final filteredData = (data['data'] as List).where((item) {
+            final turul = item['turul']?.toString().toLowerCase() ?? '';
+            // Accept "app" type, "мэдэгдэл" (notification), and "khariu" (reply) notifications
+            final matchesTurul =
+                turul == 'app' ||
+                turul == 'мэдэгдэл' ||
+                turul == 'medegdel' ||
+                turul == 'khariu' ||
+                turul == 'хариу' ||
+                turul == 'hariu';
+
+            // Also filter by userId as fallback (in case API doesn't filter properly)
+            // Allow notifications with null/empty orshinSuugchId (general/broadcast notifications)
+            // and also show notifications specifically for the current user
+            if (userId != null && userId.isNotEmpty) {
+              final itemUserId = item['orshinSuugchId']?.toString() ?? '';
+              // Show if: matches turul AND (no specific recipient OR recipient matches current user)
+              return matchesTurul &&
+                  (itemUserId.isEmpty || itemUserId == userId);
+            }
+
+            return matchesTurul;
+          }).toList();
+
+          data['data'] = filteredData;
+          if (data['count'] != null) {
+            data['count'] = filteredData.length;
+          }
+        }
+        return data;
+      } else if (response.statusCode == 400) {
+        // Handle 400 error - might be a backend validation issue
+        // Return empty data instead of throwing error
+        return {'success': true, 'data': <dynamic>[], 'count': 0};
+      } else {
+        // Try to get error message from response body
+        String errorMessage =
+            'Мэдэгдэл татахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
+          } else if (errorBody['aldaa'] != null) {
+            errorMessage = errorBody['aldaa'].toString();
+          }
+        } catch (_) {
+          // If parsing fails, use default message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Мэдэгдэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Get user's complaints and suggestions (Гомдол, Санал) for tracking progress
+  static Future<Map<String, dynamic>> fetchUserGomdolSanal({
+    String? barilgiinId,
+  }) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+      final userId = await StorageService.getUserId();
+
+      if (baiguullagiinId == null ||
+          tukhainBaaziinKholbolt == null ||
+          userId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+
+      final queryParams = <String, String>{
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'orshinSuugchId': userId,
+      };
+
+      if (barilgiinId != null) {
+        queryParams['barilgiinId'] = barilgiinId;
+      }
+
+      // Ensure we're using the correct endpoint - construct URI explicitly
+      final endpoint = '/medegdel';
+      final uri = Uri.parse(
+        '$baseUrl$endpoint',
+      ).replace(queryParameters: queryParams);
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['data'] != null) {
+          if (data['data'] is Map) {
+            // Handle single object response
+            final item = data['data'] as Map;
+            // Convert single object to array for consistency
+            data['data'] = [item];
+          }
+        } else {
+          data['data'] = [];
+        }
+
+        // Filter to only include "gomdol" and "sanal"
+        if (data['data'] != null && data['data'] is List) {
+          final filteredData = (data['data'] as List).where((item) {
+            final turul = item['turul']?.toString().toLowerCase() ?? '';
+            final matches = turul == 'gomdol' || turul == 'sanal';
+            return matches;
+          }).toList();
+          data['data'] = filteredData;
+          data['count'] = filteredData.length;
+        }
+        return data;
+      } else {
+        // Try to get error message from response body
+        String errorMessage =
+            'Гомдол, санал татахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
+          } else if (errorBody['aldaa'] != null) {
+            errorMessage = errorBody['aldaa'].toString();
+          }
+        } catch (_) {
+          // If parsing fails, use default message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception('Гомдол, санал татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Submit complaint or suggestion (Гомдол or Санал)
+  static Future<Map<String, dynamic>> submitGomdolSanal({
+    required String title,
+    required String message,
+    required String turul, // "gomdol" or "sanal"
+  }) async {
+    final turulLower = turul.toLowerCase();
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+      final userId = await StorageService.getUserId();
+
+      if (baiguullagiinId == null ||
+          tukhainBaaziinKholbolt == null ||
+          userId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      if (turulLower != 'gomdol' && turulLower != 'sanal') {
+        throw Exception(
+          'Буруу төрөл. Зөвхөн "gomdol" эсвэл "sanal" байх ёстой',
+        );
+      }
+
+      final headers = await getAuthHeaders();
+
+      final requestBody = {
+        'medeelel': {'title': title, 'body': message},
+        'orshinSuugchId': userId,
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'turul': turulLower, // Use lowercase version
+      };
+
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        requestBody['barilgiinId'] = barilgiinId;
+      }
+
+      // Debug logging
+      print('=== Submitting ${turul} ===');
+      print('Endpoint: /medegdelIlgeeye');
+      print('Request body: ${json.encode(requestBody)}');
+      print('tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt');
+
+      // Use /medegdelIlgeeye endpoint - this is the correct endpoint for creating notifications
+      // Note: This endpoint requires Firebase token, but we'll handle that error gracefully
+      final response = await http.post(
+        Uri.parse('$baseUrl/medegdelIlgeeye'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      // Debug response
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // The API returns "done" as a string, so we return a success response
+        final responseBody = response.body.trim();
+        if (responseBody.toLowerCase() == 'done' ||
+            responseBody.contains('success') ||
+            responseBody.isEmpty) {
+          return {
+            'success': true,
+            'message': turulLower == 'gomdol'
+                ? 'Гомдол амжилттай илгээгдлээ'
+                : 'Санал амжилттай илгээгдлээ',
+          };
+        }
+        // If response is JSON, try to parse it
+        try {
+          final data = json.decode(responseBody);
+          if (data['success'] == true || data['message'] != null) {
+            return {
+              'success': true,
+              'message': turulLower == 'gomdol'
+                  ? 'Гомдол амжилттай илгээгдлээ'
+                  : 'Санал амжилттай илгээгдлээ',
+            };
+          }
+        } catch (_) {
+          // If not JSON, assume success if status is 200
+        }
+        // Default success response
+        return {
+          'success': true,
+          'message': turulLower == 'gomdol'
+              ? 'Гомдол амжилттай илгээгдлээ'
+              : 'Санал амжилттай илгээгдлээ',
+        };
+      } else {
+        // Try to get error message from response body
+        String errorMessage =
+            '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа: ${response.statusCode}';
+        try {
+          // Check if response is HTML (404 error page)
+          if (response.body.contains('<!DOCTYPE html>') ||
+              response.body.contains('Cannot POST') ||
+              response.body.contains('Cannot GET')) {
+            errorMessage = 'Серверийн алдаа гарлаа. Дахин оролдоно уу.';
+          } else {
+            final errorBody = json.decode(response.body);
+            if (errorBody['message'] != null) {
+              errorMessage = errorBody['message'].toString();
+            } else if (errorBody['aldaa'] != null) {
+              errorMessage = errorBody['aldaa'].toString();
+            } else if (errorBody['error'] != null) {
+              errorMessage = errorBody['error'].toString();
+            }
+
+            // Handle Firebase token error with a user-friendly message
+            if (errorMessage.contains('Firebase token') ||
+                errorMessage.contains('firebaseToken')) {
+              errorMessage =
+                  'Мэдэгдэл илгээхэд алдаа гарлаа. Системийн тохиргоо шаардлагатай.';
+            }
+          }
+        } catch (_) {
+          // If response is not JSON, use the raw body if it's not empty
+          if (response.body.trim().isNotEmpty &&
+              !response.body.contains('<!DOCTYPE html>')) {
+            errorMessage = response.body.trim();
+          }
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception(
+        '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа: $e',
+      );
+    }
+  }
+
+  /// Mark notification as read
+  static Future<Map<String, dynamic>> markMedegdelAsRead(
+    String medegdelId,
+  ) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+
+      // Ensure Content-Type header is set
+      final requestHeaders = Map<String, String>.from(headers);
+      requestHeaders['Content-Type'] = 'application/json';
+
+      final requestBody = {
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'kharsanEsekh': true,
+      };
+
+      final url = '$baseUrl/medegdel/$medegdelId';
+
+      final response = await http.put(
+        Uri.parse(url),
+        headers: requestHeaders,
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        try {
+          final responseData = json.decode(response.body);
+          // Verify the response indicates success
+          if (responseData['success'] == true ||
+              (responseData['data'] != null &&
+                  responseData['data']['kharsanEsekh'] == true)) {
+            return responseData;
+          }
+          // If response doesn't have success flag, assume it worked if status is 200
+          return {'success': true, 'data': responseData};
+        } catch (e) {
+          // If response is not JSON, assume success if status is 200
+          return {'success': true};
+        }
+      } else {
+        String errorMessage =
+            'Мэдэгдэл тэмдэглэхэд алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorBody = json.decode(response.body);
+          if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
+          } else if (errorBody['aldaa'] != null) {
+            errorMessage = errorBody['aldaa'].toString();
+          }
+        } catch (_) {
+          // Use default error message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception('Мэдэгдэл тэмдэглэхэд алдаа гарлаа: $e');
     }
   }
 }

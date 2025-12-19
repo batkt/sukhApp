@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui';
+import 'package:sukh_app/widgets/optimized_glass.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -90,6 +91,29 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
           return;
         }
 
+        // Check if user has saved OWN_ORG address in storage
+        final savedSource = await StorageService.getWalletBairSource();
+        final savedBaiguullagiinId =
+            await StorageService.getWalletBairBaiguullagiinId();
+        final savedBarilgiinId =
+            await StorageService.getWalletBairBarilgiinId();
+        final savedBairId = await StorageService.getWalletBairId();
+        final savedDoorNo = await StorageService.getWalletDoorNo();
+
+        // Determine if this is OWN_ORG bair (from storage or registrationData)
+        final source = widget.registrationData?['source'] ?? savedSource;
+        final isOwnOrg = source == 'OWN_ORG';
+
+        // Use OWN_ORG IDs from storage if available, otherwise from registrationData
+        final finalBaiguullagiinId = isOwnOrg && savedBaiguullagiinId != null
+            ? savedBaiguullagiinId
+            : baiguullagiinId;
+        final finalBarilgiinId = isOwnOrg
+            ? (widget.registrationData?['barilgiinId'] ?? savedBarilgiinId)
+            : null;
+        final finalBairId = widget.registrationData?['bairId'] ?? savedBairId;
+        final finalDoorNo = widget.registrationData?['doorNo'] ?? savedDoorNo;
+
         final registrationPayload = {
           'utas': widget.registrationData?['utas'] ?? '',
           'nuutsUg': _passwordController.text,
@@ -98,12 +122,35 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
           'toot': widget.registrationData?['toot'] ?? '',
           'ovog': widget.registrationData?['ovog'] ?? '',
           'ner': widget.registrationData?['ner'] ?? '',
-          'baiguullagiinId': baiguullagiinId,
+          'baiguullagiinId': finalBaiguullagiinId,
           'duureg': widget.registrationData?['duureg'] ?? '',
           'horoo': widget.registrationData?['horoo'] ?? '',
           'soh': widget.registrationData?['soh'] ?? '',
           'register': widget.registrationData?['register'] ?? '',
         };
+
+        // Add OWN_ORG specific fields if this is OWN_ORG bair
+        if (isOwnOrg && finalBairId != null && finalBarilgiinId != null) {
+          registrationPayload['bairId'] = finalBairId;
+          registrationPayload['barilgiinId'] = finalBarilgiinId;
+          registrationPayload['baiguullagiinId'] = finalBaiguullagiinId;
+
+          // Optional but recommended for validation
+          if (widget.registrationData?['davkhar'] != null) {
+            registrationPayload['davkhar'] =
+                widget.registrationData?['davkhar'];
+          }
+          if (widget.registrationData?['orts'] != null) {
+            registrationPayload['orts'] = widget.registrationData?['orts'];
+          }
+        } else if (finalBairId != null) {
+          // Wallet API bair - just include bairId
+          registrationPayload['bairId'] = finalBairId;
+        }
+
+        if (finalDoorNo != null) {
+          registrationPayload['doorNo'] = finalDoorNo;
+        }
 
         final response = await ApiService.registerUser(registrationPayload);
 
@@ -269,25 +316,20 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
                 child: SafeArea(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(100),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
+                    child: OptimizedGlass(
+                      borderRadius: BorderRadius.circular(16),
+                      opacity: 0.12,
+                      child: IconButton(
+                        padding: const EdgeInsets.only(left: 7),
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
+                          size: 20,
                         ),
-                        child: IconButton(
-                          padding: const EdgeInsets.only(left: 7),
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(
-                            Icons.arrow_back_ios,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
                       ),
                     ),
                   ),
@@ -306,7 +348,15 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
       child: TextFormField(
         controller: _passwordController,
         obscureText: _obscurePassword,
-        style: TextStyle(color: Colors.white, fontSize: 16.sp),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: context.responsiveFontSize(
+            small: 16,
+            medium: 17,
+            large: 18,
+            tablet: 19,
+          ),
+        ),
         keyboardType: TextInputType.number,
         maxLength: 4,
         inputFormatters: [
@@ -353,7 +403,12 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
         obscureText: _obscureConfirmPassword,
         style: TextStyle(
           color: Colors.white,
-          fontSize: 16.sp, // 👈 use .sp for responsive font size
+          fontSize: context.responsiveFontSize(
+            small: 16,
+            medium: 17,
+            large: 18,
+            tablet: 19,
+          ),
         ),
         keyboardType: TextInputType.number,
         maxLength: 4,
@@ -432,7 +487,17 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                   ),
                 )
-              : Text('Бүртгүүлэх', style: TextStyle(fontSize: 14.sp)),
+              : Text(
+                  'Бүртгүүлэх',
+                  style: TextStyle(
+                    fontSize: context.responsiveFontSize(
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 17,
+                    ),
+                  ),
+                ),
         ),
       ),
     );

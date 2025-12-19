@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz_data;
 
 /// NotificationService - Handles local notifications
 ///
@@ -22,6 +24,9 @@ class NotificationService {
     }
 
     _initCompleter = Completer<void>();
+
+    // Initialize timezone data for scheduled notifications
+    tz_data.initializeTimeZones();
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -165,5 +170,50 @@ class NotificationService {
   /// Cancel a specific notification
   static Future<void> cancel(int id) async {
     await _notifications.cancel(id);
+  }
+
+  /// Schedule a session expiry notification
+  /// This will fire even when the app is closed
+  static Future<void> scheduleSessionExpiryNotification(
+    DateTime scheduledDate,
+  ) async {
+    // Cancel any existing scheduled notification first
+    await cancel(0);
+
+    const androidDetails = AndroidNotificationDetails(
+      'session_channel',
+      'Нэвтрэлтийн мэдэгдэл',
+      channelDescription: 'Таны нэвтрэлтийн хугацаа дууслаа!',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // Schedule the notification
+    await _notifications.zonedSchedule(
+      0,
+      'Нэвтрэлтийн хугацаа дууссан',
+      'Таны нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.',
+      _convertToTZDateTime(scheduledDate),
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: 'session_expired',
+    );
+  }
+
+  /// Convert DateTime to TZDateTime for scheduling
+  static tz.TZDateTime _convertToTZDateTime(DateTime dateTime) {
+    return tz.TZDateTime.from(dateTime, tz.local);
   }
 }
