@@ -302,15 +302,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final orderNumber = 'TEST-$timestamp';
 
-      // Check if user has both OWN_ORG and WALLET addresses
+      // Check if user has OWN_ORG address
       final ownOrgBaiguullagiinId = await StorageService.getBaiguullagiinId();
       final ownOrgBarilgiinId = await StorageService.getBarilgiinId();
-      final walletBairId = await StorageService.getWalletBairId();
-      final walletSource = await StorageService.getWalletBairSource();
 
       final hasOwnOrg =
           ownOrgBaiguullagiinId != null && ownOrgBarilgiinId != null;
-      final hasWallet = walletBairId != null && walletSource == 'WALLET_API';
 
       // Get invoice details for Custom QPay (dansniiDugaar and burtgeliinDugaar)
       String? dansniiDugaar;
@@ -744,6 +741,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 medium: 24,
                 large: 28,
                 tablet: 32,
+                veryNarrow: 14,
               ),
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
@@ -762,6 +760,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       medium: 26,
                       large: 28,
                       tablet: 30,
+                      veryNarrow: 18,
                     ),
                   ),
                   opacity: 0.10,
@@ -793,18 +792,20 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         ),
                       ],
                     ),
-                    padding: context.responsivePadding(
-                      small: 24,
-                      medium: 26,
-                      large: 28,
-                      tablet: 30,
-                    ),
+                      padding: context.responsivePadding(
+                        small: 24,
+                        medium: 26,
+                        large: 28,
+                        tablet: 30,
+                        veryNarrow: 18,
+                      ),
                     child: Container(
                       padding: context.responsivePadding(
                         small: 20,
                         medium: 22,
                         large: 24,
                         tablet: 26,
+                        veryNarrow: 14,
                       ),
                       decoration: BoxDecoration(
                         color: context.cardBackgroundColor,
@@ -814,6 +815,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             medium: 14,
                             large: 16,
                             tablet: 18,
+                            veryNarrow: 10,
                           ),
                         ),
                         border: Border.all(
@@ -841,6 +843,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                   medium: 22,
                                   large: 24,
                                   tablet: 26,
+                                  veryNarrow: 18,
                                 ),
                               ),
                             ],
@@ -851,6 +854,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               medium: 10,
                               large: 12,
                               tablet: 14,
+                              veryNarrow: 6,
                             ),
                           ),
                           // Message
@@ -862,6 +866,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 medium: 15,
                                 large: 16,
                                 tablet: 17,
+                                veryNarrow: 12,
                               ),
                               fontWeight: FontWeight.w500,
                               color: context.textPrimaryColor,
@@ -875,6 +880,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               medium: 18,
                               large: 20,
                               tablet: 22,
+                              veryNarrow: 12,
                             ),
                           ),
                           // Phone number label
@@ -886,6 +892,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 medium: 13,
                                 large: 14,
                                 tablet: 15,
+                                veryNarrow: 11,
                               ),
                               fontWeight: FontWeight.w500,
                               color: context.textSecondaryColor,
@@ -898,6 +905,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               medium: 10,
                               large: 12,
                               tablet: 14,
+                              veryNarrow: 6,
                             ),
                           ),
                           if (suhUtas.isNotEmpty) ...[
@@ -960,7 +968,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                     );
                                   }
                                 },
-                                icon: Icon(Icons.phone_rounded, size: 18.sp),
+                                icon: Icon(
+                                  Icons.phone_rounded,
+                                  size: context.responsiveIconSize(
+                                    small: 18,
+                                    medium: 20,
+                                    large: 22,
+                                    tablet: 24,
+                                    veryNarrow: 16,
+                                  ),
+                                ),
                                 label: Text(
                                   'Залгах',
                                   style: TextStyle(
@@ -971,9 +988,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.deepGreen,
                                   foregroundColor: context.textPrimaryColor,
-                                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: context.responsiveSpacing(
+                                      small: 12,
+                                      medium: 14,
+                                      large: 16,
+                                      tablet: 18,
+                                      veryNarrow: 10,
+                                    ),
+                                  ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10.w),
+                                    borderRadius: BorderRadius.circular(
+                                      context.responsiveBorderRadius(
+                                        small: 10,
+                                        medium: 12,
+                                        large: 14,
+                                        tablet: 16,
+                                        veryNarrow: 8,
+                                      ),
+                                    ),
                                   ),
                                   elevation: 0,
                                 ),
@@ -984,7 +1017,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             Text(
                               '.............',
                               style: TextStyle(
-                                fontSize: 16.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 16,
+                                  medium: 17,
+                                  large: 18,
+                                  tablet: 19,
+                                  veryNarrow: 14,
+                                ),
                                 fontWeight: FontWeight.bold,
                                 color: context.textSecondaryColor.withOpacity(
                                   0.4,
@@ -993,11 +1032,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            SizedBox(height: 6.h),
+                            SizedBox(
+                              height: context.responsiveSpacing(
+                                small: 6,
+                                medium: 8,
+                                large: 10,
+                                tablet: 12,
+                                veryNarrow: 4,
+                              ),
+                            ),
                             Text(
                               'Утасны дугаар олдсонгүй',
                               style: TextStyle(
-                                fontSize: 11.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 11,
+                                  medium: 12,
+                                  large: 13,
+                                  tablet: 14,
+                                  veryNarrow: 10,
+                                ),
                                 color: context.textSecondaryColor,
                               ),
                             ),
@@ -1098,31 +1151,97 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           decoration: BoxDecoration(
             color: context.cardBackgroundColor,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30.w),
-              topRight: Radius.circular(30.w),
+              topLeft: Radius.circular(
+                context.responsiveBorderRadius(
+                  small: 30,
+                  medium: 32,
+                  large: 34,
+                  tablet: 36,
+                  veryNarrow: 24,
+                ),
+              ),
+              topRight: Radius.circular(
+                context.responsiveBorderRadius(
+                  small: 30,
+                  medium: 32,
+                  large: 34,
+                  tablet: 36,
+                  veryNarrow: 24,
+                ),
+              ),
             ),
           ),
           child: OptimizedGlass(
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(30.w),
-              topRight: Radius.circular(30.w),
+              topLeft: Radius.circular(
+                context.responsiveBorderRadius(
+                  small: 30,
+                  medium: 32,
+                  large: 34,
+                  tablet: 36,
+                  veryNarrow: 24,
+                ),
+              ),
+              topRight: Radius.circular(
+                context.responsiveBorderRadius(
+                  small: 30,
+                  medium: 32,
+                  large: 34,
+                  tablet: 36,
+                  veryNarrow: 24,
+                ),
+              ),
             ),
             opacity: 0.08,
             child: Column(
               children: [
                 // Handle bar
                 Container(
-                  margin: EdgeInsets.only(top: 12.h),
-                  width: 40.w,
-                  height: 4.h,
+                  margin: EdgeInsets.only(
+                    top: context.responsiveSpacing(
+                      small: 12,
+                      medium: 14,
+                      large: 16,
+                      tablet: 18,
+                      veryNarrow: 8,
+                    ),
+                  ),
+                  width: context.responsiveSpacing(
+                    small: 40,
+                    medium: 44,
+                    large: 48,
+                    tablet: 52,
+                    veryNarrow: 32,
+                  ),
+                  height: context.responsiveSpacing(
+                    small: 4,
+                    medium: 5,
+                    large: 6,
+                    tablet: 7,
+                    veryNarrow: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: context.borderColor,
-                    borderRadius: BorderRadius.circular(2.w),
+                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 2,
+                        medium: 3,
+                        large: 4,
+                        tablet: 5,
+                        veryNarrow: 1,
+                      ),
+                    ),
                   ),
                 ),
                 // Header
                 Padding(
-                  padding: EdgeInsets.all(20.w),
+                  padding: context.responsivePadding(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 26,
+                    veryNarrow: 14,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1131,7 +1250,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           'Төлбөр баталгаажуулах',
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 24.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 24,
+                              medium: 26,
+                              large: 28,
+                              tablet: 30,
+                              veryNarrow: 20,
+                            ),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1140,7 +1265,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                         icon: Icon(
                           Icons.close,
                           color: context.textPrimaryColor,
-                          size: 24.sp,
+                          size: context.responsiveIconSize(
+                            small: 24,
+                            medium: 26,
+                            large: 28,
+                            tablet: 30,
+                            veryNarrow: 20,
+                          ),
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
@@ -1149,27 +1280,77 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 ),
                 // Bank logo and info
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.responsiveSpacing(
+                      small: 20,
+                      medium: 22,
+                      large: 24,
+                      tablet: 26,
+                      veryNarrow: 14,
+                    ),
+                  ),
                   child: Container(
-                    padding: EdgeInsets.all(20.w),
+                    padding: context.responsivePadding(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 26,
+                    veryNarrow: 14,
+                  ),
                     decoration: BoxDecoration(
                       color: context.accentBackgroundColor,
-                      borderRadius: BorderRadius.circular(20.w),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 26,
+                          veryNarrow: 16,
+                        ),
+                      ),
                       border: Border.all(color: context.borderColor, width: 1),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 60.w,
-                          height: 60.w,
+                          width: context.responsiveSpacing(
+                            small: 60,
+                            medium: 64,
+                            large: 68,
+                            tablet: 72,
+                            veryNarrow: 48,
+                          ),
+                          height: context.responsiveSpacing(
+                            small: 60,
+                            medium: 64,
+                            large: 68,
+                            tablet: 72,
+                            veryNarrow: 48,
+                          ),
                           decoration: BoxDecoration(
                             color: context.isDarkMode
                                 ? Colors.white
                                 : AppColors.lightSurface,
-                            borderRadius: BorderRadius.circular(8.w),
+                            borderRadius: BorderRadius.circular(
+                              context.responsiveBorderRadius(
+                                small: 8,
+                                medium: 10,
+                                large: 12,
+                                tablet: 14,
+                                veryNarrow: 6,
+                              ),
+                            ),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.w),
+                            borderRadius: BorderRadius.circular(
+                              context.responsiveBorderRadius(
+                                small: 8,
+                                medium: 10,
+                                large: 12,
+                                tablet: 14,
+                                veryNarrow: 6,
+                              ),
+                            ),
                             child: Image.network(
                               bank.logo,
                               fit: BoxFit.cover,
@@ -1177,13 +1358,27 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                 return Icon(
                                   Icons.account_balance,
                                   color: context.textSecondaryColor,
-                                  size: 30.sp,
+                                  size: context.responsiveIconSize(
+                                    small: 30,
+                                    medium: 32,
+                                    large: 34,
+                                    tablet: 36,
+                                    veryNarrow: 24,
+                                  ),
                                 );
                               },
                             ),
                           ),
                         ),
-                        SizedBox(width: 16.w),
+                        SizedBox(
+                          width: context.responsiveSpacing(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         Expanded(
                           child: Text(
                             bank.description,
@@ -1201,7 +1396,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 const Spacer(),
                 // Check payment button
                 Padding(
-                  padding: EdgeInsets.all(20.w),
+                  padding: context.responsivePadding(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 26,
+                    veryNarrow: 14,
+                  ),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -1476,10 +1677,24 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           child: Container(
             decoration: BoxDecoration(
               color: context.cardBackgroundColor,
-              borderRadius: BorderRadius.circular(20.w),
+              borderRadius: BorderRadius.circular(
+              context.responsiveBorderRadius(
+                small: 20,
+                medium: 22,
+                large: 24,
+                tablet: 26,
+                veryNarrow: 16,
+              ),
+            ),
               border: Border.all(color: context.borderColor, width: 1),
             ),
-            padding: EdgeInsets.all(20.w),
+            padding: context.responsivePadding(
+              small: 20,
+              medium: 22,
+              large: 24,
+              tablet: 26,
+              veryNarrow: 14,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1489,11 +1704,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       : 'QPay хэтэвч QR код',
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 20.sp,
+                    fontSize: context.responsiveFontSize(
+                      small: 20,
+                      medium: 22,
+                      large: 24,
+                      tablet: 26,
+                      veryNarrow: 18,
+                    ),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 20,
+                    medium: 24,
+                    large: 28,
+                    tablet: 32,
+                    veryNarrow: 14,
+                  ),
+                ),
                 // Show 2 QR codes side by side if both exist, otherwise show single
                 if (hasOwnOrg && hasWallet)
                   Row(
@@ -1507,30 +1736,78 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               'OWN_ORG',
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 12.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  tablet: 15,
+                                  veryNarrow: 10,
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            SizedBox(height: 8.h),
+                            SizedBox(
+                              height: context.responsiveSpacing(
+                                small: 8,
+                                medium: 10,
+                                large: 12,
+                                tablet: 14,
+                                veryNarrow: 6,
+                              ),
+                            ),
                             Container(
-                              padding: EdgeInsets.all(12.w),
+                              padding: context.responsivePadding(
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 10,
+                              ),
                               decoration: BoxDecoration(
                                 color: context.isDarkMode
                                     ? Colors.white
                                     : AppColors.lightSurface,
-                                borderRadius: BorderRadius.circular(12.w),
+                                borderRadius: BorderRadius.circular(
+                                  context.responsiveBorderRadius(
+                                    small: 12,
+                                    medium: 14,
+                                    large: 16,
+                                    tablet: 18,
+                                    veryNarrow: 10,
+                                  ),
+                                ),
                               ),
                               child: Image.memory(
                                 base64Decode(qpayQrImageOwnOrg!),
-                                width: 150.w,
-                                height: 150.w,
+                                width: context.responsiveSpacing(
+                                  small: 150,
+                                  medium: 160,
+                                  large: 170,
+                                  tablet: 180,
+                                  veryNarrow: 120,
+                                ),
+                                height: context.responsiveSpacing(
+                                  small: 150,
+                                  medium: 160,
+                                  large: 170,
+                                  tablet: 180,
+                                  veryNarrow: 120,
+                                ),
                                 fit: BoxFit.contain,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(width: 16.w),
+                      SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 22,
+                          veryNarrow: 12,
+                        ),
+                      ),
                       // WALLET QR
                       Expanded(
                         child: Column(
@@ -1539,23 +1816,63 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               'WALLET',
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 12.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  tablet: 15,
+                                  veryNarrow: 10,
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            SizedBox(height: 8.h),
+                            SizedBox(
+                              height: context.responsiveSpacing(
+                                small: 8,
+                                medium: 10,
+                                large: 12,
+                                tablet: 14,
+                                veryNarrow: 6,
+                              ),
+                            ),
                             Container(
-                              padding: EdgeInsets.all(12.w),
+                              padding: context.responsivePadding(
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 10,
+                              ),
                               decoration: BoxDecoration(
                                 color: context.isDarkMode
                                     ? Colors.white
                                     : AppColors.lightSurface,
-                                borderRadius: BorderRadius.circular(12.w),
+                                borderRadius: BorderRadius.circular(
+                                  context.responsiveBorderRadius(
+                                    small: 12,
+                                    medium: 14,
+                                    large: 16,
+                                    tablet: 18,
+                                    veryNarrow: 10,
+                                  ),
+                                ),
                               ),
                               child: Image.memory(
                                 base64Decode(qpayQrImageWallet!),
-                                width: 150.w,
-                                height: 150.w,
+                                width: context.responsiveSpacing(
+                                  small: 150,
+                                  medium: 160,
+                                  large: 170,
+                                  tablet: 180,
+                                  veryNarrow: 120,
+                                ),
+                                height: context.responsiveSpacing(
+                                  small: 150,
+                                  medium: 160,
+                                  large: 170,
+                                  tablet: 180,
+                                  veryNarrow: 120,
+                                ),
                                 fit: BoxFit.contain,
                               ),
                             ),
@@ -1567,32 +1884,80 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 else
                   // Single QR code
                   Container(
-                    padding: EdgeInsets.all(16.w),
+                    padding: context.responsivePadding(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: context.isDarkMode
                           ? Colors.white
                           : AppColors.lightSurface,
-                      borderRadius: BorderRadius.circular(12.w),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 12,
+                          medium: 14,
+                          large: 16,
+                          tablet: 18,
+                          veryNarrow: 10,
+                        ),
+                      ),
                     ),
                     child: Image.memory(
                       base64Decode(
                         hasOwnOrg ? qpayQrImageOwnOrg! : qpayQrImageWallet!,
                       ),
-                      width: 250.w,
-                      height: 250.w,
+                      width: context.responsiveSpacing(
+                        small: 250,
+                        medium: 260,
+                        large: 270,
+                        tablet: 280,
+                        veryNarrow: 200,
+                      ),
+                      height: context.responsiveSpacing(
+                        small: 250,
+                        medium: 260,
+                        large: 270,
+                        tablet: 280,
+                        veryNarrow: 200,
+                      ),
                       fit: BoxFit.contain,
                     ),
                   ),
-                SizedBox(height: 20.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 20,
+                    medium: 24,
+                    large: 28,
+                    tablet: 32,
+                    veryNarrow: 14,
+                  ),
+                ),
                 Text(
                   'QPay апп-аараа QR кодыг уншуулна уу',
                   style: TextStyle(
                     color: context.textSecondaryColor,
-                    fontSize: 14.sp,
+                    fontSize: context.responsiveFontSize(
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 17,
+                      veryNarrow: 12,
+                    ),
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 20,
+                    medium: 24,
+                    large: 28,
+                    tablet: 32,
+                    veryNarrow: 14,
+                  ),
+                ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -1602,17 +1967,43 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     backgroundColor: AppColors.deepGreen,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(
-                      vertical: 12.h,
-                      horizontal: 40.w,
+                      vertical: context.responsiveSpacing(
+                        small: 12,
+                        medium: 14,
+                        large: 16,
+                        tablet: 18,
+                        veryNarrow: 10,
+                      ),
+                      horizontal: context.responsiveSpacing(
+                        small: 40,
+                        medium: 44,
+                        large: 48,
+                        tablet: 52,
+                        veryNarrow: 30,
+                      ),
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100.r),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 100,
+                          medium: 100,
+                          large: 100,
+                          tablet: 100,
+                          veryNarrow: 80,
+                        ),
+                      ),
                     ),
                   ),
                   child: Text(
                     'Төлбөр шалгах',
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontSize: context.responsiveFontSize(
+                        small: 16,
+                        medium: 17,
+                        large: 18,
+                        tablet: 19,
+                        veryNarrow: 14,
+                      ),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1914,7 +2305,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     : errorMessage != null
                     ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(20.w),
+                          padding: context.responsivePadding(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 26,
+                    veryNarrow: 14,
+                  ),
                           child: OptimizedGlass(
                             borderRadius: BorderRadius.circular(22.r),
                             opacity: 0.10,
@@ -1993,7 +2390,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                   ? _showPaymentModal
                                   : null,
                             ),
-                          SizedBox(height: 8.h),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 8,
+                              medium: 10,
+                              large: 12,
+                              tablet: 14,
+                              veryNarrow: 6,
+                            ),
+                          ),
                           // Scrollable invoice list
                           Expanded(
                             child: () {
@@ -2002,17 +2407,43 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               if (filteredInvoices.isEmpty) {
                                 return Center(
                                   child: Padding(
-                                    padding: EdgeInsets.all(20.w),
+                                    padding: context.responsivePadding(
+                                      small: 20,
+                                      medium: 22,
+                                      large: 24,
+                                      tablet: 26,
+                                      veryNarrow: 14,
+                                    ),
                                     child: OptimizedGlass(
-                                      borderRadius: BorderRadius.circular(22.r),
+                                      borderRadius: BorderRadius.circular(
+                                        context.responsiveBorderRadius(
+                                          small: 22,
+                                          medium: 24,
+                                          large: 26,
+                                          tablet: 28,
+                                          veryNarrow: 18,
+                                        ),
+                                      ),
                                       opacity: 0.10,
                                       child: Padding(
-                                        padding: EdgeInsets.all(24.w),
+                                        padding: context.responsivePadding(
+                                          small: 24,
+                                          medium: 26,
+                                          large: 28,
+                                          tablet: 30,
+                                          veryNarrow: 18,
+                                        ),
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Container(
-                                              padding: EdgeInsets.all(24.w),
+                                              padding: context.responsivePadding(
+                                                small: 24,
+                                                medium: 26,
+                                                large: 28,
+                                                tablet: 30,
+                                                veryNarrow: 18,
+                                              ),
                                               decoration: BoxDecoration(
                                                 color: context
                                                     .accentBackgroundColor,
@@ -2023,24 +2454,52 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                     ? Icons.history_rounded
                                                     : Icons
                                                           .receipt_long_rounded,
-                                                size: 48.sp,
+                                                size: context.responsiveIconSize(
+                                                  small: 48,
+                                                  medium: 52,
+                                                  large: 56,
+                                                  tablet: 60,
+                                                  veryNarrow: 40,
+                                                ),
                                                 color:
                                                     context.textSecondaryColor,
                                               ),
                                             ),
-                                            SizedBox(height: 24.h),
+                                            SizedBox(
+                                              height: context.responsiveSpacing(
+                                                small: 24,
+                                                medium: 28,
+                                                large: 32,
+                                                tablet: 36,
+                                                veryNarrow: 18,
+                                              ),
+                                            ),
                                             Text(
                                               selectedFilter == 'Paid'
                                                   ? 'Төлөгдсөн нэхэмжлэл байхгүй'
                                                   : 'Одоогоор нэхэмжлэл байхгүй',
                                               style: TextStyle(
                                                 color: context.textPrimaryColor,
-                                                fontSize: 18.sp,
+                                                fontSize: context.responsiveFontSize(
+                                                  small: 18,
+                                                  medium: 20,
+                                                  large: 22,
+                                                  tablet: 24,
+                                                  veryNarrow: 16,
+                                                ),
                                                 fontWeight: FontWeight.w600,
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
-                                            SizedBox(height: 8.h),
+                                            SizedBox(
+                                              height: context.responsiveSpacing(
+                                                small: 8,
+                                                medium: 10,
+                                                large: 12,
+                                                tablet: 14,
+                                                veryNarrow: 6,
+                                              ),
+                                            ),
                                             Text(
                                               selectedFilter == 'Paid'
                                                   ? 'Төлөгдсөн нэхэмжлэлийн түүх энд харагдана'
@@ -2048,7 +2507,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               style: TextStyle(
                                                 color:
                                                     context.textSecondaryColor,
-                                                fontSize: 14.sp,
+                                                fontSize: context.responsiveFontSize(
+                                                  small: 14,
+                                                  medium: 15,
+                                                  large: 16,
+                                                  tablet: 17,
+                                                  veryNarrow: 12,
+                                                ),
                                               ),
                                               textAlign: TextAlign.center,
                                             ),

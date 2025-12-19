@@ -8,6 +8,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/services/session_service.dart';
 
 class PhoneVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -264,10 +265,15 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvoked: (didPop) async {
         if (didPop) return;
-        // Always return false to go back to login screen
-        context.pop(false);
+        // Clear auth data when user presses back - token was saved during login
+        // but verification was cancelled, so we need to logout
+        await SessionService.logout();
+        // Return false to go back to login screen
+        if (mounted) {
+          context.pop(false);
+        }
       },
       child: Scaffold(
         backgroundColor: isDark
@@ -281,10 +287,15 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
               Icons.arrow_back,
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
             ),
-            onPressed: () {
+            onPressed: () async {
+              // Clear auth data when user presses back - token was saved during login
+              // but verification was cancelled, so we need to logout
+              await SessionService.logout();
               // Return false to indicate verification was cancelled
               // This will keep user on login screen
-              context.pop(false);
+              if (mounted) {
+                context.pop(false);
+              }
             },
           ),
           title: Text(

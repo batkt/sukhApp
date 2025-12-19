@@ -45,6 +45,7 @@ class _SideMenuState extends State<SideMenu> {
               medium: 26,
               large: 28,
               tablet: 30,
+              veryNarrow: 16,
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -59,6 +60,7 @@ class _SideMenuState extends State<SideMenu> {
                   medium: 26,
                   large: 28,
                   tablet: 30,
+                  veryNarrow: 18,
                 ),
               ),
               boxShadow: [
@@ -92,6 +94,7 @@ class _SideMenuState extends State<SideMenu> {
                       medium: 22,
                       large: 24,
                       tablet: 26,
+                      veryNarrow: 16,
                     ),
                     fontWeight: FontWeight.bold,
                   ),
@@ -102,6 +105,7 @@ class _SideMenuState extends State<SideMenu> {
                     medium: 18,
                     large: 20,
                     tablet: 22,
+                    veryNarrow: 12,
                   ),
                 ),
 
@@ -116,6 +120,7 @@ class _SideMenuState extends State<SideMenu> {
                       medium: 15,
                       large: 16,
                       tablet: 17,
+                      veryNarrow: 12,
                     ),
                     height: 1.5,
                   ),
@@ -126,6 +131,7 @@ class _SideMenuState extends State<SideMenu> {
                     medium: 28,
                     large: 32,
                     tablet: 36,
+                    veryNarrow: 16,
                   ),
                 ),
 
@@ -145,6 +151,7 @@ class _SideMenuState extends State<SideMenu> {
                           medium: 16,
                           large: 18,
                           tablet: 20,
+                          veryNarrow: 12,
                         ),
                       ),
                       shape: RoundedRectangleBorder(
@@ -154,6 +161,7 @@ class _SideMenuState extends State<SideMenu> {
                             medium: 14,
                             large: 16,
                             tablet: 18,
+                            veryNarrow: 10,
                           ),
                         ),
                       ),
@@ -167,6 +175,7 @@ class _SideMenuState extends State<SideMenu> {
                           medium: 17,
                           large: 18,
                           tablet: 19,
+                          veryNarrow: 14,
                         ),
                         fontWeight: FontWeight.bold,
                       ),
@@ -185,6 +194,11 @@ class _SideMenuState extends State<SideMenu> {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: context.backgroundColor,
+      width: context.isVeryNarrow
+          ? MediaQuery.of(context).size.width * 0.85
+          : context.isTablet || context.isLargeTablet
+          ? MediaQuery.of(context).size.width * 0.7
+          : null, // Use default width for medium screens
       child: Column(
         children: [
           // AppBar-like header with deep green background
@@ -197,6 +211,7 @@ class _SideMenuState extends State<SideMenu> {
                 medium: 18,
                 large: 20,
                 tablet: 22,
+                veryNarrow: 12,
               ),
             ),
             child: SafeArea(
@@ -207,6 +222,7 @@ class _SideMenuState extends State<SideMenu> {
                   medium: 18,
                   large: 20,
                   tablet: 22,
+                  veryNarrow: 12,
                 ),
                 child: Row(
                   children: [
@@ -216,24 +232,28 @@ class _SideMenuState extends State<SideMenu> {
                         medium: 44,
                         large: 48,
                         tablet: 52,
+                        veryNarrow: 32,
                       ),
                       maxHeight: context.responsiveSpacing(
                         small: 40,
                         medium: 44,
                         large: 48,
                         tablet: 52,
+                        veryNarrow: 32,
                       ),
                       minWidth: context.responsiveSpacing(
                         small: 40,
                         medium: 44,
                         large: 48,
                         tablet: 52,
+                        veryNarrow: 32,
                       ),
                       maxWidth: context.responsiveSpacing(
                         small: 40,
                         medium: 44,
                         large: 48,
                         tablet: 52,
+                        veryNarrow: 32,
                       ),
                       showImage: true,
                     ),
@@ -243,6 +263,7 @@ class _SideMenuState extends State<SideMenu> {
                         medium: 14,
                         large: 16,
                         tablet: 18,
+                        veryNarrow: 8,
                       ),
                     ),
                     Expanded(
@@ -255,9 +276,10 @@ class _SideMenuState extends State<SideMenu> {
                             medium: 26,
                             large: 28,
                             tablet: 30,
+                            veryNarrow: 18,
                           ),
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 2.0,
+                          letterSpacing: context.isVeryNarrow ? 1.0 : 2.0,
                           height: 1.2,
                         ),
                       ),
@@ -304,7 +326,9 @@ class _SideMenuState extends State<SideMenu> {
                               title: 'Хаяг сонгох',
                               onTap: () {
                                 Navigator.pop(context);
-                                context.push('/address_selection?fromMenu=true');
+                                context.push(
+                                  '/address_selection?fromMenu=true',
+                                );
                               },
                             ),
                           // Show contract / invoice / parking only for users
@@ -400,6 +424,7 @@ class _SideMenuState extends State<SideMenu> {
                                           medium: 18,
                                           large: 20,
                                           tablet: 22,
+                                          veryNarrow: 14,
                                         ),
                                       ),
                                       side: BorderSide(
@@ -416,6 +441,7 @@ class _SideMenuState extends State<SideMenu> {
                                           medium: 22,
                                           large: 24,
                                           tablet: 26,
+                                          veryNarrow: 18,
                                         ),
                                         fontWeight: FontWeight.w500,
                                         letterSpacing: 0.8,
@@ -430,6 +456,7 @@ class _SideMenuState extends State<SideMenu> {
                                           medium: 17,
                                           large: 18,
                                           tablet: 19,
+                                          veryNarrow: 14,
                                         ),
                                       ),
                                     ),
@@ -444,12 +471,14 @@ class _SideMenuState extends State<SideMenu> {
                                           'Үгүй',
                                           style: TextStyle(
                                             color: context.textSecondaryColor,
-                                            fontSize: context.responsiveFontSize(
-                                              small: 16,
-                                              medium: 17,
-                                              large: 18,
-                                              tablet: 19,
-                                            ),
+                                            fontSize: context
+                                                .responsiveFontSize(
+                                                  small: 16,
+                                                  medium: 17,
+                                                  large: 18,
+                                                  tablet: 19,
+                                                  veryNarrow: 14,
+                                                ),
                                           ),
                                         ),
                                       ),
@@ -461,12 +490,14 @@ class _SideMenuState extends State<SideMenu> {
                                           'Тийм',
                                           style: TextStyle(
                                             color: Colors.red,
-                                            fontSize: context.responsiveFontSize(
-                                              small: 16,
-                                              medium: 17,
-                                              large: 18,
-                                              tablet: 19,
-                                            ),
+                                            fontSize: context
+                                                .responsiveFontSize(
+                                                  small: 16,
+                                                  medium: 17,
+                                                  large: 18,
+                                                  tablet: 19,
+                                                  veryNarrow: 14,
+                                                ),
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -499,6 +530,7 @@ class _SideMenuState extends State<SideMenu> {
                       medium: 12,
                       large: 14,
                       tablet: 16,
+                      veryNarrow: 8,
                     ),
                   ),
                   // Footer stays at the bottom
@@ -509,12 +541,14 @@ class _SideMenuState extends State<SideMenu> {
                         medium: 6,
                         large: 7,
                         tablet: 8,
+                        veryNarrow: 4,
                       ),
                       top: context.responsiveSpacing(
                         small: 10,
                         medium: 12,
                         large: 14,
                         tablet: 16,
+                        veryNarrow: 8,
                       ),
                     ),
                     child: Text(
@@ -525,6 +559,7 @@ class _SideMenuState extends State<SideMenu> {
                           medium: 13,
                           large: 14,
                           tablet: 15,
+                          veryNarrow: 10,
                         ),
                         color: context.textSecondaryColor,
                       ),
@@ -537,6 +572,7 @@ class _SideMenuState extends State<SideMenu> {
                       medium: 24,
                       large: 28,
                       tablet: 32,
+                      veryNarrow: 16,
                     ),
                   ),
                 ],
@@ -574,6 +610,7 @@ class _SideMenuState extends State<SideMenu> {
             medium: 10,
             large: 12,
             tablet: 14,
+            veryNarrow: 6,
           ),
         ),
         child: Container(
@@ -583,12 +620,14 @@ class _SideMenuState extends State<SideMenu> {
               medium: 26,
               large: 28,
               tablet: 30,
+              veryNarrow: 16,
             ),
             vertical: context.responsiveSpacing(
               small: 12,
               medium: 14,
               large: 16,
               tablet: 18,
+              veryNarrow: 10,
             ),
           ),
           child: Row(
@@ -600,6 +639,7 @@ class _SideMenuState extends State<SideMenu> {
                   medium: 9,
                   large: 10,
                   tablet: 11,
+                  veryNarrow: 6,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.transparent,
@@ -609,6 +649,7 @@ class _SideMenuState extends State<SideMenu> {
                       medium: 10,
                       large: 12,
                       tablet: 14,
+                      veryNarrow: 6,
                     ),
                   ),
                   border: Border.all(
@@ -626,6 +667,7 @@ class _SideMenuState extends State<SideMenu> {
                     medium: 22,
                     large: 24,
                     tablet: 26,
+                    veryNarrow: 18,
                   ),
                 ),
               ),
@@ -635,6 +677,7 @@ class _SideMenuState extends State<SideMenu> {
                   medium: 18,
                   large: 20,
                   tablet: 22,
+                  veryNarrow: 12,
                 ),
               ),
               // Title text
@@ -648,6 +691,7 @@ class _SideMenuState extends State<SideMenu> {
                       medium: 15,
                       large: 16,
                       tablet: 17,
+                      veryNarrow: 12,
                     ),
                     fontWeight: FontWeight.w400,
                     letterSpacing: 0.5,
@@ -665,6 +709,7 @@ class _SideMenuState extends State<SideMenu> {
                   medium: 18,
                   large: 20,
                   tablet: 22,
+                  veryNarrow: 14,
                 ),
               ),
             ],
@@ -723,6 +768,7 @@ class _BouncingRocketState extends State<_BouncingRocket>
               medium: 18,
               large: 20,
               tablet: 22,
+              veryNarrow: 12,
             ),
             decoration: BoxDecoration(
               color: AppColors.deepGreen.withOpacity(0.1),
@@ -740,6 +786,7 @@ class _BouncingRocketState extends State<_BouncingRocket>
                 medium: 52,
                 large: 56,
                 tablet: 60,
+                veryNarrow: 40,
               ),
             ),
           ),

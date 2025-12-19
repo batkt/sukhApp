@@ -7,6 +7,7 @@ import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/screens/medegdel/medegdel_detail.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class MedegdelListScreen extends StatefulWidget {
@@ -200,7 +201,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                             color: context.inputGrayColor,
                             size: 48.sp,
                           ),
-                          SizedBox(height: 16.h),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 16,
+                              medium: 18,
+                              large: 20,
+                              tablet: 22,
+                              veryNarrow: 12,
+                            ),
+                          ),
                           Text(
                             _errorMessage!,
                             style: TextStyle(
@@ -210,7 +219,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          SizedBox(height: 24.h),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 24,
+                              medium: 28,
+                              large: 32,
+                              tablet: 36,
+                              veryNarrow: 18,
+                            ),
+                          ),
                           ElevatedButton(
                             onPressed: _loadNotifications,
                             style: ElevatedButton.styleFrom(
@@ -239,7 +256,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                             color: context.inputGrayColor,
                             size: 64.sp,
                           ),
-                          SizedBox(height: 16.h),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 16,
+                              medium: 18,
+                              large: 20,
+                              tablet: 22,
+                              veryNarrow: 12,
+                            ),
+                          ),
                           Text(
                             'Мэдэгдэл байхгүй',
                             style: TextStyle(
@@ -249,7 +274,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(height: 8.h),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 8,
+                              medium: 10,
+                              large: 12,
+                              tablet: 14,
+                              veryNarrow: 6,
+                            ),
+                          ),
                           Text(
                             'Шинэ мэдэгдэл ирэхэд энд харагдана',
                             style: TextStyle(
@@ -265,7 +298,13 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                       onRefresh: _loadNotifications,
                       color: AppColors.secondaryAccent,
                       child: ListView.builder(
-                        padding: EdgeInsets.all(16.w),
+                        padding: context.responsivePadding(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 22,
+                          veryNarrow: 12,
+                        ),
                         itemCount: _notifications.length,
                         itemBuilder: (context, index) {
                           final notification = _notifications[index];
@@ -327,13 +366,35 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
         }
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
+        margin: EdgeInsets.only(
+          bottom: context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 8,
+          ),
+        ),
+        padding: context.responsivePadding(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 22,
+          veryNarrow: 12,
+        ),
         decoration: BoxDecoration(
           color: isRead
               ? context.cardBackgroundColor
               : context.accentBackgroundColor, // Subtle green tint for unread
-          borderRadius: BorderRadius.circular(16.w),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 12,
+            ),
+          ),
           border: Border.all(
             color: isRead
                 ? context.borderColor
@@ -346,15 +407,43 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
           children: [
             // Notification icon - modern minimal design
             Container(
-              width: 48.w,
-              height: 48.w,
+              width: context.responsiveSpacing(
+                small: 48,
+                medium: 52,
+                large: 56,
+                tablet: 60,
+                veryNarrow: 40,
+              ),
+              height: context.responsiveSpacing(
+                small: 48,
+                medium: 52,
+                large: 56,
+                tablet: 60,
+                veryNarrow: 40,
+              ),
               decoration: BoxDecoration(
                 color: context.accentBackgroundColor,
-                borderRadius: BorderRadius.circular(12.w),
+                borderRadius: BorderRadius.circular(
+                  context.responsiveBorderRadius(
+                    small: 12,
+                    medium: 14,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 10,
+                  ),
+                ),
               ),
               child: Center(child: _buildNotificationIcon(notification)),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(
+              width: context.responsiveSpacing(
+                small: 12,
+                medium: 14,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 8,
+              ),
+            ),
             // Content
             Expanded(
               child: Column(
@@ -384,7 +473,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                         ),
                     ],
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 6,
+                      medium: 8,
+                      large: 10,
+                      tablet: 12,
+                      veryNarrow: 4,
+                    ),
+                  ),
                   Text(
                     notification.message,
                     style: context.descriptionStyle(
@@ -395,7 +492,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                   ),
                   // Show reply indicator if has reply
                   if (hasReply && (isGomdol || isSanal)) ...[
-                    SizedBox(height: 6.h),
+                    SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 6,
+                      medium: 8,
+                      large: 10,
+                      tablet: 12,
+                      veryNarrow: 4,
+                    ),
+                  ),
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 8.w,
@@ -403,7 +508,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.success.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(6.w),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 6,
+                            medium: 8,
+                            large: 10,
+                            tablet: 12,
+                            veryNarrow: 4,
+                          ),
+                        ),
                         border: Border.all(
                           color: AppColors.success.withOpacity(0.5),
                           width: 1,
@@ -417,7 +530,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                             color: AppColors.success,
                             size: 12.sp,
                           ),
-                          SizedBox(width: 4.w),
+                          SizedBox(
+                            width: context.responsiveSpacing(
+                              small: 4,
+                              medium: 6,
+                              large: 8,
+                              tablet: 10,
+                              veryNarrow: 3,
+                            ),
+                          ),
                           Text(
                             'Хариу ирсэн',
                             style: TextStyle(
@@ -433,7 +554,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                   ],
                   // Show reply type indicator
                   if (isReply) ...[
-                    SizedBox(height: 6.h),
+                    SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 6,
+                      medium: 8,
+                      large: 10,
+                      tablet: 12,
+                      veryNarrow: 4,
+                    ),
+                  ),
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 8.w,
@@ -441,7 +570,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(6.w),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 6,
+                            medium: 8,
+                            large: 10,
+                            tablet: 12,
+                            veryNarrow: 4,
+                          ),
+                        ),
                         border: Border.all(
                           color: AppColors.primary.withOpacity(0.5),
                           width: 1,
@@ -455,7 +592,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                             color: AppColors.primary,
                             size: 12.sp,
                           ),
-                          SizedBox(width: 4.w),
+                          SizedBox(
+                            width: context.responsiveSpacing(
+                              small: 4,
+                              medium: 6,
+                              large: 8,
+                              tablet: 10,
+                              veryNarrow: 3,
+                            ),
+                          ),
                           Text(
                             'Хариу',
                             style: TextStyle(
@@ -469,7 +614,15 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                       ),
                     ),
                   ],
-                  SizedBox(height: 8.h),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 8,
+                      medium: 10,
+                      large: 12,
+                      tablet: 14,
+                      veryNarrow: 6,
+                    ),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

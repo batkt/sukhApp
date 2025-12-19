@@ -8,6 +8,7 @@ import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class EbarimtPage extends StatefulWidget {
   const EbarimtPage({super.key});
@@ -130,7 +131,22 @@ class _EbarimtPageState extends State<EbarimtPage> {
         children: [
           // Ebarimt Receipts List Header
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsiveSpacing(
+                small: 16,
+                medium: 18,
+                large: 20,
+                tablet: 22,
+                veryNarrow: 12,
+              ),
+              vertical: context.responsiveSpacing(
+                small: 12,
+                medium: 14,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 10,
+              ),
+            ),
             decoration: BoxDecoration(
               color: context.cardBackgroundColor,
               border: Border(
@@ -178,7 +194,15 @@ class _EbarimtPageState extends State<EbarimtPage> {
                           size: 64.sp,
                           color: context.textSecondaryColor.withOpacity(0.5),
                         ),
-                        SizedBox(height: 16.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         Text(
                           'И-баримт олдсонгүй',
                           style: TextStyle(
@@ -190,7 +214,13 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     ),
                   )
                 : ListView.builder(
-                    padding: EdgeInsets.all(16.w),
+                    padding: context.responsivePadding(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 12,
+                    ),
                     itemCount: _ebarimtReceipts.length,
                     itemBuilder: (context, index) {
                       final receipt = _ebarimtReceipts[index];
@@ -206,10 +236,26 @@ class _EbarimtPageState extends State<EbarimtPage> {
   Widget _buildReceiptCard(VATReceipt receipt) {
     final isDark = context.isDarkMode;
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
+      margin: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 8,
+        ),
+      ),
       decoration: BoxDecoration(
         color: context.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 16,
+            medium: 18,
+            large: 20,
+            tablet: 22,
+            veryNarrow: 12,
+          ),
+        ),
         border: Border.all(
           color: AppColors.deepGreen.withOpacity(isDark ? 0.3 : 0.2),
           width: 1,
@@ -234,7 +280,15 @@ class _EbarimtPageState extends State<EbarimtPage> {
               builder: (context) => VATReceiptModal(receipt: receipt),
             );
           },
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 12,
+              medium: 14,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 10,
+            ),
+          ),
           child: Padding(
             padding: EdgeInsets.all(16.w),
             child: Row(
@@ -244,7 +298,15 @@ class _EbarimtPageState extends State<EbarimtPage> {
                   height: 48.w,
                   decoration: BoxDecoration(
                     color: AppColors.deepGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8.r),
+                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 8,
+                        medium: 10,
+                        large: 12,
+                        tablet: 14,
+                        veryNarrow: 6,
+                      ),
+                    ),
                   ),
                   child: Icon(
                     Icons.receipt_long,
@@ -252,7 +314,15 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     size: 24.sp,
                   ),
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(
+                  width: context.responsiveSpacing(
+                    small: 12,
+                    medium: 14,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 8,
+                  ),
+                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,7 +335,15 @@ class _EbarimtPageState extends State<EbarimtPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 4,
+                          medium: 6,
+                          large: 8,
+                          tablet: 10,
+                          veryNarrow: 3,
+                        ),
+                      ),
                       Text(
                         receipt.formattedDate,
                         style: TextStyle(
@@ -273,7 +351,15 @@ class _EbarimtPageState extends State<EbarimtPage> {
                           fontSize: 12.sp,
                         ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 4,
+                          medium: 6,
+                          large: 8,
+                          tablet: 10,
+                          veryNarrow: 3,
+                        ),
+                      ),
                       Text(
                         receipt.formattedAmount,
                         style: TextStyle(

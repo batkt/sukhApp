@@ -5,6 +5,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class GomdolSanalFormScreen extends StatefulWidget {
@@ -101,7 +102,13 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
               // Form
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.all(20.w),
+                  padding: context.responsivePadding(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 26,
+                    veryNarrow: 14,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -116,7 +123,15 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                         Row(
                           children: [
                             Expanded(
@@ -126,7 +141,15 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                                 Icons.report_problem,
                               ),
                             ),
-                            SizedBox(width: 12.w),
+                            SizedBox(
+                              width: context.responsiveSpacing(
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 8,
+                              ),
+                            ),
                             Expanded(
                               child: _buildTypeButton(
                                 'Санал',
@@ -136,7 +159,15 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 24.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 24,
+                            medium: 28,
+                            large: 32,
+                            tablet: 36,
+                            veryNarrow: 18,
+                          ),
+                        ),
                         // Title field
                         Text(
                           'Гарчиг',
@@ -146,7 +177,15 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                         TextFormField(
                           controller: _titleController,
                           style: TextStyle(
@@ -161,30 +200,70 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             filled: true,
                             fillColor: context.cardBackgroundColor,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: context.borderColor,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: context.borderColor,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: AppColors.deepGreen,
                                 width: 2,
                               ),
                             ),
                             errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(color: Colors.red),
                             ),
                             focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: Colors.red,
                                 width: 2,
@@ -198,7 +277,15 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             return null;
                           },
                         ),
-                        SizedBox(height: 24.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 24,
+                            medium: 28,
+                            large: 32,
+                            tablet: 36,
+                            veryNarrow: 18,
+                          ),
+                        ),
                         // Message field
                         Text(
                           'Дэлгэрэнгүй',
@@ -208,7 +295,15 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                         TextFormField(
                           controller: _messageController,
                           style: TextStyle(
@@ -224,30 +319,70 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             filled: true,
                             fillColor: context.cardBackgroundColor,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: context.borderColor,
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: context.borderColor,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: AppColors.deepGreen,
                                 width: 2,
                               ),
                             ),
                             errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(color: Colors.red),
                             ),
                             focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.w),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               borderSide: BorderSide(
                                 color: Colors.red,
                                 width: 2,
@@ -264,7 +399,15 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             return null;
                           },
                         ),
-                        SizedBox(height: 32.h),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 32,
+                            medium: 36,
+                            large: 40,
+                            tablet: 44,
+                            veryNarrow: 24,
+                          ),
+                        ),
                         // Submit button
                         SizedBox(
                           width: double.infinity,
@@ -273,9 +416,25 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.deepGreen,
                               foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 16.h),
+                              padding: EdgeInsets.symmetric(
+                                vertical: context.responsiveSpacing(
+                                  small: 16,
+                                  medium: 18,
+                                  large: 20,
+                                  tablet: 22,
+                                  veryNarrow: 12,
+                                ),
+                              ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.w),
+                                borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               ),
                               disabledBackgroundColor:
                                   context.textSecondaryColor,

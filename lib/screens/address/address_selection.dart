@@ -937,7 +937,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       ),
                       IconButton(
                         icon: Container(
-                          padding: EdgeInsets.all(8.w),
+                          padding: context.responsivePadding(
+                            small: 8,
+                            medium: 10,
+                            large: 12,
+                            tablet: 14,
+                            veryNarrow: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: context.accentBackgroundColor,
                             shape: BoxShape.circle,
@@ -956,16 +962,39 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 // Search Bar
                 if (searchHint != null)
                   Padding(
-                    padding: EdgeInsets.all(16.w),
+                    padding: context.responsivePadding(
+                      small: 16,
+                      medium: 18,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 12,
+                    ),
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.r),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
                             blurRadius: 12.r,
                             spreadRadius: 0,
-                            offset: Offset(0, 4.h),
+                            offset: Offset(
+                              0,
+                              context.responsiveSpacing(
+                                small: 4,
+                                medium: 6,
+                                large: 8,
+                                tablet: 10,
+                                veryNarrow: 3,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -1025,14 +1054,30 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             vertical: 16.h,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16.r),
+                            borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                             borderSide: BorderSide(
                               color: context.borderColor,
                               width: 1.5,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16.r),
+                            borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                             borderSide: BorderSide(
                               color: AppColors.deepGreen.withOpacity(0.8),
                               width: 2,
@@ -1054,7 +1099,15 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                 color: context.textSecondaryColor,
                                 size: 64.sp,
                               ),
-                              SizedBox(height: 16.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 16,
+                                  medium: 18,
+                                  large: 20,
+                                  tablet: 22,
+                                  veryNarrow: 12,
+                                ),
+                              ),
                               Text(
                                 'Олдсонгүй',
                                 style: TextStyle(
@@ -1066,7 +1119,15 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           ),
                         )
                       : ListView.builder(
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              small: 16,
+                              medium: 18,
+                              large: 20,
+                              tablet: 22,
+                              veryNarrow: 12,
+                            ),
+                          ),
                           itemCount: filteredItems.length,
                           itemBuilder: (context, index) {
                             final item = filteredItems[index];
@@ -1082,12 +1143,28 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                         item['_id']?.toString());
 
                             return Container(
-                              margin: EdgeInsets.only(bottom: 8.h),
+                              margin: EdgeInsets.only(
+                                bottom: context.responsiveSpacing(
+                                  small: 8,
+                                  medium: 10,
+                                  large: 12,
+                                  tablet: 14,
+                                  veryNarrow: 6,
+                                ),
+                              ),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.deepGreen.withOpacity(0.2)
                                     : context.cardBackgroundColor,
-                                borderRadius: BorderRadius.circular(16.r),
+                                borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.deepGreen.withOpacity(0.5)
@@ -1102,9 +1179,23 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     onSelect(item);
                                     Navigator.of(context).pop();
                                   },
-                                  borderRadius: BorderRadius.circular(16.r),
+                                  borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                                   child: Padding(
-                                    padding: EdgeInsets.all(18.w),
+                                    padding: context.responsivePadding(
+                                      small: 18,
+                                      medium: 20,
+                                      large: 22,
+                                      tablet: 24,
+                                      veryNarrow: 14,
+                                    ),
                                     child: Row(
                                       children: [
                                         Expanded(
@@ -1154,10 +1245,26 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         : null;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 18.h),
+      margin: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 18,
+          medium: 20,
+          large: 22,
+          tablet: 24,
+          veryNarrow: 14,
+        ),
+      ),
       decoration: BoxDecoration(
         color: context.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(18.r),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 18,
+            medium: 20,
+            large: 22,
+            tablet: 24,
+            veryNarrow: 14,
+          ),
+        ),
         border: Border.all(color: context.borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
@@ -1182,9 +1289,32 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                     searchHint: '$label хайх...',
                   );
                 },
-          borderRadius: BorderRadius.circular(18.r),
+          borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 18,
+            medium: 20,
+            large: 22,
+            tablet: 24,
+            veryNarrow: 14,
+          ),
+        ),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsiveSpacing(
+                small: 20,
+                medium: 22,
+                large: 24,
+                tablet: 26,
+                veryNarrow: 14,
+              ),
+              vertical: context.responsiveSpacing(
+                small: 18,
+                medium: 20,
+                large: 22,
+                tablet: 24,
+                veryNarrow: 14,
+              ),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -1199,7 +1329,15 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 4,
+                          medium: 6,
+                          large: 8,
+                          tablet: 10,
+                          veryNarrow: 3,
+                        ),
+                      ),
                       Text(
                         selectedName ?? 'Сонгох...',
                         style: TextStyle(

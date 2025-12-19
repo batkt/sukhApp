@@ -5,6 +5,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 import 'dart:io';
 
 class BiometricOnboardingScreen extends StatefulWidget {
@@ -77,7 +78,22 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 40.h),
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsiveSpacing(
+                small: 28,
+                medium: 32,
+                large: 36,
+                tablet: 40,
+                veryNarrow: 18,
+              ),
+              vertical: context.responsiveSpacing(
+                small: 40,
+                medium: 44,
+                large: 48,
+                tablet: 52,
+                veryNarrow: 30,
+              ),
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -103,7 +119,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 32.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 32,
+                    medium: 36,
+                    large: 40,
+                    tablet: 44,
+                    veryNarrow: 24,
+                  ),
+                ),
 
                 // Title
                 Text(
@@ -115,7 +139,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 16,
+                    medium: 18,
+                    large: 20,
+                    tablet: 22,
+                    veryNarrow: 12,
+                  ),
+                ),
 
                 // Description
                 Text(
@@ -129,15 +161,37 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 48.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 48,
+                    medium: 52,
+                    large: 56,
+                    tablet: 60,
+                    veryNarrow: 36,
+                  ),
+                ),
 
                 // Biometric Toggle Card
                 if (_biometricAvailable)
                   Container(
-                    padding: EdgeInsets.all(24.w),
+                    padding: context.responsivePadding(
+                      small: 24,
+                      medium: 26,
+                      large: 28,
+                      tablet: 30,
+                      veryNarrow: 18,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20.r),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 26,
+                          veryNarrow: 16,
+                        ),
+                      ),
                       border: Border.all(
                         color: _biometricEnabled
                             ? AppColors.grayColor.withOpacity(0.5)
@@ -160,7 +214,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                                   color: Colors.white,
                                 ),
                               ),
-                              SizedBox(height: 8.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 8,
+                                  medium: 10,
+                                  large: 12,
+                                  tablet: 14,
+                                  veryNarrow: 6,
+                                ),
+                              ),
                               Text(
                                 Platform.isIOS
                                     ? 'Face ID ашиглан нэвтрэх'
@@ -173,7 +235,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                             ],
                           ),
                         ),
-                        SizedBox(width: 16.w),
+                        SizedBox(
+                          width: context.responsiveSpacing(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         GestureDetector(
                           onTap: () {
                             setState(() {
@@ -185,7 +255,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                             width: 56.w,
                             height: 32.h,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16.r),
+                              borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                                  small: 16,
+                                  medium: 18,
+                                  large: 20,
+                                  tablet: 22,
+                                  veryNarrow: 12,
+                                ),
+                              ),
                               color: _biometricEnabled
                                   ? AppColors.grayColor
                                   : Colors.white.withOpacity(0.3),
@@ -222,10 +300,24 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                   )
                 else
                   Container(
-                    padding: EdgeInsets.all(24.w),
+                    padding: context.responsivePadding(
+                      small: 24,
+                      medium: 26,
+                      large: 28,
+                      tablet: 30,
+                      veryNarrow: 18,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20.r),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 26,
+                          veryNarrow: 16,
+                        ),
+                      ),
                       border: Border.all(
                         color: Colors.white.withOpacity(0.2),
                         width: 2,
@@ -238,7 +330,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                           color: Colors.white.withOpacity(0.7),
                           size: 24.sp,
                         ),
-                        SizedBox(width: 16.w),
+                        SizedBox(
+                          width: context.responsiveSpacing(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 22,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         Expanded(
                           child: Text(
                             'Таны төхөөрөмж дээр биометрийн баталгаажуулалт боломжгүй байна',
@@ -264,7 +364,15 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25.r),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 25,
+                            medium: 27,
+                            large: 29,
+                            tablet: 31,
+                            veryNarrow: 20,
+                          ),
+                        ),
                       ),
                       elevation: 0,
                     ),

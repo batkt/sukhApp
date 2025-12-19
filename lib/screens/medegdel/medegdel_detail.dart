@@ -5,6 +5,7 @@ import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 class MedegdelDetailModal extends StatefulWidget {
   final Medegdel notification;
@@ -97,23 +98,61 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
           colors: [context.backgroundColor, context.surfaceColor],
         ),
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24.r),
-          topRight: Radius.circular(24.r),
+          topLeft: Radius.circular(
+            context.responsiveBorderRadius(
+              small: 24,
+              medium: 26,
+              large: 28,
+              tablet: 30,
+              veryNarrow: 18,
+            ),
+          ),
+          topRight: Radius.circular(
+            context.responsiveBorderRadius(
+              small: 24,
+              medium: 26,
+              large: 28,
+              tablet: 30,
+              veryNarrow: 18,
+            ),
+          ),
         ),
       ),
       child: Column(
         children: [
           Container(
-            margin: EdgeInsets.only(top: 12.h),
+            margin: EdgeInsets.only(
+              top: context.responsiveSpacing(
+                small: 12,
+                medium: 14,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 8,
+              ),
+            ),
             width: 40.w,
             height: 4.h,
             decoration: BoxDecoration(
               color: context.textPrimaryColor.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2.r),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 2,
+                  medium: 3,
+                  large: 4,
+                  tablet: 5,
+                  veryNarrow: 1,
+                ),
+              ),
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: context.responsivePadding(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 12,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -196,7 +235,22 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
 
   Widget _buildContent(bool isGomdol, bool isSanal) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsiveSpacing(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 22,
+          veryNarrow: 12,
+        ),
+        vertical: context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -204,7 +258,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
               color: context.textPrimaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16.w),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
               border: Border.all(
                 color: _isStatusDone(_notification)
                     ? AppColors.success.withOpacity(0.3)
@@ -225,7 +287,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                         : isSanal
                         ? AppColors.secondaryAccent.withOpacity(0.15)
                         : AppColors.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10.w),
+                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 10,
+                        medium: 12,
+                        large: 14,
+                        tablet: 16,
+                        veryNarrow: 8,
+                      ),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -243,7 +313,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                             ? AppColors.secondaryAccent
                             : AppColors.primary,
                       ),
-                      SizedBox(width: 6.w),
+                      SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                       Text(
                         _getDisplayTurul(_notification.turul),
                         style: TextStyle(
@@ -274,7 +352,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                           : _notification.hasReply
                           ? AppColors.success.withOpacity(0.15)
                           : Colors.orange.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10.w),
+                      borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 10,
+                        medium: 12,
+                        large: 14,
+                        tablet: 16,
+                        veryNarrow: 8,
+                      ),
+                    ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -296,7 +382,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                               ? AppColors.success
                               : Colors.orange,
                         ),
-                        SizedBox(width: 6.w),
+                        SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                         Text(
                           _getStatusText(_notification),
                           style: TextStyle(
@@ -318,7 +412,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ],
             ),
           ),
-          SizedBox(height: 20.h),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 20,
+              medium: 24,
+              large: 28,
+              tablet: 32,
+              veryNarrow: 14,
+            ),
+          ),
           Container(
             padding: EdgeInsets.symmetric(vertical: 4.h),
             child: Text(
@@ -336,7 +438,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             padding: EdgeInsets.all(18.w),
             decoration: BoxDecoration(
               color: context.textPrimaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16.w),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
               border: Border.all(
                 color: context.textPrimaryColor.withOpacity(0.15),
                 width: 1,
@@ -354,7 +464,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             ),
           ),
           if (_notification.hasReply && (isGomdol || isSanal)) ...[
-            SizedBox(height: 20.h),
+            SizedBox(
+            height: context.responsiveSpacing(
+              small: 20,
+              medium: 24,
+              large: 28,
+              tablet: 32,
+              veryNarrow: 14,
+            ),
+          ),
             Container(
               padding: EdgeInsets.all(18.w),
               decoration: BoxDecoration(
@@ -366,7 +484,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     AppColors.success.withOpacity(0.08),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(16.w),
+                borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
                 border: Border.all(
                   color: AppColors.success.withOpacity(0.25),
                   width: 1.5,
@@ -382,7 +508,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.success.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10.w),
+                      borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 10,
+                        medium: 12,
+                        large: 14,
+                        tablet: 16,
+                        veryNarrow: 8,
+                      ),
+                    ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -434,7 +568,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                             size: 14.sp,
                             color: context.inputGrayColor,
                           ),
-                          SizedBox(width: 6.w),
+                          SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                           Text(
                             'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
                             style: TextStyle(
@@ -450,12 +592,28 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ),
             ),
           ],
-          SizedBox(height: 20.h),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 20,
+              medium: 24,
+              large: 28,
+              tablet: 32,
+              veryNarrow: 14,
+            ),
+          ),
           Container(
             padding: EdgeInsets.all(18.w),
             decoration: BoxDecoration(
               color: context.textPrimaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16.w),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
               border: Border.all(
                 color: _isStatusDone(_notification)
                     ? AppColors.success.withOpacity(0.3)
@@ -759,7 +917,13 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: EdgeInsets.all(16.w),
+                  padding: context.responsivePadding(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 12,
+            ),
                   child: Row(
                     children: [
                       IconButton(
@@ -800,7 +964,13 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(16.w),
+                    padding: context.responsivePadding(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 12,
+            ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -808,7 +978,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                           padding: EdgeInsets.all(12.w),
                           decoration: BoxDecoration(
                             color: context.textPrimaryColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(16.w),
+                            borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
                             border: Border.all(
                               color: _isStatusDone(_notification)
                                   ? AppColors.success.withOpacity(0.3)
@@ -831,7 +1009,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                           0.15,
                                         )
                                       : AppColors.primary.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(10.w),
+                                  borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 10,
+                        medium: 12,
+                        large: 14,
+                        tablet: 16,
+                        veryNarrow: 8,
+                      ),
+                    ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -849,7 +1035,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                           ? AppColors.secondaryAccent
                                           : AppColors.primary,
                                     ),
-                                    SizedBox(width: 6.w),
+                                    SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                                     Text(
                                       _getDisplayTurul(_notification.turul),
                                       style: TextStyle(
@@ -880,7 +1074,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                         : _notification.hasReply
                                         ? AppColors.success.withOpacity(0.15)
                                         : Colors.orange.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(10.w),
+                                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 10,
+                        medium: 12,
+                        large: 14,
+                        tablet: 16,
+                        veryNarrow: 8,
+                      ),
+                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -902,7 +1104,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                             ? AppColors.success
                                             : Colors.orange,
                                       ),
-                                      SizedBox(width: 6.w),
+                                      SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                                       Text(
                                         _getStatusText(_notification),
                                         style: TextStyle(
@@ -924,7 +1134,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                             ],
                           ),
                         ),
-                        SizedBox(height: 20.h),
+                        SizedBox(
+            height: context.responsiveSpacing(
+              small: 20,
+              medium: 24,
+              large: 28,
+              tablet: 32,
+              veryNarrow: 14,
+            ),
+          ),
                         Container(
                           padding: EdgeInsets.symmetric(vertical: 4.h),
                           child: Text(
@@ -942,7 +1160,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                           padding: EdgeInsets.all(18.w),
                           decoration: BoxDecoration(
                             color: context.textPrimaryColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(16.w),
+                            borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
                             border: Border.all(
                               color: context.textPrimaryColor.withOpacity(0.15),
                               width: 1,
@@ -961,7 +1187,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                         ),
                         if (_notification.hasReply &&
                             (isGomdol || isSanal)) ...[
-                          SizedBox(height: 20.h),
+                          SizedBox(
+            height: context.responsiveSpacing(
+              small: 20,
+              medium: 24,
+              large: 28,
+              tablet: 32,
+              veryNarrow: 14,
+            ),
+          ),
                           Container(
                             padding: EdgeInsets.all(18.w),
                             decoration: BoxDecoration(
@@ -973,7 +1207,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                   AppColors.success.withOpacity(0.08),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(16.w),
+                              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
                               border: Border.all(
                                 color: AppColors.success.withOpacity(0.25),
                                 width: 1.5,
@@ -989,7 +1231,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: AppColors.success.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(10.w),
+                                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 10,
+                        medium: 12,
+                        large: 14,
+                        tablet: 16,
+                        veryNarrow: 8,
+                      ),
+                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1042,7 +1292,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                           size: 14.sp,
                                           color: context.inputGrayColor,
                                         ),
-                                        SizedBox(width: 6.w),
+                                        SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                                         Text(
                                           'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
                                           style: TextStyle(
@@ -1058,12 +1316,28 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                             ),
                           ),
                         ],
-                        SizedBox(height: 20.h),
+                        SizedBox(
+            height: context.responsiveSpacing(
+              small: 20,
+              medium: 24,
+              large: 28,
+              tablet: 32,
+              veryNarrow: 14,
+            ),
+          ),
                         Container(
                           padding: EdgeInsets.all(18.w),
                           decoration: BoxDecoration(
                             color: context.textPrimaryColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(16.w),
+                            borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
                             border: Border.all(
                               color: _isStatusDone(_notification)
                                   ? AppColors.success.withOpacity(0.3)

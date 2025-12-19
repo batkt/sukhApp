@@ -416,39 +416,101 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   Future<void> _loadNekhemjlekhCron() async {
     try {
-      final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      if (baiguullagiinId != null) {
+      final barilgiinId = await StorageService.getBarilgiinId();
+      debugPrint(
+        '📅 [HOME] Loading nekhemjlekhCron for barilgiinId: $barilgiinId',
+      );
+
+      if (barilgiinId != null) {
         final response = await ApiService.fetchNekhemjlekhCron(
-          baiguullagiinId: baiguullagiinId,
+          barilgiinId: barilgiinId,
         );
+
+        debugPrint('📅 [HOME] API response: ${response.toString()}');
+
         if (mounted) {
           setState(() {
             // Handle both shapes:
             // 1) { success, data: { ... } }
             // 2) { success, data: [ { ... }, ... ] }
             final rawData = response['data'];
+            debugPrint('📅 [HOME] rawData type: ${rawData.runtimeType}');
+
             if (rawData is Map<String, dynamic>) {
-              _nekhemjlekhCronData = rawData;
+              // Check if this single record matches our barilgiinId
+              final recordBarilgiinId = rawData['barilgiinId']?.toString();
+              debugPrint(
+                '📅 [HOME] Single record - recordBarilgiinId: $recordBarilgiinId, expected: $barilgiinId',
+              );
+
+              if (recordBarilgiinId == barilgiinId) {
+                _nekhemjlekhCronData = rawData;
+                debugPrint(
+                  '✅ [HOME] Matched! Loaded nekhemjlekhCron: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
+                );
+              } else {
+                _nekhemjlekhCronData = null;
+                debugPrint(
+                  '❌ [HOME] Single record barilgiinId mismatch: expected $barilgiinId, got $recordBarilgiinId',
+                );
+              }
             } else if (rawData is List && rawData.isNotEmpty) {
-              final first = rawData.first;
-              if (first is Map<String, dynamic>) {
-                _nekhemjlekhCronData = first;
+              debugPrint('📅 [HOME] List with ${rawData.length} items');
+              // Filter list to find record matching barilgiinId
+              final matchingRecords = rawData
+                  .where(
+                    (item) =>
+                        item is Map<String, dynamic> &&
+                        item['barilgiinId']?.toString() == barilgiinId,
+                  )
+                  .toList();
+
+              debugPrint(
+                '📅 [HOME] Found ${matchingRecords.length} matching records',
+              );
+
+              if (matchingRecords.isNotEmpty) {
+                _nekhemjlekhCronData =
+                    matchingRecords.first as Map<String, dynamic>;
+                debugPrint(
+                  '✅ [HOME] Matched! Loaded nekhemjlekhCron: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
+                );
+              } else {
+                _nekhemjlekhCronData = null;
+                debugPrint(
+                  '❌ [HOME] No matching record found for barilgiinId: $barilgiinId',
+                );
+                // Log all barilgiinIds in the list for debugging
+                for (var i = 0; i < rawData.length; i++) {
+                  final item = rawData[i];
+                  if (item is Map<String, dynamic>) {
+                    debugPrint(
+                      '📅 [HOME] List item $i barilgiinId: ${item['barilgiinId']}',
+                    );
+                  }
+                }
               }
             } else {
               _nekhemjlekhCronData = null;
+              debugPrint('❌ [HOME] rawData is null or empty');
             }
 
             if (_nekhemjlekhCronData != null) {
               debugPrint(
-                '📅 [HOME] Loaded nekhemjlekhCron: nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
+                '✅ [HOME] Final nekhemjlekhCron data: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
               );
             } else {
-              debugPrint('📅 [HOME] nekhemjlekhCron data is null/empty');
+              debugPrint(
+                '❌ [HOME] nekhemjlekhCron data is null/empty after processing',
+              );
             }
           });
         }
+      } else {
+        debugPrint('❌ [HOME] barilgiinId is null, cannot load nekhemjlekhCron');
       }
     } catch (e) {
+      debugPrint('❌ [HOME] Error loading nekhemjlekh cron: $e');
       print('Error loading nekhemjlekh cron: $e');
       // Silent fail - date calculation will fallback to contract date
     }
@@ -679,11 +741,28 @@ class _BookingScreenState extends State<NuurKhuudas>
     DateTime? nextInvoiceDate;
     if (_nekhemjlekhCronData != null &&
         _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] != null) {
-      final nekhemjlekhUusgekhOgnoo =
-          _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] as int;
+      // Handle different number types from JSON (int, double, string)
+      final nekhemjlekhUusgekhOgnooValue =
+          _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'];
+      final nekhemjlekhUusgekhOgnoo = nekhemjlekhUusgekhOgnooValue is int
+          ? nekhemjlekhUusgekhOgnooValue
+          : (nekhemjlekhUusgekhOgnooValue is num
+                ? nekhemjlekhUusgekhOgnooValue.toInt()
+                : int.tryParse(nekhemjlekhUusgekhOgnooValue.toString()) ?? 0);
       final today = DateTime.now();
 
-      if (today.day >= nekhemjlekhUusgekhOgnoo) {
+      debugPrint(
+        '📅 [HOME] Date calculation: today=${today.year}-${today.month}-${today.day}, nekhemjlekhUusgekhOgnoo=$nekhemjlekhUusgekhOgnoo (type: ${nekhemjlekhUusgekhOgnooValue.runtimeType}), barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}',
+      );
+
+      if (nekhemjlekhUusgekhOgnoo == 0 ||
+          nekhemjlekhUusgekhOgnoo < 1 ||
+          nekhemjlekhUusgekhOgnoo > 31) {
+        debugPrint(
+          '⚠️ [HOME] Invalid nekhemjlekhUusgekhOgnoo value ($nekhemjlekhUusgekhOgnoo), falling back to contract date',
+        );
+        // Don't set nextInvoiceDate, will fall back to contract date
+      } else if (today.day >= nekhemjlekhUusgekhOgnoo) {
         // Next invoice will be next month
         final nextMonth = today.month == 12 ? 1 : today.month + 1;
         final nextYear = today.month == 12 ? today.year + 1 : today.year;
@@ -692,6 +771,9 @@ class _BookingScreenState extends State<NuurKhuudas>
           nextMonth,
           nekhemjlekhUusgekhOgnoo,
         );
+        debugPrint(
+          '📅 [HOME] Next invoice date (next month): ${nextInvoiceDate.year}-${nextInvoiceDate.month}-${nextInvoiceDate.day}',
+        );
       } else {
         // Next invoice will be this month
         nextInvoiceDate = DateTime(
@@ -699,10 +781,18 @@ class _BookingScreenState extends State<NuurKhuudas>
           today.month,
           nekhemjlekhUusgekhOgnoo,
         );
+        debugPrint(
+          '📅 [HOME] Next invoice date (this month): ${nextInvoiceDate.year}-${nextInvoiceDate.month}-${nextInvoiceDate.day}',
+        );
       }
+    } else {
+      debugPrint(
+        '📅 [HOME] No nekhemjlekhCron data available for date calculation',
+      );
     }
 
     final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
 
     int displayDays;
     String centerLabel;
@@ -711,20 +801,49 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     String nextUnitDateText = '';
 
-    if (nextInvoiceDate != null && today.isBefore(nextInvoiceDate)) {
-      // Future invoice date → show remaining days in green
-      final remainingDays = nextInvoiceDate
-          .difference(DateTime(today.year, today.month, today.day))
-          .inDays;
-      displayDays = remainingDays;
-      centerLabel = 'өдөр дутуу';
-      accentColor = AppColors.deepGreen;
-      nextUnitDateText =
-          '${nextInvoiceDate.year}-${nextInvoiceDate.month.toString().padLeft(2, '0')}-${nextInvoiceDate.day.toString().padLeft(2, '0')}';
+    if (nextInvoiceDate != null) {
+      final nextInvoiceDateOnly = DateTime(
+        nextInvoiceDate.year,
+        nextInvoiceDate.month,
+        nextInvoiceDate.day,
+      );
 
-      // Progress: more filled as we get closer to the due date (assume 30-day cycle)
-      final clampedRemaining = remainingDays > 30 ? 30 : remainingDays;
-      targetProgress = 1.0 - (clampedRemaining / 30.0);
+      // Check if the invoice date is today or in the future
+      if (nextInvoiceDateOnly.isAfter(todayDateOnly) ||
+          nextInvoiceDateOnly.isAtSameMomentAs(todayDateOnly)) {
+        // Future invoice date (or today) → show remaining days in green
+        final remainingDays = nextInvoiceDateOnly
+            .difference(todayDateOnly)
+            .inDays;
+        displayDays = remainingDays;
+        centerLabel = 'өдөр дутуу';
+        accentColor = AppColors.deepGreen;
+        nextUnitDateText =
+            '${nextInvoiceDate.year}-${nextInvoiceDate.month.toString().padLeft(2, '0')}-${nextInvoiceDate.day.toString().padLeft(2, '0')}';
+
+        debugPrint(
+          '📅 [HOME] Showing future date: $nextUnitDateText, remaining days: $remainingDays',
+        );
+
+        // Progress: more filled as we get closer to the due date (assume 30-day cycle)
+        final clampedRemaining = remainingDays > 30 ? 30 : remainingDays;
+        targetProgress = 1.0 - (clampedRemaining / 30.0);
+      } else {
+        // Invoice date has passed, show as overdue
+        final daysOverdue = todayDateOnly
+            .difference(nextInvoiceDateOnly)
+            .inDays;
+        displayDays = daysOverdue;
+        centerLabel = 'өдөр хэтэрсэн';
+        accentColor = const Color(0xFFFF6B6B);
+        nextUnitDateText =
+            '${nextInvoiceDate.year}-${nextInvoiceDate.month.toString().padLeft(2, '0')}-${nextInvoiceDate.day.toString().padLeft(2, '0')}';
+        targetProgress = 1.0;
+
+        debugPrint(
+          '📅 [HOME] Showing overdue date: $nextUnitDateText, days overdue: $daysOverdue',
+        );
+      }
     } else {
       // Fallback: show days passed since user/contract created date
       final daysPassed = _calculateDaysPassed(geree.gereeniiOgnoo);
@@ -746,8 +865,8 @@ class _BookingScreenState extends State<NuurKhuudas>
         children: [
           // Simple but unique circular dashboard
           Container(
-            width: 220.w,
-            height: 220.w,
+            width: context.isVeryNarrow ? 180.w : 220.w,
+            height: context.isVeryNarrow ? 180.w : 220.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isDark ? Colors.black : Colors.white,
@@ -765,8 +884,8 @@ class _BookingScreenState extends State<NuurKhuudas>
               children: [
                 // Circular progress ring with animation
                 SizedBox(
-                  width: 220.w,
-                  height: 220.w,
+                  width: context.isVeryNarrow ? 180.w : 220.w,
+                  height: context.isVeryNarrow ? 180.w : 220.w,
                   child: AnimatedBuilder(
                     animation: _progressAnimation,
                     builder: (context, child) {
@@ -797,7 +916,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                             Text(
                               '$displayDays',
                               style: TextStyle(
-                                fontSize: 72.sp,
+                                fontSize: context.isVeryNarrow ? 56.sp : 72.sp,
                                 fontWeight: FontWeight.w800,
                                 color: accentColor,
                                 height: 1.0,
@@ -826,7 +945,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           SizedBox(height: 20.h),
           // Modern calendar card
           Container(
-            padding: EdgeInsets.all(22.w),
+            padding: EdgeInsets.all(context.isVeryNarrow ? 16.w : 22.w),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -861,7 +980,7 @@ class _BookingScreenState extends State<NuurKhuudas>
             child: Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(12.w),
+                  padding: EdgeInsets.all(context.isVeryNarrow ? 8.w : 12.w),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -874,7 +993,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   child: Icon(
                     Icons.calendar_today_rounded,
                     color: accentColor,
-                    size: 24.sp,
+                    size: context.isVeryNarrow ? 20.sp : 24.sp,
                   ),
                 ),
                 SizedBox(width: 16.w),
@@ -947,6 +1066,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           medium: 75,
           large: 80,
           tablet: 85,
+          veryNarrow: 60,
         ),
         leading: IconButton(
           icon: Icon(
@@ -957,6 +1077,7 @@ class _BookingScreenState extends State<NuurKhuudas>
               medium: 30,
               large: 32,
               tablet: 34,
+              veryNarrow: 24,
             ),
           ),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -970,12 +1091,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                 medium: 18,
                 large: 20,
                 tablet: 22,
+                veryNarrow: 10,
               ),
               vertical: context.responsiveSpacing(
                 small: 10,
                 medium: 12,
                 large: 14,
                 tablet: 16,
+                veryNarrow: 8,
               ),
             ),
             decoration: BoxDecoration(
@@ -986,6 +1109,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   medium: 12,
                   large: 13,
                   tablet: 14,
+                  veryNarrow: 9,
                 ),
               ),
             ),
@@ -1000,6 +1124,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     medium: 28,
                     large: 30,
                     tablet: 32,
+                    veryNarrow: 20,
                   ),
                 ),
                 SizedBox(
@@ -1008,15 +1133,26 @@ class _BookingScreenState extends State<NuurKhuudas>
                     medium: 12,
                     large: 14,
                     tablet: 16,
+                    veryNarrow: 6,
                   ),
                 ),
                 Flexible(
                   child: Text(
                     'Нийт үлдэгдэл ${_formatNumberWithComma(totalNiitTulbur)}₮',
-                    style: context.titleStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: context
+                        .titleStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        )
+                        .copyWith(
+                          fontSize: context.responsiveFontSize(
+                            small: 14,
+                            medium: 15,
+                            large: 16,
+                            tablet: 17,
+                            veryNarrow: 12,
+                          ),
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1040,6 +1176,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     medium: 30,
                     large: 32,
                     tablet: 34,
+                    veryNarrow: 24,
                   ),
                 ),
                 onPressed: () {
@@ -1055,12 +1192,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                     medium: 10,
                     large: 12,
                     tablet: 14,
+                    veryNarrow: 6,
                   ),
                   top: context.responsiveSpacing(
                     small: 8,
                     medium: 10,
                     large: 12,
                     tablet: 14,
+                    veryNarrow: 6,
                   ),
                   child: Container(
                     padding: EdgeInsets.symmetric(
@@ -1069,12 +1208,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                         medium: 7,
                         large: 8,
                         tablet: 9,
+                        veryNarrow: 4,
                       ),
                       vertical: context.responsiveSpacing(
                         small: 2,
                         medium: 3,
                         large: 4,
                         tablet: 5,
+                        veryNarrow: 1,
                       ),
                     ),
                     decoration: BoxDecoration(
@@ -1088,12 +1229,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                         medium: 20,
                         large: 22,
                         tablet: 24,
+                        veryNarrow: 16,
                       ),
                       minHeight: context.responsiveSpacing(
                         small: 18,
                         medium: 20,
                         large: 22,
                         tablet: 24,
+                        veryNarrow: 16,
                       ),
                     ),
                     child: Center(
@@ -1123,6 +1266,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   medium: 24,
                   large: 28,
                   tablet: 32,
+                  veryNarrow: 16,
                 ),
               ),
 
@@ -1140,6 +1284,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     medium: 13,
                     large: 15,
                     tablet: 17,
+                    veryNarrow: 8,
                   ),
                 ),
 
@@ -1152,7 +1297,15 @@ class _BookingScreenState extends State<NuurKhuudas>
                 expandAddressAbbreviations: _expandAddressAbbreviations,
               ),
 
-              SizedBox(height: 11.h),
+              SizedBox(
+                height: context.responsiveSpacing(
+                  small: 11,
+                  medium: 13,
+                  large: 15,
+                  tablet: 17,
+                  veryNarrow: 8,
+                ),
+              ),
 
               Expanded(
                 child: RefreshIndicator(
@@ -1180,6 +1333,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                               medium: 350,
                               large: 400,
                               tablet: 450,
+                              veryNarrow: 250,
                             ),
                             child: const Center(
                               child: CircularProgressIndicator(
@@ -1194,6 +1348,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                               medium: 350,
                               large: 400,
                               tablet: 450,
+                              veryNarrow: 250,
                             ),
                             child: Center(
                               child: Text(
@@ -1223,6 +1378,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                             medium: 24,
                             large: 28,
                             tablet: 32,
+                            veryNarrow: 16,
                           ),
                         ),
 
@@ -1239,6 +1395,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                             medium: 13,
                             large: 15,
                             tablet: 17,
+                            veryNarrow: 8,
                           ),
                         ),
                       ],
@@ -1346,7 +1503,15 @@ class _BookingScreenState extends State<NuurKhuudas>
                       ],
                     ),
                   ),
-                  SizedBox(height: 11.h),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 11,
+                      medium: 13,
+                      large: 15,
+                      tablet: 17,
+                      veryNarrow: 8,
+                    ),
+                  ),
                   // Payment button
                   SizedBox(
                     width: double.infinity,
@@ -1436,7 +1601,15 @@ class _BookingScreenState extends State<NuurKhuudas>
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 11.h),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 11,
+                    medium: 13,
+                    large: 15,
+                    tablet: 17,
+                    veryNarrow: 8,
+                  ),
+                ),
                 Text(
                   'Энэ хуудас хөгжүүлэлт хийгдэж байгаа тул одоогоор ашиглах боломжгүй байна. Удахгүй ашиглах боломжтой болно.',
                   textAlign: TextAlign.center,

@@ -33,6 +33,11 @@ class ResponsiveHelper {
     return screenWidth(context) < 360;
   }
 
+  /// Check if device is very narrow (folded foldable, < 340px width)
+  static bool isVeryNarrow(BuildContext context) {
+    return screenWidth(context) < 340;
+  }
+
   /// Check if device is medium phone (360-600px width)
   static bool isMediumPhone(BuildContext context) {
     final width = screenWidth(context);
@@ -45,6 +50,7 @@ class ResponsiveHelper {
     double? medium,
     double? large,
     double? tablet,
+    double? veryNarrow,
   }) {
     final width = screenWidth(context);
     double padding;
@@ -55,6 +61,8 @@ class ResponsiveHelper {
       padding = large;
     } else if (width >= 400 && medium != null) {
       padding = medium;
+    } else if (width < 340 && veryNarrow != null) {
+      padding = veryNarrow;
     } else {
       padding = small ?? 16.0;
     }
@@ -68,6 +76,7 @@ class ResponsiveHelper {
     double? medium,
     double? large,
     double? tablet,
+    double? veryNarrow,
   }) {
     final width = screenWidth(context);
     double padding;
@@ -78,6 +87,8 @@ class ResponsiveHelper {
       padding = large;
     } else if (width >= 400 && medium != null) {
       padding = medium;
+    } else if (width < 340 && veryNarrow != null) {
+      padding = veryNarrow;
     } else {
       padding = small ?? 20.0;
     }
@@ -114,6 +125,7 @@ class ResponsiveHelper {
     double? medium,
     double? large,
     double? tablet,
+    double? veryNarrow,
   }) {
     final width = screenWidth(context);
 
@@ -123,6 +135,8 @@ class ResponsiveHelper {
       return large.sp;
     } else if (width >= 400 && medium != null) {
       return medium.sp;
+    } else if (width < 340 && veryNarrow != null) {
+      return veryNarrow.sp;
     } else {
       return small.sp;
     }
@@ -134,6 +148,7 @@ class ResponsiveHelper {
     double? medium,
     double? large,
     double? tablet,
+    double? veryNarrow,
   }) {
     final width = screenWidth(context);
 
@@ -143,6 +158,8 @@ class ResponsiveHelper {
       return large.h;
     } else if (width >= 400 && medium != null) {
       return medium.h;
+    } else if (width < 340 && veryNarrow != null) {
+      return veryNarrow.h;
     } else {
       return small.h;
     }
@@ -154,6 +171,7 @@ class ResponsiveHelper {
     double? medium,
     double? large,
     double? tablet,
+    double? veryNarrow,
   }) {
     final width = screenWidth(context);
 
@@ -163,6 +181,8 @@ class ResponsiveHelper {
       return large.r;
     } else if (width >= 400 && medium != null) {
       return medium.r;
+    } else if (width < 340 && veryNarrow != null) {
+      return veryNarrow.r;
     } else {
       return small.r;
     }
@@ -210,6 +230,7 @@ class ResponsiveHelper {
     double? medium,
     double? large,
     double? tablet,
+    double? veryNarrow,
   }) {
     final width = screenWidth(context);
 
@@ -219,6 +240,8 @@ class ResponsiveHelper {
       return large.sp;
     } else if (width >= 400 && medium != null) {
       return medium.sp;
+    } else if (width < 340 && veryNarrow != null) {
+      return veryNarrow.sp;
     } else {
       return small.sp;
     }
@@ -231,6 +254,7 @@ extension ResponsiveExtension on BuildContext {
   bool get isLargeTablet => ResponsiveHelper.isLargeTablet(this);
   bool get isFoldable => ResponsiveHelper.isFoldable(this);
   bool get isSmallPhone => ResponsiveHelper.isSmallPhone(this);
+  bool get isVeryNarrow => ResponsiveHelper.isVeryNarrow(this);
   bool get isMediumPhone => ResponsiveHelper.isMediumPhone(this);
   
   double get screenWidth => ResponsiveHelper.screenWidth(this);
@@ -241,14 +265,16 @@ extension ResponsiveExtension on BuildContext {
     double? medium,
     double? large,
     double? tablet,
-  }) => ResponsiveHelper.getPadding(this, small: small, medium: medium, large: large, tablet: tablet);
+    double? veryNarrow,
+  }) => ResponsiveHelper.getPadding(this, small: small, medium: medium, large: large, tablet: tablet, veryNarrow: veryNarrow);
   
   EdgeInsets responsiveHorizontalPadding({
     double? small,
     double? medium,
     double? large,
     double? tablet,
-  }) => ResponsiveHelper.getHorizontalPadding(this, small: small, medium: medium, large: large, tablet: tablet);
+    double? veryNarrow,
+  }) => ResponsiveHelper.getHorizontalPadding(this, small: small, medium: medium, large: large, tablet: tablet, veryNarrow: veryNarrow);
   
   EdgeInsets responsiveVerticalPadding({
     double? small,
@@ -262,21 +288,24 @@ extension ResponsiveExtension on BuildContext {
     double? medium,
     double? large,
     double? tablet,
-  }) => ResponsiveHelper.getFontSize(this, small: small, medium: medium, large: large, tablet: tablet);
+    double? veryNarrow,
+  }) => ResponsiveHelper.getFontSize(this, small: small, medium: medium, large: large, tablet: tablet, veryNarrow: veryNarrow);
   
   double responsiveSpacing({
     required double small,
     double? medium,
     double? large,
     double? tablet,
-  }) => ResponsiveHelper.getSpacing(this, small: small, medium: medium, large: large, tablet: tablet);
+    double? veryNarrow,
+  }) => ResponsiveHelper.getSpacing(this, small: small, medium: medium, large: large, tablet: tablet, veryNarrow: veryNarrow);
   
   double responsiveBorderRadius({
     required double small,
     double? medium,
     double? large,
     double? tablet,
-  }) => ResponsiveHelper.getBorderRadius(this, small: small, medium: medium, large: large, tablet: tablet);
+    double? veryNarrow,
+  }) => ResponsiveHelper.getBorderRadius(this, small: small, medium: medium, large: large, tablet: tablet, veryNarrow: veryNarrow);
   
   double get maxContentWidth => ResponsiveHelper.getMaxContentWidth(this);
   
@@ -292,6 +321,7 @@ extension ResponsiveExtension on BuildContext {
     double? medium,
     double? large,
     double? tablet,
-  }) => ResponsiveHelper.getIconSize(this, small: small, medium: medium, large: large, tablet: tablet);
+    double? veryNarrow,
+  }) => ResponsiveHelper.getIconSize(this, small: small, medium: medium, large: large, tablet: tablet, veryNarrow: veryNarrow);
 }
 

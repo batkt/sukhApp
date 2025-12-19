@@ -122,6 +122,7 @@ class _CreateProfileState extends State<CreateProfile>
                   medium: 18,
                   large: 20,
                   tablet: 24,
+                  veryNarrow: 12,
                 ),
                 child: Row(
                   children: [
@@ -134,6 +135,7 @@ class _CreateProfileState extends State<CreateProfile>
                           medium: 30,
                           large: 32,
                           tablet: 34,
+                          veryNarrow: 24,
                         ),
                       ),
                       onPressed: () => context.pop(),
@@ -144,6 +146,7 @@ class _CreateProfileState extends State<CreateProfile>
                         medium: 14,
                         large: 16,
                         tablet: 18,
+                        veryNarrow: 8,
                       ),
                     ),
                     Text(
@@ -166,6 +169,7 @@ class _CreateProfileState extends State<CreateProfile>
                             medium: 18,
                             large: 20,
                             tablet: 24,
+                            veryNarrow: 12,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,12 +183,14 @@ class _CreateProfileState extends State<CreateProfile>
                                         medium: 110,
                                         large: 120,
                                         tablet: 130,
+                                        veryNarrow: 80,
                                       ),
                                       height: context.responsiveSpacing(
                                         small: 100,
                                         medium: 110,
                                         large: 120,
                                         tablet: 130,
+                                        veryNarrow: 80,
                                       ),
                                       decoration: BoxDecoration(
                                         color: const Color(
@@ -203,6 +209,7 @@ class _CreateProfileState extends State<CreateProfile>
                                           medium: 55,
                                           large: 60,
                                           tablet: 65,
+                                          veryNarrow: 40,
                                         ),
                                         color: const Color(0xFFe6ff00),
                                       ),
@@ -233,6 +240,7 @@ class _CreateProfileState extends State<CreateProfile>
                                               medium: 22,
                                               large: 24,
                                               tablet: 26,
+                                              veryNarrow: 18,
                                             ),
                                           ),
                                           onPressed: () {},
@@ -248,6 +256,7 @@ class _CreateProfileState extends State<CreateProfile>
                                   medium: 36,
                                   large: 40,
                                   tablet: 44,
+                                  veryNarrow: 24,
                                 ),
                               ),
                               Text(
@@ -262,6 +271,7 @@ class _CreateProfileState extends State<CreateProfile>
                                   medium: 18,
                                   large: 20,
                                   tablet: 22,
+                                  veryNarrow: 12,
                                 ),
                               ),
                               Form(
@@ -298,6 +308,7 @@ class _CreateProfileState extends State<CreateProfile>
                                   medium: 36,
                                   large: 40,
                                   tablet: 44,
+                                  veryNarrow: 24,
                                 ),
                               ),
                             ],
@@ -319,6 +330,7 @@ class _CreateProfileState extends State<CreateProfile>
         medium: 18,
         large: 20,
         tablet: 24,
+        veryNarrow: 12,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,12 +343,14 @@ class _CreateProfileState extends State<CreateProfile>
                 medium: 110,
                 large: 120,
                 tablet: 130,
+                veryNarrow: 80,
               ),
               height: context.responsiveSpacing(
                 small: 100,
                 medium: 110,
                 large: 120,
                 tablet: 130,
+                veryNarrow: 80,
               ),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
@@ -356,6 +370,7 @@ class _CreateProfileState extends State<CreateProfile>
               medium: 36,
               large: 40,
               tablet: 44,
+              veryNarrow: 24,
             ),
           ),
           // User info section title
@@ -365,12 +380,14 @@ class _CreateProfileState extends State<CreateProfile>
               medium: 26,
               large: 28,
               tablet: 30,
+              veryNarrow: 20,
             ),
             width: context.responsiveSpacing(
               small: 180,
               medium: 200,
               large: 220,
               tablet: 240,
+              veryNarrow: 140,
             ),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
@@ -383,6 +400,7 @@ class _CreateProfileState extends State<CreateProfile>
               medium: 18,
               large: 20,
               tablet: 22,
+              veryNarrow: 12,
             ),
           ),
           // Loading shimmer fields
@@ -393,6 +411,7 @@ class _CreateProfileState extends State<CreateProfile>
               medium: 18,
               large: 20,
               tablet: 22,
+              veryNarrow: 12,
             ),
           ),
           _buildSkeletonField(),
@@ -408,6 +427,7 @@ class _CreateProfileState extends State<CreateProfile>
         medium: 65,
         large: 70,
         tablet: 75,
+        veryNarrow: 50,
       ),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
@@ -417,6 +437,7 @@ class _CreateProfileState extends State<CreateProfile>
             medium: 14,
             large: 16,
             tablet: 18,
+            veryNarrow: 10,
           ),
         ),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
@@ -427,6 +448,7 @@ class _CreateProfileState extends State<CreateProfile>
           medium: 18,
           large: 20,
           tablet: 22,
+          veryNarrow: 12,
         ),
         child: Row(
           children: [
@@ -436,12 +458,14 @@ class _CreateProfileState extends State<CreateProfile>
                 medium: 26,
                 large: 28,
                 tablet: 30,
+                veryNarrow: 20,
               ),
               height: context.responsiveSpacing(
                 small: 24,
                 medium: 26,
                 large: 28,
                 tablet: 30,
+                veryNarrow: 20,
               ),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
@@ -454,6 +478,7 @@ class _CreateProfileState extends State<CreateProfile>
                 medium: 18,
                 large: 20,
                 tablet: 22,
+                veryNarrow: 12,
               ),
             ),
             Expanded(
@@ -467,12 +492,14 @@ class _CreateProfileState extends State<CreateProfile>
                       medium: 13,
                       large: 14,
                       tablet: 15,
+                      veryNarrow: 10,
                     ),
                     width: context.responsiveSpacing(
                       small: 80,
                       medium: 90,
                       large: 100,
                       tablet: 110,
+                      veryNarrow: 60,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),

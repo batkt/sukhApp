@@ -398,7 +398,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                         },
                                       ),
                                     ),
-                                    SizedBox(height: 16.h),
+                                    SizedBox(
+                                      height: context.responsiveSpacing(
+                                        small: 16,
+                                        medium: 18,
+                                        large: 20,
+                                        tablet: 22,
+                                        veryNarrow: 12,
+                                      ),
+                                    ),
                                     Container(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(
@@ -490,7 +498,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                         },
                                       ),
                                     ),
-                                    SizedBox(height: 24.h),
+                                    SizedBox(
+                                      height: context.responsiveSpacing(
+                                        small: 24,
+                                        medium: 28,
+                                        large: 32,
+                                        tablet: 36,
+                                        veryNarrow: 18,
+                                      ),
+                                    ),
                                     GestureDetector(
                                       onTap: _isLoading
                                           ? null
@@ -541,7 +557,15 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               ),
                                       ),
                                     ),
-                                    SizedBox(height: 12.h),
+                                    SizedBox(
+                                      height: context.responsiveSpacing(
+                                        small: 12,
+                                        medium: 14,
+                                        large: 16,
+                                        tablet: 18,
+                                        veryNarrow: 10,
+                                      ),
+                                    ),
                                     GestureDetector(
                                       onTap: () {
                                         context.pop();

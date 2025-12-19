@@ -9,6 +9,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
@@ -347,7 +348,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
             return AlertDialog(
               backgroundColor: AppColors.darkSurface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.w),
+                borderRadius: BorderRadius.circular(
+                  context.responsiveBorderRadius(
+                    small: 16,
+                    medium: 18,
+                    large: 20,
+                    tablet: 22,
+                    veryNarrow: 12,
+                  ),
+                ),
                 side: BorderSide(
                   color: AppColors.goldPrimary.withOpacity(0.2),
                   width: 1,
@@ -409,7 +418,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           ? Colors.white.withOpacity(0.05)
                           : Colors.white,
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.w),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                         borderSide: BorderSide(
                           color: context.isDarkMode
                               ? Colors.white.withOpacity(0.1)
@@ -417,7 +434,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.w),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                         borderSide: BorderSide(
                           color: AppColors.deepGreen,
                           width: 2.w,
@@ -591,21 +616,55 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
   Widget _buildSectionHeader(String title, IconData icon) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      margin: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 22,
+          veryNarrow: 12,
+        ),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsiveSpacing(
+          small: 4,
+          medium: 6,
+          large: 8,
+          tablet: 10,
+          veryNarrow: 3,
+        ),
+      ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
               color: AppColors.goldPrimary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8.w),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 8,
+                  medium: 10,
+                  large: 12,
+                  tablet: 14,
+                  veryNarrow: 6,
+                ),
+              ),
               border: Border.all(
                 color: AppColors.goldPrimary.withOpacity(0.2),
                 width: 1,
               ),
             ),
-            child: Icon(icon, color: AppColors.goldPrimary, size: 20.sp),
+            child: Icon(
+              icon,
+              color: AppColors.goldPrimary,
+              size: context.responsiveIconSize(
+                small: 20,
+                medium: 22,
+                large: 24,
+                tablet: 26,
+                veryNarrow: 18,
+              ),
+            ),
           ),
           SizedBox(width: 12.w),
           Text(
@@ -625,8 +684,24 @@ class _ProfileSettingsState extends State<ProfileSettings>
   Widget _buildSubSectionHeader(String title, IconData icon) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      margin: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        ),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsiveSpacing(
+          small: 4,
+          medium: 6,
+          large: 8,
+          tablet: 10,
+          veryNarrow: 3,
+        ),
+      ),
       child: Row(
         children: [
           Icon(
@@ -888,7 +963,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             width: 1,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.w),
+                            borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                           ),
                         ),
                       ),

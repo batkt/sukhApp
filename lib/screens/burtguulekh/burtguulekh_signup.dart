@@ -75,7 +75,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-
   @override
   void initState() {
     super.initState();
@@ -152,7 +151,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     final id = (_baiguullagiinId ?? '').trim();
     return id.isNotEmpty && id.toLowerCase() != 'null';
   }
-
 
   bool _validateUserInfoOnly() {
     return _phoneController.text.trim().isNotEmpty &&
@@ -293,7 +291,9 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         // If user doesn't have baiguullagiinId, navigate to address selection
         // Otherwise, navigate to login
         if (mounted) {
-          final hasOrgId = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim().isNotEmpty;
+          final hasOrgId = (_baiguullagiinId ?? widget.baiguullagiinId ?? '')
+              .trim()
+              .isNotEmpty;
           if (!hasOrgId) {
             // Navigate to address selection screen for users without organization
             context.go('/address_selection');
@@ -342,7 +342,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
 
     await _handleRegistration();
   }
-
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -588,7 +587,6 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -624,6 +622,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
                       medium: 32,
                       large: 36,
                       tablet: 40,
+                      veryNarrow: 18,
                     )
                     .copyWith(
                       top: context.responsiveSpacing(
@@ -631,12 +630,14 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
                         medium: 18,
                         large: 20,
                         tablet: 24,
+                        veryNarrow: 12,
                       ),
                       bottom: context.responsiveSpacing(
                         small: 16,
                         medium: 18,
                         large: 20,
                         tablet: 24,
+                        veryNarrow: 12,
                       ),
                     ),
                 child: Column(

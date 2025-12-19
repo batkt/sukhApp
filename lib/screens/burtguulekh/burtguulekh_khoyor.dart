@@ -359,6 +359,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                 medium: 28,
                                 large: 32,
                                 tablet: 36,
+                                veryNarrow: 18,
                               ),
                               bottom: keyboardHeight > 0
                                   ? keyboardHeight +
@@ -367,12 +368,14 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                         medium: 22,
                                         large: 24,
                                         tablet: 26,
+                                        veryNarrow: 16,
                                       )
                                   : context.responsiveSpacing(
                                       small: 24,
                                       medium: 28,
                                       large: 32,
                                       tablet: 36,
+                                      veryNarrow: 18,
                                     ),
                             ),
                         child: Form(
@@ -387,6 +390,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                   medium: 16,
                                   large: 20,
                                   tablet: 24,
+                                  veryNarrow: 10,
                                 ),
                               ),
                               Text(
@@ -398,6 +402,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                     medium: 25,
                                     large: 28,
                                     tablet: 30,
+                                    veryNarrow: 18,
                                   ),
                                 ),
                                 maxLines: 1,
@@ -410,6 +415,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                   medium: 16,
                                   large: 18,
                                   tablet: 20,
+                                  veryNarrow: 12,
                                 ),
                               ),
                               // Овог input
@@ -420,6 +426,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                   medium: 16,
                                   large: 18,
                                   tablet: 20,
+                                  veryNarrow: 12,
                                 ),
                               ),
                               // Нэр input
@@ -430,6 +437,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                   medium: 16,
                                   large: 18,
                                   tablet: 20,
+                                  veryNarrow: 12,
                                 ),
                               ),
                               // Phone number input
@@ -452,6 +460,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                   medium: 14,
                                   large: 16,
                                   tablet: 18,
+                                  veryNarrow: 10,
                                 ),
                               ),
                               if (ovogController.text.isNotEmpty &&
@@ -478,12 +487,14 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                   medium: 18,
                   large: 20,
                   tablet: 22,
+                  veryNarrow: 12,
                 ),
                 left: context.responsiveSpacing(
                   small: 16,
                   medium: 18,
                   large: 20,
                   tablet: 22,
+                  veryNarrow: 12,
                 ),
                 child: SafeArea(
                   child: ClipRRect(
@@ -493,6 +504,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                         medium: 100,
                         large: 100,
                         tablet: 100,
+                        veryNarrow: 80,
                       ),
                     ),
                     child: OptimizedGlass(
@@ -502,6 +514,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                           medium: 18,
                           large: 20,
                           tablet: 22,
+                          veryNarrow: 12,
                         ),
                       ),
                       opacity: 0.12,
@@ -512,6 +525,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                             medium: 8,
                             large: 9,
                             tablet: 10,
+                            veryNarrow: 5,
                           ),
                         ),
                         constraints: const BoxConstraints(),
@@ -639,6 +653,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
             medium: 12,
             large: 14,
             tablet: 16,
+            veryNarrow: 8,
           ),
         ),
         Row(
@@ -655,6 +670,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                     medium: 15,
                     large: 16,
                     tablet: 17,
+                    veryNarrow: 12,
                   ),
                 ),
               ),
@@ -672,12 +688,14 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
         medium: 56,
         large: 60,
         tablet: 64,
+        veryNarrow: 44,
       ),
       height: context.responsiveSpacing(
         small: 60,
         medium: 65,
         large: 70,
         tablet: 75,
+        veryNarrow: 50,
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(
@@ -705,6 +723,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
               medium: 10,
               large: 12,
               tablet: 14,
+              veryNarrow: 6,
             ),
           ),
         ],
@@ -734,6 +753,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
               medium: 22,
               large: 24,
               tablet: 26,
+              veryNarrow: 18,
             ),
             fontWeight: FontWeight.bold,
           ),
@@ -854,6 +874,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
               medium: 10,
               large: 12,
               tablet: 14,
+              veryNarrow: 6,
             ),
             spreadRadius: 0,
           ),
@@ -872,12 +893,14 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 medium: 13,
                 large: 15,
                 tablet: 17,
+                veryNarrow: 9,
               ),
               horizontal: context.responsiveSpacing(
                 small: 16,
                 medium: 18,
                 large: 20,
                 tablet: 22,
+                veryNarrow: 12,
               ),
             ),
             shape: RoundedRectangleBorder(
@@ -900,12 +923,14 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                     medium: 20,
                     large: 22,
                     tablet: 24,
+                    veryNarrow: 16,
                   ),
                   width: context.responsiveSpacing(
                     small: 18,
                     medium: 20,
                     large: 22,
                     tablet: 24,
+                    veryNarrow: 16,
                   ),
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
@@ -922,6 +947,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                       medium: 17,
                       large: 18,
                       tablet: 19,
+                      veryNarrow: 14,
                     ),
                   ),
                 ),
@@ -975,12 +1001,14 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           medium: 18,
           large: 20,
           tablet: 22,
+          veryNarrow: 12,
         ),
         vertical: context.responsiveSpacing(
           small: 11,
           medium: 13,
           large: 15,
           tablet: 17,
+          veryNarrow: 9,
         ),
       ),
       filled: true,
@@ -993,6 +1021,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           medium: 16,
           large: 17,
           tablet: 18,
+          veryNarrow: 13,
         ),
       ),
       enabledBorder: OutlineInputBorder(

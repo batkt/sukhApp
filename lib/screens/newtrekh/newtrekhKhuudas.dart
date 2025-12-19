@@ -13,6 +13,9 @@ import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/services/biometric_service.dart';
+import 'package:local_auth/local_auth.dart';
+import 'dart:io';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -50,6 +53,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   bool _isLoading = false;
   bool _showEmailField = false;
   bool _obscurePassword = true;
+  bool _biometricEnabled = false;
+  bool _biometricAvailable = false;
 
   @override
   void initState() {
@@ -58,6 +63,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     passwordController.addListener(() => setState(() {}));
     emailController.addListener(() => setState(() {}));
     _loadSavedPhoneNumber();
+    _checkBiometricStatus();
   }
 
   Future<void> _loadSavedPhoneNumber() async {
@@ -66,6 +72,248 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       setState(() {
         phoneController.text = savedPhone;
       });
+    }
+  }
+
+  Future<void> _checkBiometricStatus() async {
+    final isEnabled = await StorageService.isBiometricEnabled();
+    final isAvailable = await BiometricService.isAvailable();
+    if (mounted) {
+      setState(() {
+        _biometricEnabled = isEnabled;
+        _biometricAvailable = isAvailable;
+      });
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    if (!_biometricEnabled || !_biometricAvailable) {
+      showGlassSnackBar(
+        context,
+        message: 'Биометрийн нэвтрэлт идэвхжээгүй байна',
+        icon: Icons.error,
+        iconColor: Colors.orange,
+      );
+      return;
+    }
+
+    // Get saved phone and password
+    final savedPhone = await StorageService.getSavedPhoneNumber();
+    final savedPassword = await StorageService.getSavedPasswordForBiometric();
+
+    if (savedPhone == null || savedPassword == null) {
+      showGlassSnackBar(
+        context,
+        message: 'Хадгалсан мэдээлэл олдсонгүй',
+        icon: Icons.error,
+        iconColor: Colors.orange,
+      );
+      return;
+    }
+
+    // Authenticate with biometric
+    final authenticated = await BiometricService.authenticate();
+    if (!authenticated) {
+      return; // User cancelled or authentication failed
+    }
+
+    // Set phone and password in controllers
+    setState(() {
+      phoneController.text = savedPhone;
+      passwordController.text = savedPassword;
+      _isLoading = true;
+    });
+
+    // Perform login with saved credentials
+    try {
+      // Get saved address to send with login
+      var savedBairId = await StorageService.getWalletBairId();
+      var savedDoorNo = await StorageService.getWalletDoorNo();
+
+      // Get OWN_ORG IDs if address is OWN_ORG type
+      final savedBaiguullagiinId =
+          await StorageService.getWalletBairBaiguullagiinId();
+      final savedBarilgiinId = await StorageService.getWalletBairBarilgiinId();
+      final savedSource = await StorageService.getWalletBairSource();
+
+      final isOwnOrg =
+          savedSource == 'OWN_ORG' &&
+          savedBaiguullagiinId != null &&
+          savedBarilgiinId != null;
+
+      // Perform login
+      final loginResponse = await ApiService.loginUser(
+        utas: savedPhone,
+        nuutsUg: savedPassword,
+        bairId: savedBairId,
+        doorNo: savedDoorNo,
+        baiguullagiinId: isOwnOrg ? savedBaiguullagiinId : null,
+        barilgiinId: isOwnOrg ? savedBarilgiinId : null,
+      );
+
+      // Normalize user payload
+      final userDataDynamic =
+          loginResponse['result'] ?? loginResponse['orshinSuugch'];
+      final userData = userDataDynamic is Map<String, dynamic>
+          ? userDataDynamic
+          : null;
+
+      // Verify token was saved
+      final tokenSaved = await StorageService.isLoggedIn();
+      if (!tokenSaved) {
+        throw Exception('Токен хадгалахад алдаа гарлаа. Дахин оролдоно уу.');
+      }
+
+      if (mounted) {
+        await StorageService.savePhoneNumber(savedPhone);
+
+        // Check if user needs OTP verification
+        final loginOrgId = userData?['baiguullagiinId']?.toString();
+        final hasBaiguullagiinId =
+            loginOrgId != null &&
+            loginOrgId.trim().isNotEmpty &&
+            loginOrgId.trim().toLowerCase() != 'null';
+
+        if (hasBaiguullagiinId) {
+          final needsVerification =
+              await StorageService.needsPhoneVerification();
+          if (needsVerification) {
+            final verificationResult = await context.push<bool>(
+              '/phone_verification',
+              extra: {
+                'phoneNumber': savedPhone,
+                'baiguullagiinId': loginOrgId,
+                'duureg': userData?['duureg']?.toString(),
+                'horoo': userData?['horoo']?.toString(),
+                'soh': userData?['soh']?.toString(),
+              },
+            );
+
+            if (verificationResult != true) {
+              await SessionService.logout();
+              setState(() {
+                _isLoading = false;
+              });
+              return;
+            }
+          }
+        }
+
+        // Check address and navigate
+        bool hasAddress = false;
+        if (!hasBaiguullagiinId) {
+          final walletBairId = userData?['walletBairId']?.toString();
+          final walletDoorNo = userData?['walletDoorNo']?.toString();
+          if (walletBairId != null &&
+              walletBairId.isNotEmpty &&
+              walletDoorNo != null &&
+              walletDoorNo.isNotEmpty) {
+            await StorageService.saveWalletAddress(
+              bairId: walletBairId,
+              doorNo: walletDoorNo,
+            );
+            hasAddress = true;
+          } else {
+            hasAddress = await StorageService.hasSavedAddress();
+          }
+
+          if (!hasAddress) {
+            final addressSaved = await context.push<bool>('/address_selection');
+            if (addressSaved != true) {
+              setState(() {
+                _isLoading = false;
+              });
+              return;
+            }
+            hasAddress = true;
+          }
+        } else if (userData != null) {
+          final walletBairId = userData['walletBairId']?.toString();
+          final walletDoorNo = userData['walletDoorNo']?.toString();
+          if (walletBairId != null &&
+              walletBairId.isNotEmpty &&
+              walletDoorNo != null &&
+              walletDoorNo.isNotEmpty) {
+            await StorageService.saveWalletAddress(
+              bairId: walletBairId,
+              doorNo: walletDoorNo,
+            );
+            hasAddress = true;
+          } else {
+            hasAddress = await StorageService.hasSavedAddress();
+          }
+        } else {
+          hasAddress = await StorageService.hasSavedAddress();
+        }
+
+        // Check profile
+        bool hasProfile = false;
+        if (userData != null) {
+          final hasNer =
+              userData['ner'] != null && userData['ner'].toString().isNotEmpty;
+          final hasOvog =
+              userData['ovog'] != null &&
+              userData['ovog'].toString().isNotEmpty;
+          hasProfile = hasNer || hasOvog;
+        }
+
+        if (!hasProfile) {
+          context.go(
+            '/burtguulekh_signup',
+            extra: {'baiguullagiinId': loginOrgId, 'utas': savedPhone},
+          );
+          return;
+        }
+
+        // Connect socket
+        try {
+          await SocketService.instance.connect();
+        } catch (e) {
+          print('Failed to connect socket: $e');
+        }
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        showGlassSnackBar(
+          context,
+          message: 'Нэвтрэлт амжилттай',
+          icon: Icons.check_outlined,
+          iconColor: Colors.green,
+        );
+
+        // Navigate to home
+        final taniltsuulgaKharakhEsekh =
+            await StorageService.getTaniltsuulgaKharakhEsekh();
+        final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
+
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          context.go(targetRoute);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        String errorMessage = e.toString();
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.substring(11);
+        }
+        if (errorMessage.isEmpty) {
+          errorMessage = "Нэвтрэхэд алдаа гарлаа";
+        }
+
+        showGlassSnackBar(
+          context,
+          message: errorMessage,
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
     }
   }
 
@@ -146,7 +394,15 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                             children: [
                               const Spacer(),
                               const AppLogo(),
-                              SizedBox(height: 12.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               Text(
                                 'Тавтай морил',
                                 style: TextStyle(
@@ -157,10 +413,26 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              SizedBox(height: 24.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 24,
+                                  medium: 28,
+                                  large: 32,
+                                  tablet: 36,
+                                  veryNarrow: 18,
+                                ),
+                              ),
                               Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16.r),
+                                  borderRadius: BorderRadius.circular(
+                                    context.responsiveBorderRadius(
+                                      small: 16,
+                                      medium: 18,
+                                      large: 20,
+                                      tablet: 22,
+                                      veryNarrow: 12,
+                                    ),
+                                  ),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.15),
@@ -253,10 +525,26 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   },
                                 ),
                               ),
-                              SizedBox(height: 12.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16.r),
+                                  borderRadius: BorderRadius.circular(
+                                    context.responsiveBorderRadius(
+                                      small: 16,
+                                      medium: 18,
+                                      large: 20,
+                                      tablet: 22,
+                                      veryNarrow: 12,
+                                    ),
+                                  ),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withOpacity(0.15),
@@ -381,9 +669,25 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   },
                                 ),
                               ),
-                              SizedBox(height: 12.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: context.responsiveSpacing(
+                                    small: 8,
+                                    medium: 10,
+                                    large: 12,
+                                    tablet: 14,
+                                    veryNarrow: 6,
+                                  ),
+                                ),
                                 child: Text(
                                   _showEmailField
                                       ? 'Системд бүртгэлгүй байна. Имэйл хаягаа оруулна уу'
@@ -397,10 +701,26 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 ),
                               ),
                               if (_showEmailField) ...[
-                                SizedBox(height: 12.h),
+                                SizedBox(
+                                  height: context.responsiveSpacing(
+                                    small: 12,
+                                    medium: 14,
+                                    large: 16,
+                                    tablet: 18,
+                                    veryNarrow: 10,
+                                  ),
+                                ),
                                 Container(
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16.r),
+                                    borderRadius: BorderRadius.circular(
+                                      context.responsiveBorderRadius(
+                                        small: 16,
+                                        medium: 18,
+                                        large: 20,
+                                        tablet: 22,
+                                        veryNarrow: 12,
+                                      ),
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.15),
@@ -470,828 +790,1076 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ),
                                 ),
                               ],
-                              SizedBox(height: 24.h),
-                              GestureDetector(
-                                onTap: _isLoading
-                                    ? null
-                                    : () async {
-                                        String inputPhone = phoneController.text
-                                            .trim();
-                                        String inputPassword =
-                                            passwordController.text.trim();
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 24,
+                                  medium: 28,
+                                  large: 32,
+                                  tablet: 36,
+                                  veryNarrow: 18,
+                                ),
+                              ),
+                              // Login button and biometric button row
+                              IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Login button (80% width)
+                                    Expanded(
+                                      flex: 4,
+                                      child: GestureDetector(
+                                        onTap: _isLoading
+                                            ? null
+                                            : () async {
+                                                String inputPhone =
+                                                    phoneController.text.trim();
+                                                String inputPassword =
+                                                    passwordController.text
+                                                        .trim();
 
-                                        if (inputPhone.isEmpty) {
-                                          showGlassSnackBar(
-                                            context,
-                                            message: "Утасны дугаар оруулна уу",
-                                            icon: Icons.error,
-                                            iconColor: Colors.red,
-                                          );
-                                          return;
-                                        } else if (!RegExp(
-                                          r'^\d+$',
-                                        ).hasMatch(inputPhone)) {
-                                          showGlassSnackBar(
-                                            context,
-                                            message: "Зөвхөн тоо оруулна уу!",
-                                            icon: Icons.error,
-                                            iconColor: Colors.red,
-                                          );
-                                          return;
-                                        }
-
-                                        if (!_showEmailField &&
-                                            inputPassword.isEmpty) {
-                                          showGlassSnackBar(
-                                            context,
-                                            message: "Нууц код оруулна уу",
-                                            icon: Icons.error,
-                                            iconColor: Colors.red,
-                                          );
-                                          return;
-                                        }
-
-                                        setState(() {
-                                          _isLoading = true;
-                                        });
-
-                                        try {
-                                          // If email field is shown, user needs to register first
-                                          if (_showEmailField) {
-                                            final inputEmail = emailController
-                                                .text
-                                                .trim();
-
-                                            if (inputEmail.isEmpty) {
-                                              if (mounted) {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                });
-                                                showGlassSnackBar(
-                                                  context,
-                                                  message:
-                                                      'Имэйл хаяг оруулна уу',
-                                                  icon: Icons.error,
-                                                  iconColor: Colors.red,
-                                                );
-                                              }
-                                              return;
-                                            }
-
-                                            if (!RegExp(
-                                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                            ).hasMatch(inputEmail)) {
-                                              if (mounted) {
-                                                setState(() {
-                                                  _isLoading = false;
-                                                });
-                                                showGlassSnackBar(
-                                                  context,
-                                                  message:
-                                                      'Зөв имэйл хаяг оруулна уу',
-                                                  icon: Icons.error,
-                                                  iconColor: Colors.red,
-                                                );
-                                              }
-                                              return;
-                                            }
-
-                                            // Register in Wallet API first
-                                            await ApiService.registerWalletUser(
-                                              utas: inputPhone,
-                                              mail: inputEmail,
-                                            );
-                                          }
-
-                                          // Get saved address to send with login
-                                          // Backend will also check saved address in user profile if not provided
-                                          var savedBairId =
-                                              await StorageService.getWalletBairId();
-                                          var savedDoorNo =
-                                              await StorageService.getWalletDoorNo();
-
-                                          // If address not in local storage, try to get from previous login response
-                                          // This handles cases where address was saved to backend but not to local storage
-                                          if (savedBairId == null ||
-                                              savedDoorNo == null) {
-                                            print(
-                                              '📍 [LOGIN] Address not in local storage, backend will use saved address from profile',
-                                            );
-                                          }
-
-                                          // Try to login - backend automatically handles billing connection
-                                          print(
-                                            '🔐 [LOGIN] Attempting login with phone: $inputPhone',
-                                          );
-                                          print(
-                                            '🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo',
-                                          );
-
-                                          // Some WEB-created users require baiguullagiinId to login.
-                                          // First try without orgId; if backend says "Хэрэглэгч олдсонгүй!",
-                                          // retry with stored baiguullagiinId (if we have one) before treating
-                                          // the user as a new NO-ORG signup.
-                                          Map<String, dynamic> loginResponse;
-                                          try {
-                                            loginResponse =
-                                                await ApiService.loginUser(
-                                                  utas: inputPhone,
-                                                  nuutsUg: inputPassword,
-                                                  bairId: savedBairId,
-                                                  doorNo: savedDoorNo,
-                                                );
-                                          } catch (e) {
-                                            final raw = e.toString();
-                                            final msg =
-                                                raw.startsWith('Exception: ')
-                                                ? raw.substring(11)
-                                                : raw;
-
-                                            final isUserNotFound =
-                                                msg.toLowerCase().contains(
-                                                  'олдсонгүй',
-                                                ) ||
-                                                msg.toLowerCase().contains(
-                                                  'not found',
-                                                );
-
-                                            if (isUserNotFound) {
-                                              final storedOrgId =
-                                                  await StorageService.getBaiguullagiinId();
-                                              if (storedOrgId != null &&
-                                                  storedOrgId
-                                                      .trim()
-                                                      .isNotEmpty) {
-                                                print(
-                                                  '🏢 [LOGIN] Retry login with stored baiguullagiinId=$storedOrgId',
-                                                );
-                                                loginResponse =
-                                                    await ApiService.loginUser(
-                                                      utas: inputPhone,
-                                                      nuutsUg: inputPassword,
-                                                      bairId: savedBairId,
-                                                      doorNo: savedDoorNo,
-                                                      baiguullagiinId:
-                                                          storedOrgId.trim(),
-                                                    );
-                                              } else {
-                                                // No orgId available to retry - keep original error behavior
-                                                rethrow;
-                                              }
-                                            } else {
-                                              rethrow;
-                                            }
-                                          }
-
-                                          // Normalize user payload key: backend may return `result` or `orshinSuugch`
-                                          final userDataDynamic =
-                                              loginResponse['result'] ??
-                                              loginResponse['orshinSuugch'];
-                                          final userData =
-                                              userDataDynamic
-                                                  is Map<String, dynamic>
-                                              ? userDataDynamic
-                                              : null;
-
-                                          print(
-                                            '✅ [LOGIN] Login response received',
-                                          );
-                                          print(
-                                            '   - Success: ${loginResponse['success']}',
-                                          );
-                                          print(
-                                            '   - Has token: ${loginResponse['token'] != null}',
-                                          );
-                                          print(
-                                            '   - Has result: ${loginResponse['result'] != null}',
-                                          );
-                                          print(
-                                            '   - Has orshinSuugch: ${loginResponse['orshinSuugch'] != null}',
-                                          );
-                                          print(
-                                            '   - Has billingInfo: ${loginResponse['billingInfo'] != null}',
-                                          );
-
-                                          // Verify token was saved before proceeding
-                                          final tokenSaved =
-                                              await StorageService.isLoggedIn();
-                                          print(
-                                            '🔑 [LOGIN] Token saved check: $tokenSaved',
-                                          );
-
-                                          if (!tokenSaved) {
-                                            throw Exception(
-                                              'Токен хадгалахад алдаа гарлаа. Дахин оролдоно уу.',
-                                            );
-                                          }
-
-                                          if (mounted) {
-                                            print(
-                                              '📱 [LOGIN] ========== STARTING POST-LOGIN FLOW ==========',
-                                            );
-                                            await StorageService.savePhoneNumber(
-                                              inputPhone,
-                                            );
-                                            print(
-                                              '📱 [LOGIN] Phone number saved',
-                                            );
-
-                                            // Determine if this is a WEB-created user (has baiguullagiinId)
-                                            // or a MOBILE-created user (no baiguullagiinId).
-                                            // Only WEB-created users should go through OTP verification and Wallet address selection.
-                                            final loginOrgId =
-                                                userData?['baiguullagiinId']
-                                                    ?.toString();
-                                            final hasBaiguullagiinId =
-                                                loginOrgId != null &&
-                                                loginOrgId.trim().isNotEmpty &&
-                                                loginOrgId
-                                                        .trim()
-                                                        .toLowerCase() !=
-                                                    'null';
-
-                                            print(
-                                              '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
-                                            );
-
-                                            // CRITICAL: Only require OTP verification for users WITH baiguullagiinId
-                                            // Users without baiguullagiinId (MOBILE-created) can login directly without OTP
-                                            if (hasBaiguullagiinId) {
-                                              print(
-                                                '📱 [LOGIN] ========== PHONE VERIFICATION CHECK ==========',
-                                              );
-                                              print(
-                                                '📱 [LOGIN] User has baiguullagiinId - checking if phone verification is needed...',
-                                              );
-                                              final needsVerification =
-                                                  await StorageService.needsPhoneVerification();
-                                              print(
-                                                '📱 [LOGIN] needsVerification result: $needsVerification',
-                                              );
-
-                                              // Show phone verification screen if needed
-                                              if (needsVerification) {
-                                                print(
-                                                  '📱 [LOGIN] Phone verification required - showing verification screen',
-                                                );
-
-                                                // Show phone verification screen IMMEDIATELY after login
-                                                // OTP is automatically sent on login, so we just need to verify it
-                                                final verificationResult =
-                                                    await context.push<bool>(
-                                                      '/phone_verification',
-                                                      extra: {
-                                                        'phoneNumber': inputPhone,
-                                                        'baiguullagiinId':
-                                                            loginOrgId,
-                                                        'duureg':
-                                                            userData?['duureg']
-                                                                ?.toString(),
-                                                        'horoo': userData?['horoo']
-                                                            ?.toString(),
-                                                        'soh': userData?['soh']
-                                                            ?.toString(),
-                                                      },
-                                                    );
-
-                                                print(
-                                                  '📱 [LOGIN] Verification result: $verificationResult',
-                                                );
-
-                                                // If verification was cancelled or failed, don't proceed
-                                                if (verificationResult != true) {
-                                                  print(
-                                                    '⚠️ [LOGIN] Phone verification cancelled or failed - staying on login screen',
+                                                if (inputPhone.isEmpty) {
+                                                  showGlassSnackBar(
+                                                    context,
+                                                    message:
+                                                        "Утасны дугаар оруулна уу",
+                                                    icon: Icons.error,
+                                                    iconColor: Colors.red,
                                                   );
-
-                                                  // IMPORTANT: Logout user if they cancel OTP verification
-                                                  // This prevents router from redirecting to home page
-                                                  // because the token was already saved during login
-                                                  print(
-                                                    '🔓 [LOGIN] Logging out user because OTP verification was cancelled',
+                                                  return;
+                                                } else if (!RegExp(
+                                                  r'^\d+$',
+                                                ).hasMatch(inputPhone)) {
+                                                  showGlassSnackBar(
+                                                    context,
+                                                    message:
+                                                        "Зөвхөн тоо оруулна уу!",
+                                                    icon: Icons.error,
+                                                    iconColor: Colors.red,
                                                   );
-                                                  await SessionService.logout();
-
-                                                  setState(() {
-                                                    _isLoading = false;
-                                                  });
                                                   return;
                                                 }
 
-                                                print(
-                                                  '✅ [LOGIN] Phone verification successful - continuing with login flow',
-                                                );
-                                              } else {
-                                                print(
-                                                  '✅ [LOGIN] Phone verification not needed - skipping OTP',
-                                                );
-                                              }
-                                            } else {
-                                              print(
-                                                '✅ [LOGIN] User without baiguullagiinId - skipping OTP verification',
-                                              );
-                                            }
-
-                                            print(
-                                              '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
-                                            );
-
-                                            // Check if user has address in their profile
-                                            // The login response has walletBairId and walletDoorNo
-                                            bool hasAddress = false;
-
-                                            // MOBILE-created users: Check if they have address saved
-                                            // If not, show address selection screen
-                                            if (!hasBaiguullagiinId) {
-                                              // Check if user has address in profile or local storage
-                                              final walletBairId =
-                                                  userData?['walletBairId']
-                                                      ?.toString();
-                                              final walletDoorNo =
-                                                  userData?['walletDoorNo']
-                                                      ?.toString();
-
-                                              if (walletBairId != null &&
-                                                  walletBairId.isNotEmpty &&
-                                                  walletDoorNo != null &&
-                                                  walletDoorNo.isNotEmpty) {
-                                                // Save address from user profile to local storage
-                                                await StorageService.saveWalletAddress(
-                                                  bairId: walletBairId,
-                                                  doorNo: walletDoorNo,
-                                                );
-                                                hasAddress = true;
-                                                print(
-                                                  '📍 [LOGIN] NO-ORG user - Address found in profile: $walletBairId / $walletDoorNo',
-                                                );
-                                              } else {
-                                                // Check if address is already saved locally
-                                                hasAddress =
-                                                    await StorageService.hasSavedAddress();
-                                                print(
-                                                  '📍 [LOGIN] NO-ORG user - Address not in profile, checking local storage: $hasAddress',
-                                                );
-                                              }
-
-                                              // If NO-ORG user doesn't have address, show address selection
-                                              if (!hasAddress) {
-                                                print(
-                                                  '📍 [LOGIN] NO-ORG user has no address - showing address selection screen',
-                                                );
-                                                final addressSaved =
-                                                    await context.push<bool>(
-                                                      '/address_selection',
-                                                    );
-
-                                                // Only navigate to home if address was successfully saved
-                                                if (addressSaved != true) {
-                                                  print(
-                                                    '⚠️ [LOGIN] Address selection cancelled or failed, staying on login screen',
+                                                if (!_showEmailField &&
+                                                    inputPassword.isEmpty) {
+                                                  showGlassSnackBar(
+                                                    context,
+                                                    message:
+                                                        "Нууц код оруулна уу",
+                                                    icon: Icons.error,
+                                                    iconColor: Colors.red,
                                                   );
-                                                  setState(() {
-                                                    _isLoading = false;
-                                                  });
-                                                  return; // Exit early, don't navigate to home
+                                                  return;
                                                 }
-                                                hasAddress = true;
-                                              }
-                                            } else if (userData != null) {
-                                              final walletBairId =
-                                                  userData['walletBairId']
-                                                      ?.toString();
-                                              final walletDoorNo =
-                                                  userData['walletDoorNo']
-                                                      ?.toString();
 
-                                              if (walletBairId != null &&
-                                                  walletBairId.isNotEmpty &&
-                                                  walletDoorNo != null &&
-                                                  walletDoorNo.isNotEmpty) {
-                                                // Save address from user profile to local storage
-                                                await StorageService.saveWalletAddress(
-                                                  bairId: walletBairId,
-                                                  doorNo: walletDoorNo,
-                                                );
-                                                hasAddress = true;
-                                                print(
-                                                  '📍 [LOGIN] Address found in user profile: $walletBairId / $walletDoorNo',
-                                                );
+                                                setState(() {
+                                                  _isLoading = true;
+                                                });
 
-                                                // If billingInfo is not in response but we have address,
-                                                // the backend should have fetched it automatically
-                                                // If not, we'll fetch it manually as fallback
-                                                if (loginResponse['billingInfo'] ==
-                                                    null) {
-                                                  print(
-                                                    '⚠️ [LOGIN] Address exists but billingInfo missing - will fetch manually',
-                                                  );
-                                                }
-                                              } else {
-                                                // Check if address is already saved locally
-                                                hasAddress =
-                                                    await StorageService.hasSavedAddress();
-                                                print(
-                                                  '📍 [LOGIN] Address not in profile, checking local storage: $hasAddress',
-                                                );
-                                              }
-                                            } else {
-                                              // Fallback to local storage check
-                                              hasAddress =
-                                                  await StorageService.hasSavedAddress();
-                                              print(
-                                                '📍 [LOGIN] No user data in response, checking local storage: $hasAddress',
-                                              );
-                                            }
-
-                                            final taniltsuulgaKharakhEsekh =
-                                                await StorageService.getTaniltsuulgaKharakhEsekh();
-
-                                            print(
-                                              '📍 [LOGIN] Final hasAddress: $hasAddress',
-                                            );
-
-                                            print(
-                                              '📍 [LOGIN] Has saved address: $hasAddress',
-                                            );
-                                            if (hasAddress) {
-                                              final bairId =
-                                                  await StorageService.getWalletBairId();
-                                              final doorNo =
-                                                  await StorageService.getWalletDoorNo();
-                                              print(
-                                                '📍 [LOGIN] Saved address - bairId: $bairId, doorNo: $doorNo',
-                                              );
-                                            }
-
-                                            setState(() {
-                                              _isLoading = false;
-                                              _showEmailField = false;
-                                            });
-                                            showGlassSnackBar(
-                                              context,
-                                              message: 'Нэвтрэлт амжилттай',
-                                              icon: Icons.check_outlined,
-                                              iconColor: Colors.green,
-                                            );
-
-                                            try {
-                                              await SocketService.instance
-                                                  .connect();
-                                            } catch (e) {
-                                              print(
-                                                'Failed to connect socket: $e',
-                                              );
-                                            }
-
-                                            // Backend now automatically handles billing connection
-                                            // Check billingInfo in response to see if billing was connected
-                                            if (loginResponse['billingInfo'] !=
-                                                null) {
-                                              final billingInfo =
-                                                  loginResponse['billingInfo'];
-                                              final billingConnected =
-                                                  loginResponse['billingConnected'] ==
-                                                  true;
-
-                                              print(
-                                                '✅ [LOGIN] Billing info received from backend',
-                                              );
-                                              print(
-                                                '   - Billing ID: ${billingInfo['billingId']}',
-                                              );
-                                              print(
-                                                '   - Billing Name: ${billingInfo['billingName']}',
-                                              );
-                                              print(
-                                                '   - Customer Name: ${billingInfo['customerName']}',
-                                              );
-                                              print(
-                                                '   - Billing Connected: $billingConnected',
-                                              );
-
-                                              if (!billingConnected &&
-                                                  loginResponse['connectionError'] !=
-                                                      null) {
-                                                print(
-                                                  '⚠️ [LOGIN] Billing connection failed: ${loginResponse['connectionError']}',
-                                                );
-                                              }
-                                            } else {
-                                              // No billingInfo in response
-                                              // Check if user has address - backend should have used it automatically
-                                              if (hasAddress) {
-                                                print(
-                                                  '⚠️ [LOGIN] User has address but no billingInfo in response',
-                                                );
-                                                print(
-                                                  '   Backend should have automatically fetched billing using saved address',
-                                                );
-                                                print(
-                                                  '   Attempting to fetch billing manually...',
-                                                );
-
-                                                // Try to fetch billing manually using the address from profile
                                                 try {
-                                                  final bairId =
+                                                  // If email field is shown, user needs to register first
+                                                  if (_showEmailField) {
+                                                    final inputEmail =
+                                                        emailController.text
+                                                            .trim();
+
+                                                    if (inputEmail.isEmpty) {
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          _isLoading = false;
+                                                        });
+                                                        showGlassSnackBar(
+                                                          context,
+                                                          message:
+                                                              'Имэйл хаяг оруулна уу',
+                                                          icon: Icons.error,
+                                                          iconColor: Colors.red,
+                                                        );
+                                                      }
+                                                      return;
+                                                    }
+
+                                                    if (!RegExp(
+                                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                                    ).hasMatch(inputEmail)) {
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          _isLoading = false;
+                                                        });
+                                                        showGlassSnackBar(
+                                                          context,
+                                                          message:
+                                                              'Зөв имэйл хаяг оруулна уу',
+                                                          icon: Icons.error,
+                                                          iconColor: Colors.red,
+                                                        );
+                                                      }
+                                                      return;
+                                                    }
+
+                                                    // Register in Wallet API first
+                                                    await ApiService.registerWalletUser(
+                                                      utas: inputPhone,
+                                                      mail: inputEmail,
+                                                    );
+                                                  }
+
+                                                  // Get saved address to send with login
+                                                  // Backend will also check saved address in user profile if not provided
+                                                  var savedBairId =
                                                       await StorageService.getWalletBairId();
-                                                  final doorNo =
+                                                  var savedDoorNo =
                                                       await StorageService.getWalletDoorNo();
 
-                                                  if (bairId != null &&
-                                                      doorNo != null) {
-                                                    await ApiService.fetchWalletBilling(
-                                                      bairId: bairId,
-                                                      doorNo: doorNo,
+                                                  // If address not in local storage, try to get from previous login response
+                                                  // This handles cases where address was saved to backend but not to local storage
+                                                  if (savedBairId == null ||
+                                                      savedDoorNo == null) {
+                                                    print(
+                                                      '📍 [LOGIN] Address not in local storage, backend will use saved address from profile',
+                                                    );
+                                                  }
+
+                                                  // Try to login - backend automatically handles billing connection
+                                                  print(
+                                                    '🔐 [LOGIN] Attempting login with phone: $inputPhone',
+                                                  );
+                                                  print(
+                                                    '🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo',
+                                                  );
+
+                                                  // Get OWN_ORG IDs if address is OWN_ORG type
+                                                  final savedBaiguullagiinId =
+                                                      await StorageService.getWalletBairBaiguullagiinId();
+                                                  final savedBarilgiinId =
+                                                      await StorageService.getWalletBairBarilgiinId();
+                                                  final savedSource =
+                                                      await StorageService.getWalletBairSource();
+
+                                                  final isOwnOrg =
+                                                      savedSource ==
+                                                          'OWN_ORG' &&
+                                                      savedBaiguullagiinId !=
+                                                          null &&
+                                                      savedBarilgiinId != null;
+
+                                                  if (isOwnOrg) {
+                                                    print(
+                                                      '🏢 [LOGIN] OWN_ORG address detected - baiguullagiinId: $savedBaiguullagiinId, barilgiinId: $savedBarilgiinId',
+                                                    );
+                                                  }
+
+                                                  // Some WEB-created users require baiguullagiinId to login.
+                                                  // First try without orgId; if backend says "Хэрэглэгч олдсонгүй!",
+                                                  // retry with stored baiguullagiinId (if we have one) before treating
+                                                  // the user as a new NO-ORG signup.
+                                                  Map<String, dynamic>
+                                                  loginResponse;
+                                                  try {
+                                                    loginResponse =
+                                                        await ApiService.loginUser(
+                                                          utas: inputPhone,
+                                                          nuutsUg:
+                                                              inputPassword,
+                                                          bairId: savedBairId,
+                                                          doorNo: savedDoorNo,
+                                                          // Include OWN_ORG IDs if this is an OWN_ORG address
+                                                          baiguullagiinId:
+                                                              isOwnOrg
+                                                              ? savedBaiguullagiinId
+                                                              : null,
+                                                          barilgiinId: isOwnOrg
+                                                              ? savedBarilgiinId
+                                                              : null,
+                                                        );
+                                                  } catch (e) {
+                                                    final raw = e.toString();
+                                                    final msg =
+                                                        raw.startsWith(
+                                                          'Exception: ',
+                                                        )
+                                                        ? raw.substring(11)
+                                                        : raw;
+
+                                                    final isUserNotFound =
+                                                        msg
+                                                            .toLowerCase()
+                                                            .contains(
+                                                              'олдсонгүй',
+                                                            ) ||
+                                                        msg
+                                                            .toLowerCase()
+                                                            .contains(
+                                                              'not found',
+                                                            );
+
+                                                    if (isUserNotFound) {
+                                                      final storedOrgId =
+                                                          await StorageService.getBaiguullagiinId();
+                                                      if (storedOrgId != null &&
+                                                          storedOrgId
+                                                              .trim()
+                                                              .isNotEmpty) {
+                                                        print(
+                                                          '🏢 [LOGIN] Retry login with stored baiguullagiinId=$storedOrgId',
+                                                        );
+                                                        loginResponse =
+                                                            await ApiService.loginUser(
+                                                              utas: inputPhone,
+                                                              nuutsUg:
+                                                                  inputPassword,
+                                                              bairId:
+                                                                  savedBairId,
+                                                              doorNo:
+                                                                  savedDoorNo,
+                                                              baiguullagiinId:
+                                                                  storedOrgId
+                                                                      .trim(),
+                                                            );
+                                                      } else {
+                                                        // No orgId available to retry - keep original error behavior
+                                                        rethrow;
+                                                      }
+                                                    } else {
+                                                      rethrow;
+                                                    }
+                                                  }
+
+                                                  // Normalize user payload key: backend may return `result` or `orshinSuugch`
+                                                  final userDataDynamic =
+                                                      loginResponse['result'] ??
+                                                      loginResponse['orshinSuugch'];
+                                                  final userData =
+                                                      userDataDynamic
+                                                          is Map<
+                                                            String,
+                                                            dynamic
+                                                          >
+                                                      ? userDataDynamic
+                                                      : null;
+
+                                                  print(
+                                                    '✅ [LOGIN] Login response received',
+                                                  );
+                                                  print(
+                                                    '   - Success: ${loginResponse['success']}',
+                                                  );
+                                                  print(
+                                                    '   - Has token: ${loginResponse['token'] != null}',
+                                                  );
+                                                  print(
+                                                    '   - Has result: ${loginResponse['result'] != null}',
+                                                  );
+                                                  print(
+                                                    '   - Has orshinSuugch: ${loginResponse['orshinSuugch'] != null}',
+                                                  );
+                                                  print(
+                                                    '   - Has billingInfo: ${loginResponse['billingInfo'] != null}',
+                                                  );
+
+                                                  // Verify token was saved before proceeding
+                                                  final tokenSaved =
+                                                      await StorageService.isLoggedIn();
+                                                  print(
+                                                    '🔑 [LOGIN] Token saved check: $tokenSaved',
+                                                  );
+
+                                                  if (!tokenSaved) {
+                                                    throw Exception(
+                                                      'Токен хадгалахад алдаа гарлаа. Дахин оролдоно уу.',
+                                                    );
+                                                  }
+
+                                                  if (mounted) {
+                                                    print(
+                                                      '📱 [LOGIN] ========== STARTING POST-LOGIN FLOW ==========',
+                                                    );
+                                                    await StorageService.savePhoneNumber(
+                                                      inputPhone,
                                                     );
                                                     print(
-                                                      '✅ [LOGIN] Billing fetched manually after login',
+                                                      '📱 [LOGIN] Phone number saved',
                                                     );
+
+                                                    // Determine if this is a WEB-created user (has baiguullagiinId)
+                                                    // or a MOBILE-created user (no baiguullagiinId).
+                                                    // Only WEB-created users should go through OTP verification and Wallet address selection.
+                                                    final loginOrgId =
+                                                        userData?['baiguullagiinId']
+                                                            ?.toString();
+                                                    final hasBaiguullagiinId =
+                                                        loginOrgId != null &&
+                                                        loginOrgId
+                                                            .trim()
+                                                            .isNotEmpty &&
+                                                        loginOrgId
+                                                                .trim()
+                                                                .toLowerCase() !=
+                                                            'null';
+
+                                                    print(
+                                                      '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
+                                                    );
+
+                                                    // CRITICAL: Only require OTP verification for users WITH baiguullagiinId
+                                                    // Users without baiguullagiinId (MOBILE-created) can login directly without OTP
+                                                    if (hasBaiguullagiinId) {
+                                                      print(
+                                                        '📱 [LOGIN] ========== PHONE VERIFICATION CHECK ==========',
+                                                      );
+                                                      print(
+                                                        '📱 [LOGIN] User has baiguullagiinId - checking if phone verification is needed...',
+                                                      );
+                                                      final needsVerification =
+                                                          await StorageService.needsPhoneVerification();
+                                                      print(
+                                                        '📱 [LOGIN] needsVerification result: $needsVerification',
+                                                      );
+
+                                                      // Show phone verification screen if needed
+                                                      if (needsVerification) {
+                                                        print(
+                                                          '📱 [LOGIN] Phone verification required - showing verification screen',
+                                                        );
+
+                                                        // Show phone verification screen IMMEDIATELY after login
+                                                        // OTP is automatically sent on login, so we just need to verify it
+                                                        final verificationResult = await context.push<bool>(
+                                                          '/phone_verification',
+                                                          extra: {
+                                                            'phoneNumber':
+                                                                inputPhone,
+                                                            'baiguullagiinId':
+                                                                loginOrgId,
+                                                            'duureg':
+                                                                userData?['duureg']
+                                                                    ?.toString(),
+                                                            'horoo':
+                                                                userData?['horoo']
+                                                                    ?.toString(),
+                                                            'soh':
+                                                                userData?['soh']
+                                                                    ?.toString(),
+                                                          },
+                                                        );
+
+                                                        print(
+                                                          '📱 [LOGIN] Verification result: $verificationResult',
+                                                        );
+
+                                                        // If verification was cancelled or failed, don't proceed
+                                                        if (verificationResult !=
+                                                            true) {
+                                                          print(
+                                                            '⚠️ [LOGIN] Phone verification cancelled or failed - staying on login screen',
+                                                          );
+
+                                                          // IMPORTANT: Logout user if they cancel OTP verification
+                                                          // This prevents router from redirecting to home page
+                                                          // because the token was already saved during login
+                                                          print(
+                                                            '🔓 [LOGIN] Logging out user because OTP verification was cancelled',
+                                                          );
+                                                          await SessionService.logout();
+
+                                                          setState(() {
+                                                            _isLoading = false;
+                                                          });
+                                                          return;
+                                                        }
+
+                                                        print(
+                                                          '✅ [LOGIN] Phone verification successful - continuing with login flow',
+                                                        );
+                                                      } else {
+                                                        print(
+                                                          '✅ [LOGIN] Phone verification not needed - skipping OTP',
+                                                        );
+                                                      }
+                                                    } else {
+                                                      print(
+                                                        '✅ [LOGIN] User without baiguullagiinId - skipping OTP verification',
+                                                      );
+                                                    }
+
+                                                    print(
+                                                      '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
+                                                    );
+
+                                                    // Check if user has address in their profile
+                                                    // The login response has walletBairId and walletDoorNo
+                                                    bool hasAddress = false;
+
+                                                    // MOBILE-created users: Check if they have address saved
+                                                    // If not, show address selection screen
+                                                    if (!hasBaiguullagiinId) {
+                                                      // Check if user has address in profile or local storage
+                                                      final walletBairId =
+                                                          userData?['walletBairId']
+                                                              ?.toString();
+                                                      final walletDoorNo =
+                                                          userData?['walletDoorNo']
+                                                              ?.toString();
+
+                                                      if (walletBairId !=
+                                                              null &&
+                                                          walletBairId
+                                                              .isNotEmpty &&
+                                                          walletDoorNo !=
+                                                              null &&
+                                                          walletDoorNo
+                                                              .isNotEmpty) {
+                                                        // Save address from user profile to local storage
+                                                        await StorageService.saveWalletAddress(
+                                                          bairId: walletBairId,
+                                                          doorNo: walletDoorNo,
+                                                        );
+                                                        hasAddress = true;
+                                                        print(
+                                                          '📍 [LOGIN] NO-ORG user - Address found in profile: $walletBairId / $walletDoorNo',
+                                                        );
+                                                      } else {
+                                                        // Check if address is already saved locally
+                                                        hasAddress =
+                                                            await StorageService.hasSavedAddress();
+                                                        print(
+                                                          '📍 [LOGIN] NO-ORG user - Address not in profile, checking local storage: $hasAddress',
+                                                        );
+                                                      }
+
+                                                      // If NO-ORG user doesn't have address, show address selection
+                                                      if (!hasAddress) {
+                                                        print(
+                                                          '📍 [LOGIN] NO-ORG user has no address - showing address selection screen',
+                                                        );
+                                                        final addressSaved =
+                                                            await context.push<
+                                                              bool
+                                                            >(
+                                                              '/address_selection',
+                                                            );
+
+                                                        // Only navigate to home if address was successfully saved
+                                                        if (addressSaved !=
+                                                            true) {
+                                                          print(
+                                                            '⚠️ [LOGIN] Address selection cancelled or failed, staying on login screen',
+                                                          );
+                                                          setState(() {
+                                                            _isLoading = false;
+                                                          });
+                                                          return; // Exit early, don't navigate to home
+                                                        }
+                                                        hasAddress = true;
+                                                      }
+                                                    } else if (userData !=
+                                                        null) {
+                                                      final walletBairId =
+                                                          userData['walletBairId']
+                                                              ?.toString();
+                                                      final walletDoorNo =
+                                                          userData['walletDoorNo']
+                                                              ?.toString();
+
+                                                      if (walletBairId !=
+                                                              null &&
+                                                          walletBairId
+                                                              .isNotEmpty &&
+                                                          walletDoorNo !=
+                                                              null &&
+                                                          walletDoorNo
+                                                              .isNotEmpty) {
+                                                        // Save address from user profile to local storage
+                                                        await StorageService.saveWalletAddress(
+                                                          bairId: walletBairId,
+                                                          doorNo: walletDoorNo,
+                                                        );
+                                                        hasAddress = true;
+                                                        print(
+                                                          '📍 [LOGIN] Address found in user profile: $walletBairId / $walletDoorNo',
+                                                        );
+
+                                                        // If billingInfo is not in response but we have address,
+                                                        // the backend should have fetched it automatically
+                                                        // If not, we'll fetch it manually as fallback
+                                                        if (loginResponse['billingInfo'] ==
+                                                            null) {
+                                                          print(
+                                                            '⚠️ [LOGIN] Address exists but billingInfo missing - will fetch manually',
+                                                          );
+                                                        }
+                                                      } else {
+                                                        // Check if address is already saved locally
+                                                        hasAddress =
+                                                            await StorageService.hasSavedAddress();
+                                                        print(
+                                                          '📍 [LOGIN] Address not in profile, checking local storage: $hasAddress',
+                                                        );
+                                                      }
+                                                    } else {
+                                                      // Fallback to local storage check
+                                                      hasAddress =
+                                                          await StorageService.hasSavedAddress();
+                                                      print(
+                                                        '📍 [LOGIN] No user data in response, checking local storage: $hasAddress',
+                                                      );
+                                                    }
+
+                                                    final taniltsuulgaKharakhEsekh =
+                                                        await StorageService.getTaniltsuulgaKharakhEsekh();
+
+                                                    print(
+                                                      '📍 [LOGIN] Final hasAddress: $hasAddress',
+                                                    );
+
+                                                    print(
+                                                      '📍 [LOGIN] Has saved address: $hasAddress',
+                                                    );
+                                                    if (hasAddress) {
+                                                      final bairId =
+                                                          await StorageService.getWalletBairId();
+                                                      final doorNo =
+                                                          await StorageService.getWalletDoorNo();
+                                                      print(
+                                                        '📍 [LOGIN] Saved address - bairId: $bairId, doorNo: $doorNo',
+                                                      );
+                                                    }
+
+                                                    setState(() {
+                                                      _isLoading = false;
+                                                      _showEmailField = false;
+                                                    });
+                                                    showGlassSnackBar(
+                                                      context,
+                                                      message:
+                                                          'Нэвтрэлт амжилттай',
+                                                      icon:
+                                                          Icons.check_outlined,
+                                                      iconColor: Colors.green,
+                                                    );
+
+                                                    try {
+                                                      await SocketService
+                                                          .instance
+                                                          .connect();
+                                                    } catch (e) {
+                                                      print(
+                                                        'Failed to connect socket: $e',
+                                                      );
+                                                    }
+
+                                                    // Backend now automatically handles billing connection
+                                                    // Check billingInfo in response to see if billing was connected
+                                                    if (loginResponse['billingInfo'] !=
+                                                        null) {
+                                                      final billingInfo =
+                                                          loginResponse['billingInfo'];
+                                                      final billingConnected =
+                                                          loginResponse['billingConnected'] ==
+                                                          true;
+
+                                                      print(
+                                                        '✅ [LOGIN] Billing info received from backend',
+                                                      );
+                                                      print(
+                                                        '   - Billing ID: ${billingInfo['billingId']}',
+                                                      );
+                                                      print(
+                                                        '   - Billing Name: ${billingInfo['billingName']}',
+                                                      );
+                                                      print(
+                                                        '   - Customer Name: ${billingInfo['customerName']}',
+                                                      );
+                                                      print(
+                                                        '   - Billing Connected: $billingConnected',
+                                                      );
+
+                                                      if (!billingConnected &&
+                                                          loginResponse['connectionError'] !=
+                                                              null) {
+                                                        print(
+                                                          '⚠️ [LOGIN] Billing connection failed: ${loginResponse['connectionError']}',
+                                                        );
+                                                      }
+                                                    } else {
+                                                      // No billingInfo in response
+                                                      // Check if user has address - backend should have used it automatically
+                                                      if (hasAddress) {
+                                                        print(
+                                                          '⚠️ [LOGIN] User has address but no billingInfo in response',
+                                                        );
+                                                        print(
+                                                          '   Backend should have automatically fetched billing using saved address',
+                                                        );
+                                                        print(
+                                                          '   Attempting to fetch billing manually...',
+                                                        );
+
+                                                        // Try to fetch billing manually using the address from profile
+                                                        try {
+                                                          final bairId =
+                                                              await StorageService.getWalletBairId();
+                                                          final doorNo =
+                                                              await StorageService.getWalletDoorNo();
+
+                                                          if (bairId != null &&
+                                                              doorNo != null) {
+                                                            await ApiService.fetchWalletBilling(
+                                                              bairId: bairId,
+                                                              doorNo: doorNo,
+                                                            );
+                                                            print(
+                                                              '✅ [LOGIN] Billing fetched manually after login',
+                                                            );
+                                                          }
+                                                        } catch (e) {
+                                                          print(
+                                                            '⚠️ [LOGIN] Could not fetch billing manually: $e',
+                                                          );
+                                                          // This is not critical - user can still use the app
+                                                        }
+                                                      } else {
+                                                        print(
+                                                          'ℹ️ [LOGIN] No billing info in response (user may not have address)',
+                                                        );
+                                                      }
+                                                    }
+
+                                                    // Navigate to home
+                                                    final targetRoute =
+                                                        taniltsuulgaKharakhEsekh
+                                                        ? '/ekhniikh'
+                                                        : '/nuur';
+
+                                                    // Only WEB-created (ORG) users should be forced to pick a wallet address
+                                                    if (!hasAddress &&
+                                                        hasBaiguullagiinId) {
+                                                      // Check if user has address on server before showing address selection
+                                                      // Check user profile to see if they have walletBairId and walletDoorNo
+                                                      bool hasServerAddress =
+                                                          false;
+                                                      try {
+                                                        final userProfile =
+                                                            await ApiService.getUserProfile();
+                                                        if (userProfile['result'] !=
+                                                            null) {
+                                                          final userData =
+                                                              userProfile['result'];
+                                                          final walletBairId =
+                                                              userData['walletBairId']
+                                                                  ?.toString();
+                                                          final walletDoorNo =
+                                                              userData['walletDoorNo']
+                                                                  ?.toString();
+
+                                                          if (walletBairId !=
+                                                                  null &&
+                                                              walletBairId
+                                                                  .isNotEmpty &&
+                                                              walletDoorNo !=
+                                                                  null &&
+                                                              walletDoorNo
+                                                                  .isNotEmpty) {
+                                                            // User has address on server, save it locally and skip address selection
+                                                            await StorageService.saveWalletAddress(
+                                                              bairId:
+                                                                  walletBairId,
+                                                              doorNo:
+                                                                  walletDoorNo,
+                                                            );
+                                                            hasServerAddress =
+                                                                true;
+                                                            hasAddress = true;
+                                                            print(
+                                                              '📍 [LOGIN] Address found on server, skipping address selection screen',
+                                                            );
+                                                          }
+                                                        }
+                                                      } catch (e) {
+                                                        print(
+                                                          '⚠️ [LOGIN] Error checking server address: $e',
+                                                        );
+                                                        // Continue to address selection if check fails
+                                                      }
+
+                                                      if (!hasServerAddress) {
+                                                        // If user doesn't have address on server, show address selection screen
+                                                        // Address selection will fetch billing data separately
+                                                        print(
+                                                          '📍 [LOGIN] No saved address, showing address selection screen',
+                                                        );
+                                                        final addressSaved =
+                                                            await context.push<
+                                                              bool
+                                                            >(
+                                                              '/address_selection',
+                                                            );
+
+                                                        // Only navigate to home if address was successfully saved
+                                                        // If user pressed back, addressSaved will be null/false, stay on login screen
+                                                        if (addressSaved !=
+                                                            true) {
+                                                          print(
+                                                            '⚠️ [LOGIN] Address selection cancelled or failed, staying on login screen',
+                                                          );
+                                                          return; // Exit early, don't navigate to home
+                                                        }
+                                                      }
+                                                    }
+
+                                                    // Check if user has profile (ner and ovog)
+                                                    bool hasProfile = false;
+                                                    if (userData != null) {
+                                                      final hasNer =
+                                                          userData['ner'] !=
+                                                              null &&
+                                                          userData['ner']
+                                                              .toString()
+                                                              .isNotEmpty;
+                                                      final hasOvog =
+                                                          userData['ovog'] !=
+                                                              null &&
+                                                          userData['ovog']
+                                                              .toString()
+                                                              .isNotEmpty;
+                                                      hasProfile =
+                                                          hasNer || hasOvog;
+
+                                                      print(
+                                                        '👤 [LOGIN] Profile check - hasNer: $hasNer, hasOvog: $hasOvog, hasProfile: $hasProfile',
+                                                      );
+                                                    }
+
+                                                    // If user has no profile, redirect to signup window
+                                                    if (!hasProfile) {
+                                                      print(
+                                                        '⚠️ [LOGIN] User has no profile, redirecting to signup',
+                                                      );
+                                                      // Navigate to signup window
+                                                      context.go(
+                                                        '/burtguulekh_signup',
+                                                        extra: {
+                                                          // WEB-created user -> has orgId, no address required here
+                                                          'baiguullagiinId':
+                                                              loginOrgId,
+                                                          'utas': inputPhone,
+                                                        },
+                                                      );
+                                                      return;
+                                                    }
+
+                                                    // Navigate to home (phone verification was already handled earlier in the flow)
+                                                    print(
+                                                      '🚀 [LOGIN] Preparing to navigate to: $targetRoute',
+                                                    );
+
+                                                    // Small delay to ensure any screens are fully closed
+                                                    await Future.delayed(
+                                                      const Duration(
+                                                        milliseconds: 300,
+                                                      ),
+                                                    );
+
+                                                    if (!mounted) {
+                                                      print(
+                                                        '⚠️ [LOGIN] Widget not mounted, skipping navigation',
+                                                      );
+                                                      return;
+                                                    }
+
+                                                    try {
+                                                      print(
+                                                        '🚀 [LOGIN] Navigating to: $targetRoute',
+                                                      );
+                                                      context.go(targetRoute);
+                                                      print(
+                                                        '✅ [LOGIN] Navigation successful',
+                                                      );
+                                                    } catch (e) {
+                                                      print(
+                                                        '❌ [LOGIN] Navigation error: $e',
+                                                      );
+                                                      // Try alternative navigation method
+                                                      if (mounted) {
+                                                        Navigator.of(
+                                                          context,
+                                                        ).pushNamedAndRemoveUntil(
+                                                          targetRoute,
+                                                          (route) => false,
+                                                        );
+                                                      }
+                                                    }
+
+                                                    WidgetsBinding.instance
+                                                        .addPostFrameCallback((
+                                                          _,
+                                                        ) {
+                                                          Future.delayed(
+                                                            const Duration(
+                                                              milliseconds: 800,
+                                                            ),
+                                                            () {
+                                                              if (mounted) {
+                                                                _showModalAfterNavigation();
+                                                              }
+                                                            },
+                                                          );
+                                                        });
                                                   }
                                                 } catch (e) {
-                                                  print(
-                                                    '⚠️ [LOGIN] Could not fetch billing manually: $e',
-                                                  );
-                                                  // This is not critical - user can still use the app
-                                                }
-                                              } else {
-                                                print(
-                                                  'ℹ️ [LOGIN] No billing info in response (user may not have address)',
-                                                );
-                                              }
-                                            }
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _isLoading = false;
+                                                    });
 
-                                            // Navigate to home
-                                            final targetRoute =
-                                                taniltsuulgaKharakhEsekh
-                                                ? '/ekhniikh'
-                                                : '/nuur';
+                                                    String errorMessage = e
+                                                        .toString();
+                                                    if (errorMessage.startsWith(
+                                                      'Exception: ',
+                                                    )) {
+                                                      errorMessage =
+                                                          errorMessage
+                                                              .substring(11);
+                                                    }
+                                                    if (errorMessage.isEmpty) {
+                                                      errorMessage =
+                                                          "Нэвтрэхэд алдаа гарлаа";
+                                                    }
 
-                                            // Only WEB-created (ORG) users should be forced to pick a wallet address
-                                            if (!hasAddress &&
-                                                hasBaiguullagiinId) {
-                                              // Check if user has address on server before showing address selection
-                                              // Check user profile to see if they have walletBairId and walletDoorNo
-                                              bool hasServerAddress = false;
-                                              try {
-                                                final userProfile =
-                                                    await ApiService.getUserProfile();
-                                                if (userProfile['result'] !=
-                                                    null) {
-                                                  final userData =
-                                                      userProfile['result'];
-                                                  final walletBairId =
-                                                      userData['walletBairId']
-                                                          ?.toString();
-                                                  final walletDoorNo =
-                                                      userData['walletDoorNo']
-                                                          ?.toString();
+                                                    // If login fails because user is not registered, show warning and redirect to signup page
+                                                    if (errorMessage.contains(
+                                                          'бүртгэлгүй',
+                                                        ) ||
+                                                        errorMessage.contains(
+                                                          'бүртгэлтэй биш',
+                                                        ) ||
+                                                        errorMessage.contains(
+                                                          'not found',
+                                                        ) ||
+                                                        errorMessage.contains(
+                                                          'олдсонгүй',
+                                                        )) {
+                                                      print(
+                                                        '⚠️ [LOGIN] User not found, redirecting to signup page',
+                                                      );
+                                                      // Show warning message
+                                                      showGlassSnackBar(
+                                                        context,
+                                                        message:
+                                                            'Бүртгэлгүй хэрэглэгч бүртгүүлнэ үү',
+                                                        icon: Icons
+                                                            .warning_rounded,
+                                                        iconColor:
+                                                            Colors.orange,
+                                                      );
+                                                      // Wait a moment for user to see the message, then redirect
+                                                      await Future.delayed(
+                                                        const Duration(
+                                                          milliseconds: 1500,
+                                                        ),
+                                                      );
+                                                      // Redirect to signup page instead of showing email field
+                                                      if (mounted) {
+                                                        context.go(
+                                                          '/burtguulekh_signup',
+                                                          extra: {
+                                                            // New MOBILE user -> force NO-ORG signup flow with address required
+                                                            'forceNoOrg': true,
+                                                            'utas':
+                                                                phoneController
+                                                                    .text
+                                                                    .trim(),
+                                                          },
+                                                        );
+                                                      }
+                                                      return;
+                                                    }
 
-                                                  if (walletBairId != null &&
-                                                      walletBairId.isNotEmpty &&
-                                                      walletDoorNo != null &&
-                                                      walletDoorNo.isNotEmpty) {
-                                                    // User has address on server, save it locally and skip address selection
-                                                    await StorageService.saveWalletAddress(
-                                                      bairId: walletBairId,
-                                                      doorNo: walletDoorNo,
-                                                    );
-                                                    hasServerAddress = true;
-                                                    hasAddress = true;
-                                                    print(
-                                                      '📍 [LOGIN] Address found on server, skipping address selection screen',
+                                                    showGlassSnackBar(
+                                                      context,
+                                                      message: errorMessage,
+                                                      icon: Icons.error,
+                                                      iconColor: Colors.red,
                                                     );
                                                   }
                                                 }
-                                              } catch (e) {
-                                                print(
-                                                  '⚠️ [LOGIN] Error checking server address: $e',
-                                                );
-                                                // Continue to address selection if check fails
-                                              }
-
-                                              if (!hasServerAddress) {
-                                                // If user doesn't have address on server, show address selection screen
-                                                // Address selection will fetch billing data separately
-                                                print(
-                                                  '📍 [LOGIN] No saved address, showing address selection screen',
-                                                );
-                                                final addressSaved =
-                                                    await context.push<bool>(
-                                                      '/address_selection',
-                                                    );
-
-                                                // Only navigate to home if address was successfully saved
-                                                // If user pressed back, addressSaved will be null/false, stay on login screen
-                                                if (addressSaved != true) {
-                                                  print(
-                                                    '⚠️ [LOGIN] Address selection cancelled or failed, staying on login screen',
-                                                  );
-                                                  return; // Exit early, don't navigate to home
-                                                }
-                                              }
-                                            }
-
-                                            // Check if user has profile (ner and ovog)
-                                            bool hasProfile = false;
-                                            if (userData != null) {
-                                              final hasNer =
-                                                  userData['ner'] != null &&
-                                                  userData['ner']
-                                                      .toString()
-                                                      .isNotEmpty;
-                                              final hasOvog =
-                                                  userData['ovog'] != null &&
-                                                  userData['ovog']
-                                                      .toString()
-                                                      .isNotEmpty;
-                                              hasProfile = hasNer || hasOvog;
-
-                                              print(
-                                                '👤 [LOGIN] Profile check - hasNer: $hasNer, hasOvog: $hasOvog, hasProfile: $hasProfile',
-                                              );
-                                            }
-
-                                            // If user has no profile, redirect to signup window
-                                            if (!hasProfile) {
-                                              print(
-                                                '⚠️ [LOGIN] User has no profile, redirecting to signup',
-                                              );
-                                              // Navigate to signup window
-                                              context.go(
-                                                '/burtguulekh_signup',
-                                                extra: {
-                                                  // WEB-created user -> has orgId, no address required here
-                                                  'baiguullagiinId': loginOrgId,
-                                                  'utas': inputPhone,
-                                                },
-                                              );
-                                              return;
-                                            }
-
-                                            // Navigate to home (phone verification was already handled earlier in the flow)
-                                            print(
-                                              '🚀 [LOGIN] Preparing to navigate to: $targetRoute',
-                                            );
-
-                                            // Small delay to ensure any screens are fully closed
-                                            await Future.delayed(
-                                              const Duration(milliseconds: 300),
-                                            );
-
-                                            if (!mounted) {
-                                              print(
-                                                '⚠️ [LOGIN] Widget not mounted, skipping navigation',
-                                              );
-                                              return;
-                                            }
-
-                                            try {
-                                              print(
-                                                '🚀 [LOGIN] Navigating to: $targetRoute',
-                                              );
-                                              context.go(targetRoute);
-                                              print(
-                                                '✅ [LOGIN] Navigation successful',
-                                              );
-                                            } catch (e) {
-                                              print(
-                                                '❌ [LOGIN] Navigation error: $e',
-                                              );
-                                              // Try alternative navigation method
-                                              if (mounted) {
-                                                Navigator.of(
-                                                  context,
-                                                ).pushNamedAndRemoveUntil(
-                                                  targetRoute,
-                                                  (route) => false,
-                                                );
-                                              }
-                                            }
-
-                                            WidgetsBinding.instance
-                                                .addPostFrameCallback((_) {
-                                                  Future.delayed(
-                                                    const Duration(
-                                                      milliseconds: 800,
-                                                    ),
-                                                    () {
-                                                      if (mounted) {
-                                                        _showModalAfterNavigation();
-                                                      }
-                                                    },
-                                                  );
-                                                });
-                                          }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            setState(() {
-                                              _isLoading = false;
-                                            });
-
-                                            String errorMessage = e.toString();
-                                            if (errorMessage.startsWith(
-                                              'Exception: ',
-                                            )) {
-                                              errorMessage = errorMessage
-                                                  .substring(11);
-                                            }
-                                            if (errorMessage.isEmpty) {
-                                              errorMessage =
-                                                  "Нэвтрэхэд алдаа гарлаа";
-                                            }
-
-                                            // If login fails because user is not registered, show warning and redirect to signup page
-                                            if (errorMessage.contains(
-                                                  'бүртгэлгүй',
-                                                ) ||
-                                                errorMessage.contains(
-                                                  'бүртгэлтэй биш',
-                                                ) ||
-                                                errorMessage.contains(
-                                                  'not found',
-                                                ) ||
-                                                errorMessage.contains(
-                                                  'олдсонгүй',
-                                                )) {
-                                              print(
-                                                '⚠️ [LOGIN] User not found, redirecting to signup page',
-                                              );
-                                              // Show warning message
-                                              showGlassSnackBar(
-                                                context,
-                                                message:
-                                                    'Бүртгэлгүй хэрэглэгч бүртгүүлнэ үү',
-                                                icon: Icons.warning_rounded,
-                                                iconColor: Colors.orange,
-                                              );
-                                              // Wait a moment for user to see the message, then redirect
-                                              await Future.delayed(
-                                                const Duration(
-                                                  milliseconds: 1500,
-                                                ),
-                                              );
-                                              // Redirect to signup page instead of showing email field
-                                              if (mounted) {
-                                                context.go(
-                                                  '/burtguulekh_signup',
-                                                  extra: {
-                                                    // New MOBILE user -> force NO-ORG signup flow with address required
-                                                    'forceNoOrg': true,
-                                                    'utas': phoneController.text
-                                                        .trim(),
-                                                  },
-                                                );
-                                              }
-                                              return;
-                                            }
-
-                                            showGlassSnackBar(
-                                              context,
-                                              message: errorMessage,
-                                              icon: Icons.error,
-                                              iconColor: Colors.red,
-                                            );
-                                          }
-                                        }
-                                      },
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(12.r),
-                                  ),
-                                  child: _isLoading
-                                      ? Center(
-                                          child: SizedBox(
-                                            height: 20.h,
-                                            width: 20.w,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.5,
-                                              valueColor:
-                                                  const AlwaysStoppedAnimation<
-                                                    Color
-                                                  >(Colors.black),
+                                              },
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: context.responsiveSpacing(
+                                              small: 12,
+                                              medium: 14,
+                                              large: 16,
+                                              tablet: 18,
+                                              veryNarrow: 10,
                                             ),
                                           ),
-                                        )
-                                      : Text(
-                                          _showEmailField
-                                              ? 'Бүртгүүлэх'
-                                              : 'Нэвтрэх',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: context.isDarkMode
-                                                ? AppColors.darkTextPrimary
-                                                : AppColors.darkTextPrimary,
-                                            fontSize: 15.sp,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.5,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary,
+                                            borderRadius: BorderRadius.circular(
+                                              context.responsiveBorderRadius(
+                                                small: 12,
+                                                medium: 14,
+                                                large: 16,
+                                                tablet: 18,
+                                                veryNarrow: 10,
+                                              ),
+                                            ),
+                                          ),
+                                          child: _isLoading
+                                              ? Center(
+                                                  child: SizedBox(
+                                                    height: 20.h,
+                                                    width: 20.w,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2.5,
+                                                      valueColor:
+                                                          const AlwaysStoppedAnimation<
+                                                            Color
+                                                          >(Colors.black),
+                                                    ),
+                                                  ),
+                                                )
+                                              : Center(
+                                                  child: Text(
+                                                    _showEmailField
+                                                        ? 'Бүртгүүлэх'
+                                                        : 'Нэвтрэх',
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: context.isDarkMode
+                                                          ? AppColors
+                                                                .darkTextPrimary
+                                                          : AppColors
+                                                                .darkTextPrimary,
+                                                      fontSize: 15.sp,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      letterSpacing: 0.5,
+                                                    ),
+                                                  ),
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+                                    // Biometric login button (only show if enabled and available)
+                                    if (_biometricEnabled &&
+                                        _biometricAvailable &&
+                                        !_showEmailField) ...[
+                                      SizedBox(
+                                        width: context.responsiveSpacing(
+                                          small: 8,
+                                          medium: 10,
+                                          large: 12,
+                                          tablet: 14,
+                                          veryNarrow: 6,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 1,
+                                        child: GestureDetector(
+                                          onTap: _isLoading
+                                              ? null
+                                              : _handleBiometricLogin,
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                              vertical: context
+                                                  .responsiveSpacing(
+                                                    small: 12,
+                                                    medium: 14,
+                                                    large: 16,
+                                                    tablet: 18,
+                                                    veryNarrow: 10,
+                                                  ),
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: context.isDarkMode
+                                                  ? AppColors.secondaryAccent
+                                                        .withOpacity(0.2)
+                                                  : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    context
+                                                        .responsiveBorderRadius(
+                                                          small: 12,
+                                                          medium: 14,
+                                                          large: 16,
+                                                          tablet: 18,
+                                                          veryNarrow: 10,
+                                                        ),
+                                                  ),
+                                              border: Border.all(
+                                                color: AppColors.deepGreen
+                                                    .withOpacity(0.3),
+                                                width: 1.5,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.08),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: FutureBuilder<List<BiometricType>>(
+                                              future:
+                                                  BiometricService.getAvailableBiometrics(),
+                                              builder: (context, snapshot) {
+                                                // Show fingerprint on Android, face on iOS
+                                                IconData biometricIcon;
+                                                if (Platform.isIOS) {
+                                                  // iOS: prefer Face ID, fallback to fingerprint
+                                                  biometricIcon =
+                                                      snapshot.data?.contains(
+                                                            BiometricType.face,
+                                                          ) ==
+                                                          true
+                                                      ? Icons.face
+                                                      : Icons.fingerprint;
+                                                } else {
+                                                  // Android: prefer fingerprint, fallback to face
+                                                  biometricIcon =
+                                                      snapshot.data?.contains(
+                                                            BiometricType
+                                                                .fingerprint,
+                                                          ) ==
+                                                          true
+                                                      ? Icons.fingerprint
+                                                      : Icons.face;
+                                                }
+
+                                                return Icon(
+                                                  biometricIcon,
+                                                  color:
+                                                      AppColors.darkTextPrimary,
+                                                  size: context
+                                                      .responsiveIconSize(
+                                                        small: 24,
+                                                        medium: 26,
+                                                        large: 28,
+                                                        tablet: 30,
+                                                        veryNarrow: 22,
+                                                      ),
+                                                );
+                                              },
+                                            ),
                                           ),
                                         ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
-                              SizedBox(height: 16.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 16,
+                                  medium: 18,
+                                  large: 20,
+                                  tablet: 22,
+                                  veryNarrow: 12,
+                                ),
+                              ),
                               GestureDetector(
                                 onTap: () {
                                   // Manual signup from login screen -> force NO-ORG flow
@@ -1303,7 +1871,13 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 child: Text(
                                   'Бүртгүүлэх',
                                   style: TextStyle(
-                                    fontSize: 14.sp,
+                                    fontSize: context.responsiveFontSize(
+                                      small: 14,
+                                      medium: 15,
+                                      large: 16,
+                                      tablet: 17,
+                                      veryNarrow: 12,
+                                    ),
                                     color: context.isDarkMode
                                         ? AppColors.darkTextPrimary
                                         : AppColors.accentColor,
@@ -1321,7 +1895,15 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: 8.h),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 8,
+                                  medium: 10,
+                                  large: 12,
+                                  tablet: 14,
+                                  veryNarrow: 6,
+                                ),
+                              ),
                               Text(
                                 'Version 1.1',
                                 style: TextStyle(
