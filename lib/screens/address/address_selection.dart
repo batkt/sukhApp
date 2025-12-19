@@ -143,8 +143,6 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
   Future<void> _checkUserAddressStatus() async {
     try {
-      print('🔍 [ADDRESS] Checking address status, fromMenu: ${widget.fromMenu}');
-      
       // Check if user already has address on the server
       try {
         final profile = await ApiService.getUserProfile();
@@ -159,11 +157,9 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
               walletBairId.isNotEmpty &&
               walletDoorNo != null &&
               walletDoorNo.isNotEmpty) {
-            print('🔍 [ADDRESS] User has existing address, fromMenu: ${widget.fromMenu}');
             // If NOT from menu, redirect to main page (during registration/login flow)
             // If from menu, allow access to view/edit address
             if (!widget.fromMenu) {
-              print('🔍 [ADDRESS] Redirecting to homepage (not from menu)');
               // User already has address - redirect to main page instead of showing the page
               if (mounted) {
                 // Use post-frame callback to ensure navigation happens after build
@@ -177,7 +173,6 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
               return;
             }
             // If from menu, set existing address flag and continue
-            print('🔍 [ADDRESS] Allowing access (from menu), setting existing address flag');
             if (mounted) {
               setState(() {
                 _hasExistingAddress = true;
@@ -191,12 +186,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
       // Check if user has baiguullagiinId in storage
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      print('🔍 [ADDRESS] baiguullagiinId: ${baiguullagiinId != null && baiguullagiinId.isNotEmpty ? "exists" : "null"}, fromMenu: ${widget.fromMenu}');
       if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
         // If accessed from menu, allow viewing/editing even if they have baiguullagiinId
         // Only redirect if NOT from menu (e.g., during registration/login flow)
         if (!widget.fromMenu) {
-          print('🔍 [ADDRESS] User has baiguullagiinId, checking if logged in (not from menu)');
           // Check if user is already logged in - if so, redirect to main page
           final isLoggedIn = await StorageService.isLoggedIn();
           if (isLoggedIn) {
