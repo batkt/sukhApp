@@ -9,7 +9,7 @@ import 'package:sukh_app/main.dart';
 import 'package:go_router/go_router.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://103.50.205.80:8084';
+  static const String baseUrl = 'https://amarhome.mn/api';
   static const String walletApiBaseUrl = 'https://dev-api.bpay.mn/v1';
 
   // Helper method to wrap HTTP calls with better error handling

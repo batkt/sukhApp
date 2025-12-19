@@ -20,7 +20,7 @@ class SocketService {
   Future<void> connect() async {
     try {
       // Get server URL from API service
-      const serverUrl = 'http://103.50.205.80:8084';
+      const serverUrl = 'https://amarhome.mn/api';
 
       // Get user ID
       _userId = await StorageService.getUserId();
