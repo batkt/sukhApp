@@ -45,6 +45,6 @@ app.*.map.json
 /android/app/release
 
 # Android keystore files (DO NOT COMMIT THESE!)
-/android/key.properties
-/android/*.jks
-/android/*.keystore
+# /android/key.properties
+# /android/*.jks
+# /android/*.keystore
