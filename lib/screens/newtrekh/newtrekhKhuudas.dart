@@ -51,6 +51,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   bool _isLoading = false;
   bool _showEmailField = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
   bool _biometricAvailable = false;
 
   @override
@@ -471,23 +472,72 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         fontWeight: FontWeight.w500,
                                         letterSpacing: 0.5,
                                       ),
-<<<<<<< HEAD
-                                    ),
-                                    suffixIcon: phoneController.text.isNotEmpty
-                                        ? IconButton(
-                                            icon: const Icon(
-                                              Icons.clear,
-                                              color: Colors.white70,
-                                            ),
-                                            onPressed: () =>
-                                                phoneController.clear(),
-                                          )
-                                        : null,
-                                  ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                    LengthLimitingTextInputFormatter(8),
-                                  ],
+                                      decoration: InputDecoration(
+                                        hintText: 'Утасны дугаар',
+                                        hintStyle: TextStyle(
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.5)
+                                              : AppColors.lightTextSecondary
+                                                    .withOpacity(0.6),
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                        filled: true,
+                                        fillColor: isDark
+                                            ? AppColors.secondaryAccent
+                                                  .withOpacity(0.3)
+                                            : Colors.white,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 20.w,
+                                          vertical: 16.h,
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: isDark
+                                                ? Colors.white.withOpacity(0.1)
+                                                : AppColors.lightInputGray,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16.r,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: isDark
+                                                ? AppColors.grayColor
+                                                      .withOpacity(0.8)
+                                                : AppColors.deepGreen,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        suffixIcon:
+                                            phoneController.text.isNotEmpty
+                                                ? IconButton(
+                                                    icon: Icon(
+                                                      Icons.clear_rounded,
+                                                      color: isDark
+                                                          ? Colors.grey.withOpacity(
+                                                              0.7,
+                                                            )
+                                                          : AppColors
+                                                                .lightTextSecondary,
+                                                      size: 20.sp,
+                                                    ),
+                                                    onPressed: () =>
+                                                        phoneController.clear(),
+                                                  )
+                                                : null,
+                                      ),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(8),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                               SizedBox(height: 10.h),
@@ -505,7 +555,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 child: TextFormField(
                                   controller: passwordController,
                                   keyboardType: TextInputType.number,
-                                  obscureText: !_isPasswordVisible,
+                                  obscureText: _obscurePassword,
                                   autofocus: false,
                                   style: TextStyle(
                                     color: Colors.white,
@@ -539,15 +589,15 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                         passwordController.text.isNotEmpty
                                         ? IconButton(
                                             icon: Icon(
-                                              _isPasswordVisible
-                                                  ? Icons.visibility_off
-                                                  : Icons.visibility,
+                                              _obscurePassword
+                                                  ? Icons.visibility
+                                                  : Icons.visibility_off,
                                               color: Colors.white70,
                                             ),
                                             onPressed: () {
                                               setState(() {
-                                                _isPasswordVisible =
-                                                    !_isPasswordVisible;
+                                                _obscurePassword =
+                                                    !_obscurePassword;
                                               });
                                             },
                                           )
@@ -780,74 +830,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                                       AlwaysStoppedAnimation<
                                                         Color
                                                       >(Colors.black),
-=======
-                                      decoration: InputDecoration(
-                                        hintText: 'Утасны дугаар',
-                                        hintStyle: TextStyle(
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.5)
-                                              : AppColors.lightTextSecondary
-                                                    .withOpacity(0.6),
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                        filled: true,
-                                        fillColor: isDark
-                                            ? AppColors.secondaryAccent
-                                                  .withOpacity(0.3)
-                                            : Colors.white,
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 20.w,
-                                          vertical: 16.h,
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16.r,
-                                          ),
-                                          borderSide: BorderSide(
-                                            color: isDark
-                                                ? Colors.white.withOpacity(0.1)
-                                                : AppColors.lightInputGray,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            16.r,
-                                          ),
-                                          borderSide: BorderSide(
-                                            color: isDark
-                                                ? AppColors.grayColor
-                                                      .withOpacity(0.8)
-                                                : AppColors.deepGreen,
-                                            width: 2,
-                                          ),
-                                        ),
-                                        suffixIcon:
-                                            phoneController.text.isNotEmpty
-                                            ? IconButton(
-                                                icon: Icon(
-                                                  Icons.clear_rounded,
-                                                  color: isDark
-                                                      ? Colors.grey.withOpacity(
-                                                          0.7,
-                                                        )
-                                                      : AppColors
-                                                            .lightTextSecondary,
-                                                  size: 20.sp,
->>>>>>> cadaeb50622071d68c0d79078916a043d685a246
                                                 ),
-                                                onPressed: () =>
-                                                    phoneController.clear(),
                                               )
-                                            : null,
-                                      ),
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                        LengthLimitingTextInputFormatter(8),
-                                      ],
-                                    );
-                                  },
+                                        : const Text('Нэвтрэх'),
+                                  ),
                                 ),
                               ),
                               SizedBox(
