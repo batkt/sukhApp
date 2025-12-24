@@ -589,9 +589,20 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        // If we can pop, do so. Otherwise, navigate to login page
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/newtrekh');
+        }
+      },
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -601,7 +612,14 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
               Icons.arrow_back,
               color: context.isDarkMode ? Colors.white : Colors.black,
             ),
-            onPressed: () => context.pop(),
+            onPressed: () {
+              // If we can pop, do so. Otherwise, navigate to login page
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/newtrekh');
+              }
+            },
           ),
           title: Text(
             'Бүртгэл үүсгэх',
@@ -689,6 +707,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
