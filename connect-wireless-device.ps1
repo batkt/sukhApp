@@ -68,7 +68,7 @@ switch ($choice) {
         Write-Host "3. Note the PORT and 6-digit code"
         Write-Host ""
         
-        $defaultIP = "192.168.1.178"
+        $defaultIP = "192.168.1.9"
         $pairPort = Read-Host "Enter pairing PORT (default IP: $defaultIP)"
         $pairCode = Read-Host "Enter 6-digit pairing code"
         
