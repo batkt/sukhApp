@@ -20,7 +20,6 @@ class ApiService {
     if (_cachedLocationData != null) {
       return _cachedLocationData!;
     }
-    
 
     try {
       final response = await http.get(
@@ -2641,7 +2640,7 @@ class ApiService {
       final headers = await getAuthHeaders();
 
       final response = await http.post(
-        Uri.parse('$baseUrl/orshinSuugch/oorooUstgakh'),
+        Uri.parse('$baseUrl/oorooUstgakh'),
         headers: headers,
         body: json.encode({'nuutsUg': nuutsUg}),
       );
