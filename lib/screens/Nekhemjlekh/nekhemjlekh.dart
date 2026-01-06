@@ -56,15 +56,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
   String? qpayQrImage;
-<<<<<<< HEAD
-  String contactPhone = '';
-=======
   String? qpayQrImageOwnOrg;
   String? qpayQrImageWallet;
   String contactPhone = '';
 
   Function(Map<String, dynamic>)? _notificationCallback;
->>>>>>> cadaeb50622071d68c0d79078916a043d685a246
 
   @override
   void initState() {
@@ -340,23 +336,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       String? burtgeliinDugaar;
       String? firstInvoiceId;
 
-<<<<<<< HEAD
-      qpayQrImage = response['qr_image']?.toString();
-
-      if (response['urls'] != null && response['urls'] is List) {
-        setState(() {
-          qpayBanks = (response['urls'] as List)
-              .map((bank) => QPayBank.fromJson(bank))
-              .toList();
-          isLoadingQPay = false;
-        });
-      } else {
-        throw Exception(
-          contactPhone.isNotEmpty
-              ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
-              : 'Банкны мэдээлэл олдсонгүй',
-        );
-=======
       if (selectedInvoiceIds.isNotEmpty) {
         final firstInvoice = invoices.firstWhere(
           (inv) => inv.id == selectedInvoiceIds.first,
@@ -369,7 +348,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             ? firstInvoice.register
             : null;
         firstInvoiceId = firstInvoice.id;
->>>>>>> cadaeb50622071d68c0d79078916a043d685a246
       }
 
       // Create OWN_ORG QPay invoice (Custom QPay)
@@ -672,112 +650,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-<<<<<<< HEAD
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.7,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0a0e27),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30.w),
-                  topRight: Radius.circular(30.w),
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30.w),
-                  topRight: Radius.circular(30.w),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Column(
-                    children: [
-                      // Handle bar
-                      Container(
-                        margin: EdgeInsets.only(top: 12.h),
-                        width: 40.w,
-                        height: 4.h,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(2.w),
-                        ),
-                      ),
-                      // Header
-                      Padding(
-                        padding: EdgeInsets.all(20.w),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Банк сонгох',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 24.sp,
-                              ),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Bank grid
-                      Expanded(
-                        child: isLoadingQPay
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              )
-                            : qpayBanks.isEmpty
-                            ? Center(
-                                child: Text(
-                                  contactPhone.isNotEmpty
-                                      ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
-                                      : 'Банкны мэдээлэл олдсонгүй',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16.sp,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              )
-                            : GridView.builder(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 20.w,
-                                  vertical: 10.h,
-                                ),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 12.w,
-                                      mainAxisSpacing: 12.h,
-                                      childAspectRatio: 0.85,
-                                    ),
-                                itemCount: qpayBanks.length,
-                                itemBuilder: (context, index) {
-                                  final bank = qpayBanks[index];
-                                  return _buildQPayBankItem(bank);
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-=======
       builder: (context) => BankSelectionModal(
         qpayBanks: qpayBanks,
         isLoadingQPay: isLoadingQPay,
@@ -793,7 +665,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
         },
         onQPayWalletTap: _showQPayQRCodeModal,
       ),
->>>>>>> cadaeb50622071d68c0d79078916a043d685a246
     );
   }
 
@@ -828,20 +699,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       }
 
       if (receipts.isEmpty) {
-<<<<<<< HEAD
-        // Fetch ajiltan data to get contact phone number
-        String contactPhone = '';
-        try {
-          final ajiltanResponse = await ApiService.fetchAjiltan();
-          if (ajiltanResponse['jagsaalt'] != null &&
-              ajiltanResponse['jagsaalt'] is List &&
-              (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
-            final firstAjiltan = ajiltanResponse['jagsaalt'][0];
-            contactPhone = firstAjiltan['utas'] ?? '';
-          }
-        } catch (e) {
-          print('Error fetching ajiltan contact: $e');
-=======
         // Find the invoice to get gereeniiDugaar
         final invoice = invoices.firstWhere(
           (inv) => inv.id == invoiceId,
@@ -890,7 +747,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           } catch (e) {
             // Silent fail
           }
->>>>>>> cadaeb50622071d68c0d79078916a043d685a246
         }
 
         if (!mounted) return;
@@ -965,17 +821,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                       tablet: 30,
                       veryNarrow: 18,
                     ),
-<<<<<<< HEAD
-                    SizedBox(height: 20.h),
-                    Text(
-                      contactPhone.isNotEmpty
-                          ? "Төлбөр амжилттай хийгдсэн боловч, СӨХ-ийн ТИН дугаар байхгүй тул төлбөрийн баримт үүсээгүй та СӨХ ийн $contactPhone энэ дугаар луу залгаарай!"
-                          : "Төлбөр амжилттай хийгдсэн боловч, СӨХ-ийн ТИН дугаар байхгүй тул төлбөрийн баримт үүсээгүй!",
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-=======
                     child: Container(
                       padding: context.responsivePadding(
                         small: 20,
@@ -1234,7 +1079,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                             ),
                           ],
                         ],
->>>>>>> cadaeb50622071d68c0d79078916a043d685a246
                       ),
                     ),
                   ),
