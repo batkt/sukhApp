@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 class ApiService {
   static const String baseUrl = 'https://amarhome.mn/api';
+  static const String deleteBaseUrl = 'https://amarhome.mn';
   static const String walletApiBaseUrl = 'https://dev-api.bpay.mn/v1';
 
   // Helper method to wrap HTTP calls with better error handling
@@ -2640,7 +2641,7 @@ class ApiService {
       final headers = await getAuthHeaders();
 
       final response = await http.post(
-        Uri.parse('$baseUrl/oorooUstgakh'),
+        Uri.parse('$baseUrl/orshinSuugch/oorooUstgakh'),
         headers: headers,
         body: json.encode({'nuutsUg': nuutsUg}),
       );
