@@ -5,30 +5,69 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
-class ContactPage extends StatelessWidget {
+class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
+
+  @override
+  State<ContactPage> createState() => _ContactPageState();
+}
+
+class _ContactPageState extends State<ContactPage> {
+  bool isLoading = true;
+  String? organizationName;
+  List<String> phoneNumbers = [];
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBaiguullagaInfo();
+  }
+
+  Future<void> _loadBaiguullagaInfo() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId == null) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Байгууллагын мэдээлэл олдсонгүй';
+        });
+        return;
+      }
+
+      final response = await ApiService.fetchBaiguullagaById(baiguullagiinId);
+      
+      setState(() {
+        organizationName = response['ner']?.toString() ?? 'СӨХ';
+        if (response['utas'] != null && response['utas'] is List) {
+          phoneNumbers = (response['utas'] as List)
+              .map((e) => e.toString())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading baiguullaga info: $e');
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Мэдээлэл татахад алдаа гарлаа';
+      });
+    }
+  }
 
   Future<void> _launchPhone(String phoneNumber) async {
     final uri = Uri.parse('tel:$phoneNumber');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
-    }
-  }
-
-  Future<void> _launchWebsite(String url) async {
-    final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _launchFacebook() async {
-    // Try to open Facebook app first, then fallback to web
-    final facebookUrl = 'https://www.facebook.com/Amarhome';
-    final uri = Uri.parse(facebookUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -108,15 +147,51 @@ class ContactPage extends StatelessWidget {
                     ),
                   ),
 
-                  // Title
-                  Text(
-                    'Холбоо барих',
-                    style: TextStyle(
-                      color: AppColors.deepGreen,
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
+                  // Title - Organization Name
+                  if (isLoading)
+                    SizedBox(
+                      height: 24.h,
+                      width: 24.w,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.deepGreen,
+                      ),
+                    )
+                  else if (errorMessage != null)
+                    Text(
+                      errorMessage!,
+                      style: TextStyle(
+                        color: context.textSecondaryColor,
+                        fontSize: 14.sp,
+                      ),
+                    )
+                  else ...[
+                    Text(
+                      organizationName ?? 'СӨХ',
+                      style: TextStyle(
+                        color: AppColors.deepGreen,
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        small: 8,
+                        medium: 10,
+                        large: 12,
+                        tablet: 14,
+                        veryNarrow: 6,
+                      ),
+                    ),
+                    Text(
+                      'Холбоо барих утас',
+                      style: TextStyle(
+                        color: context.textSecondaryColor,
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                  ],
                   SizedBox(
                     height: context.responsiveSpacing(
                       small: 24,
@@ -127,72 +202,58 @@ class ContactPage extends StatelessWidget {
                     ),
                   ),
 
-                  // Contact options
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: context.responsiveSpacing(
-                        small: 20,
-                        medium: 22,
-                        large: 24,
-                        tablet: 26,
-                        veryNarrow: 14,
+                  // Phone numbers from baiguullaga
+                  if (!isLoading && errorMessage == null)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.responsiveSpacing(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 26,
+                          veryNarrow: 14,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          if (phoneNumbers.isEmpty)
+                            Text(
+                              'Утасны дугаар бүртгэгдээгүй байна',
+                              style: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: 14.sp,
+                              ),
+                            )
+                          else
+                            ...phoneNumbers.map((phone) => Padding(
+                              padding: EdgeInsets.only(
+                                bottom: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
+                              child: _buildContactOption(
+                                context,
+                                icon: Icons.phone_outlined,
+                                label: phone,
+                                onTap: () => _launchPhone(phone),
+                              ),
+                            )),
+                          SizedBox(
+                            height: context.responsiveSpacing(
+                              small: 18,
+                              medium: 20,
+                              large: 24,
+                              tablet: 28,
+                              veryNarrow: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        // Phone
-                        _buildContactOption(
-                          context,
-                          icon: Icons.phone_outlined,
-                          label: '7707 2707',
-                          onTap: () => _launchPhone('77072707'),
-                        ),
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
-                          ),
-                        ),
-
-                        // Website
-                        _buildContactOption(
-                          context,
-                          icon: Icons.language,
-                          label: 'Amarhome.mn',
-                          onTap: () => _launchWebsite('amarhome.mn'),
-                        ),
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
-                          ),
-                        ),
-
-                        // Facebook
-                        _buildContactOption(
-                          context,
-                          icon: Icons.facebook,
-                          label: 'Amarhome',
-                          onTap: _launchFacebook,
-                        ),
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 30,
-                            medium: 34,
-                            large: 38,
-                            tablet: 42,
-                            veryNarrow: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -232,14 +293,14 @@ class ContactPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: context.surfaceColor,
             borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          ),
-        ),
+              context.responsiveBorderRadius(
+                small: 12,
+                medium: 14,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 10,
+              ),
+            ),
             border: Border.all(color: context.borderColor, width: 1),
           ),
           child: Row(
@@ -296,9 +357,9 @@ class ContactPage extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.arrow_forward_ios,
-                color: context.textSecondaryColor,
-                size: 16.sp,
+                Icons.phone,
+                color: AppColors.deepGreen,
+                size: 20.sp,
               ),
             ],
           ),

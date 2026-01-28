@@ -232,30 +232,31 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             loginOrgId.trim().isNotEmpty &&
             loginOrgId.trim().toLowerCase() != 'null';
 
-        if (hasBaiguullagiinId) {
-          final needsVerification =
-              await StorageService.needsPhoneVerification();
-          if (needsVerification) {
-            final verificationResult = await context.push<bool>(
-              '/phone_verification',
-              extra: {
-                'phoneNumber': savedPhone,
-                'baiguullagiinId': loginOrgId,
-                'duureg': userData?['duureg']?.toString(),
-                'horoo': userData?['horoo']?.toString(),
-                'soh': userData?['soh']?.toString(),
-              },
-            );
-
-            if (verificationResult != true) {
-              await SessionService.logout();
-              setState(() {
-                _isLoading = false;
-              });
-              return;
-            }
-          }
-        }
+        // TODO: Re-enable phone verification later
+        // if (hasBaiguullagiinId) {
+        //   final needsVerification =
+        //       await StorageService.needsPhoneVerification();
+        //   if (needsVerification) {
+        //     final verificationResult = await context.push<bool>(
+        //       '/phone_verification',
+        //       extra: {
+        //         'phoneNumber': savedPhone,
+        //         'baiguullagiinId': loginOrgId,
+        //         'duureg': userData?['duureg']?.toString(),
+        //         'horoo': userData?['horoo']?.toString(),
+        //         'soh': userData?['soh']?.toString(),
+        //       },
+        //     );
+        //
+        //     if (verificationResult != true) {
+        //       await SessionService.logout();
+        //       setState(() {
+        //         _isLoading = false;
+        //       });
+        //       return;
+        //     }
+        //   }
+        // }
 
         // Check address and navigate
         bool hasAddress = false;
@@ -439,27 +440,26 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  // Decorative background circle
-                                  if (!isDark)
-                                    Container(
-                                      width: 140.w,
-                                      height: 140.w,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: RadialGradient(
-                                          colors: [
-                                            AppColors.deepGreen.withOpacity(0.12),
-                                            AppColors.deepGreen.withOpacity(0.04),
-                                            Colors.transparent,
-                                          ],
-                                          stops: const [0.0, 0.6, 1.0],
+                                  // Green background circle for logo
+                                  Container(
+                                    width: 130.w,
+                                    height: 130.w,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.deepGreen,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.deepGreen.withOpacity(0.3),
+                                          blurRadius: 20,
+                                          spreadRadius: 2,
                                         ),
-                                      ),
+                                      ],
                                     ),
+                                  ),
                                   // Logo
                                   SizedBox(
-                                    width: 120.w,
-                                    height: 120.w,
+                                    width: 100.w,
+                                    height: 100.w,
                                     child: Image.asset(
                                       'lib/assets/img/logo_3.png',
                                       fit: BoxFit.contain,
@@ -715,7 +715,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   ),
                                   SizedBox(height: 2.h),
                                   Text(
-                                    'Version 1.1',
+                                    'Version 1.2',
                                     style: TextStyle(
                                       fontSize: 9.sp,
                                       color: isDark
@@ -925,12 +925,16 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         child: FutureBuilder<IconData>(
           future: BiometricService.getBiometricIcon(),
           builder: (context, snapshot) {
+            final icon = snapshot.data ?? 
+                (Theme.of(context).platform == TargetPlatform.iOS 
+                    ? Icons.face_retouching_natural 
+                    : Icons.fingerprint);
             return Icon(
-              snapshot.data ?? Icons.fingerprint,
+              icon,
               color: isDark
                   ? AppColors.deepGreenLight
                   : AppColors.deepGreen,
-              size: 24.sp,
+              size: 26.sp,
             );
           },
         ),
@@ -1111,42 +1115,44 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
         print('🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)');
 
+        // TODO: Re-enable phone verification later
         // Handle OTP verification for WEB-created users
-        if (hasBaiguullagiinId) {
-          print('📱 [LOGIN] ========== PHONE VERIFICATION CHECK ==========');
-          final needsVerification = await StorageService.needsPhoneVerification();
-          print('📱 [LOGIN] needsVerification result: $needsVerification');
-
-          if (needsVerification) {
-            print('📱 [LOGIN] Phone verification required - showing verification screen');
-
-            final verificationResult = await context.push<bool>(
-              '/phone_verification',
-              extra: {
-                'phoneNumber': inputPhone,
-                'baiguullagiinId': loginOrgId,
-                'duureg': userData?['duureg']?.toString(),
-                'horoo': userData?['horoo']?.toString(),
-                'soh': userData?['soh']?.toString(),
-              },
-            );
-
-            print('📱 [LOGIN] Verification result: $verificationResult');
-
-            if (verificationResult != true) {
-              print('⚠️ [LOGIN] Phone verification cancelled or failed');
-              print('🔓 [LOGIN] Logging out user because OTP verification was cancelled');
-              await SessionService.logout();
-              setState(() {
-                _isLoading = false;
-              });
-              return;
-            }
-            print('✅ [LOGIN] Phone verification successful');
-          }
-        } else {
-          print('✅ [LOGIN] User without baiguullagiinId - skipping OTP verification');
-        }
+        // if (hasBaiguullagiinId) {
+        //   print('📱 [LOGIN] ========== PHONE VERIFICATION CHECK ==========');
+        //   final needsVerification = await StorageService.needsPhoneVerification();
+        //   print('📱 [LOGIN] needsVerification result: $needsVerification');
+        //
+        //   if (needsVerification) {
+        //     print('📱 [LOGIN] Phone verification required - showing verification screen');
+        //
+        //     final verificationResult = await context.push<bool>(
+        //       '/phone_verification',
+        //       extra: {
+        //         'phoneNumber': inputPhone,
+        //         'baiguullagiinId': loginOrgId,
+        //         'duureg': userData?['duureg']?.toString(),
+        //         'horoo': userData?['horoo']?.toString(),
+        //         'soh': userData?['soh']?.toString(),
+        //       },
+        //     );
+        //
+        //     print('📱 [LOGIN] Verification result: $verificationResult');
+        //
+        //     if (verificationResult != true) {
+        //       print('⚠️ [LOGIN] Phone verification cancelled or failed');
+        //       print('🔓 [LOGIN] Logging out user because OTP verification was cancelled');
+        //       await SessionService.logout();
+        //       setState(() {
+        //         _isLoading = false;
+        //       });
+        //       return;
+        //     }
+        //     print('✅ [LOGIN] Phone verification successful');
+        //   }
+        // } else {
+        //   print('✅ [LOGIN] User without baiguullagiinId - skipping OTP verification');
+        // }
+        print('📱 [LOGIN] Phone verification TEMPORARILY DISABLED');
 
         // Save credentials for biometric
         await StorageService.savePhoneNumber(inputPhone);

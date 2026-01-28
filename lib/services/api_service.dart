@@ -1937,6 +1937,38 @@ class ApiService {
     }
   }
 
+  /// Fetch baiguullaga by ID
+  static Future<Map<String, dynamic>> fetchBaiguullagaById(
+    String baiguullagiinId, {
+    String? barilgiinId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+
+      final queryParams = <String, String>{};
+      if (barilgiinId != null) {
+        queryParams['barilgiinId'] = barilgiinId;
+      }
+
+      final uri = Uri.parse('$baseUrl/baiguullaga/$baiguullagiinId').replace(
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Байгууллагын мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching baiguullaga by id: $e');
+      throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
   /// Create QPay invoice
   /// Supports both Custom QPay (OWN_ORG) and Wallet QPay
   /// Auto-detects based on presence of walletUserId/walletBairId
@@ -3137,6 +3169,83 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Мэдэгдэл тэмдэглэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  // ============================================
+  // ZOCHIN URIKH (Guest Invitation) API Methods
+  // ============================================
+
+  /// Save guest invitation
+  static Future<Map<String, dynamic>> zochinHadgalya({
+    required String mashiniiDugaar,
+    required String baiguullagiinId,
+    String? barilgiinId,
+    required String ezemshigchiinUtas,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+
+      final requestBody = {
+        'mashiniiDugaar': mashiniiDugaar,
+        'baiguullagiinId': baiguullagiinId,
+        'barilgiinId': barilgiinId,
+        'ezemshigchiinUtas': ezemshigchiinUtas,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/zochinHadgalya'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        final errorBody = json.decode(response.body);
+        throw Exception(errorBody['message'] ?? 'Зочин хадгалахад алдаа гарлаа');
+      }
+    } catch (e) {
+      print('Error saving guest: $e');
+      throw Exception('Зочин хадгалахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Fetch invited guests history
+  static Future<Map<String, dynamic>> fetchZochinTuukh({
+    required String baiguullagiinId,
+    required String ezenId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+
+      final requestBody = {
+        'baiguullagiinId': baiguullagiinId,
+        'ezenId': ezenId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+      };
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/ezenUrisanTuukh'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'jagsaalt': data['ezenList'] ?? [],
+          'tuukh': data['jagsaalt'] ?? [],
+        };
+      } else {
+        throw Exception('Зочны түүх татахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching guest history: $e');
+      throw Exception('Зочны түүх татахад алдаа гарлаа: $e');
     }
   }
 }

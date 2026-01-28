@@ -264,36 +264,26 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
       qpayQrImageWallet = null;
     });
 
-    // Fetch ajiltan contact info
+    // Fetch contact phone from baiguullaga (organization)
     try {
-      final ajiltanResponse = await ApiService.fetchAjiltan();
-      if (ajiltanResponse['jagsaalt'] != null &&
-          ajiltanResponse['jagsaalt'] is List &&
-          (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
-        final firstAjiltan = ajiltanResponse['jagsaalt'][0];
-        contactPhone = firstAjiltan['utas'] ?? '';
+      print('📞 [EBARIMT] Fetching baiguullaga for contact phone...');
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId != null) {
+        final baiguullagaResponse = await ApiService.fetchBaiguullagaById(baiguullagiinId);
+        print('📞 [EBARIMT] Baiguullaga response: $baiguullagaResponse');
+        if (baiguullagaResponse['utas'] != null && baiguullagaResponse['utas'] is List) {
+          final utasList = baiguullagaResponse['utas'] as List;
+          if (utasList.isNotEmpty) {
+            contactPhone = utasList.first.toString();
+            print('📞 [EBARIMT] Contact phone found from baiguullaga: $contactPhone');
+          }
+        }
+      }
+      if (contactPhone.isEmpty) {
+        print('📞 [EBARIMT] No phone found in baiguullaga');
       }
     } catch (e) {
-      print('Error fetching ajiltan contact: $e');
-    }
-
-    try {
-      print('📞 [EBARIMT] Fetching ajiltan for contact phone...');
-      final ajiltanResponse = await ApiService.fetchAjiltan();
-      print('📞 [EBARIMT] Ajiltan response: $ajiltanResponse');
-      if (ajiltanResponse['jagsaalt'] != null &&
-          ajiltanResponse['jagsaalt'] is List &&
-          (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
-        final firstAjiltan = ajiltanResponse['jagsaalt'][0];
-        contactPhone = firstAjiltan['utas'] ?? '';
-        print('📞 [EBARIMT] Contact phone found: $contactPhone');
-        print('📞 [EBARIMT] Contact phone is empty: ${contactPhone.isEmpty}');
-      } else {
-        print('📞 [EBARIMT] No ajiltan found in response');
-        contactPhone = '';
-      }
-    } catch (e) {
-      print('❌ [EBARIMT] Error fetching ajiltan contact: $e');
+      print('❌ [EBARIMT] Error fetching baiguullaga contact: $e');
       contactPhone = '';
     }
     print('📞 [EBARIMT] Final contactPhone value: $contactPhone');
@@ -726,25 +716,21 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
           }
         }
 
+        // If suhUtas is still empty, get phone from baiguullaga (organization)
         if (suhUtas.isEmpty) {
           try {
-            final ajiltanResponse = await ApiService.fetchAjiltan();
-            if (ajiltanResponse['jagsaalt'] != null &&
-                ajiltanResponse['jagsaalt'] is List &&
-                (ajiltanResponse['jagsaalt'] as List).isNotEmpty) {
-              final ajiltanData = AjiltanResponse.fromJson(ajiltanResponse);
-              if (ajiltanData.jagsaalt.isNotEmpty) {
-                // Get first phone number from ajiltan
-                final firstAjiltan = ajiltanData.jagsaalt.firstWhere(
-                  (ajiltan) => ajiltan.utas.isNotEmpty,
-                  orElse: () => ajiltanData.jagsaalt.first,
-                );
-                if (firstAjiltan.utas.isNotEmpty) {
-                  suhUtas = firstAjiltan.utas;
+            final baiguullagiinId = await StorageService.getBaiguullagiinId();
+            if (baiguullagiinId != null) {
+              final baiguullagaResponse = await ApiService.fetchBaiguullagaById(baiguullagiinId);
+              if (baiguullagaResponse['utas'] != null && baiguullagaResponse['utas'] is List) {
+                final utasList = baiguullagaResponse['utas'] as List;
+                if (utasList.isNotEmpty) {
+                  suhUtas = utasList.first.toString();
                 }
               }
             }
           } catch (e) {
+            print('Error fetching baiguullaga phone: $e');
             // Silent fail
           }
         }
@@ -1562,6 +1548,100 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     }
   }
 
+  Future<void> _checkPaymentStatusFromQR() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.secondaryAccent),
+      ),
+    );
+
+    try {
+      // Reload invoice data to get latest status
+      await _loadNekhemjlekh();
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Check if the selected invoice(s) are paid
+      final selectedInvoices = invoices
+          .where((inv) => selectedInvoiceIds.contains(inv.id))
+          .toList();
+
+      if (selectedInvoices.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Сонгосон нэхэмжлэл олдсонгүй'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Check if all selected invoices are paid
+      final allPaid = selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн');
+
+      if (allPaid) {
+        // Payment successful - show success snackbar
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Төлбөр амжилттай төлөгдлөө',
+            icon: Icons.check_circle_outline,
+            iconColor: Colors.green,
+            textColor: context.textPrimaryColor,
+            opacity: 0.3,
+            blur: 15,
+          );
+
+          // Wait a bit then reload invoice data to refresh the list
+          await Future.delayed(const Duration(seconds: 2));
+
+          // Reload invoice data to get the latest status from server
+          await _loadNekhemjlekh();
+
+          // Show VAT receipts for all paid invoices
+          for (var invoice in selectedInvoices) {
+            await _showVATReceiptModal(invoice.id);
+          }
+
+          // Navigate back to home page to refresh the data
+          context.go('/nuur');
+        }
+      } else {
+        // Payment not completed - show error snackbar
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Төлбөр төлөгдөөгүй байна. Дахин оролдоно уу.',
+            icon: Icons.error_outline,
+            iconColor: Colors.orange,
+            textColor: context.textPrimaryColor,
+            opacity: 0.3,
+            blur: 15,
+          );
+        }
+      }
+    } catch (e) {
+      print('Error checking payment status from QR: $e');
+
+      // Close loading dialog if still open
+      if (mounted) Navigator.of(context).pop();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Алдаа гарлаа: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
   Future<void> _startPaymentStatusCheck() async {
     if (qpayInvoiceId == null) {
       print('No QPay invoice ID to check');
@@ -1694,7 +1774,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
@@ -1721,29 +1802,44 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  hasOwnOrg && hasWallet
-                      ? 'QPay хэтэвч QR код'
-                      : 'QPay хэтэвч QR код',
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 20,
-                      medium: 22,
-                      large: 24,
-                      tablet: 26,
-                      veryNarrow: 18,
+                // Close button row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 32),
+                    Text(
+                      'QPay QR код',
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: context.responsiveFontSize(
+                          small: 18,
+                          medium: 20,
+                          large: 22,
+                          tablet: 24,
+                          veryNarrow: 16,
+                        ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    fontWeight: FontWeight.bold,
-                  ),
+                    IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: Icon(
+                        Icons.close,
+                        color: context.textSecondaryColor,
+                        size: 24.sp,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ),
                 SizedBox(
                   height: context.responsiveSpacing(
-                    small: 20,
-                    medium: 24,
-                    large: 28,
-                    tablet: 32,
-                    veryNarrow: 14,
+                    small: 16,
+                    medium: 20,
+                    large: 24,
+                    tablet: 28,
+                    veryNarrow: 12,
                   ),
                 ),
                 // Show 2 QR codes side by side if both exist, otherwise show single
@@ -1974,60 +2070,58 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                 ),
                 SizedBox(
                   height: context.responsiveSpacing(
-                    small: 20,
-                    medium: 24,
-                    large: 28,
-                    tablet: 32,
-                    veryNarrow: 14,
+                    small: 24,
+                    medium: 28,
+                    large: 32,
+                    tablet: 36,
+                    veryNarrow: 18,
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _startPaymentStatusCheck();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.deepGreen,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      vertical: context.responsiveSpacing(
-                        small: 12,
-                        medium: 14,
-                        large: 16,
-                        tablet: 18,
-                        veryNarrow: 10,
-                      ),
-                      horizontal: context.responsiveSpacing(
-                        small: 40,
-                        medium: 44,
-                        large: 48,
-                        tablet: 52,
-                        veryNarrow: 30,
+                // Check payment button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      _checkPaymentStatusFromQR();
+                    },
+                    icon: Icon(Icons.check_circle_outline, size: 20.sp),
+                    label: Text(
+                      'Төлбөр шалгах',
+                      style: TextStyle(
+                        fontSize: context.responsiveFontSize(
+                          small: 16,
+                          medium: 17,
+                          large: 18,
+                          tablet: 19,
+                          veryNarrow: 14,
+                        ),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 100,
-                          medium: 100,
-                          large: 100,
-                          tablet: 100,
-                          veryNarrow: 80,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepGreen,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: context.responsiveSpacing(
+                          small: 14,
+                          medium: 16,
+                          large: 18,
+                          tablet: 20,
+                          veryNarrow: 12,
                         ),
                       ),
-                    ),
-                  ),
-                  child: Text(
-                    'Төлбөр шалгах',
-                    style: TextStyle(
-                      fontSize: context.responsiveFontSize(
-                        small: 16,
-                        medium: 17,
-                        large: 18,
-                        tablet: 19,
-                        veryNarrow: 14,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 10,
+                          ),
+                        ),
                       ),
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),

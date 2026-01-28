@@ -192,13 +192,25 @@ class _SideMenuState extends State<SideMenu> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final isLargeScreen = screenWidth > 800;
+    
+    // Standard drawer width: 304 on phones, larger on tablets
+    double drawerWidth;
+    if (isLargeScreen) {
+      drawerWidth = 380; // Large tablets/iPads
+    } else if (isTablet) {
+      drawerWidth = 340; // Small tablets/iPad mini
+    } else if (screenWidth > 400) {
+      drawerWidth = 304; // iPhone Max/Plus models
+    } else {
+      drawerWidth = screenWidth * 0.82; // Smaller phones
+    }
+    
     return Drawer(
       backgroundColor: context.backgroundColor,
-      width: context.isVeryNarrow
-          ? MediaQuery.of(context).size.width * 0.85
-          : context.isTablet || context.isLargeTablet
-          ? MediaQuery.of(context).size.width * 0.7
-          : null, // Use default width for medium screens
+      width: drawerWidth,
       child: Column(
         children: [
           // AppBar-like header with deep green background
@@ -206,30 +218,41 @@ class _SideMenuState extends State<SideMenu> {
             color: AppColors.getDeepGreen(context.isDarkMode),
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top,
-              bottom: 12,
+              bottom: isTablet ? 20 : 16,
             ),
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: isTablet ? 24 : 20),
                 child: Row(
                   children: [
-                    AppLogo(
-                      minHeight: 32,
-                      maxHeight: 32,
-                      minWidth: 32,
-                      maxWidth: 32,
-                      showImage: true,
+                    // Green circle background for logo
+                    Container(
+                      width: isTablet ? 48 : 40,
+                      height: isTablet ? 48 : 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.15),
+                      ),
+                      child: Center(
+                        child: AppLogo(
+                          minHeight: isTablet ? 36 : 30,
+                          maxHeight: isTablet ? 36 : 30,
+                          minWidth: isTablet ? 36 : 30,
+                          maxWidth: isTablet ? 36 : 30,
+                          showImage: true,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: isTablet ? 16 : 12),
                     Expanded(
                       child: Text(
                         'Amarhome',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: isTablet ? 24 : 20,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 1.0,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -244,7 +267,7 @@ class _SideMenuState extends State<SideMenu> {
               top: false,
               child: Column(
                 children: [
-                  const SizedBox(height: 8),
+                  SizedBox(height: isTablet ? 16 : 12),
                   // Wrap menu items in SingleChildScrollView
                   Expanded(
                     child: SingleChildScrollView(
@@ -258,6 +281,7 @@ class _SideMenuState extends State<SideMenu> {
                               Navigator.pop(context);
                               context.push('/tokhirgoo');
                             },
+                            isTablet: isTablet,
                           ),
                           // Show address selection only for users without baiguullagiinId
                           if (_baiguullagiinId == null ||
@@ -272,6 +296,7 @@ class _SideMenuState extends State<SideMenu> {
                                   '/address_selection?fromMenu=true',
                                 );
                               },
+                              isTablet: isTablet,
                             ),
                           // Show contract / invoice / parking only for users
                           // that are linked to an organization (have baiguullagiinId)
@@ -285,6 +310,7 @@ class _SideMenuState extends State<SideMenu> {
                                 Navigator.pop(context);
                                 context.push('/geree');
                               },
+                              isTablet: isTablet,
                             ),
                             _buildMenuItem(
                               context,
@@ -294,6 +320,7 @@ class _SideMenuState extends State<SideMenu> {
                                 Navigator.pop(context);
                                 context.push('/nekhemjlekh');
                               },
+                              isTablet: isTablet,
                             ),
                           ],
                           _buildMenuItem(
@@ -304,6 +331,7 @@ class _SideMenuState extends State<SideMenu> {
                               Navigator.pop(context);
                               context.push('/gomdol-sanal-progress');
                             },
+                            isTablet: isTablet,
                           ),
                           if (_baiguullagiinId != null &&
                               _baiguullagiinId!.isNotEmpty)
@@ -315,6 +343,19 @@ class _SideMenuState extends State<SideMenu> {
                                 Navigator.pop(context);
                                 _showDevelopmentModal(context);
                               },
+                              isTablet: isTablet,
+                            ),
+                          if (_baiguullagiinId != null &&
+                              _baiguullagiinId!.isNotEmpty)
+                            _buildMenuItem(
+                              context,
+                              icon: Icons.person_add_alt_outlined,
+                              title: 'Зочин урих',
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push('/zochin-urikh');
+                              },
+                              isTablet: isTablet,
                             ),
                           _buildMenuItem(
                             context,
@@ -324,16 +365,8 @@ class _SideMenuState extends State<SideMenu> {
                               Navigator.pop(context);
                               context.push('/ebarimt');
                             },
+                            isTablet: isTablet,
                           ),
-                          // _buildMenuItem(
-                          //   context,
-                          //   icon: Icons.notifications_outlined,
-                          //   title: 'Мэдэгдэл',
-                          //   onTap: () {
-                          //     Navigator.pop(context);
-                          //     context.push('/medegdel-list');
-                          //   },
-                          // ),
                           _buildMenuItem(
                             context,
                             icon: Icons.phone_outlined,
@@ -342,6 +375,7 @@ class _SideMenuState extends State<SideMenu> {
                               Navigator.pop(context);
                               _showContactBottomSheet(context);
                             },
+                            isTablet: isTablet,
                           ),
                           _buildMenuItem(
                             context,
@@ -461,22 +495,23 @@ class _SideMenuState extends State<SideMenu> {
                               }
                             },
                             isLogout: true,
+                            isTablet: isTablet,
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: isTablet ? 16 : 8),
                   // Footer stays at the bottom
                   Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: 8,
-                      top: 8,
+                    padding: EdgeInsets.only(
+                      bottom: isTablet ? 16 : 8,
+                      top: isTablet ? 12 : 8,
                     ),
                     child: Text(
                       '© 2025 Powered by Zevtabs LLC',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: isTablet ? 12 : 10,
                         color: context.textSecondaryColor,
                       ),
                       textAlign: TextAlign.center,
@@ -507,16 +542,17 @@ class _SideMenuState extends State<SideMenu> {
     required String title,
     required VoidCallback onTap,
     bool isLogout = false,
+    bool isTablet = false,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(isTablet ? 12 : 8),
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24 : 20,
+            vertical: isTablet ? 18 : 14,
           ),
           child: Row(
             children: [
@@ -524,16 +560,16 @@ class _SideMenuState extends State<SideMenu> {
               Icon(
                 icon,
                 color: isLogout ? Colors.red : AppColors.deepGreen,
-                size: 20,
+                size: isTablet ? 26 : 22,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isTablet ? 16 : 14),
               // Title text
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
                     color: isLogout ? Colors.red : context.textPrimaryColor,
-                    fontSize: 13,
+                    fontSize: isTablet ? 17 : 15,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -544,7 +580,7 @@ class _SideMenuState extends State<SideMenu> {
                 color: isLogout
                     ? Colors.red.withOpacity(0.5)
                     : context.textSecondaryColor,
-                size: 18,
+                size: isTablet ? 24 : 20,
               ),
             ],
           ),

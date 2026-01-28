@@ -4,29 +4,61 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
-class ContactBottomSheet extends StatelessWidget {
+class ContactBottomSheet extends StatefulWidget {
   const ContactBottomSheet({super.key});
+
+  @override
+  State<ContactBottomSheet> createState() => _ContactBottomSheetState();
+}
+
+class _ContactBottomSheetState extends State<ContactBottomSheet> {
+  bool isLoading = true;
+  String? organizationName;
+  List<String> phoneNumbers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBaiguullagaInfo();
+  }
+
+  Future<void> _loadBaiguullagaInfo() async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId != null) {
+        final response = await ApiService.fetchBaiguullagaById(baiguullagiinId);
+        if (mounted) {
+          setState(() {
+            organizationName = response['ner']?.toString() ?? 'СӨХ';
+            if (response['utas'] != null && response['utas'] is List) {
+              phoneNumbers = (response['utas'] as List)
+                  .map((e) => e.toString())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
+            }
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
+      }
+    } catch (e) {
+      print('Error loading baiguullaga info: $e');
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
 
   Future<void> _launchPhone(String phoneNumber) async {
     final uri = Uri.parse('tel:$phoneNumber');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
-    }
-  }
-
-  Future<void> _launchWebsite(String url) async {
-    final uri = Uri.parse(url.startsWith('http') ? url : 'https://$url');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _launchFacebook() async {
-    final facebookUrl = 'https://www.facebook.com/Amarhome';
-    final uri = Uri.parse(facebookUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -74,34 +106,36 @@ class ContactBottomSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Company contacts section
-                _buildSectionHeader(context, 'Амархоум'),
-                SizedBox(height: 8.h),
-                _buildContactOption(
-                  context,
-                  icon: Icons.phone_outlined,
-                  label: '7707 2707',
-                  subtitle: 'Лавлах утас',
-                  onTap: () => _launchPhone('77072707'),
-                ),
-                SizedBox(height: 8.h),
-                _buildContactOption(
-                  context,
-                  icon: Icons.language,
-                  label: 'Amarhome.mn',
-                  subtitle: 'Вебсайт',
-                  onTap: () => _launchWebsite('amarhome.mn'),
-                ),
-                SizedBox(height: 8.h),
-                _buildContactOption(
-                  context,
-                  icon: Icons.facebook,
-                  label: 'Amarhome',
-                  subtitle: 'Facebook хуудас',
-                  onTap: _launchFacebook,
-                ),
-
-                SizedBox(height: 16.h),
+                // СӨХ contacts section from baiguullaga
+                if (isLoading)
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      child: SizedBox(
+                        height: 20.h,
+                        width: 20.w,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.deepGreen,
+                        ),
+                      ),
+                    ),
+                  )
+                else if (phoneNumbers.isNotEmpty) ...[
+                  _buildSectionHeader(context, organizationName ?? 'СӨХ'),
+                  SizedBox(height: 8.h),
+                  ...phoneNumbers.map((phone) => Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: _buildContactOption(
+                      context,
+                      icon: Icons.phone_outlined,
+                      label: phone,
+                      subtitle: 'СӨХ утас',
+                      onTap: () => _launchPhone(phone),
+                    ),
+                  )),
+                  SizedBox(height: 16.h),
+                ],
 
                 // Emergency section
                 _buildSectionHeader(context, 'Яаралтай тусламж', isEmergency: true),

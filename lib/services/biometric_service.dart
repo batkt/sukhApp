@@ -93,7 +93,7 @@ class BiometricService {
       if (Platform.isIOS) {
         // iOS: Prefer Face ID, fallback to Touch ID (fingerprint)
         if (availableBiometrics.contains(BiometricType.face)) {
-          return Icons.face; // Face ID icon
+          return Icons.face_retouching_natural; // Better Face ID icon
         } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
           return Icons.fingerprint; // Touch ID icon
         }
@@ -102,13 +102,19 @@ class BiometricService {
         if (availableBiometrics.contains(BiometricType.fingerprint)) {
           return Icons.fingerprint; // Fingerprint icon
         } else if (availableBiometrics.contains(BiometricType.face)) {
-          return Icons.face; // Face recognition icon
+          return Icons.face_retouching_natural; // Face recognition icon
         }
       }
 
-      // Default fallback
+      // Default fallback based on platform
+      if (Platform.isIOS) {
+        return Icons.face_retouching_natural;
+      }
       return Icons.fingerprint;
     } catch (e) {
+      if (Platform.isIOS) {
+        return Icons.face_retouching_natural;
+      }
       return Icons.fingerprint;
     }
   }
