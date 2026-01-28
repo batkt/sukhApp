@@ -507,12 +507,32 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             children: [
               // Tabs
               Container(
-                color: context.surfaceColor,
+                height: 40.h,
+                decoration: BoxDecoration(
+                  color: context.isDarkMode
+                      ? const Color(0xFF252525)
+                      : const Color(0xFFF5F5F5),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppColors.deepGreen.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
                 child: TabBar(
                   controller: _tabController,
                   indicatorColor: AppColors.deepGreen,
+                  indicatorWeight: 2,
                   labelColor: AppColors.deepGreen,
                   unselectedLabelColor: context.textSecondaryColor,
+                  labelStyle: TextStyle(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                   tabs: const [
                     Tab(text: 'Биллинг'),
                     Tab(text: 'Билл'),
@@ -543,38 +563,20 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
 
   Widget _buildBillingsTab() {
     return SingleChildScrollView(
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      padding: EdgeInsets.all(14.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Find Billing Section
           Container(
-            padding: context.responsivePadding(
-              small: 16,
-              medium: 18,
-              large: 20,
-              tablet: 22,
-              veryNarrow: 12,
-            ),
+            padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
-              color: context.surfaceColor,
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
+              color: context.isDarkMode
+                  ? const Color(0xFF252525)
+                  : const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
-                color: AppColors.deepGreen.withOpacity(0.3),
+                color: AppColors.deepGreen.withOpacity(0.15),
                 width: 1,
               ),
             ),
@@ -585,77 +587,51 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   'Харилцагчийн код оруулах',
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 16.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 10,
-                  ),
-                ),
+                SizedBox(height: 10.h),
                 TextField(
                   controller: _customerCodeController,
-                  style: TextStyle(color: context.textPrimaryColor),
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 11.sp,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Харилцагчийн код',
-                    hintStyle: TextStyle(color: context.textSecondaryColor),
+                    hintStyle: TextStyle(
+                      color: context.textSecondaryColor,
+                      fontSize: 10.sp,
+                    ),
                     filled: true,
-                    fillColor: context.surfaceColor,
+                    fillColor: context.isDarkMode
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.white,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 10.h,
+                    ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 12,
-                          medium: 14,
-                          large: 16,
-                          tablet: 18,
-                          veryNarrow: 10,
-                        ),
-                      ),
+                      borderRadius: BorderRadius.circular(10.r),
                       borderSide: BorderSide.none,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 12,
-                          medium: 14,
-                          large: 16,
-                          tablet: 18,
-                          veryNarrow: 10,
-                        ),
+                      borderRadius: BorderRadius.circular(10.r),
+                      borderSide: BorderSide(
+                        color: AppColors.deepGreen.withOpacity(0.1),
                       ),
-                      borderSide: BorderSide(color: context.borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 12,
-                          medium: 14,
-                          large: 16,
-                          tablet: 18,
-                          veryNarrow: 10,
-                        ),
-                      ),
+                      borderRadius: BorderRadius.circular(10.r),
                       borderSide: BorderSide(
                         color: AppColors.deepGreen,
-                        width: 2,
+                        width: 1.5,
                       ),
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 10,
-                  ),
-                ),
+                SizedBox(height: 10.h),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -663,31 +639,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.deepGreen,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        vertical: context.responsiveSpacing(
-                          small: 14,
-                          medium: 16,
-                          large: 18,
-                          tablet: 20,
-                          veryNarrow: 12,
-                        ),
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
-                          ),
-                        ),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
                     ),
                     child: Text(
                       'Хайх',
                       style: TextStyle(
-                        fontSize: 16.sp,
+                        fontSize: 11.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -697,55 +657,38 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             ),
           ),
 
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 24,
-              medium: 28,
-              large: 32,
-              tablet: 36,
-              veryNarrow: 18,
-            ),
-          ),
+          SizedBox(height: 14.h),
 
           Text(
             'Миний биллингууд',
             style: TextStyle(
               color: context.textPrimaryColor,
-              fontSize: 18.sp,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w600,
             ),
           ),
 
-          SizedBox(height: 12.h),
+          SizedBox(height: 10.h),
 
           if (_isLoadingBillings)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
+                padding: EdgeInsets.all(20.w),
+                child: CircularProgressIndicator(
+                  color: AppColors.deepGreen,
+                  strokeWidth: 2,
                 ),
-                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_billings.isEmpty)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
-                ),
+                padding: EdgeInsets.all(20.w),
                 child: Text(
                   'Биллинг олдсонгүй',
                   style: TextStyle(
                     color: context.textSecondaryColor,
-                    fontSize: 16.sp,
+                    fontSize: 11.sp,
                   ),
                 ),
               ),
@@ -761,15 +704,19 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     final isSelected = _selectedBilling?['billingId'] == billing['billingId'];
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
+      margin: EdgeInsets.only(bottom: 10.h),
       decoration: BoxDecoration(
         color: isSelected
-            ? AppColors.deepGreen.withOpacity(0.2)
-            : context.surfaceColor,
-        borderRadius: BorderRadius.circular(16.w),
+            ? AppColors.deepGreen.withOpacity(0.1)
+            : context.isDarkMode
+                ? const Color(0xFF252525)
+                : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: isSelected ? AppColors.deepGreen : context.borderColor,
-          width: isSelected ? 2 : 1,
+          color: isSelected
+              ? AppColors.deepGreen
+              : AppColors.deepGreen.withOpacity(0.1),
+          width: isSelected ? 1.5 : 1,
         ),
       ),
       child: Material(
@@ -782,15 +729,9 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             _tabController.animateTo(1);
             _loadBills();
           },
-          borderRadius: BorderRadius.circular(16.w),
+          borderRadius: BorderRadius.circular(12.r),
           child: Padding(
-            padding: context.responsivePadding(
-              small: 16,
-              medium: 18,
-              large: 20,
-              tablet: 22,
-              veryNarrow: 12,
-            ),
+            padding: EdgeInsets.all(12.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -802,7 +743,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                         billing['billingName']?.toString() ?? 'Биллинг',
                         style: TextStyle(
                           color: context.textPrimaryColor,
-                          fontSize: 16.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -811,35 +752,27 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       Icon(
                         Icons.check_circle,
                         color: AppColors.deepGreen,
-                        size: 24.sp,
+                        size: 16.sp,
                       ),
                   ],
                 ),
                 if (billing['customerName'] != null) ...[
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 8,
-                      medium: 10,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 6,
-                    ),
-                  ),
+                  SizedBox(height: 6.h),
                   Text(
                     'Харилцагч: ${billing['customerName']}',
                     style: TextStyle(
                       color: context.textSecondaryColor,
-                      fontSize: 14.sp,
+                      fontSize: 10.sp,
                     ),
                   ),
                 ],
                 if (billing['customerAddress'] != null) ...[
-                  SizedBox(height: 4.h),
+                  SizedBox(height: 3.h),
                   Text(
                     'Хаяг: ${billing['customerAddress']}',
                     style: TextStyle(
                       color: context.textSecondaryColor,
-                      fontSize: 12.sp,
+                      fontSize: 9.sp,
                     ),
                   ),
                 ],
@@ -856,7 +789,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       return Center(
         child: Text(
           'Биллинг сонгоно уу',
-          style: TextStyle(color: context.textSecondaryColor, fontSize: 16.sp),
+          style: TextStyle(color: context.textSecondaryColor, fontSize: 11.sp),
         ),
       );
     }
@@ -866,44 +799,29 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     }
 
     return SingleChildScrollView(
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      padding: EdgeInsets.all(14.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_isLoadingBills)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
+                padding: EdgeInsets.all(20.w),
+                child: CircularProgressIndicator(
+                  color: AppColors.deepGreen,
+                  strokeWidth: 2,
                 ),
-                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_bills.isEmpty)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
-                ),
+                padding: EdgeInsets.all(20.w),
                 child: Text(
                   'Билл олдсонгүй',
                   style: TextStyle(
                     color: context.textSecondaryColor,
-                    fontSize: 16.sp,
+                    fontSize: 11.sp,
                   ),
                 ),
               ),
@@ -922,18 +840,17 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     final billPeriod = bill['billPeriod']?.toString() ?? '';
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      margin: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: context.borderColor, width: 1),
+        color: context.isDarkMode
+            ? const Color(0xFF252525)
+            : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.deepGreen.withOpacity(0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -946,38 +863,38 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   billNo,
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 16.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               Text(
-                '${billAmount.toStringAsFixed(2)}₮',
+                '${billAmount.toStringAsFixed(0)}₮',
                 style: TextStyle(
                   color: AppColors.deepGreen,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
           if (billPeriod.isNotEmpty) ...[
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             Text(
               'Хугацаа: $billPeriod',
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 14.sp,
+                fontSize: 10.sp,
               ),
             ),
           ],
           if (dueDate.isNotEmpty) ...[
-            SizedBox(height: 4.h),
+            SizedBox(height: 3.h),
             Text(
               'Төлөх огноо: $dueDate',
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 12.sp,
+                fontSize: 9.sp,
               ),
             ),
           ],
@@ -991,7 +908,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       return Center(
         child: Text(
           'Биллинг сонгоно уу',
-          style: TextStyle(color: context.textSecondaryColor, fontSize: 16.sp),
+          style: TextStyle(color: context.textSecondaryColor, fontSize: 11.sp),
         ),
       );
     }
@@ -1001,44 +918,29 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     }
 
     return SingleChildScrollView(
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      padding: EdgeInsets.all(14.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_isLoadingPayments)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
+                padding: EdgeInsets.all(20.w),
+                child: CircularProgressIndicator(
+                  color: AppColors.deepGreen,
+                  strokeWidth: 2,
                 ),
-                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_payments.isEmpty)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
-                ),
+                padding: EdgeInsets.all(20.w),
                 child: Text(
                   'Төлбөрийн түүх олдсонгүй',
                   style: TextStyle(
                     color: context.textSecondaryColor,
-                    fontSize: 16.sp,
+                    fontSize: 11.sp,
                   ),
                 ),
               ),
@@ -1056,18 +958,17 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     final status = payment['status']?.toString() ?? '';
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      margin: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: context.borderColor, width: 1),
+        color: context.isDarkMode
+            ? const Color(0xFF252525)
+            : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.deepGreen.withOpacity(0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1080,38 +981,38 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   'Төлбөр',
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 16.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               Text(
-                '${amount.toStringAsFixed(2)}₮',
+                '${amount.toStringAsFixed(0)}₮',
                 style: TextStyle(
                   color: AppColors.deepGreen,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
           if (paymentDate.isNotEmpty) ...[
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             Text(
               'Огноо: $paymentDate',
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 14.sp,
+                fontSize: 10.sp,
               ),
             ),
           ],
           if (status.isNotEmpty) ...[
-            SizedBox(height: 4.h),
+            SizedBox(height: 3.h),
             Text(
               'Төлөв: $status',
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 12.sp,
+                fontSize: 9.sp,
               ),
             ),
           ],
@@ -1125,7 +1026,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       return Center(
         child: Text(
           'Биллинг сонгоно уу',
-          style: TextStyle(color: context.textSecondaryColor, fontSize: 16.sp),
+          style: TextStyle(color: context.textSecondaryColor, fontSize: 11.sp),
         ),
       );
     }
@@ -1135,49 +1036,34 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     }
 
     return SingleChildScrollView(
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      padding: EdgeInsets.all(14.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_isLoadingInvoices)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
+                padding: EdgeInsets.all(20.w),
+                child: CircularProgressIndicator(
+                  color: AppColors.deepGreen,
+                  strokeWidth: 2,
                 ),
-                child: CircularProgressIndicator(color: AppColors.deepGreen),
               ),
             )
           else if (_invoices.isEmpty)
             Center(
               child: Padding(
-                padding: context.responsivePadding(
-                  small: 32,
-                  medium: 36,
-                  large: 40,
-                  tablet: 44,
-                  veryNarrow: 24,
-                ),
+                padding: EdgeInsets.all(20.w),
                 child: Column(
                   children: [
                     Text(
                       'Нэхэмжлэх олдсонгүй',
                       style: TextStyle(
                         color: context.textSecondaryColor,
-                        fontSize: 16.sp,
+                        fontSize: 11.sp,
                       ),
                     ),
-                    SizedBox(height: 16.h),
+                    SizedBox(height: 12.h),
                     ElevatedButton(
                       onPressed: () {
                         if (_bills.isNotEmpty) {
@@ -1194,8 +1080,18 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.deepGreen,
                         foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 10.h,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
                       ),
-                      child: Text('Нэхэмжлэх үүсгэх'),
+                      child: Text(
+                        'Нэхэмжлэх үүсгэх',
+                        style: TextStyle(fontSize: 11.sp),
+                      ),
                     ),
                   ],
                 ),
@@ -1217,18 +1113,17 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
         '';
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      margin: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(16.w),
-        border: Border.all(color: context.borderColor, width: 1),
+        color: context.isDarkMode
+            ? const Color(0xFF252525)
+            : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.deepGreen.withOpacity(0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1241,32 +1136,32 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   invoiceId,
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 16.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               Text(
-                '${invoiceAmount.toStringAsFixed(2)}₮',
+                '${invoiceAmount.toStringAsFixed(0)}₮',
                 style: TextStyle(
                   color: AppColors.deepGreen,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
           if (status.isNotEmpty) ...[
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             Text(
               'Төлөв: $status',
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 14.sp,
+                fontSize: 10.sp,
               ),
             ),
           ],
-          SizedBox(height: 12.h),
+          SizedBox(height: 10.h),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1274,8 +1169,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.goldPrimary,
                 foregroundColor: Colors.black,
+                padding: EdgeInsets.symmetric(vertical: 10.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
               ),
-              child: Text('Төлбөр төлөх'),
+              child: Text(
+                'Төлбөр төлөх',
+                style: TextStyle(fontSize: 11.sp),
+              ),
             ),
           ),
         ],

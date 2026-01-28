@@ -23,7 +23,6 @@ class ContactBottomSheet extends StatelessWidget {
   }
 
   Future<void> _launchFacebook() async {
-    // Try to open Facebook app first, then fallback to web
     final facebookUrl = 'https://www.facebook.com/Amarhome';
     final uri = Uri.parse(facebookUrl);
     if (await canLaunchUrl(uri)) {
@@ -35,157 +34,142 @@ class ContactBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: context.cardBackgroundColor,
+        color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(
-            context.responsiveBorderRadius(
-              small: 30,
-              medium: 32,
-              large: 34,
-              tablet: 36,
-              veryNarrow: 24,
-            ),
-          ),
-          topRight: Radius.circular(
-            context.responsiveBorderRadius(
-              small: 30,
-              medium: 32,
-              large: 34,
-              tablet: 36,
-              veryNarrow: 24,
-            ),
-          ),
+          topLeft: Radius.circular(20.r),
+          topRight: Radius.circular(20.r),
         ),
-        border: Border.all(color: context.borderColor, width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Handle bar
           Container(
-            margin: EdgeInsets.only(
-              top: context.responsiveSpacing(
-                small: 12,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 8,
-              ),
-            ),
-            width: context.responsiveSpacing(
-              small: 40,
-              medium: 44,
-              large: 48,
-              tablet: 52,
-              veryNarrow: 32,
-            ),
+            margin: EdgeInsets.only(top: 10.h),
+            width: 36.w,
             height: 4.h,
             decoration: BoxDecoration(
-              color: context.borderColor,
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 2,
-                  medium: 3,
-                  large: 4,
-                  tablet: 5,
-                  veryNarrow: 1,
-                ),
-              ),
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(2.r),
             ),
           ),
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 20,
-              medium: 24,
-              large: 28,
-              tablet: 32,
-              veryNarrow: 14,
-            ),
-          ),
+          SizedBox(height: 16.h),
 
           // Title
           Text(
             'Холбоо барих',
             style: TextStyle(
-              color: AppColors.deepGreen,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
+              color: context.textPrimaryColor,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 24,
-              medium: 28,
-              large: 32,
-              tablet: 36,
-              veryNarrow: 18,
-            ),
-          ),
+          SizedBox(height: 16.h),
 
           // Contact options
           Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsiveSpacing(
-                small: 20,
-                medium: 22,
-                large: 24,
-                tablet: 26,
-                veryNarrow: 14,
-              ),
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 14.w),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Phone
+                // Company contacts section
+                _buildSectionHeader(context, 'Амархоум'),
+                SizedBox(height: 8.h),
                 _buildContactOption(
                   context,
                   icon: Icons.phone_outlined,
                   label: '7707 2707',
+                  subtitle: 'Лавлах утас',
                   onTap: () => _launchPhone('77072707'),
                 ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 10,
-                  ),
-                ),
-
-                // Website
+                SizedBox(height: 8.h),
                 _buildContactOption(
                   context,
                   icon: Icons.language,
                   label: 'Amarhome.mn',
+                  subtitle: 'Вебсайт',
                   onTap: () => _launchWebsite('amarhome.mn'),
                 ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 10,
-                  ),
-                ),
-
-                // Facebook
+                SizedBox(height: 8.h),
                 _buildContactOption(
                   context,
                   icon: Icons.facebook,
                   label: 'Amarhome',
+                  subtitle: 'Facebook хуудас',
                   onTap: _launchFacebook,
                 ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 30,
-                    medium: 34,
-                    large: 38,
-                    tablet: 42,
-                    veryNarrow: 24,
-                  ),
+
+                SizedBox(height: 16.h),
+
+                // Emergency section
+                _buildSectionHeader(context, 'Яаралтай тусламж', isEmergency: true),
+                SizedBox(height: 8.h),
+                _buildContactOption(
+                  context,
+                  icon: Icons.local_police_outlined,
+                  label: '102',
+                  subtitle: 'Цагдаа',
+                  onTap: () => _launchPhone('102'),
+                  isEmergency: true,
                 ),
+                SizedBox(height: 8.h),
+                _buildContactOption(
+                  context,
+                  icon: Icons.local_hospital_outlined,
+                  label: '103',
+                  subtitle: 'Түргэн тусламж',
+                  onTap: () => _launchPhone('103'),
+                  isEmergency: true,
+                ),
+                SizedBox(height: 8.h),
+                _buildContactOption(
+                  context,
+                  icon: Icons.local_fire_department_outlined,
+                  label: '101',
+                  subtitle: 'Гал унтраах',
+                  onTap: () => _launchPhone('101'),
+                  isEmergency: true,
+                ),
+                SizedBox(height: 8.h),
+                _buildContactOption(
+                  context,
+                  icon: Icons.emergency_outlined,
+                  label: '105',
+                  subtitle: 'Онцгой байдал',
+                  onTap: () => _launchPhone('105'),
+                  isEmergency: true,
+                ),
+
+                SizedBox(height: 20.h),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title, {bool isEmergency = false}) {
+    return Padding(
+      padding: EdgeInsets.only(left: 4.w, bottom: 4.h),
+      child: Row(
+        children: [
+          if (isEmergency) ...[
+            Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.error,
+              size: 14.sp,
+            ),
+            SizedBox(width: 4.w),
+          ],
+          Text(
+            title,
+            style: TextStyle(
+              color: isEmergency ? AppColors.error : AppColors.deepGreen,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -197,98 +181,72 @@ class ContactBottomSheet extends StatelessWidget {
     BuildContext context, {
     required IconData icon,
     required String label,
+    String? subtitle,
     required VoidCallback onTap,
+    bool isEmergency = false,
   }) {
+    final accentColor = isEmergency ? AppColors.error : AppColors.deepGreen;
+    
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          ),
-        ),
+        borderRadius: BorderRadius.circular(12.r),
         child: Container(
-          padding: context.responsivePadding(
-            small: 16,
-            medium: 18,
-            large: 20,
-            tablet: 22,
-            veryNarrow: 12,
-          ),
+          padding: EdgeInsets.all(12.w),
           decoration: BoxDecoration(
-            color: context.surfaceColor,
-            borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          ),
-        ),
-            border: Border.all(color: context.borderColor, width: 1),
+            color: context.isDarkMode
+                ? const Color(0xFF252525)
+                : const Color(0xFFF8F8F8),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: accentColor.withOpacity(0.15),
+              width: 1,
+            ),
           ),
           child: Row(
             children: [
               Container(
-                padding: context.responsivePadding(
-                  small: 12,
-                  medium: 14,
-                  large: 16,
-                  tablet: 18,
-                  veryNarrow: 10,
-                ),
+                padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: context.accentBackgroundColor,
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 10,
-                      medium: 12,
-                      large: 14,
-                      tablet: 16,
-                      veryNarrow: 8,
-                    ),
-                  ),
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Icon(
                   icon,
-                  color: AppColors.deepGreen,
-                  size: context.responsiveIconSize(
-                    small: 24,
-                    medium: 26,
-                    large: 28,
-                    tablet: 30,
-                    veryNarrow: 20,
-                  ),
+                  color: accentColor,
+                  size: 18.sp,
                 ),
               ),
-              SizedBox(
-                width: context.responsiveSpacing(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
+              SizedBox(width: 12.w),
               Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      SizedBox(height: 2.h),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: context.textSecondaryColor,
+                          fontSize: 10.sp,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               Icon(
-                Icons.arrow_forward_ios,
-                color: context.textSecondaryColor,
+                Icons.call,
+                color: accentColor,
                 size: 16.sp,
               ),
             ],

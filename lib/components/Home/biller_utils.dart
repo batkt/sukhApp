@@ -31,55 +31,56 @@ class BillerUtils {
       final nameLower = name.toLowerCase().trim();
 
       // Check if it's Төрийн банк and use state.png
-      // if (nameLower.contains('төрийн банк') ||
-      //     nameLower.contains('toriin bank') ||
-      //     nameLower.contains('state bank')) {
-      //   return Image.asset(
-      //     'lib/assets/img/state.png',
-      //     width: double.infinity,
-      //     height: double.infinity,
-      //     fit: BoxFit.contain,
-      //   );
-      // }
+      if (nameLower.contains('төрийн банк') ||
+          nameLower.contains('торийн банк') ||
+          nameLower.contains('toriin bank') ||
+          nameLower.contains('state bank')) {
+        return Image.asset(
+          'lib/assets/img/state.png',
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.contain,
+        );
+      }
 
-      // // Check if it's Юнивишн/Юнивижн and use uni.svg
-      // if (nameLower.contains('юнивишн') ||
-      //     nameLower.contains('юнивижн') ||
-      //     nameLower.contains('univision') ||
-      //     nameLower.contains('univishn')) {
-      //   return SvgPicture.asset(
-      //     'lib/assets/img/uni.svg',
-      //     width: double.infinity,
-      //     height: double.infinity,
-      //     fit: BoxFit.contain,
-      //     placeholderBuilder: (BuildContext context) => Icon(
-      //       Icons.receipt_long_rounded,
-      //       color: AppColors.secondaryAccent,
-      //       size: 24.sp,
-      //     ),
-      //   );
-      // }
+      // Check if it's Юнивишн/Юнивижн and use uni.svg
+      if (nameLower.contains('юнивишн') ||
+          nameLower.contains('юнивижн') ||
+          nameLower.contains('univision') ||
+          nameLower.contains('univishn')) {
+        return SvgPicture.asset(
+          'lib/assets/img/uni.svg',
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.contain,
+          placeholderBuilder: (BuildContext context) => Icon(
+            Icons.receipt_long_rounded,
+            color: AppColors.secondaryAccent,
+            size: 24.sp,
+          ),
+        );
+      }
 
-      // // Check if it's Скаймедиа and use logo-skymedia-blue.svg
-      // if (nameLower.contains('скаймедиа') ||
-      //     nameLower.contains('скай медиа') ||
-      //     nameLower.contains('скай-медиа') ||
-      //     nameLower.contains('skymedia') ||
-      //     nameLower.contains('sky media') ||
-      //     nameLower.contains('sky-media') ||
-      //     (nameLower.contains('скай') && nameLower.contains('медиа'))) {
-      //   return SvgPicture.asset(
-      //     'lib/assets/img/logo-skymedia-blue.svg',
-      //     width: double.infinity,
-      //     height: double.infinity,
-      //     fit: BoxFit.contain,
-      //     placeholderBuilder: (BuildContext context) => Icon(
-      //       Icons.receipt_long_rounded,
-      //       color: AppColors.secondaryAccent,
-      //       size: 24.sp,
-      //     ),
-      //   );
-      // }
+      // Check if it's Скаймедиа and use logo-skymedia-blue.svg
+      if (nameLower.contains('скаймедиа') ||
+          nameLower.contains('скай медиа') ||
+          nameLower.contains('скай-медиа') ||
+          nameLower.contains('skymedia') ||
+          nameLower.contains('sky media') ||
+          nameLower.contains('sky-media') ||
+          (nameLower.contains('скай') && nameLower.contains('медиа'))) {
+        return SvgPicture.asset(
+          'lib/assets/img/logo-skymedia-blue.svg',
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.contain,
+          placeholderBuilder: (BuildContext context) => Icon(
+            Icons.receipt_long_rounded,
+            color: AppColors.secondaryAccent,
+            size: 24.sp,
+          ),
+        );
+      }
 
       // Check if it's ЦАХИЛГААН and use tukh.png
       if (nameLower.contains('цахилгаан') ||

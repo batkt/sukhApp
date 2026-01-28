@@ -128,20 +128,8 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
             // Floating Action Button for adding new gomdol/sanal
             Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: context.responsiveSpacing(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-                vertical: context.responsiveSpacing(
-                  small: 8,
-                  medium: 10,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 6,
-                ),
+                horizontal: 14.w,
+                vertical: 6.h,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -150,7 +138,7 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                     icon: Icon(
                       Icons.add_circle_outline,
                       color: AppColors.deepGreen,
-                      size: 28.sp,
+                      size: 22.sp,
                     ),
                     onPressed: () {
                       context.push('/gomdol-sanal-form');
@@ -161,22 +149,10 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
             ),
             // Filter tabs
             Container(
-              height: 50.h,
+              height: 40.h,
               margin: EdgeInsets.symmetric(
-                horizontal: context.responsiveSpacing(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-                vertical: context.responsiveSpacing(
-                  small: 8,
-                  medium: 10,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 6,
-                ),
+                horizontal: 14.w,
+                vertical: 6.h,
               ),
               child: ListView(
                 scrollDirection: Axis.horizontal,
@@ -203,56 +179,34 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                           Icon(
                             Icons.error_outline,
                             color: context.textSecondaryColor,
-                            size: 48.sp,
+                            size: 36.sp,
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 16,
-                              medium: 18,
-                              large: 20,
-                              tablet: 22,
-                              veryNarrow: 12,
-                            ),
-                          ),
+                          SizedBox(height: 12.h),
                           Text(
                             _errorMessage!,
                             style: TextStyle(
                               color: context.textPrimaryColor,
-                              fontSize:
-                                  20.sp, // Increased for better readability
+                              fontSize: 12.sp,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 24,
-                              medium: 28,
-                              large: 32,
-                              tablet: 36,
-                              veryNarrow: 18,
-                            ),
-                          ),
+                          SizedBox(height: 16.h),
                           ElevatedButton(
                             onPressed: _loadItems,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.deepGreen,
-                              foregroundColor: context.textPrimaryColor,
+                              foregroundColor: Colors.white,
                               padding: EdgeInsets.symmetric(
-                                horizontal: 24.w,
-                                vertical: 12.h,
+                                horizontal: 16.w,
+                                vertical: 10.h,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
                               ),
                             ),
                             child: Text(
                               'Дахин оролдох',
-                              style: TextStyle(
-                                fontSize: context.responsiveFontSize(
-                                  small: 14,
-                                  medium: 15,
-                                  large: 16,
-                                  tablet: 17,
-                                  veryNarrow: 12,
-                                ),
-                              ),
+                              style: TextStyle(fontSize: 11.sp),
                             ),
                           ),
                         ],
@@ -266,41 +220,23 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                           Icon(
                             Icons.inbox_outlined,
                             color: context.textSecondaryColor,
-                            size: 64.sp,
+                            size: 48.sp,
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 16,
-                              medium: 18,
-                              large: 20,
-                              tablet: 22,
-                              veryNarrow: 12,
-                            ),
-                          ),
+                          SizedBox(height: 12.h),
                           Text(
                             'Гомдол, санал байхгүй',
                             style: TextStyle(
                               color: context.textPrimaryColor,
-                              fontSize:
-                                  24.sp, // Increased for better readability
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 8,
-                              medium: 10,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 6,
-                            ),
-                          ),
+                          SizedBox(height: 6.h),
                           Text(
                             'Шинэ гомдол эсвэл санал илгээхийн тулд\nдээрх + товчийг дарна уу',
                             style: TextStyle(
                               color: context.textSecondaryColor,
-                              fontSize:
-                                  20.sp, // Increased for better readability
+                              fontSize: 11.sp,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -311,13 +247,7 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                       onRefresh: _loadItems,
                       color: AppColors.deepGreen,
                       child: ListView.builder(
-                        padding: context.responsivePadding(
-                          small: 16,
-                          medium: 18,
-                          large: 20,
-                          tablet: 22,
-                          veryNarrow: 12,
-                        ),
+                        padding: EdgeInsets.all(14.w),
                         itemCount: _filteredItems.length,
                         itemBuilder: (context, index) {
                           final item = _filteredItems[index];
@@ -345,48 +275,35 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
         });
       },
       child: Container(
-        margin: EdgeInsets.only(
-          right: context.responsiveSpacing(
-            small: 8,
-            medium: 10,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 6,
-          ),
-        ),
+        margin: EdgeInsets.only(right: 6.w),
         padding: EdgeInsets.symmetric(
-          horizontal: context.responsiveSpacing(
-            small: 16,
-            medium: 18,
-            large: 20,
-            tablet: 22,
-            veryNarrow: 12,
-          ),
-          vertical: context.responsiveSpacing(
-            small: 8,
-            medium: 10,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 6,
-          ),
+          horizontal: 10.w,
+          vertical: 6.h,
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.deepGreen.withOpacity(0.2)
-              : context.cardBackgroundColor,
-          borderRadius: BorderRadius.circular(
-            context.responsiveBorderRadius(
-              small: 20,
-              medium: 22,
-              large: 24,
-              tablet: 26,
-              veryNarrow: 16,
-            ),
-          ),
+              ? AppColors.deepGreen
+              : (context.isDarkMode
+                  ? const Color(0xFF1A1A1A)
+                  : Colors.white),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppColors.deepGreen : context.borderColor,
-            width: isSelected ? 1.5 : 1,
+            color: isSelected
+                ? AppColors.deepGreen
+                : (context.isDarkMode
+                    ? AppColors.deepGreen.withOpacity(0.2)
+                    : AppColors.deepGreen.withOpacity(0.15)),
+            width: 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.deepGreen.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -394,60 +311,30 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected
-                    ? AppColors.deepGreen
-                    : context.textPrimaryColor,
-                fontSize: 20.sp, // Increased for better readability
+                color: isSelected ? Colors.white : context.textPrimaryColor,
+                fontSize: 11.sp,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
             if (count > 0) ...[
-              SizedBox(
-                width: context.responsiveSpacing(
-                  small: 6,
-                  medium: 8,
-                  large: 10,
-                  tablet: 12,
-                  veryNarrow: 4,
-                ),
-              ),
+              SizedBox(width: 5.w),
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: context.responsiveSpacing(
-                    small: 6,
-                    medium: 8,
-                    large: 10,
-                    tablet: 12,
-                    veryNarrow: 4,
-                  ),
-                  vertical: context.responsiveSpacing(
-                    small: 2,
-                    medium: 3,
-                    large: 4,
-                    tablet: 5,
-                    veryNarrow: 1,
-                  ),
+                  horizontal: 5.w,
+                  vertical: 2.h,
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.deepGreen
-                      : context.accentBackgroundColor,
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 10,
-                      medium: 12,
-                      large: 14,
-                      tablet: 16,
-                      veryNarrow: 8,
-                    ),
-                  ),
+                      ? Colors.white.withOpacity(0.2)
+                      : AppColors.deepGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
                   count.toString(),
                   style: TextStyle(
-                    color: isSelected ? Colors.white : context.textPrimaryColor,
-                    fontSize: 18.sp, // Increased for better readability
-                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : AppColors.deepGreen,
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -516,43 +403,32 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
         context.push('/medegdel-detail', extra: item);
       },
       child: Container(
-        margin: EdgeInsets.only(
-          bottom: context.responsiveSpacing(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          ),
-        ),
-        padding: context.responsivePadding(
-          small: 16,
-          medium: 18,
-          large: 20,
-          tablet: 22,
-          veryNarrow: 12,
-        ),
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
-          color: context.cardBackgroundColor,
-          borderRadius: BorderRadius.circular(
-            context.responsiveBorderRadius(
-              small: 16,
-              medium: 18,
-              large: 20,
-              tablet: 22,
-              veryNarrow: 12,
-            ),
-          ),
+          color: context.isDarkMode
+              ? const Color(0xFF1A1A1A)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
             color: isDone
-                ? AppColors.success.withOpacity(0.5)
+                ? AppColors.success.withOpacity(0.4)
                 : isRejected
-                ? AppColors.error.withOpacity(0.5)
+                ? AppColors.error.withOpacity(0.4)
                 : isGomdol
-                ? Colors.orange.withOpacity(0.3)
-                : AppColors.deepGreen.withOpacity(0.3),
-            width: (isDone || isRejected) ? 2 : 1.5,
+                ? Colors.orange.withOpacity(0.25)
+                : AppColors.deepGreen.withOpacity(0.2),
+            width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: context.isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,14 +437,14 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
               children: [
                 Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 6.h,
+                    horizontal: 8.w,
+                    vertical: 4.h,
                   ),
                   decoration: BoxDecoration(
                     color: isGomdol
-                        ? Colors.orange.withOpacity(0.2)
-                        : AppColors.deepGreen.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8.w),
+                        ? Colors.orange.withOpacity(0.15)
+                        : AppColors.deepGreen.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -577,24 +453,16 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                         isGomdol
                             ? Icons.report_problem
                             : Icons.lightbulb_outline,
-                        size: 16.sp,
+                        size: 12.sp,
                         color: isGomdol ? Colors.orange : AppColors.deepGreen,
                       ),
-                      SizedBox(
-                        width: context.responsiveSpacing(
-                          small: 4,
-                          medium: 6,
-                          large: 8,
-                          tablet: 10,
-                          veryNarrow: 3,
-                        ),
-                      ),
+                      SizedBox(width: 4.w),
                       Text(
                         _getDisplayTurul(item.turul),
                         style: TextStyle(
                           color: isGomdol ? Colors.orange : AppColors.deepGreen,
-                          fontSize: 20.sp, // Increased for better readability
-                          fontWeight: FontWeight.bold,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -603,18 +471,18 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                 const Spacer(),
                 Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
+                    horizontal: 8.w,
                     vertical: 4.h,
                   ),
                   decoration: BoxDecoration(
                     color: _isStatusDone(item)
-                        ? AppColors.success.withOpacity(0.2)
+                        ? AppColors.success.withOpacity(0.15)
                         : _isStatusRejected(item)
-                        ? AppColors.error.withOpacity(0.2)
+                        ? AppColors.error.withOpacity(0.15)
                         : item.hasReply
-                        ? AppColors.success.withOpacity(0.2)
-                        : Colors.orange.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8.w),
+                        ? AppColors.success.withOpacity(0.15)
+                        : Colors.orange.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     _getStatusText(item),
@@ -626,33 +494,33 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                           : item.hasReply
                           ? AppColors.success
                           : Colors.orange,
-                      fontSize: 18.sp, // Increased for better readability
+                      fontSize: 9.sp,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
             Text(
               item.title,
               style: TextStyle(
                 color: context.textPrimaryColor,
-                fontSize: 22.sp, // Increased for better readability
-                fontWeight: FontWeight.bold,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             Text(
               item.message,
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 14.sp,
+                fontSize: 11.sp,
               ),
-              maxLines: 3,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -660,7 +528,7 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                   item.formattedDateTime,
                   style: TextStyle(
                     color: context.textSecondaryColor,
-                    fontSize: 20.sp, // Increased for better readability
+                    fontSize: 10.sp,
                   ),
                 ),
               ],

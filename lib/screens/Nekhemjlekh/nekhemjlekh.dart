@@ -2267,21 +2267,23 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                   availableContracts.length > 1)
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 8.h,
+                    horizontal: 14.w,
+                    vertical: 6.h,
                   ),
                   child: GestureDetector(
                     onTap: _showContractSelectionModal,
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 8.h,
+                        horizontal: 10.w,
+                        vertical: 6.h,
                       ),
                       decoration: BoxDecoration(
-                        color: context.accentBackgroundColor,
-                        borderRadius: BorderRadius.circular(12.r),
+                        color: context.isDarkMode
+                            ? const Color(0xFF1A1A1A)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(10.r),
                         border: Border.all(
-                          color: AppColors.deepGreen.withOpacity(0.3),
+                          color: AppColors.deepGreen.withOpacity(0.2),
                           width: 1,
                         ),
                       ),
@@ -2291,25 +2293,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           Icon(
                             Icons.business_rounded,
                             color: AppColors.deepGreen,
-                            size: 16.sp,
+                            size: 14.sp,
                           ),
-                          SizedBox(width: 8.w),
+                          SizedBox(width: 6.w),
                           Flexible(
                             child: Text(
                               selectedContractDisplay!,
                               style: TextStyle(
                                 color: context.textPrimaryColor,
-                                fontSize: 13.sp,
+                                fontSize: 11.sp,
                                 fontWeight: FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          SizedBox(width: 4.w),
+                          SizedBox(width: 3.w),
                           Icon(
                             Icons.keyboard_arrow_down_rounded,
                             color: AppColors.deepGreen,
-                            size: 16.sp,
+                            size: 14.sp,
                           ),
                         ],
                       ),
@@ -2328,18 +2330,22 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                     : errorMessage != null
                     ? Center(
                         child: Padding(
-                          padding: context.responsivePadding(
-                            small: 20,
-                            medium: 22,
-                            large: 24,
-                            tablet: 26,
-                            veryNarrow: 14,
-                          ),
-                          child: OptimizedGlass(
-                            borderRadius: BorderRadius.circular(22.r),
-                            opacity: 0.10,
+                          padding: EdgeInsets.all(16.w),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: context.isDarkMode
+                                  ? const Color(0xFF1A1A1A)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(14.r),
+                              border: Border.all(
+                                color: context.isDarkMode
+                                    ? Colors.white.withOpacity(0.1)
+                                    : Colors.black.withOpacity(0.08),
+                                width: 1,
+                              ),
+                            ),
                             child: Padding(
-                              padding: EdgeInsets.all(24.w),
+                              padding: EdgeInsets.all(20.w),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -2347,40 +2353,40 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                   Icon(
                                     Icons.error_outline_rounded,
                                     color: Colors.red.withOpacity(0.8),
-                                    size: 48.sp,
+                                    size: 36.sp,
                                   ),
-                                  SizedBox(height: 16.h),
+                                  SizedBox(height: 12.h),
                                   Text(
                                     errorMessage!,
                                     style: TextStyle(
                                       color: context.textPrimaryColor,
-                                      fontSize: 14.sp,
+                                      fontSize: 12.sp,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
-                                  SizedBox(height: 24.h),
-                                  OptimizedGlass(
-                                    borderRadius: BorderRadius.circular(12.r),
-                                    opacity: 0.10,
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: _loadNekhemjlekh,
-                                        borderRadius: BorderRadius.circular(
-                                          12.r,
+                                  SizedBox(height: 16.h),
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: _loadNekhemjlekh,
+                                      borderRadius: BorderRadius.circular(
+                                        10.r,
+                                      ),
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 16.w,
+                                          vertical: 10.h,
                                         ),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 24.w,
-                                            vertical: 12.h,
-                                          ),
-                                          child: Text(
-                                            'Дахин оролдох',
-                                            style: TextStyle(
-                                              fontSize: 14.sp,
-                                              color: context.textPrimaryColor,
-                                              fontWeight: FontWeight.w600,
-                                            ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.deepGreen,
+                                          borderRadius: BorderRadius.circular(10.r),
+                                        ),
+                                        child: Text(
+                                          'Дахин оролдох',
+                                          style: TextStyle(
+                                            fontSize: 11.sp,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
@@ -2505,26 +2511,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                   : 'Одоогоор нэхэмжлэл байхгүй',
                                               style: TextStyle(
                                                 color: context.textPrimaryColor,
-                                                fontSize: context
-                                                    .responsiveFontSize(
-                                                      small: 18,
-                                                      medium: 20,
-                                                      large: 22,
-                                                      tablet: 24,
-                                                      veryNarrow: 16,
-                                                    ),
+                                                fontSize: 14.sp,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
                                             SizedBox(
-                                              height: context.responsiveSpacing(
-                                                small: 8,
-                                                medium: 10,
-                                                large: 12,
-                                                tablet: 14,
-                                                veryNarrow: 6,
-                                              ),
+                                              height: 6.h,
                                             ),
                                             Text(
                                               selectedFilter == 'Paid'
@@ -2533,14 +2526,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               style: TextStyle(
                                                 color:
                                                     context.textSecondaryColor,
-                                                fontSize: context
-                                                    .responsiveFontSize(
-                                                      small: 14,
-                                                      medium: 15,
-                                                      large: 16,
-                                                      tablet: 17,
-                                                      veryNarrow: 12,
-                                                    ),
+                                                fontSize: 11.sp,
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
@@ -2657,12 +2643,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                       style: TextStyle(
                                                         color: context
                                                             .textPrimaryColor,
-                                                        fontSize:
-                                                            isVerySmallScreen
-                                                            ? 13
-                                                            : (isSmallScreen
-                                                                  ? 14
-                                                                  : 16),
+                                                        fontSize: 11.sp,
                                                         fontWeight:
                                                             FontWeight.w500,
                                                       ),

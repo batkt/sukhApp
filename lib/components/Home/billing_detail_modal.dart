@@ -139,35 +139,35 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
-          height: constraints.maxHeight * 0.9,
+          height: constraints.maxHeight * 0.85,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [context.backgroundColor, context.surfaceColor],
-            ),
+            color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24.r),
-              topRight: Radius.circular(24.r),
+              topLeft: Radius.circular(20.r),
+              topRight: Radius.circular(20.r),
             ),
           ),
           child: Column(
             children: [
+              // Handle bar
+              Container(
+                margin: EdgeInsets.only(top: 10.h),
+                width: 36.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: context.isDarkMode
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
               // Header
               Container(
-                padding: EdgeInsets.fromLTRB(20.w, 16.h, 12.w, 16.h),
+                padding: EdgeInsets.fromLTRB(14.w, 12.h, 10.w, 12.h),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.deepGreen.withOpacity(0.1),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
                   border: Border(
                     bottom: BorderSide(
-                      color: context.textPrimaryColor.withOpacity(0.1),
+                      color: AppColors.deepGreen.withOpacity(0.1),
                       width: 1,
                     ),
                   ),
@@ -175,23 +175,18 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                 child: Row(
                   children: [
                     Container(
-                      padding: EdgeInsets.all(11.w),
+                      padding: EdgeInsets.all(10.w),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.deepGreen.withOpacity(0.3),
-                            AppColors.deepGreen.withOpacity(0.15),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(11.r),
+                        color: AppColors.deepGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
                       child: Icon(
                         Icons.home_rounded,
                         color: AppColors.deepGreen,
-                        size: 24.sp,
+                        size: 18.sp,
                       ),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(width: 10.w),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,35 +196,31 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                             style: TextStyle(
                               color: context.textPrimaryColor,
                               fontSize: 11.sp,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.5,
+                              fontWeight: FontWeight.w600,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           if (customerName.isNotEmpty) ...[
-                            SizedBox(height: 4.h),
+                            SizedBox(height: 2.h),
                             Text(
                               customerName,
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 11.sp,
+                                fontSize: 9.sp,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          color: context.textPrimaryColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.close_rounded,
-                          color: context.textPrimaryColor,
-                          size: 20.sp,
-                        ),
+                      icon: Icon(
+                        Icons.close,
+                        color: context.textSecondaryColor,
+                        size: 18.sp,
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
@@ -247,16 +238,16 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                     : _errorMessage != null
                     ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(20.w),
+                          padding: EdgeInsets.all(14.w),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 Icons.error_outline_rounded,
                                 color: AppColors.error,
-                                size: 48.sp,
+                                size: 36.sp,
                               ),
-                              SizedBox(height: 16.h),
+                              SizedBox(height: 12.h),
                               Text(
                                 _errorMessage!,
                                 style: TextStyle(
@@ -265,41 +256,44 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              SizedBox(height: 16.h),
+                              SizedBox(height: 12.h),
                               ElevatedButton(
                                 onPressed: _loadBillingData,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.deepGreen,
                                   foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16.w,
+                                    vertical: 10.h,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
                                 ),
-                                child: Text('Дахин оролдох'),
+                                child: Text(
+                                  'Дахин оролдох',
+                                  style: TextStyle(fontSize: 11.sp),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       )
                     : SingleChildScrollView(
-                        padding: EdgeInsets.all(20.w),
+                        padding: EdgeInsets.all(14.w),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Billing Info Section
                             Container(
-                              padding: EdgeInsets.all(18.w),
+                              padding: EdgeInsets.all(12.w),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    context.textPrimaryColor.withOpacity(0.08),
-                                    context.textPrimaryColor.withOpacity(0.03),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(22.r),
+                                color: context.isDarkMode
+                                    ? const Color(0xFF252525)
+                                    : const Color(0xFFF8F8F8),
+                                borderRadius: BorderRadius.circular(12.r),
                                 border: Border.all(
-                                  color: context.textPrimaryColor.withOpacity(
-                                    0.15,
-                                  ),
+                                  color: AppColors.deepGreen.withOpacity(0.15),
                                   width: 1,
                                 ),
                               ),
@@ -311,20 +305,20 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                       Icon(
                                         Icons.info_outline_rounded,
                                         color: AppColors.deepGreen,
-                                        size: 20.sp,
+                                        size: 14.sp,
                                       ),
-                                      SizedBox(width: 11.w),
+                                      SizedBox(width: 6.w),
                                       Text(
                                         'Биллингийн мэдээлэл',
                                         style: TextStyle(
                                           color: AppColors.deepGreen,
                                           fontSize: 11.sp,
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 11.h),
+                                  SizedBox(height: 10.h),
                                   if (widget.billing['customerCode']
                                           ?.toString() !=
                                       null)
@@ -337,7 +331,7 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                     if (widget.billing['customerCode']
                                             ?.toString() !=
                                         null)
-                                      SizedBox(height: 11.h),
+                                      SizedBox(height: 8.h),
                                     _buildModernModalInfoRow(
                                       Icons.location_on_rounded,
                                       'Хаяг',
@@ -349,7 +343,7 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                   if (widget.billing['walletDoorNo']
                                           ?.toString() !=
                                       null) ...[
-                                    SizedBox(height: 11.h),
+                                    SizedBox(height: 8.h),
                                     _buildModernModalInfoRow(
                                       Icons.door_front_door_rounded,
                                       'Орц',
@@ -357,42 +351,25 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                     ),
                                   ],
                                   if (hasNewBills && newBillsCount > 0) ...[
-                                    SizedBox(height: 11.h),
+                                    SizedBox(height: 10.h),
                                     Container(
-                                      padding: EdgeInsets.all(14.w),
+                                      padding: EdgeInsets.all(10.w),
                                       decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.blue.withOpacity(0.2),
-                                            Colors.blue.withOpacity(0.1),
-                                          ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          11.r,
-                                        ),
+                                        color: Colors.blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(10.r),
                                         border: Border.all(
-                                          color: Colors.blue.withOpacity(0.4),
+                                          color: Colors.blue.withOpacity(0.2),
                                           width: 1,
                                         ),
                                       ),
                                       child: Row(
                                         children: [
-                                          Container(
-                                            padding: EdgeInsets.all(8.w),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blue.withOpacity(
-                                                0.2,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(11.r),
-                                            ),
-                                            child: Icon(
-                                              Icons.new_releases_rounded,
-                                              color: Colors.blue,
-                                              size: 20.sp,
-                                            ),
+                                          Icon(
+                                            Icons.new_releases_rounded,
+                                            color: Colors.blue,
+                                            size: 14.sp,
                                           ),
-                                          SizedBox(width: 12.w),
+                                          SizedBox(width: 8.w),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
@@ -402,18 +379,17 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                                   'Шинэ билл: $newBillsCount',
                                                   style: TextStyle(
                                                     color: Colors.blue,
-                                                    fontSize: 11.sp,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 10.sp,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
                                                 if (newBillsAmount > 0) ...[
-                                                  SizedBox(height: 4.h),
+                                                  SizedBox(height: 2.h),
                                                   Text(
                                                     'Дүн: ${widget.formatNumberWithComma(newBillsAmount)}₮',
                                                     style: TextStyle(
-                                                      color: Colors.blue
-                                                          .withOpacity(0.8),
-                                                      fontSize: 11.sp,
+                                                      color: Colors.blue.withOpacity(0.8),
+                                                      fontSize: 9.sp,
                                                     ),
                                                   ),
                                                 ],
@@ -425,40 +401,40 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                     ),
                                   ],
                                   if (hiddenBillCount > 0) ...[
-                                    SizedBox(height: 11.h),
+                                    SizedBox(height: 8.h),
                                     Row(
                                       children: [
                                         Icon(
                                           Icons.visibility_off_rounded,
                                           color: context.textSecondaryColor,
-                                          size: 16.sp,
+                                          size: 12.sp,
                                         ),
-                                        SizedBox(width: 11.w),
+                                        SizedBox(width: 6.w),
                                         Text(
                                           'Нуугдсан билл: $hiddenBillCount',
                                           style: TextStyle(
                                             color: context.textSecondaryColor,
-                                            fontSize: 11.sp,
+                                            fontSize: 10.sp,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ],
                                   if (paidCount > 0) ...[
-                                    SizedBox(height: 11.h),
+                                    SizedBox(height: 8.h),
                                     Row(
                                       children: [
                                         Icon(
                                           Icons.check_circle_rounded,
-                                          color: Colors.green,
-                                          size: 16.sp,
+                                          color: AppColors.success,
+                                          size: 12.sp,
                                         ),
-                                        SizedBox(width: 11.w),
+                                        SizedBox(width: 6.w),
                                         Text(
                                           'Төлсөн: $paidCount билл, ${widget.formatNumberWithComma(paidTotal)}₮',
                                           style: TextStyle(
-                                            color: Colors.green,
-                                            fontSize: 11.sp,
+                                            color: AppColors.success,
+                                            fontSize: 10.sp,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -468,56 +444,44 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                 ],
                               ),
                             ),
-                            SizedBox(height: 20.h),
+                            SizedBox(height: 14.h),
                             // Bills Section Header
                             Row(
                               children: [
                                 Container(
-                                  padding: EdgeInsets.all(8.w),
+                                  padding: EdgeInsets.all(6.w),
                                   decoration: BoxDecoration(
-                                    color: AppColors.deepGreen.withOpacity(
-                                      0.15,
-                                    ),
-                                    borderRadius: BorderRadius.circular(11.r),
+                                    color: AppColors.deepGreen.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8.r),
                                   ),
                                   child: Icon(
                                     Icons.receipt_long_rounded,
                                     color: AppColors.deepGreen,
-                                    size: 20.sp,
+                                    size: 14.sp,
                                   ),
                                 ),
-                                SizedBox(width: 10.w),
+                                SizedBox(width: 8.w),
                                 Text(
                                   'Биллүүд (${_bills.length})',
                                   style: TextStyle(
                                     color: context.textPrimaryColor,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -0.3,
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 11.h),
+                            SizedBox(height: 10.h),
                             if (_bills.isEmpty)
                               Container(
-                                padding: EdgeInsets.all(24.w),
+                                padding: EdgeInsets.all(20.w),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      context.textPrimaryColor.withOpacity(
-                                        0.05,
-                                      ),
-                                      context.textPrimaryColor.withOpacity(
-                                        0.02,
-                                      ),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(22.r),
+                                  color: context.isDarkMode
+                                      ? const Color(0xFF252525)
+                                      : const Color(0xFFF8F8F8),
+                                  borderRadius: BorderRadius.circular(12.r),
                                   border: Border.all(
-                                    color: context.textPrimaryColor.withOpacity(
-                                      0.1,
-                                    ),
+                                    color: AppColors.deepGreen.withOpacity(0.1),
                                     width: 1,
                                   ),
                                 ),
@@ -527,15 +491,14 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                       Icon(
                                         Icons.receipt_long_outlined,
                                         color: context.textSecondaryColor,
-                                        size: 48.sp,
+                                        size: 36.sp,
                                       ),
-                                      SizedBox(height: 11.h),
+                                      SizedBox(height: 8.h),
                                       Text(
                                         'Билл байхгүй байна',
                                         style: TextStyle(
                                           color: context.textSecondaryColor,
                                           fontSize: 11.sp,
-                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
@@ -563,14 +526,14 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(8.w),
+            padding: EdgeInsets.all(6.w),
             decoration: BoxDecoration(
-              color: AppColors.deepGreen.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(11.r),
+              color: AppColors.deepGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6.r),
             ),
-            child: Icon(icon, color: AppColors.deepGreen, size: 18.sp),
+            child: Icon(icon, color: AppColors.deepGreen, size: 12.sp),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 8.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -579,11 +542,10 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                   label,
                   style: TextStyle(
                     color: context.textSecondaryColor,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 9.sp,
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: 2.h),
                 Text(
                   value,
                   style: TextStyle(
@@ -613,20 +575,15 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
     final hasVat = bill['hasVat'] == true;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 14.h),
-      padding: EdgeInsets.all(18.w),
+      margin: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            context.textPrimaryColor.withOpacity(0.08),
-            context.textPrimaryColor.withOpacity(0.03),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22.r),
+        color: context.isDarkMode
+            ? const Color(0xFF252525)
+            : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: context.textPrimaryColor.withOpacity(0.15),
+          color: AppColors.deepGreen.withOpacity(0.15),
           width: 1,
         ),
       ),
@@ -636,23 +593,18 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(11.w),
+                padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.deepGreen.withOpacity(0.2),
-                      AppColors.deepGreen.withOpacity(0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(11.r),
+                  color: AppColors.deepGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Icon(
                   Icons.receipt_rounded,
                   color: AppColors.deepGreen,
-                  size: 22.sp,
+                  size: 14.sp,
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: 10.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -665,35 +617,25 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                             style: TextStyle(
                               color: context.textPrimaryColor,
                               fontSize: 11.sp,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.3,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                         if (isNew)
                           Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 8.w,
-                              vertical: 4.h,
+                              horizontal: 6.w,
+                              vertical: 2.h,
                             ),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.blue.withOpacity(0.25),
-                                  Colors.blue.withOpacity(0.15),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(11.r),
-                              border: Border.all(
-                                color: Colors.blue.withOpacity(0.4),
-                                width: 1,
-                              ),
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6.r),
                             ),
                             child: Text(
                               'Шинэ',
                               style: TextStyle(
                                 color: Colors.blue,
-                                fontSize: 11.sp,
+                                fontSize: 9.sp,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -701,22 +643,21 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                       ],
                     ),
                     if (billerName.isNotEmpty) ...[
-                      SizedBox(height: 6.h),
+                      SizedBox(height: 4.h),
                       Row(
                         children: [
                           Icon(
                             Icons.business_rounded,
                             color: context.textSecondaryColor,
-                            size: 14.sp,
+                            size: 10.sp,
                           ),
-                          SizedBox(width: 6.w),
+                          SizedBox(width: 4.w),
                           Expanded(
                             child: Text(
                               billerName,
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 10.sp,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -726,9 +667,9 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                       ),
                     ],
                     if (billNo.isNotEmpty || billPeriod.isNotEmpty) ...[
-                      SizedBox(height: 6.h),
+                      SizedBox(height: 4.h),
                       Wrap(
-                        spacing: 12.w,
+                        spacing: 10.w,
                         children: [
                           if (billNo.isNotEmpty)
                             Row(
@@ -737,14 +678,14 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                 Icon(
                                   Icons.numbers_rounded,
                                   color: context.textSecondaryColor,
-                                  size: 14.sp,
+                                  size: 10.sp,
                                 ),
-                                SizedBox(width: 4.w),
+                                SizedBox(width: 3.w),
                                 Text(
                                   billNo,
                                   style: TextStyle(
                                     color: context.textSecondaryColor,
-                                    fontSize: 11.sp,
+                                    fontSize: 9.sp,
                                   ),
                                 ),
                               ],
@@ -756,14 +697,14 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                 Icon(
                                   Icons.calendar_today_rounded,
                                   color: context.textSecondaryColor,
-                                  size: 14.sp,
+                                  size: 10.sp,
                                 ),
-                                SizedBox(width: 4.w),
+                                SizedBox(width: 3.w),
                                 Text(
                                   billPeriod,
                                   style: TextStyle(
                                     color: context.textSecondaryColor,
-                                    fontSize: 11.sp,
+                                    fontSize: 9.sp,
                                   ),
                                 ),
                               ],
@@ -776,19 +717,16 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
               ),
             ],
           ),
-          SizedBox(height: 11.h),
+          SizedBox(height: 10.h),
           Container(
-            padding: EdgeInsets.all(14.w),
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  context.textPrimaryColor.withOpacity(0.05),
-                  context.textPrimaryColor.withOpacity(0.02),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(11.r),
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.03)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(10.r),
               border: Border.all(
-                color: context.textPrimaryColor.withOpacity(0.1),
+                color: AppColors.deepGreen.withOpacity(0.1),
                 width: 1,
               ),
             ),
@@ -802,10 +740,10 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                       'Үндсэн дүн',
                       style: TextStyle(
                         color: context.textSecondaryColor,
-                        fontSize: 11.sp,
+                        fontSize: 9.sp,
                       ),
                     ),
-                    SizedBox(height: 4.h),
+                    SizedBox(height: 2.h),
                     Text(
                       '${widget.formatNumberWithComma(billAmount)}₮',
                       style: TextStyle(
@@ -824,10 +762,10 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                         'Хоцролт',
                         style: TextStyle(
                           color: Colors.orange.withOpacity(0.8),
-                          fontSize: 11.sp,
+                          fontSize: 9.sp,
                         ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(height: 2.h),
                       Text(
                         '${widget.formatNumberWithComma(billLateFee)}₮',
                         style: TextStyle(
@@ -846,15 +784,16 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                       'Нийт дүн',
                       style: TextStyle(
                         color: context.textSecondaryColor,
-                        fontSize: 11.sp,
+                        fontSize: 9.sp,
                       ),
                     ),
+                    SizedBox(height: 2.h),
                     Text(
                       '${widget.formatNumberWithComma(billTotalAmount)}₮',
                       style: TextStyle(
                         color: AppColors.deepGreen,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -863,20 +802,20 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
             ),
           ),
           if (hasVat) ...[
-            SizedBox(height: 10.h),
+            SizedBox(height: 8.h),
             Row(
               children: [
                 Icon(
                   Icons.verified_rounded,
-                  color: Colors.green.withOpacity(0.7),
-                  size: 14.sp,
+                  color: AppColors.success,
+                  size: 12.sp,
                 ),
-                SizedBox(width: 6.w),
+                SizedBox(width: 4.w),
                 Text(
                   'НӨАТ-тай',
                   style: TextStyle(
-                    color: Colors.green.withOpacity(0.8),
-                    fontSize: 11.sp,
+                    color: AppColors.success,
+                    fontSize: 9.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

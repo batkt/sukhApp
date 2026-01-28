@@ -148,11 +148,11 @@ class _TokhirgooState extends State<Tokhirgoo>
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: context.responsiveFontSize(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 26,
-                    veryNarrow: 18,
+                    small: 14,
+                    medium: 15,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 12,
                   ),
                   fontWeight: FontWeight.bold,
                 ),
@@ -165,11 +165,11 @@ class _TokhirgooState extends State<Tokhirgoo>
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: context.responsiveFontSize(
-                        small: 14,
-                        medium: 15,
-                        large: 16,
-                        tablet: 17,
-                        veryNarrow: 12,
+                        small: 11,
+                        medium: 12,
+                        large: 13,
+                        tablet: 14,
+                        veryNarrow: 10,
                       ),
                     ),
                   ),
@@ -255,7 +255,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                   },
                   child: const Text(
                     'Цуцлах',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    style: TextStyle(color: Colors.white70, fontSize: 11),
                   ),
                 ),
                 TextButton(
@@ -271,7 +271,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                     'Устгах',
                     style: TextStyle(
                       color: Colors.red,
-                      fontSize: 16,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -309,13 +309,13 @@ class _TokhirgooState extends State<Tokhirgoo>
             'Бүртгэл устгах',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
           content: const Text(
             'Та өөрийн бүртгэлтэй хаягийг устгах хүсэлтэй байна уу?',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+            style: TextStyle(color: Colors.white70, fontSize: 11),
           ),
           actions: [
             TextButton(
@@ -324,7 +324,7 @@ class _TokhirgooState extends State<Tokhirgoo>
               },
               child: const Text(
                 'Үгүй',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+                style: TextStyle(color: Colors.white70, fontSize: 11),
               ),
             ),
             TextButton(
@@ -335,7 +335,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                 'Тийм',
                 style: TextStyle(
                   color: Colors.red,
-                  fontSize: 16,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -427,7 +427,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                       icon: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: 28.sp,
+                        size: 20.sp,
                       ),
                       onPressed: () => context.pop(),
                     ),
@@ -444,7 +444,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                       'Тохиргоо',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 24.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -469,7 +469,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                           'Нэвтрэх нууц код солих',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 18.sp,
+                            fontSize: 13.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -581,7 +581,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                       : Text(
                                           'Нууц код солих',
                                           style: TextStyle(
-                                            fontSize: 16.sp,
+                                            fontSize: 12.sp,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -643,7 +643,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                         ),
                         foregroundColor: Colors.redAccent,
                         textStyle: TextStyle(
-                          fontSize: 14.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -671,7 +671,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                 Text(
                                   'Устгаж байна...',
                                   style: TextStyle(
-                                    fontSize: 14.sp,
+                                    fontSize: 11.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

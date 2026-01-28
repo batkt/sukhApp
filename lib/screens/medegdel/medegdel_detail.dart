@@ -90,69 +90,29 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     final isSanal = _notification.turul.toLowerCase() == 'sanal';
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [context.backgroundColor, context.surfaceColor],
-        ),
+        color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(
-            context.responsiveBorderRadius(
-              small: 24,
-              medium: 26,
-              large: 28,
-              tablet: 30,
-              veryNarrow: 18,
-            ),
-          ),
-          topRight: Radius.circular(
-            context.responsiveBorderRadius(
-              small: 24,
-              medium: 26,
-              large: 28,
-              tablet: 30,
-              veryNarrow: 18,
-            ),
-          ),
+          topLeft: Radius.circular(20.r),
+          topRight: Radius.circular(20.r),
         ),
       ),
       child: Column(
         children: [
           Container(
-            margin: EdgeInsets.only(
-              top: context.responsiveSpacing(
-                small: 12,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 8,
-              ),
-            ),
-            width: 40.w,
+            margin: EdgeInsets.only(top: 10.h),
+            width: 36.w,
             height: 4.h,
             decoration: BoxDecoration(
-              color: context.textPrimaryColor.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 2,
-                  medium: 3,
-                  large: 4,
-                  tablet: 5,
-                  veryNarrow: 1,
-                ),
-              ),
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(2.r),
             ),
           ),
           Padding(
-            padding: context.responsivePadding(
-              small: 16,
-              medium: 18,
-              large: 20,
-              tablet: 22,
-              veryNarrow: 12,
-            ),
+            padding: EdgeInsets.all(14.w),
             child: Row(
               children: [
                 Expanded(
@@ -164,16 +124,16 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                         : 'Мэдэгдэл',
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 IconButton(
                   icon: Icon(
                     Icons.close,
-                    color: context.textPrimaryColor,
-                    size: 28.sp,
+                    color: context.textSecondaryColor,
+                    size: 20.sp,
                   ),
                   onPressed: () {
                     final turul = _notification.turul.toLowerCase();
@@ -235,67 +195,39 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
 
   Widget _buildContent(bool isGomdol, bool isSanal) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.responsiveSpacing(
-          small: 16,
-          medium: 18,
-          large: 20,
-          tablet: 22,
-          veryNarrow: 12,
-        ),
-        vertical: context.responsiveSpacing(
-          small: 8,
-          medium: 10,
-          large: 12,
-          tablet: 14,
-          veryNarrow: 6,
-        ),
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Type and status badges
           Container(
-            padding: EdgeInsets.all(12.w),
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: context.textPrimaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
+              color: context.isDarkMode
+                  ? const Color(0xFF252525)
+                  : const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
                 color: _isStatusDone(_notification)
                     ? AppColors.success.withOpacity(0.3)
-                    : context.textPrimaryColor.withOpacity(0.15),
-                width: _isStatusDone(_notification) ? 1.5 : 1,
+                    : AppColors.deepGreen.withOpacity(0.15),
+                width: 1,
               ),
             ),
             child: Row(
               children: [
                 Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
+                    horizontal: 8.w,
+                    vertical: 5.h,
                   ),
                   decoration: BoxDecoration(
                     color: isGomdol
-                        ? Colors.orange.withOpacity(0.15)
+                        ? Colors.orange.withOpacity(0.12)
                         : isSanal
-                        ? AppColors.secondaryAccent.withOpacity(0.15)
-                        : AppColors.primary.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(
-                      context.responsiveBorderRadius(
-                        small: 10,
-                        medium: 12,
-                        large: 14,
-                        tablet: 16,
-                        veryNarrow: 8,
-                      ),
-                    ),
+                        ? AppColors.deepGreen.withOpacity(0.12)
+                        : AppColors.deepGreen.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -305,75 +237,55 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                             ? Icons.report_problem
                             : isSanal
                             ? Icons.lightbulb_outline
-                            : Icons.notifications,
-                        size: 18.sp,
+                            : Icons.notifications_outlined,
+                        size: 12.sp,
                         color: isGomdol
                             ? Colors.orange
-                            : isSanal
-                            ? AppColors.secondaryAccent
-                            : AppColors.primary,
+                            : AppColors.deepGreen,
                       ),
-                      SizedBox(
-                        width: context.responsiveSpacing(
-                          small: 6,
-                          medium: 8,
-                          large: 10,
-                          tablet: 12,
-                          veryNarrow: 4,
-                        ),
-                      ),
+                      SizedBox(width: 4.w),
                       Text(
                         _getDisplayTurul(_notification.turul),
                         style: TextStyle(
                           color: isGomdol
                               ? Colors.orange
-                              : isSanal
-                              ? AppColors.secondaryAccent
-                              : AppColors.primary,
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.bold,
+                              : AppColors.deepGreen,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (isGomdol || isSanal) ...[
-                  SizedBox(width: 10.w),
+                  SizedBox(width: 8.w),
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
+                      horizontal: 8.w,
+                      vertical: 5.h,
                     ),
                     decoration: BoxDecoration(
                       color: _isStatusDone(_notification)
-                          ? AppColors.success.withOpacity(0.15)
+                          ? AppColors.success.withOpacity(0.12)
                           : _isStatusRejected(_notification)
-                          ? AppColors.error.withOpacity(0.15)
+                          ? AppColors.error.withOpacity(0.12)
                           : _notification.hasReply
-                          ? AppColors.success.withOpacity(0.15)
-                          : Colors.orange.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(
-                      context.responsiveBorderRadius(
-                        small: 10,
-                        medium: 12,
-                        large: 14,
-                        tablet: 16,
-                        veryNarrow: 8,
-                      ),
-                    ),
+                          ? AppColors.success.withOpacity(0.12)
+                          : Colors.orange.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           _isStatusDone(_notification)
-                              ? Icons.check_circle
+                              ? Icons.check_circle_outline
                               : _isStatusRejected(_notification)
-                              ? Icons.cancel
+                              ? Icons.cancel_outlined
                               : _notification.hasReply
-                              ? Icons.check_circle
+                              ? Icons.check_circle_outline
                               : Icons.schedule,
-                          size: 16.sp,
+                          size: 11.sp,
                           color: _isStatusDone(_notification)
                               ? AppColors.success
                               : _isStatusRejected(_notification)
@@ -382,15 +294,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                               ? AppColors.success
                               : Colors.orange,
                         ),
-                        SizedBox(
-                        width: context.responsiveSpacing(
-                          small: 6,
-                          medium: 8,
-                          large: 10,
-                          tablet: 12,
-                          veryNarrow: 4,
-                        ),
-                      ),
+                        SizedBox(width: 4.w),
                         Text(
                           _getStatusText(_notification),
                           style: TextStyle(
@@ -401,7 +305,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                                 : _notification.hasReply
                                 ? AppColors.success
                                 : Colors.orange,
-                            fontSize: 12.sp,
+                            fontSize: 9.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -412,43 +316,28 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ],
             ),
           ),
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 20,
-              medium: 24,
-              large: 28,
-              tablet: 32,
-              veryNarrow: 14,
+          SizedBox(height: 14.h),
+          // Title
+          Text(
+            _notification.title,
+            style: TextStyle(
+              color: context.textPrimaryColor,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
             ),
           ),
+          SizedBox(height: 10.h),
+          // Message
           Container(
-            padding: EdgeInsets.symmetric(vertical: 4.h),
-            child: Text(
-              _notification.title,
-              style: TextStyle(
-                color: context.textPrimaryColor,
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-                height: 1.3,
-              ),
-            ),
-          ),
-          SizedBox(height: 16.h),
-          Container(
-            padding: EdgeInsets.all(18.w),
+            padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
-              color: context.textPrimaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
+              color: context.isDarkMode
+                  ? const Color(0xFF252525)
+                  : const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
-                color: context.textPrimaryColor.withOpacity(0.15),
+                color: AppColors.deepGreen.withOpacity(0.1),
                 width: 1,
               ),
             ),
@@ -457,45 +346,21 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               textAlign: TextAlign.justify,
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 15.sp,
-                height: 1.6,
-                letterSpacing: 0.2,
+                fontSize: 11.sp,
+                height: 1.5,
               ),
             ),
           ),
           if (_notification.hasReply && (isGomdol || isSanal)) ...[
-            SizedBox(
-            height: context.responsiveSpacing(
-              small: 20,
-              medium: 24,
-              large: 28,
-              tablet: 32,
-              veryNarrow: 14,
-            ),
-          ),
+            SizedBox(height: 14.h),
             Container(
-              padding: EdgeInsets.all(18.w),
+              padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.success.withOpacity(0.12),
-                    AppColors.success.withOpacity(0.08),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
+                color: AppColors.success.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
-                  color: AppColors.success.withOpacity(0.25),
-                  width: 1.5,
+                  color: AppColors.success.withOpacity(0.2),
+                  width: 1,
                 ),
               ),
               child: Column(
@@ -503,20 +368,12 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                 children: [
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
+                      horizontal: 8.w,
+                      vertical: 4.h,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(
-                      context.responsiveBorderRadius(
-                        small: 10,
-                        medium: 12,
-                        large: 14,
-                        tablet: 16,
-                        veryNarrow: 8,
-                      ),
-                    ),
+                      color: AppColors.success.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6.r),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -524,101 +381,68 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                         Icon(
                           Icons.reply_rounded,
                           color: AppColors.success,
-                          size: 20.sp,
+                          size: 12.sp,
                         ),
-                        SizedBox(width: 8.w),
+                        SizedBox(width: 4.w),
                         Text(
                           'Хариу',
                           style: TextStyle(
                             color: AppColors.success,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 10.h),
                   Text(
                     _notification.tailbar!,
                     textAlign: TextAlign.justify,
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: 14.sp,
-                      height: 1.6,
-                      letterSpacing: 0.2,
+                      fontSize: 11.sp,
+                      height: 1.5,
                     ),
                   ),
                   if (_notification.repliedAt != null) ...[
-                    SizedBox(height: 14.h),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 6.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.textPrimaryColor.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8.w),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14.sp,
-                            color: context.inputGrayColor,
-                          ),
-                          SizedBox(
-                        width: context.responsiveSpacing(
-                          small: 6,
-                          medium: 8,
-                          large: 10,
-                          tablet: 12,
-                          veryNarrow: 4,
+                    SizedBox(height: 10.h),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 10.sp,
+                          color: context.textSecondaryColor,
                         ),
-                      ),
-                          Text(
-                            'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
-                            style: TextStyle(
-                              color: context.inputGrayColor,
-                              fontSize: 12.sp,
-                            ),
+                        SizedBox(width: 4.w),
+                        Text(
+                          'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
+                          style: TextStyle(
+                            color: context.textSecondaryColor,
+                            fontSize: 9.sp,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
               ),
             ),
           ],
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 20,
-              medium: 24,
-              large: 28,
-              tablet: 32,
-              veryNarrow: 14,
-            ),
-          ),
+          SizedBox(height: 14.h),
+          // Details section
           Container(
-            padding: EdgeInsets.all(18.w),
+            padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
-              color: context.textPrimaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
+              color: context.isDarkMode
+                  ? const Color(0xFF252525)
+                  : const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
                 color: _isStatusDone(_notification)
-                    ? AppColors.success.withOpacity(0.3)
-                    : context.textPrimaryColor.withOpacity(0.15),
-                width: _isStatusDone(_notification) ? 1.5 : 1,
+                    ? AppColors.success.withOpacity(0.2)
+                    : AppColors.deepGreen.withOpacity(0.1),
+                width: 1,
               ),
             ),
             child: Column(
@@ -628,21 +452,21 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: context.textPrimaryColor,
-                      size: 20.sp,
+                      color: AppColors.deepGreen,
+                      size: 14.sp,
                     ),
-                    SizedBox(width: 8.w),
+                    SizedBox(width: 6.w),
                     Text(
                       'Дэлгэрэнгүй',
                       style: TextStyle(
                         color: context.textPrimaryColor,
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 18.h),
+                SizedBox(height: 12.h),
                 _buildDetailRow(
                   'Огноо',
                   _notification.formattedDateTime,
@@ -680,12 +504,12 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   'Төлөв',
                   _getStatusText(_notification),
                   _isStatusDone(_notification)
-                      ? Icons.check_circle
+                      ? Icons.check_circle_outline
                       : _isStatusRejected(_notification)
-                      ? Icons.cancel
+                      ? Icons.cancel_outlined
                       : _notification.hasReply
-                      ? Icons.check_circle
-                      : Icons.pending,
+                      ? Icons.check_circle_outline
+                      : Icons.schedule,
                 ),
                 _buildDetailRow(
                   'Үүсгэсэн огноо',
@@ -701,6 +525,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ],
             ),
           ),
+          SizedBox(height: 16.h),
         ],
       ),
     );
@@ -709,24 +534,26 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   Widget _buildDetailRow(String label, String value, IconData icon) {
     return Builder(
       builder: (context) => Container(
-        margin: EdgeInsets.only(bottom: 14.h),
-        padding: EdgeInsets.all(12.w),
+        margin: EdgeInsets.only(bottom: 8.h),
+        padding: EdgeInsets.all(10.w),
         decoration: BoxDecoration(
-          color: context.textPrimaryColor.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12.w),
+          color: context.isDarkMode
+              ? Colors.white.withOpacity(0.03)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(10.r),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: EdgeInsets.all(8.w),
+              padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
-                color: context.textPrimaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8.w),
+                color: AppColors.deepGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6.r),
               ),
-              child: Icon(icon, size: 18.sp, color: context.textPrimaryColor),
+              child: Icon(icon, size: 12.sp, color: AppColors.deepGreen),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 10.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -734,17 +561,17 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   Text(
                     label,
                     style: TextStyle(
-                      color: context.inputGrayColor,
-                      fontSize: 12.sp,
+                      color: context.textSecondaryColor,
+                      fontSize: 9.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: 3.h),
                   Text(
                     value,
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: 14.sp,
+                      fontSize: 11.sp,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

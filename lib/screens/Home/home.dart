@@ -528,34 +528,9 @@ class _BookingScreenState extends State<NuurKhuudas>
     try {
       final billers = await ApiService.getWalletBillers();
 
-      // Filter out excluded billers
-      final filteredBillers = billers.where((biller) {
-        final billerName =
-            (biller['billerName']?.toString() ??
-                    biller['name']?.toString() ??
-                    '')
-                .toLowerCase();
-
-        // Exclude Төрйин банк, Юнивишн, Скаймедиа
-        return !billerName.contains('төрйин банк') &&
-            !billerName.contains('төрийн банк') &&
-            !billerName.contains('toriin bank') &&
-            !billerName.contains('toryin bank') &&
-            !billerName.contains('юнивишн') &&
-            !billerName.contains('юнивижн') &&
-            !billerName.contains('univision') &&
-            !billerName.contains('univishn') &&
-            !billerName.contains('скаймедиа') &&
-            !billerName.contains('скай медиа') &&
-            !billerName.contains('скай-медиа') &&
-            !billerName.contains('skymedia') &&
-            !billerName.contains('sky media') &&
-            !billerName.contains('sky-media');
-      }).toList();
-
       if (mounted) {
         setState(() {
-          _billers = filteredBillers;
+          _billers = billers;
           _isLoadingBillers = false;
         });
       }
@@ -888,176 +863,140 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
 
     final isDark = context.isDarkMode;
+    
+    // Calculate circle size based on screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    final circleSize = (screenWidth * 0.45).clamp(140.0, 200.0);
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        children: [
-          // Simple but unique circular dashboard
-          Container(
-            width: context.isVeryNarrow ? 180.w : 220.w,
-            height: context.isVeryNarrow ? 180.w : 220.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDark ? Colors.black : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: accentColor.withOpacity(0.2),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Circular progress ring with animation
-                SizedBox(
-                  width: context.isVeryNarrow ? 180.w : 220.w,
-                  height: context.isVeryNarrow ? 180.w : 220.w,
-                  child: AnimatedBuilder(
-                    animation: _progressAnimation,
-                    builder: (context, child) {
-                      final animatedProgress =
-                          targetProgress * _progressAnimation.value;
-                      return CustomPaint(
-                        painter: _CircularProgressPainter(
-                          progress: animatedProgress,
-                          color: accentColor,
-                          backgroundColor: accentColor.withOpacity(0.1),
-                          strokeWidth: 8,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                // Center content with animation
-                AnimatedBuilder(
+    return Column(
+      children: [
+        // Clean circular dashboard
+        Container(
+          width: circleSize,
+          height: circleSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isDark ? const Color(0xFF1A1F26) : Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withOpacity(0.15),
+                blurRadius: 16,
+                spreadRadius: 0,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Progress ring
+              SizedBox(
+                width: circleSize,
+                height: circleSize,
+                child: AnimatedBuilder(
                   animation: _progressAnimation,
                   builder: (context, child) {
-                    return Opacity(
-                      opacity: _progressAnimation.value,
-                      child: Transform.scale(
-                        scale: 0.8 + (0.2 * _progressAnimation.value),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '$displayDays',
-                              style: TextStyle(
-                                fontSize: context.isVeryNarrow ? 56.sp : 72.sp,
-                                fontWeight: FontWeight.w800,
-                                color: accentColor,
-                                height: 1.0,
-                                letterSpacing: -1,
-                              ),
-                            ),
-                            SizedBox(height: 6.h),
-                            Text(
-                              centerLabel,
-                              style: context
-                                  .descriptionStyle(
-                                    color: accentColor.withOpacity(0.8),
-                                    fontWeight: FontWeight.w600,
-                                  )
-                                  .copyWith(letterSpacing: 0.3),
-                            ),
-                          ],
-                        ),
+                    return CustomPaint(
+                      painter: _CircularProgressPainter(
+                        progress: targetProgress * _progressAnimation.value,
+                        color: accentColor,
+                        backgroundColor: accentColor.withOpacity(0.1),
+                        strokeWidth: 6,
                       ),
                     );
                   },
                 ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20.h),
-          // Modern calendar card
-          Container(
-            padding: EdgeInsets.all(context.isVeryNarrow ? 16.w : 22.w),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        Colors.white.withOpacity(0.08),
-                        Colors.white.withOpacity(0.03),
-                      ]
-                    : [
-                        Colors.white.withOpacity(0.9),
-                        Colors.white.withOpacity(0.7),
-                      ],
               ),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : accentColor.withOpacity(0.2),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? Colors.black.withOpacity(0.3)
-                      : accentColor.withOpacity(0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(context.isVeryNarrow ? 8.w : 12.w),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        accentColor.withOpacity(0.2),
-                        accentColor.withOpacity(0.1),
+              // Center content
+              AnimatedBuilder(
+                animation: _progressAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _progressAnimation.value,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$displayDays',
+                          style: TextStyle(
+                            fontSize: (circleSize * 0.25).clamp(28.0, 42.0),
+                            fontWeight: FontWeight.w800,
+                            color: accentColor,
+                            height: 1.0,
+                          ),
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          centerLabel,
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w600,
+                            color: accentColor.withOpacity(0.8),
+                          ),
+                        ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  child: Icon(
-                    Icons.calendar_today_rounded,
-                    color: accentColor,
-                    size: context.isVeryNarrow ? 20.sp : 24.sp,
-                  ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Дараагийн төлөлт',
-                        style: context
-                            .secondaryDescriptionStyle(
-                              color: context.textSecondaryColor,
-                              fontWeight: FontWeight.w500,
-                            )
-                            .copyWith(letterSpacing: 0.3),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        nextUnitDateText,
-                        style: context
-                            .titleStyle(
-                              color: accentColor,
-                              fontWeight: FontWeight.w700,
-                            )
-                            .copyWith(letterSpacing: -0.5),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        SizedBox(height: 16.h),
+        
+        // Next payment card
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1F26) : Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: (isDark ? Colors.black : Colors.grey).withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(Icons.calendar_today_rounded, color: accentColor, size: 20.sp),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Дараагийн төлөлт',
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: context.textSecondaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      nextUnitDateText,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: accentColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1086,103 +1025,39 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    
     return Scaffold(
       key: _scaffoldKey,
       drawer: const SideMenu(),
       appBar: AppBar(
-        backgroundColor: AppColors.getDeepGreen(context.isDarkMode),
-        toolbarHeight: context.responsiveSpacing(
-          small: 70,
-          medium: 75,
-          large: 80,
-          tablet: 85,
-          veryNarrow: 60,
-        ),
+        backgroundColor: AppColors.getDeepGreen(isDark),
+        toolbarHeight: 60.h,
         leading: IconButton(
-          icon: Icon(
-            Icons.menu,
-            color: Colors.white,
-            size: context.responsiveIconSize(
-              small: 28,
-              medium: 30,
-              large: 32,
-              tablet: 34,
-              veryNarrow: 24,
-            ),
-          ),
+          icon: Icon(Icons.menu, color: Colors.white, size: 22.sp),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
         title: GestureDetector(
           onTap: _showTotalBalanceModal,
           child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsiveSpacing(
-                small: 16,
-                medium: 18,
-                large: 20,
-                tablet: 22,
-                veryNarrow: 10,
-              ),
-              vertical: context.responsiveSpacing(
-                small: 10,
-                medium: 12,
-                large: 14,
-                tablet: 16,
-                veryNarrow: 8,
-              ),
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 11,
-                  medium: 12,
-                  large: 13,
-                  tablet: 14,
-                  veryNarrow: 9,
-                ),
-              ),
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: Colors.white,
-                  size: context.responsiveIconSize(
-                    small: 26,
-                    medium: 28,
-                    large: 30,
-                    tablet: 32,
-                    veryNarrow: 20,
-                  ),
-                ),
-                SizedBox(
-                  width: context.responsiveSpacing(
-                    small: 10,
-                    medium: 12,
-                    large: 14,
-                    tablet: 16,
-                    veryNarrow: 6,
-                  ),
-                ),
+                Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 18.sp),
+                SizedBox(width: 8.w),
                 Flexible(
                   child: Text(
-                    'Нийт үлдэгдэл ${_formatNumberWithComma(totalNiitTulbur)}₮',
-                    style: context
-                        .titleStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        )
-                        .copyWith(
-                          fontSize: context.responsiveFontSize(
-                            small: 14,
-                            medium: 15,
-                            large: 16,
-                            tablet: 17,
-                            veryNarrow: 12,
-                          ),
-                        ),
+                    '${_formatNumberWithComma(totalNiitTulbur)}₮',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1198,102 +1073,27 @@ class _BookingScreenState extends State<NuurKhuudas>
             clipBehavior: Clip.none,
             children: [
               IconButton(
-                icon: Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.white,
-                  size: context.responsiveIconSize(
-                    small: 28,
-                    medium: 30,
-                    large: 32,
-                    tablet: 34,
-                    veryNarrow: 24,
-                  ),
-                ),
+                icon: Icon(Icons.notifications_outlined, color: Colors.white, size: 22.sp),
                 onPressed: () {
-                  context.push('/medegdel-list').then((_) {
-                    _loadNotificationCount();
-                  });
+                  context.push('/medegdel-list').then((_) => _loadNotificationCount());
                 },
               ),
               if (_unreadNotificationCount > 0)
                 Positioned(
-                  right: context.responsiveSpacing(
-                    small: 8,
-                    medium: 10,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 6,
-                  ),
-                  top: context.responsiveSpacing(
-                    small: 8,
-                    medium: 10,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 6,
-                  ),
+                  right: 8.w,
+                  top: 8.h,
                   child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: context.responsiveSpacing(
-                        small: 6,
-                        medium: 7,
-                        large: 8,
-                        tablet: 9,
-                        veryNarrow: 4,
-                      ),
-                      vertical: context.responsiveSpacing(
-                        small: 2,
-                        medium: 3,
-                        large: 4,
-                        tablet: 5,
-                        veryNarrow: 1,
-                      ),
-                    ),
+                    padding: EdgeInsets.all(4.w),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.deepGreen,
-                        width: context.responsiveSpacing(
-                          small: 1.5,
-                          medium: 2,
-                          large: 2,
-                          tablet: 2.5,
-                          veryNarrow: 1.5,
-                        ),
-                      ),
+                      border: Border.all(color: AppColors.deepGreen, width: 1.5),
                     ),
-                    constraints: BoxConstraints(
-                      minWidth: context.responsiveSpacing(
-                        small: 18,
-                        medium: 20,
-                        large: 22,
-                        tablet: 24,
-                        veryNarrow: 14,
-                      ),
-                      minHeight: context.responsiveSpacing(
-                        small: 18,
-                        medium: 20,
-                        large: 22,
-                        tablet: 24,
-                        veryNarrow: 14,
-                      ),
-                    ),
+                    constraints: BoxConstraints(minWidth: 14.w, minHeight: 14.w),
                     child: Center(
                       child: Text(
-                        _unreadNotificationCount > 99
-                            ? '99+'
-                            : '$_unreadNotificationCount',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: context.responsiveFontSize(
-                            small: 10,
-                            medium: 11,
-                            large: 12,
-                            tablet: 13,
-                            veryNarrow: 9,
-                          ),
-                        ),
+                        _unreadNotificationCount > 99 ? '99+' : '$_unreadNotificationCount',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8.sp),
                       ),
                     ),
                   ),
@@ -1302,11 +1102,11 @@ class _BookingScreenState extends State<NuurKhuudas>
           ),
         ],
       ),
-      body: AppBackground(
+      body: Container(
+        color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: () async {
-              // Refresh all data
               await Future.wait([
                 _loadBillers(),
                 _loadBillingList(),
@@ -1319,35 +1119,21 @@ class _BookingScreenState extends State<NuurKhuudas>
             color: AppColors.deepGreen,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 20,
-                      medium: 24,
-                      large: 28,
-                      tablet: 32,
-                      veryNarrow: 16,
-                    ),
-                  ),
+                  SizedBox(height: 16.h),
 
-                  // Billing Connection Section
-                  if (_billingList.isEmpty && !_isLoadingBillingList)
+                  // Billing Connection Section - only show when NO e-bill is connected
+                  if (_billingList.isEmpty && _userBillingData == null && !_isLoadingBillingList)
                     BillingConnectionSection(
                       isConnecting: _isConnectingBilling,
                       onConnect: _connectBillingByAddress,
                     ),
 
-                  if (_billingList.isEmpty && !_isLoadingBillingList)
-                    SizedBox(
-                      height: context.responsiveSpacing(
-                        small: 11,
-                        medium: 13,
-                        large: 15,
-                        tablet: 17,
-                        veryNarrow: 8,
-                      ),
-                    ),
+                  if (_billingList.isEmpty && _userBillingData == null && !_isLoadingBillingList)
+                    SizedBox(height: 12.h),
 
                   // Billing List Section
                   BillingListSection(
@@ -1359,53 +1145,23 @@ class _BookingScreenState extends State<NuurKhuudas>
                     expandAddressAbbreviations: _expandAddressAbbreviations,
                   ),
 
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 11,
-                      medium: 13,
-                      large: 15,
-                      tablet: 17,
-                      veryNarrow: 8,
-                    ),
-                  ),
+                  SizedBox(height: 16.h),
 
                   // Billers Grid
                   if (_isLoadingBillers)
                     SizedBox(
-                      height: context.responsiveSpacing(
-                        small: 300,
-                        medium: 350,
-                        large: 400,
-                        tablet: 450,
-                        veryNarrow: 250,
-                      ),
+                      height: 200.h,
                       child: const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.deepGreen,
-                        ),
+                        child: CircularProgressIndicator(color: AppColors.deepGreen),
                       ),
                     )
                   else if (_billers.isEmpty)
                     SizedBox(
-                      height: context.responsiveSpacing(
-                        small: 300,
-                        medium: 350,
-                        large: 400,
-                        tablet: 450,
-                        veryNarrow: 250,
-                      ),
+                      height: 200.h,
                       child: Center(
                         child: Text(
                           'Биллер олдсонгүй',
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: context.responsiveFontSize(
-                              small: 20,
-                              medium: 22,
-                              large: 24,
-                              tablet: 26,
-                            ),
-                          ),
+                          style: TextStyle(color: context.textSecondaryColor, fontSize: 16.sp),
                         ),
                       ),
                     )
@@ -1414,38 +1170,19 @@ class _BookingScreenState extends State<NuurKhuudas>
                       billers: _billers,
                       onDevelopmentTap: () => _showDevelopmentModal(context),
                       onBillerTap: () {
-                        // Show empty message if billing list is empty
                         if (_billingList.isEmpty && _userBillingData == null) {
-                          _billingListSectionKey.currentState
-                              ?.showEmptyMessage();
+                          _billingListSectionKey.currentState?.showEmptyMessage();
                         }
                       },
                     ),
 
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 20,
-                      medium: 24,
-                      large: 28,
-                      tablet: 32,
-                      veryNarrow: 16,
-                    ),
-                  ),
+                  SizedBox(height: 20.h),
 
                   // Remaining Days Display
-                  if (_gereeResponse != null &&
-                      _gereeResponse!.jagsaalt.isNotEmpty)
+                  if (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
                     _buildRemainingDaysWidget(_gereeResponse!.jagsaalt.first),
 
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 11,
-                      medium: 13,
-                      large: 15,
-                      tablet: 17,
-                      veryNarrow: 8,
-                    ),
-                  ),
+                  SizedBox(height: 24.h),
                 ],
               ),
             ),
@@ -1605,93 +1342,7 @@ class _BookingScreenState extends State<NuurKhuudas>
   // _buildPaymentDetails and _buildDetailRow moved to TotalBalanceModal component
 
   void _showDevelopmentModal(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.all(24.w),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [context.surfaceColor, context.surfaceElevatedColor],
-              ),
-              border: Border.all(color: AppColors.deepGreen, width: 2),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.secondaryAccent.withOpacity(0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.construction_outlined,
-                  color: AppColors.secondaryAccent,
-                  size: 64.sp,
-                ),
-                SizedBox(height: 22.h),
-                Text(
-                  'Хөгжүүлэлт явагдаж байна',
-                  textAlign: TextAlign.center,
-                  style: context.secondaryDescriptionStyle(
-                    color: context.textPrimaryColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 11,
-                    medium: 13,
-                    large: 15,
-                    tablet: 17,
-                    veryNarrow: 8,
-                  ),
-                ),
-                Text(
-                  'Энэ хуудас хөгжүүлэлт хийгдэж байгаа тул одоогоор ашиглах боломжгүй байна. Удахгүй ашиглах боломжтой болно.',
-                  textAlign: TextAlign.center,
-                  style: context.secondaryDescriptionStyle(
-                    color: context.textSecondaryColor,
-                  ),
-                ),
-                SizedBox(height: 22.h),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.goldPrimary,
-                      foregroundColor: AppColors.darkBackground,
-                      padding: EdgeInsets.symmetric(vertical: 11.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Ойлголоо',
-                      style: context.secondaryDescriptionStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    // Do nothing - billers now navigate directly to detail page
   }
 
   bool _isConnectingBilling = false;

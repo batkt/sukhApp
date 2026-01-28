@@ -368,9 +368,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 'Нууц үг оруулах',
                 style: TextStyle(
                   color: AppColors.deepGreen,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.8,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               content: Column(
@@ -380,10 +379,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     'Бүртгэл устгахын тулд одоогийн нууц үгээ оруулна уу',
                     style: TextStyle(
                       color: context.textSecondaryColor,
-                      fontSize: 14.sp,
+                      fontSize: 11.sp,
                     ),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 12.h),
                   TextFormField(
                     controller: _deletePasswordController,
                     obscureText: _obscureDeletePassword,
@@ -467,7 +466,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     'Цуцлах',
                     style: TextStyle(
                       color: AppColors.darkTextSecondary,
-                      fontSize: 16.sp,
+                      fontSize: 12.sp,
                     ),
                   ),
                 ),
@@ -484,7 +483,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     'Устгах',
                     style: TextStyle(
                       color: Colors.red,
-                      fontSize: 16,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -519,14 +518,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
             'Бүртгэл устгах',
             style: TextStyle(
               color: AppColors.deepGreen,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.8,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
           content: Text(
-            'Та өөрийн бүртгэлтэй хаягийг устгах хүсэлтэй байна уу?',
-            style: TextStyle(color: context.textPrimaryColor, fontSize: 16.sp),
+            'Та өөрийн бүртгэлтэй хаягийг устгах хүсэлтэй байна у|?',
+            style: TextStyle(color: context.textPrimaryColor, fontSize: 12.sp),
           ),
           actions: [
             TextButton(
@@ -537,7 +535,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 'Үгүй',
                 style: TextStyle(
                   color: context.textPrimaryColor,
-                  fontSize: 16.sp,
+                  fontSize: 12.sp,
                 ),
               ),
             ),
@@ -549,7 +547,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 'Тийм',
                 style: TextStyle(
                   color: Colors.red,
-                  fontSize: 16.sp,
+                  fontSize: 12.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -685,24 +683,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
   Widget _buildSubSectionHeader(String title, IconData icon) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          small: 8,
-          medium: 10,
-          large: 12,
-          tablet: 14,
-          veryNarrow: 6,
-        ),
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: context.responsiveSpacing(
-          small: 4,
-          medium: 6,
-          large: 8,
-          tablet: 10,
-          veryNarrow: 3,
-        ),
-      ),
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 4.w),
       child: Row(
         children: [
           Icon(
@@ -710,18 +692,17 @@ class _ProfileSettingsState extends State<ProfileSettings>
             color: isDark
                 ? AppColors.deepGreen.withOpacity(0.7)
                 : AppColors.deepGreen,
-            size: 18.sp,
+            size: 16.sp,
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: 6.w),
           Text(
             title,
             style: TextStyle(
               color: isDark
                   ? Colors.white.withOpacity(0.9)
                   : AppColors.deepGreen,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w400,
-              letterSpacing: 0.3,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -736,40 +717,56 @@ class _ProfileSettingsState extends State<ProfileSettings>
     required VoidCallback onTap,
     required bool isActive,
   }) {
+    final isDark = context.isDarkMode;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(10.r),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 12.w),
+          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 10.w),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.deepGreen : context.surfaceColor,
-            borderRadius: BorderRadius.circular(12.r),
+            color: isActive
+                ? AppColors.deepGreen
+                : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+            borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
-              color: isActive ? AppColors.deepGreen : context.borderColor,
-              width: isActive ? 0 : 1,
+              color: isActive
+                  ? AppColors.deepGreen
+                  : (isDark
+                      ? AppColors.deepGreen.withOpacity(0.2)
+                      : AppColors.deepGreen.withOpacity(0.4)),
+              width: 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                color: isActive ? Colors.white : context.textSecondaryColor,
-                size: 20.sp,
+                color: isActive ? Colors.white : AppColors.deepGreen,
+                size: 16.sp,
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: 6.w),
               Flexible(
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? Colors.white : AppColors.deepGreen,
-                    fontSize: 14.sp,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    color: isActive
+                        ? Colors.white
+                        : (isDark ? Colors.white : Colors.black87),
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -785,15 +782,30 @@ class _ProfileSettingsState extends State<ProfileSettings>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.9,
-        decoration: BoxDecoration(
-          color: context.cardBackgroundColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30.r),
-            topRight: Radius.circular(30.r),
+      builder: (context) {
+        final isDark = context.isDarkMode;
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20.r),
+              topRight: Radius.circular(20.r),
+            ),
+            border: Border.all(
+              color: isDark
+                  ? AppColors.deepGreen.withOpacity(0.3)
+                  : AppColors.deepGreen.withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
+              ),
+            ],
           ),
-        ),
         child: Column(
           children: [
             // Handle bar
@@ -816,8 +828,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       'Хувийн мэдээлэл',
                       style: TextStyle(
                         color: context.textPrimaryColor,
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -858,20 +870,20 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         Icon(
                           Icons.location_on_outlined,
                           color: AppColors.deepGreen,
-                          size: 20.sp,
+                          size: 16.sp,
                         ),
-                        SizedBox(width: 8.w),
+                        SizedBox(width: 6.w),
                         Text(
                           'Хаяг',
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: 10.h),
                     if (_isLoadingAddress)
                       Padding(
                         padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -890,7 +902,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               'Хаяг ачааллаж байна...',
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 14.sp,
+                                fontSize: 11.sp,
                               ),
                             ),
                           ],
@@ -899,10 +911,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     else if (_currentAddress != null &&
                         _currentAddress!.isNotEmpty)
                       Container(
-                        padding: EdgeInsets.all(16.w),
+                        padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
                           color: context.surfaceColor,
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(10.r),
                           border: Border.all(
                             color: context.borderColor,
                             width: 1,
@@ -912,16 +924,16 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           _currentAddress!,
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 14.sp,
+                            fontSize: 12.sp,
                           ),
                         ),
                       )
                     else
                       Container(
-                        padding: EdgeInsets.all(16.w),
+                        padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
                           color: context.surfaceColor,
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(10.r),
                           border: Border.all(
                             color: context.borderColor,
                             width: 1,
@@ -931,7 +943,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           'Хаяг тодорхойлогдоогүй',
                           style: TextStyle(
                             color: context.textSecondaryColor,
-                            fontSize: 14.sp,
+                            fontSize: 12.sp,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -947,18 +959,18 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         icon: Icon(
                           Icons.edit_outlined,
                           color: AppColors.deepGreen,
-                          size: 18.sp,
+                          size: 14.sp,
                         ),
                         label: Text(
                           'Хаяг шинэчлэх',
                           style: TextStyle(
                             color: AppColors.deepGreen,
-                            fontSize: 14.sp,
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          padding: EdgeInsets.symmetric(vertical: 10.h),
                           side: BorderSide(
                             color: AppColors.deepGreen.withOpacity(0.5),
                             width: 1,
@@ -984,7 +996,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
             ),
           ],
         ),
-      ),
+      );
+      },
     );
   }
 
@@ -995,14 +1008,28 @@ class _ProfileSettingsState extends State<ProfileSettings>
       backgroundColor: Colors.transparent,
       builder: (BuildContext modalContext) => StatefulBuilder(
         builder: (BuildContext context, StateSetter setModalState) {
+          final isDark = modalContext.isDarkMode;
           return Container(
-            height: MediaQuery.of(modalContext).size.height * 0.9,
+            height: MediaQuery.of(modalContext).size.height * 0.55,
             decoration: BoxDecoration(
-              color: modalContext.cardBackgroundColor,
+              color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(30.r),
-                topRight: Radius.circular(30.r),
+                topLeft: Radius.circular(20.r),
+                topRight: Radius.circular(20.r),
               ),
+              border: Border.all(
+                color: isDark
+                    ? AppColors.deepGreen.withOpacity(0.3)
+                    : AppColors.deepGreen.withOpacity(0.2),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
             ),
             child: Column(
               children: [
@@ -1026,8 +1053,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           'Нууц үг солих',
                           style: TextStyle(
                             color: modalContext.textPrimaryColor,
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1062,7 +1089,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             },
                             context: context,
                           ),
-                          SizedBox(height: 16.h),
+                          SizedBox(height: 8.h),
                           _buildPasswordFieldForModal(
                             controller: _newPasswordController,
                             label: 'Шинэ нууц үг',
@@ -1104,16 +1131,16 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.deepGreen,
                                 foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                padding: EdgeInsets.symmetric(vertical: 12.h),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderRadius: BorderRadius.circular(10.r),
                                 ),
                                 elevation: 0,
                               ),
                               child: _isChangingPassword
                                   ? SizedBox(
-                                      height: 20.h,
-                                      width: 20.w,
+                                      height: 16.h,
+                                      width: 16.w,
                                       child: const CircularProgressIndicator(
                                         strokeWidth: 2,
                                         valueColor:
@@ -1125,8 +1152,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   : Text(
                                       'Хадгалах',
                                       style: TextStyle(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                             ),
@@ -1159,7 +1186,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
       keyboardType: TextInputType.text,
       style: TextStyle(
         color: context.textPrimaryColor,
-        fontSize: 16.sp,
+        fontSize: 13.sp,
         fontWeight: FontWeight.w500,
       ),
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -1169,8 +1196,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
           color: isDark
               ? Colors.white.withOpacity(0.6)
               : AppColors.lightTextSecondary,
+          fontSize: 11.sp,
         ),
-        prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepGreen),
+        prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepGreen, size: 18.sp),
         suffixIcon: IconButton(
           icon: Icon(
             obscureText
@@ -1179,30 +1207,32 @@ class _ProfileSettingsState extends State<ProfileSettings>
             color: isDark
                 ? Colors.white.withOpacity(0.6)
                 : AppColors.lightTextSecondary,
+            size: 18.sp,
           ),
           onPressed: onToggle,
         ),
         filled: true,
-        fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        fillColor: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFF8F8F8),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
+          borderRadius: BorderRadius.circular(10.w),
           borderSide: BorderSide(
             color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : AppColors.deepGreen.withOpacity(0.2),
+                ? Colors.white.withOpacity(0.15)
+                : AppColors.deepGreen.withOpacity(0.3),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(color: AppColors.deepGreen, width: 2.w),
+          borderRadius: BorderRadius.circular(10.w),
+          borderSide: BorderSide(color: AppColors.deepGreen, width: 1.5.w),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
+          borderRadius: BorderRadius.circular(10.w),
           borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(color: Colors.red, width: 2.w),
+          borderRadius: BorderRadius.circular(10.w),
+          borderSide: BorderSide(color: Colors.red, width: 1.5.w),
         ),
       ),
       inputFormatters: [
@@ -1228,16 +1258,25 @@ class _ProfileSettingsState extends State<ProfileSettings>
   Widget _buildSectionCard(Widget child) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.03) : Colors.white,
-        borderRadius: BorderRadius.circular(16.w),
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12.w),
         border: Border.all(
           color: isDark
-              ? AppColors.deepGreen.withOpacity(0.15)
-              : AppColors.deepGreen.withOpacity(0.2),
+              ? AppColors.deepGreen.withOpacity(0.2)
+              : AppColors.deepGreen.withOpacity(0.3),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: child,
     );
@@ -1257,6 +1296,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
       keyboardType: keyboardType,
       style: TextStyle(
         color: enabled ? context.textPrimaryColor : context.textSecondaryColor,
+        fontSize: 13.sp,
       ),
       decoration: InputDecoration(
         labelText: label,
@@ -1264,37 +1304,39 @@ class _ProfileSettingsState extends State<ProfileSettings>
           color: isDark
               ? Colors.white.withOpacity(0.6)
               : AppColors.lightTextSecondary,
+          fontSize: 12.sp,
         ),
-        prefixIcon: Icon(icon, color: AppColors.deepGreen),
+        prefixIcon: Icon(icon, color: AppColors.deepGreen, size: 18.sp),
         filled: true,
-        fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        fillColor: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFF8F8F8),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
+          borderRadius: BorderRadius.circular(10.w),
+          borderSide: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.15)
+                : AppColors.deepGreen.withOpacity(0.3),
+          ),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10.w),
           borderSide: BorderSide(
             color: isDark
                 ? Colors.white.withOpacity(0.1)
                 : AppColors.deepGreen.withOpacity(0.2),
           ),
         ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(
-            color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : AppColors.lightInputGray,
-          ),
-        ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(color: AppColors.deepGreen, width: 2.w),
+          borderRadius: BorderRadius.circular(10.w),
+          borderSide: BorderSide(color: AppColors.deepGreen, width: 1.5.w),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
+          borderRadius: BorderRadius.circular(10.w),
           borderSide: const BorderSide(color: Colors.red),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.w),
-          borderSide: BorderSide(color: Colors.red, width: 2.w),
+          borderRadius: BorderRadius.circular(10.w),
+          borderSide: BorderSide(color: Colors.red, width: 1.5.w),
         ),
       ),
       validator: (value) {
@@ -1319,7 +1361,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
       keyboardType: TextInputType.text,
       style: TextStyle(
         color: context.textPrimaryColor,
-        fontSize: 16.sp,
+        fontSize: 13.sp,
         fontWeight: FontWeight.w500,
       ),
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -1329,8 +1371,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
           color: isDark
               ? Colors.white.withOpacity(0.6)
               : AppColors.lightTextSecondary,
+          fontSize: 12.sp,
         ),
-        prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepGreen),
+        prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepGreen, size: 18.sp),
         suffixIcon: IconButton(
           icon: Icon(
             obscureText
@@ -1485,29 +1528,80 @@ class _ProfileSettingsState extends State<ProfileSettings>
     if (dataItems.isEmpty) {
       return Text(
         'Мэдээлэл олдсонгүй',
-        style: TextStyle(color: context.textSecondaryColor, fontSize: 14.sp),
+        style: TextStyle(color: context.textSecondaryColor, fontSize: 11.sp),
       );
     }
 
-    // Build grid with 2 columns, optimized to fit without scrolling
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12.w,
-        mainAxisSpacing: 12.h,
-        childAspectRatio: 1.25, // Adjusted to fit better
-      ),
-      itemCount: dataItems.length,
-      itemBuilder: (context, index) {
-        final item = dataItems[index];
-        return _buildGridInfoCard(
-          icon: item['icon'] as IconData,
-          label: item['label'] as String,
-          value: item['value'] as String,
+    final isDark = context.isDarkMode;
+    
+    // Build list layout with icon next to text
+    return Column(
+      children: dataItems.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+        final isLast = index == dataItems.length - 1;
+        
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 10.h),
+          decoration: BoxDecoration(
+            border: isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  item['icon'] as IconData,
+                  color: AppColors.deepGreen,
+                  size: 18.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['label'] as String,
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.6)
+                            : Colors.grey[600],
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      item['value'] as String,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
-      },
+      }).toList(),
     );
   }
 
@@ -1516,43 +1610,51 @@ class _ProfileSettingsState extends State<ProfileSettings>
     required String label,
     required String value,
   }) {
+    final isDark = context.isDarkMode;
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: context.borderColor, width: 1),
+        color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(
+          color: isDark
+              ? AppColors.deepGreen.withOpacity(0.15)
+              : AppColors.deepGreen.withOpacity(0.25),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(6.w),
+            padding: EdgeInsets.all(4.w),
             decoration: BoxDecoration(
-              color: AppColors.deepGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8.r),
+              color: AppColors.deepGreen.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(6.r),
             ),
-            child: Icon(icon, color: AppColors.deepGreen, size: 18.sp),
+            child: Icon(icon, color: AppColors.deepGreen, size: 14.sp),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 6.h),
           Text(
             label,
             style: TextStyle(
-              color: context.textSecondaryColor,
-              fontSize: 11.sp,
+              color: isDark
+                  ? Colors.white.withOpacity(0.6)
+                  : Colors.grey[600],
+              fontSize: 9.sp,
               fontWeight: FontWeight.w500,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          SizedBox(height: 4.h),
+          SizedBox(height: 2.h),
           Flexible(
             child: Text(
               value,
               style: TextStyle(
-                color: context.textPrimaryColor,
-                fontSize: 13.sp,
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w600,
               ),
               maxLines: 2,
@@ -1570,24 +1672,24 @@ class _ProfileSettingsState extends State<ProfileSettings>
     required String value,
   }) {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: context.borderColor, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(8.w),
+            padding: EdgeInsets.all(6.w),
             decoration: BoxDecoration(
               color: AppColors.deepGreen.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Icon(icon, color: AppColors.deepGreen, size: 20.sp),
+            child: Icon(icon, color: AppColors.deepGreen, size: 16.sp),
           ),
-          SizedBox(width: 12.w),
+          SizedBox(width: 10.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1596,16 +1698,16 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   label,
                   style: TextStyle(
                     color: context.textSecondaryColor,
-                    fontSize: 13.sp,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: 3.h),
                 Text(
                   value,
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 15.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1622,55 +1724,57 @@ class _ProfileSettingsState extends State<ProfileSettings>
     required IconData icon,
     required List<Widget> children,
   }) {
+    final isDark = context.isDarkMode;
     return Container(
-      margin: EdgeInsets.only(bottom: 20.h),
+      margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
-        color: context.isDarkMode
-            ? context.cardBackgroundColor
-            : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(color: context.borderColor, width: 1),
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: isDark
+              ? AppColors.deepGreen.withOpacity(0.2)
+              : AppColors.deepGreen.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(18.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? context.surfaceElevatedColor
-                  : AppColors.lightSurface,
-              border: Border(
-                bottom: BorderSide(color: context.borderColor, width: 1),
+              color: AppColors.deepGreen,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(15.r),
+                topRight: Radius.circular(15.r),
               ),
             ),
             child: Row(
               children: [
-                Container(
-                  padding: EdgeInsets.all(11.w),
-                  decoration: BoxDecoration(
-                    color: context.isDarkMode
-                        ? AppColors.deepGreen.withOpacity(0.3)
-                        : AppColors.lightAccentBackground,
-                    borderRadius: BorderRadius.circular(11.r),
-                  ),
-                  child: Icon(icon, size: 20.sp, color: AppColors.deepGreen),
-                ),
-                SizedBox(width: 12.w),
+                Icon(icon, size: 16.sp, color: Colors.white),
+                SizedBox(width: 8.w),
                 Text(
                   title,
                   style: TextStyle(
                     fontSize: 12.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.deepGreen,
-                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(18.w),
+            padding: EdgeInsets.all(12.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
@@ -1730,7 +1834,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: isLarge ? 18.sp : 14.sp,
+                    fontSize: isLarge ? 15.sp : 12.sp,
                     fontWeight: isLarge ? FontWeight.bold : FontWeight.w600,
                     color: valueColor ?? context.textPrimaryColor,
                     letterSpacing: -0.3,
@@ -1892,7 +1996,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                               )
                                                             : AppColors
                                                                   .deepGreen,
-                                                        fontSize: 16.sp,
+                                                        fontSize: 13.sp,
                                                         fontWeight:
                                                             FontWeight.w600,
                                                       ),
@@ -1912,7 +2016,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                                   )
                                                             : AppColors
                                                                   .lightTextSecondary,
-                                                        fontSize: 13.sp,
+                                                        fontSize: 11.sp,
                                                       ),
                                                     ),
                                                   ],
@@ -1926,12 +2030,12 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                   duration: const Duration(
                                                     milliseconds: 200,
                                                   ),
-                                                  width: 56.w,
-                                                  height: 32.h,
+                                                  width: 48.w,
+                                                  height: 28.h,
                                                   decoration: BoxDecoration(
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                          16.r,
+                                                          14.r,
                                                         ),
                                                     color: isDark
                                                         ? AppColors.deepGreen
@@ -1947,17 +2051,17 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                             ),
                                                         curve: Curves.easeInOut,
                                                         left: isDark
-                                                            ? 26.w
+                                                            ? 24.w
                                                             : 4.w,
                                                         top: 4.h,
                                                         child: Container(
-                                                          width: 24.w,
-                                                          height: 24.w,
+                                                          width: 20.w,
+                                                          height: 20.w,
                                                           decoration: BoxDecoration(
                                                             shape:
                                                                 BoxShape.circle,
                                                             color: Colors
-                                                                .white, // Toggle switch circle - always white
+                                                                .white,
                                                             boxShadow: [
                                                               BoxShadow(
                                                                 color: Colors
@@ -1980,7 +2084,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                                       .dark_mode
                                                                 : Icons
                                                                       .light_mode,
-                                                            size: 14.sp,
+                                                            size: 12.sp,
                                                             color: isDark
                                                                 ? AppColors
                                                                       .deepGreen
@@ -2023,7 +2127,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                     style: TextStyle(
                                                       color: context
                                                           .textPrimaryColor,
-                                                      fontSize: 16.sp,
+                                                      fontSize: 13.sp,
                                                       fontWeight:
                                                           FontWeight.w600,
                                                     ),
@@ -2036,7 +2140,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                     style: TextStyle(
                                                       color: context
                                                           .textSecondaryColor,
-                                                      fontSize: 13.sp,
+                                                      fontSize: 11.sp,
                                                     ),
                                                   ),
                                                 ],
@@ -2052,16 +2156,16 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                 duration: const Duration(
                                                   milliseconds: 200,
                                                 ),
-                                                width: 56.w,
-                                                height: 32.h,
+                                                width: 48.w,
+                                                height: 28.h,
                                                 decoration: BoxDecoration(
                                                   borderRadius:
                                                       BorderRadius.circular(
-                                                        16.r,
+                                                        14.r,
                                                       ),
                                                   color: _biometricEnabled
-                                                      ? AppColors.grayColor
-                                                      : Colors.white
+                                                      ? AppColors.deepGreen
+                                                      : Colors.grey
                                                             .withOpacity(0.3),
                                                 ),
                                                 child: Stack(
@@ -2072,12 +2176,12 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                       ),
                                                       curve: Curves.easeInOut,
                                                       left: _biometricEnabled
-                                                          ? 26.w
+                                                          ? 24.w
                                                           : 4.w,
                                                       top: 4.h,
                                                       child: Container(
-                                                        width: 24.w,
-                                                        height: 24.w,
+                                                        width: 20.w,
+                                                        height: 20.w,
                                                         decoration: BoxDecoration(
                                                           shape:
                                                               BoxShape.circle,
@@ -2125,11 +2229,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                             'Бүртгэлээ устгаснаар бүх мэдээлэл устах бөгөөд энэ үйлдлийг буцаах боломжгүй.',
                                             style: TextStyle(
                                               color: context.textSecondaryColor,
-                                              fontSize: 13.sp,
+                                              fontSize: 11.sp,
                                               height: 1.5,
                                             ),
                                           ),
-                                          SizedBox(height: 16.h),
+                                          SizedBox(height: 12.h),
                                           SizedBox(
                                             width: double.infinity,
                                             child: TextButton(
@@ -2173,7 +2277,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                         Text(
                                                           'Устгаж байна...',
                                                           style: TextStyle(
-                                                            fontSize: 14.sp,
+                                                            fontSize: 12.sp,
                                                             fontWeight:
                                                                 FontWeight.w500,
                                                           ),
@@ -2183,7 +2287,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                   : Text(
                                                       'Бүртгэл устгах',
                                                       style: TextStyle(
-                                                        fontSize: 14.sp,
+                                                        fontSize: 12.sp,
                                                         fontWeight:
                                                             FontWeight.w500,
                                                       ),

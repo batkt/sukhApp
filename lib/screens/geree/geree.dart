@@ -524,23 +524,9 @@ class _GereeState extends State<Geree> {
 
           // If there are multiple contracts, show selector
           if (_gereeData!.jagsaalt.length > 1) ...[
-            SizedBox(
-              height: context.responsiveSpacing(
-                small: 24,
-                medium: 28,
-                large: 32,
-                tablet: 36,
-                veryNarrow: 16,
-              ),
-            ),
+            SizedBox(height: 16.h),
             Container(
-              padding: context.responsivePadding(
-                small: 20,
-                medium: 22,
-                large: 24,
-                tablet: 26,
-                veryNarrow: 14,
-              ),
+              padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -550,38 +536,16 @@ class _GereeState extends State<Geree> {
                     AppColors.deepGreenAccent.withOpacity(0.08),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(
-                  context.responsiveBorderRadius(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 26,
-                    veryNarrow: 16,
-                  ),
-                ),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
                   color: AppColors.deepGreen.withOpacity(0.3),
-                  width: 1.5,
+                  width: 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.deepGreen.withOpacity(0.1),
-                    blurRadius: 10,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: context.responsivePadding(
-                      small: 12,
-                      medium: 14,
-                      large: 16,
-                      tablet: 18,
-                      veryNarrow: 10,
-                    ),
+                    padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -589,59 +553,23 @@ class _GereeState extends State<Geree> {
                           AppColors.deepGreenAccent,
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 14,
-                          medium: 16,
-                          large: 18,
-                          tablet: 20,
-                          veryNarrow: 12,
-                        ),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.deepGreen.withOpacity(0.3),
-                          blurRadius: 8,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                     child: Icon(
                       Icons.info_outline_rounded,
                       color: Colors.white,
-                      size: context.responsiveIconSize(
-                        small: 22,
-                        medium: 24,
-                        large: 26,
-                        tablet: 28,
-                        veryNarrow: 18,
-                      ),
+                      size: 16.sp,
                     ),
                   ),
-                  SizedBox(
-                    width: context.responsiveSpacing(
-                      small: 14,
-                      medium: 16,
-                      large: 18,
-                      tablet: 20,
-                      veryNarrow: 10,
-                    ),
-                  ),
+                  SizedBox(width: 10.w),
                   Expanded(
                     child: Text(
                       'Таньд ${_gereeData!.jagsaalt.length} гэрээ байна',
                       style: TextStyle(
                         color: context.textPrimaryColor,
-                        fontSize: context.responsiveFontSize(
-                          small: 15,
-                          medium: 16,
-                          large: 17,
-                          tablet: 18,
-                          veryNarrow: 13,
-                        ),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.1,
                       ),
                     ),
                   ),
@@ -784,63 +712,45 @@ class _GereeState extends State<Geree> {
   // }
 
   Widget _buildHeroCard(model.Geree geree) {
+    final isDark = context.isDarkMode;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 24,
-            medium: 26,
-            large: 28,
-            tablet: 30,
-            veryNarrow: 18,
-          ),
-        ),
+        borderRadius: BorderRadius.circular(16.r),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: context.isDarkMode
+          colors: isDark
               ? [
-                  AppColors.deepGreen.withOpacity(0.3),
-                  AppColors.deepGreenAccent.withOpacity(0.15),
+                  AppColors.deepGreen.withOpacity(0.2),
+                  AppColors.deepGreenAccent.withOpacity(0.1),
                 ]
               : [
-                  AppColors.deepGreen.withOpacity(0.1),
-                  AppColors.deepGreenAccent.withOpacity(0.05),
+                  AppColors.deepGreen.withOpacity(0.08),
+                  AppColors.deepGreenAccent.withOpacity(0.04),
                 ],
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.deepGreen.withOpacity(0.2),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 8),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Container(
-        padding: context.responsivePadding(
-          small: 24,
-          medium: 26,
-          large: 28,
-          tablet: 30,
-          veryNarrow: 18,
-        ),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: context.isDarkMode
-              ? context.cardBackgroundColor.withOpacity(0.8)
-              : Colors.white.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(
-            context.responsiveBorderRadius(
-              small: 24,
-              medium: 26,
-              large: 28,
-              tablet: 30,
-              veryNarrow: 18,
-            ),
-          ),
+          color: isDark
+              ? const Color(0xFF1A1A1A)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: AppColors.deepGreen.withOpacity(0.2),
-            width: 1.5,
+            color: isDark
+                ? AppColors.deepGreen.withOpacity(0.3)
+                : AppColors.deepGreen.withOpacity(0.2),
+            width: 1,
           ),
         ),
         child: Column(
@@ -856,13 +766,7 @@ class _GereeState extends State<Geree> {
                       Row(
                         children: [
                           Container(
-                            padding: context.responsivePadding(
-                              small: 12,
-                              medium: 14,
-                              large: 16,
-                              tablet: 18,
-                              veryNarrow: 10,
-                            ),
+                            padding: EdgeInsets.all(10.w),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
@@ -870,91 +774,49 @@ class _GereeState extends State<Geree> {
                                   AppColors.deepGreenAccent,
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(
-                                context.responsiveBorderRadius(
-                                  small: 14,
-                                  medium: 16,
-                                  large: 18,
-                                  tablet: 20,
-                                  veryNarrow: 12,
-                                ),
-                              ),
+                              borderRadius: BorderRadius.circular(12.r),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.deepGreen.withOpacity(0.4),
-                                  blurRadius: 8,
+                                  color: AppColors.deepGreen.withOpacity(0.3),
+                                  blurRadius: 6,
                                   spreadRadius: 0,
-                                  offset: const Offset(0, 4),
+                                  offset: const Offset(0, 3),
                                 ),
                               ],
                             ),
                             child: Icon(
                               Icons.description_rounded,
                               color: Colors.white,
-                              size: context.responsiveIconSize(
-                                small: 24,
-                                medium: 26,
-                                large: 28,
-                                tablet: 30,
-                                veryNarrow: 20,
-                              ),
+                              size: 20.sp,
                             ),
                           ),
-                          SizedBox(
-                            width: context.responsiveSpacing(
-                              small: 12,
-                              medium: 14,
-                              large: 16,
-                              tablet: 18,
-                              veryNarrow: 8,
-                            ),
-                          ),
+                          SizedBox(width: 10.w),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'ГЭРЭЭНИЙ ДУГААР',
-                                  style: TextStyle(
-                                    fontSize: context.responsiveFontSize(
-                                      small: 11,
-                                      medium: 12,
-                                      large: 13,
-                                      tablet: 14,
-                                      veryNarrow: 10,
-                                    ),
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.deepGreen,
-                                    letterSpacing: 1.5,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: context.responsiveSpacing(
-                                    small: 6,
-                                    medium: 8,
-                                    large: 10,
-                                    tablet: 12,
-                                    veryNarrow: 4,
-                                  ),
-                                ),
-                                Text(
-                                  geree.gereeniiDugaar,
-                                  style: TextStyle(
-                                    fontSize: context.responsiveFontSize(
-                                      small: 24,
-                                      medium: 26,
-                                      large: 28,
-                                      tablet: 30,
-                                      veryNarrow: 20,
-                                    ),
-                                    fontWeight: FontWeight.w800,
-                                    color: context.textPrimaryColor,
-                                    letterSpacing: -0.5,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ],
-                            ),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ГЭРЭЭНИЙ ДУГААР',
+                  style: TextStyle(
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.deepGreen,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  geree.gereeniiDugaar,
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w700,
+                    color: context.textPrimaryColor,
+                    letterSpacing: -0.3,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
                           ),
                         ],
                       ),
@@ -964,20 +826,8 @@ class _GereeState extends State<Geree> {
                 if (geree.turul != 'Үндсэн' && geree.turul.isNotEmpty)
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: context.responsiveSpacing(
-                        small: 16,
-                        medium: 18,
-                        large: 20,
-                        tablet: 22,
-                        veryNarrow: 12,
-                      ),
-                      vertical: context.responsiveSpacing(
-                        small: 10,
-                        medium: 12,
-                        large: 14,
-                        tablet: 16,
-                        veryNarrow: 8,
-                      ),
+                      horizontal: 10.w,
+                      vertical: 6.h,
                     ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -986,68 +836,32 @@ class _GereeState extends State<Geree> {
                           AppColors.deepGreenAccent.withOpacity(0.1),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 20,
-                          medium: 22,
-                          large: 24,
-                          tablet: 26,
-                          veryNarrow: 16,
-                        ),
-                      ),
+                      borderRadius: BorderRadius.circular(12.r),
                       border: Border.all(
                         color: AppColors.deepGreen.withOpacity(0.4),
-                        width: 1.5,
+                        width: 1,
                       ),
                     ),
                     child: Text(
                       geree.turul,
                       style: TextStyle(
-                        fontSize: context.responsiveFontSize(
-                          small: 13,
-                          medium: 14,
-                          large: 15,
-                          tablet: 16,
-                          veryNarrow: 11,
-                        ),
-                        fontWeight: FontWeight.w700,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.deepGreen,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ),
               ],
             ),
-            SizedBox(
-              height: context.responsiveSpacing(
-                small: 20,
-                medium: 24,
-                large: 28,
-                tablet: 32,
-                veryNarrow: 14,
-              ),
-            ),
+            SizedBox(height: 14.h),
             Container(
-              padding: context.responsivePadding(
-                small: 16,
-                medium: 18,
-                large: 20,
-                tablet: 22,
-                veryNarrow: 12,
-              ),
+              padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
                 color: context.isDarkMode
                     ? context.surfaceElevatedColor.withOpacity(0.5)
                     : AppColors.lightAccentBackground,
-                borderRadius: BorderRadius.circular(
-                  context.responsiveBorderRadius(
-                    small: 16,
-                    medium: 18,
-                    large: 20,
-                    tablet: 22,
-                    veryNarrow: 12,
-                  ),
-                ),
+                borderRadius: BorderRadius.circular(12.r),
                 border: Border.all(
                   color: AppColors.deepGreen.withOpacity(0.15),
                   width: 1,
@@ -1056,46 +870,18 @@ class _GereeState extends State<Geree> {
               child: Row(
                 children: [
                   Container(
-                    padding: context.responsivePadding(
-                      small: 10,
-                      medium: 12,
-                      large: 14,
-                      tablet: 16,
-                      veryNarrow: 8,
-                    ),
+                    padding: EdgeInsets.all(8.w),
                     decoration: BoxDecoration(
                       color: AppColors.deepGreen.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 12,
-                          medium: 14,
-                          large: 16,
-                          tablet: 18,
-                          veryNarrow: 10,
-                        ),
-                      ),
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                     child: Icon(
                       Icons.calendar_today_rounded,
-                      size: context.responsiveIconSize(
-                        small: 20,
-                        medium: 22,
-                        large: 24,
-                        tablet: 26,
-                        veryNarrow: 18,
-                      ),
+                      size: 16.sp,
                       color: AppColors.deepGreen,
                     ),
                   ),
-                  SizedBox(
-                    width: context.responsiveSpacing(
-                      small: 14,
-                      medium: 16,
-                      large: 18,
-                      tablet: 20,
-                      veryNarrow: 10,
-                    ),
-                  ),
+                  SizedBox(width: 10.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1103,38 +889,18 @@ class _GereeState extends State<Geree> {
                         Text(
                           'Гэрээний огноо',
                           style: TextStyle(
-                            fontSize: context.responsiveFontSize(
-                              small: 11,
-                              medium: 12,
-                              large: 13,
-                              tablet: 14,
-                              veryNarrow: 10,
-                            ),
+                            fontSize: 9.sp,
                             color: context.textSecondaryColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 4,
-                            medium: 6,
-                            large: 8,
-                            tablet: 10,
-                            veryNarrow: 3,
-                          ),
-                        ),
+                        SizedBox(height: 3.h),
                         Text(
                           _formatDate(geree.gereeniiOgnoo),
                           style: TextStyle(
-                            fontSize: context.responsiveFontSize(
-                              small: 15,
-                              medium: 16,
-                              large: 17,
-                              tablet: 18,
-                              veryNarrow: 13,
-                            ),
+                            fontSize: 12.sp,
                             color: context.textPrimaryColor,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -1154,37 +920,25 @@ class _GereeState extends State<Geree> {
     required IconData icon,
     required List<Widget> children,
   }) {
+    final isDark = context.isDarkMode;
     return Container(
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          small: 24,
-          medium: 28,
-          large: 32,
-          tablet: 36,
-          veryNarrow: 16,
-        ),
-      ),
+      margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
-        color: context.isDarkMode ? context.cardBackgroundColor : Colors.white,
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 24,
-            medium: 26,
-            large: 28,
-            tablet: 30,
-            veryNarrow: 18,
-          ),
-        ),
+        color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+        borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
-          color: context.borderColor.withOpacity(0.5),
+          color: isDark
+              ? AppColors.deepGreen.withOpacity(0.3)
+              : AppColors.deepGreen.withOpacity(0.2),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(context.isDarkMode ? 0.2 : 0.05),
-            blurRadius: 15,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -1192,123 +946,32 @@ class _GereeState extends State<Geree> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: context.responsivePadding(
-              small: 20,
-              medium: 22,
-              large: 24,
-              tablet: 26,
-              veryNarrow: 14,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: context.isDarkMode
-                    ? [
-                        AppColors.deepGreen.withOpacity(0.2),
-                        AppColors.deepGreenAccent.withOpacity(0.1),
-                      ]
-                    : [
-                        AppColors.lightAccentBackground,
-                        AppColors.lightAccentBackground.withOpacity(0.5),
-                      ],
-              ),
+              color: AppColors.deepGreen,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(
-                  context.responsiveBorderRadius(
-                    small: 24,
-                    medium: 26,
-                    large: 28,
-                    tablet: 30,
-                    veryNarrow: 18,
-                  ),
-                ),
-                topRight: Radius.circular(
-                  context.responsiveBorderRadius(
-                    small: 24,
-                    medium: 26,
-                    large: 28,
-                    tablet: 30,
-                    veryNarrow: 18,
-                  ),
-                ),
-              ),
-              border: Border(
-                bottom: BorderSide(
-                  color: context.borderColor.withOpacity(0.3),
-                  width: 1,
-                ),
+                topLeft: Radius.circular(13.r),
+                topRight: Radius.circular(13.r),
               ),
             ),
             child: Row(
               children: [
-                Container(
-                  padding: context.responsivePadding(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.deepGreen, AppColors.deepGreenAccent],
-                    ),
-                    borderRadius: BorderRadius.circular(
-                      context.responsiveBorderRadius(
-                        small: 14,
-                        medium: 16,
-                        large: 18,
-                        tablet: 20,
-                        veryNarrow: 12,
-                      ),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.deepGreen.withOpacity(0.3),
-                        blurRadius: 8,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(icon, size: 22.sp, color: Colors.white),
-                ),
-                SizedBox(
-                  width: context.responsiveSpacing(
-                    small: 14,
-                    medium: 16,
-                    large: 18,
-                    tablet: 20,
-                    veryNarrow: 10,
-                  ),
-                ),
+                Icon(icon, size: 16.sp, color: Colors.white),
+                SizedBox(width: 8.w),
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 12,
-                    ),
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.deepGreen,
-                    letterSpacing: 0.8,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: context.responsivePadding(
-              small: 20,
-              medium: 22,
-              large: 24,
-              tablet: 26,
-              veryNarrow: 14,
-            ),
+            padding: EdgeInsets.all(12.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
@@ -1326,30 +989,19 @@ class _GereeState extends State<Geree> {
     Color? valueColor,
     bool isLarge = false,
   }) {
+    final isDark = context.isDarkMode;
     return Container(
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          small: 12,
-          medium: 14,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 8,
-        ),
-      ),
+      padding: EdgeInsets.all(10.w),
+      margin: EdgeInsets.only(bottom: 8.h),
       decoration: BoxDecoration(
-        color: context.isDarkMode
-            ? context.surfaceElevatedColor.withOpacity(0.6)
-            : AppColors.lightAccentBackground.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(16.r),
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(
-          color: AppColors.deepGreen.withOpacity(0.1),
+          color: isDark
+              ? AppColors.deepGreen.withOpacity(0.15)
+              : AppColors.deepGreen.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -1357,43 +1009,18 @@ class _GereeState extends State<Geree> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: context.responsivePadding(
-              small: 10,
-              medium: 12,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 8,
-            ),
+            padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.deepGreen.withOpacity(0.2),
-                  AppColors.deepGreenAccent.withOpacity(0.15),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 12,
-                  medium: 14,
-                  large: 16,
-                  tablet: 18,
-                  veryNarrow: 10,
-                ),
-              ),
+              color: AppColors.deepGreen.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8.r),
             ),
             child: Icon(
               icon,
-              size: context.responsiveIconSize(
-                small: 20,
-                medium: 22,
-                large: 24,
-                tablet: 26,
-                veryNarrow: 18,
-              ),
+              size: 16.sp,
               color: AppColors.deepGreen,
             ),
           ),
-          SizedBox(width: 14.w),
+          SizedBox(width: 10.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1401,46 +1028,18 @@ class _GereeState extends State<Geree> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      small: 12,
-                      medium: 13,
-                      large: 14,
-                      tablet: 15,
-                      veryNarrow: 11,
-                    ),
+                    fontSize: 10.sp,
                     color: context.textSecondaryColor,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
                   ),
                 ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 8,
-                    medium: 10,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 6,
-                  ),
-                ),
+                SizedBox(height: 4.h),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: isLarge
-                        ? context.responsiveFontSize(
-                            small: 18,
-                            medium: 20,
-                            large: 22,
-                            tablet: 24,
-                            veryNarrow: 16,
-                          )
-                        : context.responsiveFontSize(
-                            small: 15,
-                            medium: 16,
-                            large: 17,
-                            tablet: 18,
-                            veryNarrow: 13,
-                          ),
-                    fontWeight: isLarge ? FontWeight.w800 : FontWeight.w700,
+                    fontSize: isLarge ? 14.sp : 12.sp,
+                    fontWeight: isLarge ? FontWeight.w700 : FontWeight.w600,
                     color: valueColor ?? context.textPrimaryColor,
                     letterSpacing: -0.2,
                     height: 1.3,
@@ -1455,48 +1054,26 @@ class _GereeState extends State<Geree> {
   }
 
   Widget _buildEmployeeCard(Ajiltan ajiltan) {
+    final isDark = context.isDarkMode;
     return Container(
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 20,
-        large: 24,
-        tablet: 26,
-        veryNarrow: 12,
-      ),
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          small: 14,
-          medium: 18,
-          large: 20,
-          tablet: 22,
-          veryNarrow: 10,
-        ),
-      ),
+      padding: EdgeInsets.all(12.w),
+      margin: EdgeInsets.only(bottom: 10.h),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: context.isDarkMode
-              ? [
-                  context.cardBackgroundColor,
-                  context.surfaceElevatedColor.withOpacity(0.5),
-                ]
-              : [
-                  Colors.white,
-                  AppColors.lightAccentBackground.withOpacity(0.3),
-                ],
-        ),
-        borderRadius: BorderRadius.circular(20.r),
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: AppColors.deepGreen.withOpacity(0.15),
-          width: 1.5,
+          color: isDark
+              ? AppColors.deepGreen.withOpacity(0.2)
+              : AppColors.deepGreen.withOpacity(0.15),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(context.isDarkMode ? 0.15 : 0.05),
-            blurRadius: 12,
-            spreadRadius: 0,
-            offset: const Offset(0, 4),
+            color: isDark
+                ? Colors.black.withOpacity(0.2)
+                : Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1507,42 +1084,20 @@ class _GereeState extends State<Geree> {
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(12.w),
+                padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.deepGreen, AppColors.deepGreenAccent],
                   ),
-                  borderRadius: BorderRadius.circular(14.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.deepGreen.withOpacity(0.3),
-                      blurRadius: 8,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Icon(
                   Icons.person_rounded,
-                  size: context.responsiveIconSize(
-                    small: 22,
-                    medium: 26,
-                    large: 28,
-                    tablet: 30,
-                    veryNarrow: 18,
-                  ),
+                  size: 18.sp,
                   color: Colors.white,
                 ),
               ),
-              SizedBox(
-                width: context.responsiveSpacing(
-                  small: 12,
-                  medium: 14,
-                  large: 16,
-                  tablet: 18,
-                  veryNarrow: 10,
-                ),
-              ),
+              SizedBox(width: 10.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1556,81 +1111,31 @@ class _GereeState extends State<Geree> {
                           ? ajiltan.ner
                           : '-',
                       style: TextStyle(
-                        fontSize: context.responsiveFontSize(
-                          small: 16,
-                          medium: 20,
-                          large: 22,
-                          tablet: 24,
-                          veryNarrow: 14,
-                        ),
-                        fontWeight: FontWeight.w800,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
                         color: context.textPrimaryColor,
-                        letterSpacing: -0.3,
+                        letterSpacing: -0.2,
                         height: 1.2,
                       ),
                     ),
                     if (ajiltan.albanTushaal != null &&
                         ajiltan.albanTushaal!.isNotEmpty) ...[
-                      SizedBox(
-                        height: context.responsiveSpacing(
-                          small: 8,
-                          medium: 10,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 6,
-                        ),
-                      ),
+                      SizedBox(height: 4.h),
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: context.responsiveSpacing(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
-                          ),
-                          vertical: context.responsiveSpacing(
-                            small: 6,
-                            medium: 8,
-                            large: 10,
-                            tablet: 12,
-                            veryNarrow: 4,
-                          ),
+                          horizontal: 8.w,
+                          vertical: 3.h,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.deepGreen.withOpacity(0.2),
-                              AppColors.deepGreenAccent.withOpacity(0.15),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(
-                            context.responsiveBorderRadius(
-                              small: 10,
-                              medium: 12,
-                              large: 14,
-                              tablet: 16,
-                              veryNarrow: 8,
-                            ),
-                          ),
-                          border: Border.all(
-                            color: AppColors.deepGreen.withOpacity(0.3),
-                            width: 1.5,
-                          ),
+                          color: AppColors.deepGreen.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6.r),
                         ),
                         child: Text(
                           ajiltan.albanTushaal!,
                           style: TextStyle(
-                            fontSize: context.responsiveFontSize(
-                              small: 12,
-                              medium: 13,
-                              large: 14,
-                              tablet: 15,
-                              veryNarrow: 11,
-                            ),
+                            fontSize: 9.sp,
                             color: AppColors.deepGreen,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1641,32 +1146,20 @@ class _GereeState extends State<Geree> {
             ],
           ),
 
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 18,
-              medium: 20,
-              large: 22,
-              tablet: 24,
-              veryNarrow: 14,
-            ),
-          ),
+          SizedBox(height: 10.h),
 
           // Contact Information
           Container(
-            padding: context.responsivePadding(
-              small: 14,
-              medium: 18,
-              large: 20,
-              tablet: 22,
-              veryNarrow: 10,
-            ),
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? context.surfaceElevatedColor.withOpacity(0.5)
-                  : AppColors.lightAccentBackground.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(16.r),
+              color: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(10.r),
               border: Border.all(
-                color: AppColors.deepGreen.withOpacity(0.1),
+                color: isDark
+                    ? AppColors.deepGreen.withOpacity(0.1)
+                    : AppColors.deepGreen.withOpacity(0.08),
                 width: 1,
               ),
             ),
@@ -1678,15 +1171,7 @@ class _GereeState extends State<Geree> {
                   value: ajiltan.utas.isNotEmpty ? ajiltan.utas : '-',
                 ),
                 if (ajiltan.mail != null && ajiltan.mail!.isNotEmpty) ...[
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 11,
-                      medium: 13,
-                      large: 15,
-                      tablet: 17,
-                      veryNarrow: 8,
-                    ),
-                  ),
+                  SizedBox(height: 8.h),
                   _buildContactInfo(
                     icon: Icons.email_rounded,
                     label: 'Имэйл',
@@ -1709,53 +1194,18 @@ class _GereeState extends State<Geree> {
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(
-            context.responsiveSpacing(
-              small: 8,
-              medium: 10,
-              large: 12,
-              tablet: 14,
-              veryNarrow: 7,
-            ),
-          ),
+          padding: EdgeInsets.all(6.w),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.deepGreen.withOpacity(0.2),
-                AppColors.deepGreenAccent.withOpacity(0.15),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(
-              context.responsiveBorderRadius(
-                small: 10,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 8,
-              ),
-            ),
+            color: AppColors.deepGreen.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(6.r),
           ),
           child: Icon(
             icon,
-            size: context.responsiveIconSize(
-              small: 16,
-              medium: 20,
-              large: 22,
-              tablet: 24,
-              veryNarrow: 14,
-            ),
+            size: 14.sp,
             color: AppColors.deepGreen,
           ),
         ),
-        SizedBox(
-          width: context.responsiveSpacing(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          ),
-        ),
+        SizedBox(width: 10.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1763,40 +1213,20 @@ class _GereeState extends State<Geree> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: context.responsiveFontSize(
-                    small: 11,
-                    medium: 12,
-                    large: 13,
-                    tablet: 14,
-                    veryNarrow: 10,
-                  ),
+                  fontSize: 9.sp,
                   color: context.textSecondaryColor,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.2,
                 ),
               ),
-              SizedBox(
-                height: context.responsiveSpacing(
-                  small: 6,
-                  medium: 8,
-                  large: 10,
-                  tablet: 12,
-                  veryNarrow: 4,
-                ),
-              ),
+              SizedBox(height: 2.h),
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: context.responsiveFontSize(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 17,
-                    veryNarrow: 12,
-                  ),
+                  fontSize: 11.sp,
                   color: context.textPrimaryColor,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.1,
                 ),
               ),
             ],

@@ -169,10 +169,14 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
             ? [
                 TextButton(
                   onPressed: _markAllAsRead,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  ),
                   child: Text(
                     'Бүгдийг уншсан',
-                    style: context.titleStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: AppColors.deepGreen,
+                      fontSize: 10.sp,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -198,49 +202,35 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                         children: [
                           Icon(
                             Icons.error_outline,
-                            color: context.inputGrayColor,
-                            size: 48.sp,
+                            color: context.textSecondaryColor,
+                            size: 36.sp,
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 16,
-                              medium: 18,
-                              large: 20,
-                              tablet: 22,
-                              veryNarrow: 12,
-                            ),
-                          ),
+                          SizedBox(height: 12.h),
                           Text(
                             _errorMessage!,
                             style: TextStyle(
-                              color: context.textSecondaryColor,
-                              fontSize:
-                                  20.sp, // Increased for better readability
+                              color: context.textPrimaryColor,
+                              fontSize: 12.sp,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 24,
-                              medium: 28,
-                              large: 32,
-                              tablet: 36,
-                              veryNarrow: 18,
-                            ),
-                          ),
+                          SizedBox(height: 16.h),
                           ElevatedButton(
                             onPressed: _loadNotifications,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.deepGreenAccent,
+                              backgroundColor: AppColors.deepGreen,
                               foregroundColor: Colors.white,
                               padding: EdgeInsets.symmetric(
-                                horizontal: 24.w,
-                                vertical: 12.h,
+                                horizontal: 16.w,
+                                vertical: 10.h,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
                               ),
                             ),
                             child: Text(
                               'Дахин оролдох',
-                              style: context.descriptionStyle(),
+                              style: TextStyle(fontSize: 11.sp),
                             ),
                           ),
                         ],
@@ -253,42 +243,24 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                         children: [
                           Icon(
                             Icons.notifications_none,
-                            color: context.inputGrayColor,
-                            size: 64.sp,
+                            color: context.textSecondaryColor,
+                            size: 48.sp,
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 16,
-                              medium: 18,
-                              large: 20,
-                              tablet: 22,
-                              veryNarrow: 12,
-                            ),
-                          ),
+                          SizedBox(height: 12.h),
                           Text(
                             'Мэдэгдэл байхгүй',
                             style: TextStyle(
-                              color: context.textSecondaryColor,
-                              fontSize:
-                                  24.sp, // Increased for better readability
+                              color: context.textPrimaryColor,
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 8,
-                              medium: 10,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 6,
-                            ),
-                          ),
+                          SizedBox(height: 6.h),
                           Text(
                             'Шинэ мэдэгдэл ирэхэд энд харагдана',
                             style: TextStyle(
-                              color: context.inputGrayColor,
-                              fontSize:
-                                  20.sp, // Increased for better readability
+                              color: context.textSecondaryColor,
+                              fontSize: 11.sp,
                             ),
                           ),
                         ],
@@ -296,15 +268,9 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                     )
                   : RefreshIndicator(
                       onRefresh: _loadNotifications,
-                      color: AppColors.secondaryAccent,
+                      color: AppColors.deepGreen,
                       child: ListView.builder(
-                        padding: context.responsivePadding(
-                          small: 16,
-                          medium: 18,
-                          large: 20,
-                          tablet: 22,
-                          veryNarrow: 12,
-                        ),
+                        padding: EdgeInsets.all(14.w),
                         itemCount: _notifications.length,
                         itemBuilder: (context, index) {
                           final notification = _notifications[index];
@@ -320,11 +286,10 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
   }
 
   Widget _buildNotificationIcon(Medegdel notification) {
-    // Use notification icon for all notifications
     return Icon(
-      Icons.notifications,
-      color: context.textPrimaryColor,
-      size: 24.sp,
+      Icons.notifications_outlined,
+      color: AppColors.deepGreen,
+      size: 18.sp,
     );
   }
 
@@ -337,18 +302,14 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
 
     return GestureDetector(
       onTap: () async {
-        // Check if this is a zardluud (expense/charge) notification
         final isZardluudNotification = _isZardluudNotification(notification);
 
         if (isZardluudNotification) {
-          // Redirect to nekhemjlekh page
           context.push('/nekhemjlekh');
-          // Mark as read
           _markAsRead(notification);
           return;
         }
 
-        // Show detail as modal for other notifications
         final result = await showModalBottomSheet(
           context: context,
           isScrollControlled: true,
@@ -357,94 +318,51 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
             return MedegdelDetailModal(notification: notification);
           },
         );
-        // If detail modal marked as read, refresh the list
         if (result == true) {
           _loadNotifications();
         } else {
-          // Otherwise just mark as read if not already
           _markAsRead(notification);
         }
       },
       child: Container(
-        margin: EdgeInsets.only(
-          bottom: context.responsiveSpacing(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 8,
-          ),
-        ),
-        padding: context.responsivePadding(
-          small: 16,
-          medium: 18,
-          large: 20,
-          tablet: 22,
-          veryNarrow: 12,
-        ),
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
-          color: isRead
-              ? context.cardBackgroundColor
-              : context.accentBackgroundColor, // Subtle green tint for unread
-          borderRadius: BorderRadius.circular(
-            context.responsiveBorderRadius(
-              small: 16,
-              medium: 18,
-              large: 20,
-              tablet: 22,
-              veryNarrow: 12,
-            ),
-          ),
+          color: context.isDarkMode
+              ? const Color(0xFF1A1A1A)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
             color: isRead
-                ? context.borderColor
+                ? (context.isDarkMode
+                    ? AppColors.deepGreen.withOpacity(0.15)
+                    : AppColors.deepGreen.withOpacity(0.1))
                 : AppColors.deepGreen.withOpacity(0.3),
             width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: context.isDarkMode
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Notification icon - modern minimal design
             Container(
-              width: context.responsiveSpacing(
-                small: 48,
-                medium: 52,
-                large: 56,
-                tablet: 60,
-                veryNarrow: 40,
-              ),
-              height: context.responsiveSpacing(
-                small: 48,
-                medium: 52,
-                large: 56,
-                tablet: 60,
-                veryNarrow: 40,
-              ),
+              width: 40.w,
+              height: 40.w,
               decoration: BoxDecoration(
-                color: context.accentBackgroundColor,
-                borderRadius: BorderRadius.circular(
-                  context.responsiveBorderRadius(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 10,
-                  ),
-                ),
+                color: AppColors.deepGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10.r),
               ),
               child: Center(child: _buildNotificationIcon(notification)),
             ),
-            SizedBox(
-              width: context.responsiveSpacing(
-                small: 12,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 8,
-              ),
-            ),
-            // Content
+            SizedBox(width: 10.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,73 +372,45 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                       Expanded(
                         child: Text(
                           notification.title,
-                          style: context.titleStyle(
+                          style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontWeight: isRead
-                                ? FontWeight.w500
-                                : FontWeight.bold,
+                            fontSize: 12.sp,
+                            fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
                           ),
                         ),
                       ),
                       if (!isRead)
                         Container(
-                          width: 8.w,
-                          height: 8.w,
+                          width: 6.w,
+                          height: 6.w,
                           decoration: BoxDecoration(
-                            color: AppColors.deepGreenAccent,
+                            color: AppColors.deepGreen,
                             shape: BoxShape.circle,
                           ),
                         ),
                     ],
                   ),
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 6,
-                      medium: 8,
-                      large: 10,
-                      tablet: 12,
-                      veryNarrow: 4,
-                    ),
-                  ),
+                  SizedBox(height: 4.h),
                   Text(
                     notification.message,
-                    style: context.descriptionStyle(
+                    style: TextStyle(
                       color: context.textSecondaryColor,
+                      fontSize: 11.sp,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   // Show reply indicator if has reply
                   if (hasReply && (isGomdol || isSanal)) ...[
-                    SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 6,
-                      medium: 8,
-                      large: 10,
-                      tablet: 12,
-                      veryNarrow: 4,
-                    ),
-                  ),
+                    SizedBox(height: 6.h),
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 4.h,
+                        horizontal: 6.w,
+                        vertical: 3.h,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 6,
-                            medium: 8,
-                            large: 10,
-                            tablet: 12,
-                            veryNarrow: 4,
-                          ),
-                        ),
-                        border: Border.all(
-                          color: AppColors.success.withOpacity(0.5),
-                          width: 1,
-                        ),
+                        color: AppColors.success.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -528,116 +418,71 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                           Icon(
                             Icons.reply,
                             color: AppColors.success,
-                            size: 12.sp,
+                            size: 10.sp,
                           ),
-                          SizedBox(
-                            width: context.responsiveSpacing(
-                              small: 4,
-                              medium: 6,
-                              large: 8,
-                              tablet: 10,
-                              veryNarrow: 3,
-                            ),
-                          ),
+                          SizedBox(width: 4.w),
                           Text(
                             'Хариу ирсэн',
                             style: TextStyle(
                               color: AppColors.success,
-                              fontSize:
-                                  18.sp, // Increased for better readability
-                              fontWeight: FontWeight.bold,
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                  // Show reply type indicator
                   if (isReply) ...[
-                    SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 6,
-                      medium: 8,
-                      large: 10,
-                      tablet: 12,
-                      veryNarrow: 4,
-                    ),
-                  ),
+                    SizedBox(height: 6.h),
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 4.h,
+                        horizontal: 6.w,
+                        vertical: 3.h,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 6,
-                            medium: 8,
-                            large: 10,
-                            tablet: 12,
-                            veryNarrow: 4,
-                          ),
-                        ),
-                        border: Border.all(
-                          color: AppColors.primary.withOpacity(0.5),
-                          width: 1,
-                        ),
+                        color: AppColors.deepGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             Icons.reply_all,
-                            color: AppColors.primary,
-                            size: 12.sp,
+                            color: AppColors.deepGreen,
+                            size: 10.sp,
                           ),
-                          SizedBox(
-                            width: context.responsiveSpacing(
-                              small: 4,
-                              medium: 6,
-                              large: 8,
-                              tablet: 10,
-                              veryNarrow: 3,
-                            ),
-                          ),
+                          SizedBox(width: 4.w),
                           Text(
                             'Хариу',
                             style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize:
-                                  18.sp, // Increased for better readability
-                              fontWeight: FontWeight.bold,
+                              color: AppColors.deepGreen,
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 8,
-                      medium: 10,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 6,
-                    ),
-                  ),
+                  SizedBox(height: 8.h),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         notification.formattedDateTime,
-                        style: context.secondaryDescriptionStyle(
-                          color: context.inputGrayColor,
+                        style: TextStyle(
+                          color: context.textSecondaryColor,
+                          fontSize: 9.sp,
                         ),
                       ),
                       if (!isRead)
                         Text(
                           'Шинэ',
-                          style: context.secondaryDescriptionStyle(
-                            color: AppColors.deepGreenAccent,
-                            fontWeight: FontWeight.bold,
+                          style: TextStyle(
+                            color: AppColors.deepGreen,
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                     ],

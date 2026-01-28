@@ -23,15 +23,19 @@ class BankSelectionModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
+      height: MediaQuery.of(context).size.height * 0.65,
       decoration: BoxDecoration(
-        color: context.cardBackgroundColor,
+        color: context.isDarkMode
+            ? const Color(0xFF1A1A1A)
+            : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.w),
-          topRight: Radius.circular(30.w),
+          topLeft: Radius.circular(16.r),
+          topRight: Radius.circular(16.r),
         ),
         border: Border.all(
-          color: context.borderColor,
+          color: context.isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.08),
           width: 1,
         ),
       ),
@@ -39,17 +43,19 @@ class BankSelectionModal extends StatelessWidget {
         children: [
             // Handle bar
             Container(
-              margin: EdgeInsets.only(top: 12.h),
-              width: 40.w,
+              margin: EdgeInsets.only(top: 10.h),
+              width: 36.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: context.borderColor,
-                borderRadius: BorderRadius.circular(2.w),
+                color: context.isDarkMode
+                    ? Colors.white.withOpacity(0.3)
+                    : Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2.r),
               ),
             ),
             // Header
             Padding(
-              padding: EdgeInsets.all(20.w),
+              padding: EdgeInsets.all(16.w),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -57,15 +63,15 @@ class BankSelectionModal extends StatelessWidget {
                     'Банк сонгох',
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   IconButton(
                     icon: Icon(
                       Icons.close,
-                      color: context.textPrimaryColor,
-                      size: 24.sp,
+                      color: context.textSecondaryColor,
+                      size: 20.sp,
                     ),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -83,14 +89,14 @@ class BankSelectionModal extends StatelessWidget {
                   : qpayBanks.isEmpty
                       ? Center(
                           child: Padding(
-                            padding: EdgeInsets.all(20.w),
+                            padding: EdgeInsets.all(16.w),
                             child: Text(
                               contactPhone.isNotEmpty
                                   ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
                                   : 'Банкны мэдээлэл олдсонгүй',
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 16.sp,
+                                fontSize: 12.sp,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -98,15 +104,15 @@ class BankSelectionModal extends StatelessWidget {
                         )
                       : GridView.builder(
                           padding: EdgeInsets.symmetric(
-                            horizontal: 20.w,
-                            vertical: 10.h,
+                            horizontal: 16.w,
+                            vertical: 8.h,
                           ),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
-                            crossAxisSpacing: 12.w,
-                            mainAxisSpacing: 12.h,
-                            childAspectRatio: 0.85,
+                            crossAxisSpacing: 10.w,
+                            mainAxisSpacing: 10.h,
+                            childAspectRatio: 0.9,
                           ),
                           itemCount: qpayBanks.length,
                           itemBuilder: (context, index) {
@@ -133,23 +139,30 @@ class BankSelectionModal extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: BorderRadius.circular(12.w),
-          border: Border.all(color: context.borderColor, width: 1),
+          color: context.isDarkMode
+              ? Colors.white.withOpacity(0.05)
+              : const Color(0xFFF8F8F8),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(
+            color: context.isDarkMode
+                ? AppColors.deepGreen.withOpacity(0.15)
+                : AppColors.deepGreen.withOpacity(0.1),
+            width: 1,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Bank logo
             Container(
-              width: 60.w,
-              height: 60.w,
+              width: 48.w,
+              height: 48.w,
               decoration: BoxDecoration(
-                color: context.isDarkMode ? Colors.white : AppColors.lightSurface,
-                borderRadius: BorderRadius.circular(8.w),
+                color: context.isDarkMode ? Colors.white : Colors.white,
+                borderRadius: BorderRadius.circular(8.r),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.w),
+                borderRadius: BorderRadius.circular(8.r),
                 child: Image.network(
                   bank.logo,
                   fit: BoxFit.cover,
@@ -157,13 +170,13 @@ class BankSelectionModal extends StatelessWidget {
                     return Icon(
                       Icons.account_balance,
                       color: context.textSecondaryColor,
-                      size: 30.sp,
+                      size: 22.sp,
                     );
                   },
                 ),
               ),
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             // Bank name
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 4.w),
@@ -171,7 +184,7 @@ class BankSelectionModal extends StatelessWidget {
                 bank.description,
                 style: TextStyle(
                   color: context.textPrimaryColor,
-                  fontSize: 11.sp,
+                  fontSize: 9.sp,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,

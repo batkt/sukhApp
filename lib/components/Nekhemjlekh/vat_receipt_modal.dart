@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/widgets/optimized_glass.dart';
 
 class VATReceiptModal extends StatelessWidget {
   final VATReceipt receipt;
@@ -16,201 +15,224 @@ class VATReceiptModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
-        color: context.cardBackgroundColor,
+        color: context.isDarkMode
+            ? const Color(0xFF1A1A1A)
+            : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.w),
-          topRight: Radius.circular(30.w),
+          topLeft: Radius.circular(16.r),
+          topRight: Radius.circular(16.r),
         ),
       ),
-      child: OptimizedGlass(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.w),
-          topRight: Radius.circular(30.w),
-        ),
-        opacity: 0.06,
-        child: Column(
-          children: [
-              // Handle bar
-              Container(
-                margin: EdgeInsets.only(top: 12.h),
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: context.borderColor,
-                  borderRadius: BorderRadius.circular(2.w),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: EdgeInsets.only(top: 10.h),
+            width: 36.w,
+            height: 4.h,
+            decoration: BoxDecoration(
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.3)
+                  : Colors.black.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(2.r),
+            ),
+          ),
+          // Header
+          Padding(
+            padding: EdgeInsets.all(14.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'НӨАТ-ын баримт',
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              // Header
-              Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'НӨАТ-ын баримт',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
+                IconButton(
+                  icon: Icon(
+                    Icons.close,
+                    color: context.textSecondaryColor,
+                    size: 20.sp,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 14.w),
+              child: Column(
+                children: [
+                  // QR Code
+                  if (receipt.qrData.isNotEmpty) ...[
+                    Container(
+                      padding: EdgeInsets.all(14.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: QrImageView(
+                        data: receipt.qrData,
+                        version: QrVersions.auto,
+                        size: 180.w,
+                        backgroundColor: Colors.white,
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: context.textPrimaryColor, size: 24.sp),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    SizedBox(height: 14.h),
                   ],
-                ),
-              ),
-              // Content
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    children: [
-                      // QR Code
-                      if (receipt.qrData.isNotEmpty) ...[
-                        Container(
-                          padding: EdgeInsets.all(20.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20.w),
+                  // Receipt Info
+                  Container(
+                    padding: EdgeInsets.all(14.w),
+                    decoration: BoxDecoration(
+                      color: context.isDarkMode
+                          ? Colors.white.withOpacity(0.05)
+                          : const Color(0xFFF8F8F8),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: context.isDarkMode
+                            ? Colors.white.withOpacity(0.1)
+                            : Colors.black.withOpacity(0.08),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (receipt.lottery != null)
+                          _buildReceiptInfoRow(
+                            context,
+                            'Сугалааны дугаар:',
+                            receipt.lottery!,
                           ),
-                          child: QrImageView(
-                            data: receipt.qrData,
-                            version: QrVersions.auto,
-                            size: 250.w,
-                            backgroundColor: Colors.white,
+                        _buildReceiptInfoRow(
+                          context,
+                          'Огноо:',
+                          receipt.formattedDate,
+                        ),
+                        _buildReceiptInfoRow(
+                          context,
+                          'Регистр:',
+                          receipt.merchantTin,
+                        ),
+                        Divider(
+                          color: context.isDarkMode
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.08),
+                          height: 20.h,
+                        ),
+                        Text(
+                          'Бараа, үйлчилгээ:',
+                          style: TextStyle(
+                            color: context.textPrimaryColor,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 20.h),
-                      ],
-                      // Receipt Info
-                      Container(
-                        padding: EdgeInsets.all(20.w),
-                        decoration: BoxDecoration(
-                          color: context.accentBackgroundColor,
-                          borderRadius: BorderRadius.circular(20.w),
-                          border: Border.all(color: context.borderColor, width: 1),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (receipt.lottery != null)
-                              _buildReceiptInfoRow(
-                                context,
-                                'Сугалааны дугаар:',
-                                receipt.lottery!,
-                              ),
-                            _buildReceiptInfoRow(
-                              context,
-                              'Огноо:',
-                              receipt.formattedDate,
-                            ),
-                            _buildReceiptInfoRow(
-                              context,
-                              'Регистр:',
-                              receipt.merchantTin,
-                            ),
-                            Divider(color: context.borderColor, height: 24.h),
-                            Text(
-                              'Бараа, үйлчилгээ:',
-                              style: TextStyle(
-                                color: context.textPrimaryColor,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 12.h),
-                            ...receipt.receipts
-                                .expand((r) => r.items)
-                                .map(
-                                  (item) => Padding(
-                                    padding: EdgeInsets.only(bottom: 12.h),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                        SizedBox(height: 8.h),
+                        ...receipt.receipts
+                            .expand((r) => r.items)
+                            .map(
+                              (item) => Padding(
+                                padding: EdgeInsets.only(bottom: 10.h),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.name,
+                                      style: TextStyle(
+                                        color: context.textPrimaryColor,
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(height: 3.h),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          item.name,
+                                          '${item.qty} ${item.measureUnit} × ${item.unitPrice}₮',
+                                          style: TextStyle(
+                                            color: context.textSecondaryColor,
+                                            fontSize: 10.sp,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${item.totalAmount}₮',
                                           style: TextStyle(
                                             color: context.textPrimaryColor,
-                                            fontSize: 14.sp,
+                                            fontSize: 11.sp,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                        SizedBox(height: 4.h),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              '${item.qty} ${item.measureUnit} × ${item.unitPrice}₮',
-                                              style: TextStyle(
-                                                color: context.textSecondaryColor,
-                                                fontSize: 12.sp,
-                                              ),
-                                            ),
-                                            Text(
-                                              '${item.totalAmount}₮',
-                                              style: TextStyle(
-                                                color: context.textPrimaryColor,
-                                                fontSize: 14.sp,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
                                       ],
                                     ),
-                                  ),
+                                  ],
                                 ),
-                            Divider(color: context.borderColor, height: 24.h),
-                            _buildReceiptInfoRow(
-                              context,
-                              'Нийт дүн:',
-                              receipt.formattedAmount,
-                              isBold: true,
-                            ),
-                            _buildReceiptInfoRow(
-                              context,
-                              'НӨАТ:',
-                              '${receipt.totalVAT.toStringAsFixed(2)}₮',
-                            ),
-                            if (receipt.totalCityTax > 0)
-                              _buildReceiptInfoRow(
-                                context,
-                                'Хотын татвар:',
-                                '${receipt.totalCityTax.toStringAsFixed(2)}₮',
-                              ),
-                            Divider(color: context.borderColor, height: 24.h),
-                            Text(
-                              'Төлбөр:',
-                              style: TextStyle(
-                                color: context.textPrimaryColor,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 8.h),
-                            ...receipt.payments.map(
-                              (payment) => _buildReceiptInfoRow(
-                                context,
-                                payment.code,
-                                '${payment.paidAmount}₮ (${payment.status})',
-                              ),
-                            ),
-                          ],
+                        Divider(
+                          color: context.isDarkMode
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.08),
+                          height: 20.h,
                         ),
-                      ),
-                      SizedBox(height: 20.h),
-                    ],
+                        _buildReceiptInfoRow(
+                          context,
+                          'Нийт дүн:',
+                          receipt.formattedAmount,
+                          isBold: true,
+                        ),
+                        _buildReceiptInfoRow(
+                          context,
+                          'НӨАТ:',
+                          '${receipt.totalVAT.toStringAsFixed(2)}₮',
+                        ),
+                        if (receipt.totalCityTax > 0)
+                          _buildReceiptInfoRow(
+                            context,
+                            'Хотын татвар:',
+                            '${receipt.totalCityTax.toStringAsFixed(2)}₮',
+                          ),
+                        Divider(
+                          color: context.isDarkMode
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.black.withOpacity(0.08),
+                          height: 20.h,
+                        ),
+                        Text(
+                          'Төлбөр:',
+                          style: TextStyle(
+                            color: context.textPrimaryColor,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 6.h),
+                        ...receipt.payments.map(
+                          (payment) => _buildReceiptInfoRow(
+                            context,
+                            payment.code,
+                            '${payment.paidAmount}₮ (${payment.status})',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  SizedBox(height: 16.h),
+                ],
               ),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -222,7 +244,7 @@ class VATReceiptModal extends StatelessWidget {
     bool isBold = false,
   }) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.only(bottom: 6.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -230,15 +252,15 @@ class VATReceiptModal extends StatelessWidget {
             label,
             style: TextStyle(
               color: context.textSecondaryColor,
-              fontSize: 14.sp,
+              fontSize: 10.sp,
             ),
           ),
           Text(
             value,
             style: TextStyle(
               color: context.textPrimaryColor,
-              fontSize: 14.sp,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: 11.sp,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.normal,
             ),
           ),
         ],

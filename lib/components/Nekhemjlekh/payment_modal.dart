@@ -40,21 +40,45 @@ class _PaymentModalState extends State<PaymentModal> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: context.cardBackgroundColor,
+        color: context.isDarkMode
+            ? const Color(0xFF1A1A1A)
+            : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16.w),
-          topRight: Radius.circular(16.w),
+          topLeft: Radius.circular(16.r),
+          topRight: Radius.circular(16.r),
         ),
-        border: Border.all(color: context.borderColor),
+        border: Border.all(
+          color: context.isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.08),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Handle bar
+          Container(
+            margin: EdgeInsets.only(top: 10.h),
+            width: 36.w,
+            height: 4.h,
+            decoration: BoxDecoration(
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.3)
+                  : Colors.black.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(2.r),
+            ),
+          ),
           // Header
           Container(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(14.w),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: context.borderColor)),
+              border: Border(
+                bottom: BorderSide(
+                  color: context.isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.08),
+                ),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -63,15 +87,15 @@ class _PaymentModalState extends State<PaymentModal> {
                   'Төлбөрийн мэдээлэл',
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 IconButton(
                   icon: Icon(
                     Icons.close,
-                    color: context.textPrimaryColor,
-                    size: 24.sp,
+                    color: context.textSecondaryColor,
+                    size: 20.sp,
                   ),
                   onPressed: () => Navigator.of(context).pop(),
                   padding: EdgeInsets.zero,
@@ -82,17 +106,23 @@ class _PaymentModalState extends State<PaymentModal> {
           ),
           // Content
           Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(14.w),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Price information panel
                 Container(
-                  padding: EdgeInsets.all(14.w),
+                  padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
-                    color: context.accentBackgroundColor,
-                    borderRadius: BorderRadius.circular(12.w),
-                    border: Border.all(color: context.borderColor),
+                    color: context.isDarkMode
+                        ? Colors.white.withOpacity(0.05)
+                        : const Color(0xFFF8F8F8),
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(
+                      color: context.isDarkMode
+                          ? AppColors.deepGreen.withOpacity(0.15)
+                          : AppColors.deepGreen.withOpacity(0.1),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -100,29 +130,35 @@ class _PaymentModalState extends State<PaymentModal> {
                       Text(
                         'Төлөх дүн',
                         style: TextStyle(
-                          fontSize: 14.sp,
+                          fontSize: 11.sp,
                           color: context.textSecondaryColor,
                         ),
                       ),
                       Text(
                         widget.totalSelectedAmount,
                         style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: context.textPrimaryColor,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.deepGreen,
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 8.h),
                 // Contract information panel
                 Container(
-                  padding: EdgeInsets.all(14.w),
+                  padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
-                    color: context.accentBackgroundColor,
-                    borderRadius: BorderRadius.circular(12.w),
-                    border: Border.all(color: context.borderColor),
+                    color: context.isDarkMode
+                        ? Colors.white.withOpacity(0.05)
+                        : const Color(0xFFF8F8F8),
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(
+                      color: context.isDarkMode
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black.withOpacity(0.08),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -130,14 +166,14 @@ class _PaymentModalState extends State<PaymentModal> {
                       Text(
                         'Гэрээ',
                         style: TextStyle(
-                          fontSize: 14.sp,
+                          fontSize: 11.sp,
                           color: context.textSecondaryColor,
                         ),
                       ),
                       Text(
                         '${widget.selectedCount} гэрээ',
                         style: TextStyle(
-                          fontSize: 16.sp,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w600,
                           color: context.textPrimaryColor,
                         ),
@@ -145,7 +181,7 @@ class _PaymentModalState extends State<PaymentModal> {
                     ],
                   ),
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: 14.h),
                 // Payment button
                 SizedBox(
                   width: double.infinity,
@@ -158,15 +194,15 @@ class _PaymentModalState extends State<PaymentModal> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.deepGreen,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.w),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
                     ),
                     child: _isLoadingQPay
                         ? SizedBox(
-                            height: 20.h,
-                            width: 20.w,
+                            height: 16.h,
+                            width: 16.w,
                             child: const CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
@@ -177,7 +213,7 @@ class _PaymentModalState extends State<PaymentModal> {
                         : Text(
                             'Төлбөр төлөх',
                             style: TextStyle(
-                              fontSize: 16.sp,
+                              fontSize: 12.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

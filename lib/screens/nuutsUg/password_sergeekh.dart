@@ -193,7 +193,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           await ApiService.verifySecretCode(
             utas: _phoneController.text,
             code: pin,
-            purpose: '',
+            purpose: 'password_reset',
             baiguullagiinId: _baiguullagiinId!,
           );
 

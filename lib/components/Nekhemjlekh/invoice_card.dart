@@ -54,22 +54,36 @@ class InvoiceCard extends StatelessWidget {
 
     return RepaintBoundary(
       child: Container(
-        margin: EdgeInsets.only(bottom: 16.h),
+        margin: EdgeInsets.only(bottom: 10.h),
         child: Container(
           decoration: BoxDecoration(
             color: context.isDarkMode
-                ? Colors.transparent
-                : AppColors.lightSurface,
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(color: context.borderColor, width: 1),
+                ? const Color(0xFF1A1A1A)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: context.isDarkMode
+                  ? AppColors.deepGreen.withOpacity(0.2)
+                  : AppColors.deepGreen.withOpacity(0.15),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: context.isDarkMode
+                    ? Colors.black.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: onToggleExpand,
-              borderRadius: BorderRadius.circular(20.r),
+              borderRadius: BorderRadius.circular(14.r),
               child: Padding(
-                padding: EdgeInsets.all(16.w),
+                padding: EdgeInsets.all(12.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -85,76 +99,72 @@ class InvoiceCard extends StatelessWidget {
                               invoice.formattedDate,
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 12.sp,
+                                fontSize: 10.sp,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             // Status tag
                             Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 12.w,
-                                vertical: 6.h,
+                                horizontal: 8.w,
+                                vertical: 4.h,
                               ),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    statusColor.withOpacity(0.15),
-                                    statusColor.withOpacity(0.08),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16.w),
+                                color: statusColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10.r),
                                 border: Border.all(
                                   color: statusColor.withOpacity(0.4),
-                                  width: 1.5,
+                                  width: 1,
                                 ),
                               ),
                               child: Text(
                                 statusLabel,
                                 style: TextStyle(
                                   color: statusColor,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                  fontSize: 9.sp,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 10.h),
                         // Main content row
                         Row(
                           children: [
                             // Company logo
                             Container(
-                              width: 48.w,
-                              height: 48.w,
+                              width: 40.w,
+                              height: 40.w,
                               decoration: BoxDecoration(
-                                color: Colors.transparent,
+                                color: AppColors.deepGreen,
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.deepGreen.withOpacity(0.3),
-                                  width: 2,
-                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.deepGreen.withOpacity(0.3),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: ClipOval(
                                 child: Image.asset(
                                   'lib/assets/img/logo_3.png',
-                                  width: 48.w,
-                                  height: 48.w,
+                                  width: 40.w,
+                                  height: 40.w,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Icon(
                                       Icons.receipt_long_rounded,
-                                      color: AppColors.deepGreen,
-                                      size: 24.sp,
+                                      color: Colors.white,
+                                      size: 18.sp,
                                     );
                                   },
                                 ),
                               ),
                             ),
-                            SizedBox(width: 12.w),
+                            SizedBox(width: 10.w),
                             // Client info
                             Expanded(
                               child: Column(
@@ -164,18 +174,18 @@ class InvoiceCard extends StatelessWidget {
                                     invoice.displayName,
                                     style: TextStyle(
                                       color: context.textPrimaryColor,
-                                      fontSize: 16.sp,
+                                      fontSize: 13.sp,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  SizedBox(height: 4.h),
+                                  SizedBox(height: 3.h),
                                   Text(
                                     invoice.gereeniiDugaar,
                                     style: TextStyle(
                                       color: context.textSecondaryColor,
-                                      fontSize: 13.sp,
+                                      fontSize: 10.sp,
                                     ),
                                   ),
                                 ],
@@ -189,11 +199,11 @@ class InvoiceCard extends StatelessWidget {
                                   invoice.formattedAmount,
                                   style: TextStyle(
                                     color: AppColors.deepGreen,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                if (!isHistory) SizedBox(height: 8.h),
+                                if (!isHistory) SizedBox(height: 6.h),
                                 // Checkbox for selection (only in non-history mode)
                                 if (!isHistory && onToggleSelect != null)
                                   Material(
@@ -213,8 +223,8 @@ class InvoiceCard extends StatelessWidget {
                                           milliseconds: 300,
                                         ),
                                         curve: Curves.easeInOutCubic,
-                                        width: 26.w,
-                                        height: 26.w,
+                                        width: 22.w,
+                                        height: 22.w,
                                         decoration: BoxDecoration(
                                           gradient: invoice.isSelected
                                               ? LinearGradient(
@@ -264,7 +274,7 @@ class InvoiceCard extends StatelessWidget {
                                                 ? Icon(
                                                     Icons.check_rounded,
                                                     color: Colors.white,
-                                                    size: 18.sp,
+                                                    size: 14.sp,
                                                     weight: 3,
                                                   )
                                                 : const SizedBox.shrink(),
@@ -279,7 +289,7 @@ class InvoiceCard extends StatelessWidget {
                         ),
                         // Expand/Collapse indicator
                         Padding(
-                          padding: EdgeInsets.only(top: 8.h),
+                          padding: EdgeInsets.only(top: 6.h),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -288,7 +298,7 @@ class InvoiceCard extends StatelessWidget {
                                     ? Icons.keyboard_arrow_up
                                     : Icons.keyboard_arrow_down,
                                 color: AppColors.deepGreen,
-                                size: 20.sp,
+                                size: 16.sp,
                               ),
                             ],
                           ),
@@ -309,7 +319,7 @@ class InvoiceCard extends StatelessWidget {
 
   Widget _buildExpandedSection(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(color: Colors.transparent),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,16 +331,21 @@ class InvoiceCard extends StatelessWidget {
               // Нэхэмжлэгч section
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(10.r),
                   child: Container(
-                    padding: EdgeInsets.all(12.w),
-                    constraints: BoxConstraints(minHeight: 120.h),
+                    padding: EdgeInsets.all(10.w),
+                    constraints: BoxConstraints(minHeight: 100.h),
                     decoration: BoxDecoration(
                       color: context.isDarkMode
-                          ? Colors.white.withOpacity(0.04)
-                          : AppColors.lightAccentBackground,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: context.borderColor, width: 1),
+                          ? Colors.white.withOpacity(0.05)
+                          : const Color(0xFFF8F8F8),
+                      borderRadius: BorderRadius.circular(10.r),
+                      border: Border.all(
+                        color: context.isDarkMode
+                            ? AppColors.deepGreen.withOpacity(0.15)
+                            : AppColors.deepGreen.withOpacity(0.1),
+                        width: 1,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,24 +356,26 @@ class InvoiceCard extends StatelessWidget {
                             Icon(
                               Icons.business,
                               color: AppColors.deepGreen,
-                              size: 16.sp,
+                              size: 14.sp,
                             ),
-                            SizedBox(width: 6.w),
+                            SizedBox(width: 4.w),
                             Text(
                               'Нэхэмжлэгч',
-                              style: context.expandedTitleStyle(
+                              style: TextStyle(
                                 color: AppColors.deepGreen,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         _buildInfoText(
                           context,
                           'Байгууллагын нэр:\n${invoice.baiguullagiinNer}',
                         ),
                         if (invoice.khayag.isNotEmpty) ...[
-                          SizedBox(height: 6.h),
+                          SizedBox(height: 4.h),
                           _buildInfoText(context, 'Хаяг: ${invoice.khayag}'),
                         ],
                       ],
@@ -366,19 +383,23 @@ class InvoiceCard extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: 8.w),
               // Төлөгч section
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(10.r),
                   child: Container(
-                    padding: EdgeInsets.all(12.w),
-                    constraints: BoxConstraints(minHeight: 120.h),
+                    padding: EdgeInsets.all(10.w),
+                    constraints: BoxConstraints(minHeight: 100.h),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
-                      borderRadius: BorderRadius.circular(12.r),
+                      color: context.isDarkMode
+                          ? Colors.white.withOpacity(0.05)
+                          : const Color(0xFFF8F8F8),
+                      borderRadius: BorderRadius.circular(10.r),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.12),
+                        color: context.isDarkMode
+                            ? AppColors.deepGreen.withOpacity(0.15)
+                            : AppColors.deepGreen.withOpacity(0.1),
                         width: 1,
                       ),
                     ),
@@ -391,28 +412,30 @@ class InvoiceCard extends StatelessWidget {
                             Icon(
                               Icons.person,
                               color: AppColors.deepGreen,
-                              size: 16.sp,
+                              size: 14.sp,
                             ),
-                            SizedBox(width: 6.w),
+                            SizedBox(width: 4.w),
                             Text(
                               'Төлөгч',
-                              style: context.expandedTitleStyle(
+                              style: TextStyle(
                                 color: AppColors.deepGreen,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         _buildInfoText(context, 'Нэр: ${invoice.displayName}'),
                         if (invoice.register.isNotEmpty) ...[
-                          SizedBox(height: 6.h),
+                          SizedBox(height: 4.h),
                           _buildInfoText(
                             context,
                             'Регистр: ${invoice.register}',
                           ),
                         ],
                         if (invoice.phoneNumber.isNotEmpty) ...[
-                          SizedBox(height: 6.h),
+                          SizedBox(height: 4.h),
                           _buildInfoText(
                             context,
                             'Утас: ${invoice.phoneNumber}',
@@ -425,7 +448,7 @@ class InvoiceCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 20.h),
+          SizedBox(height: 12.h),
           // Price breakdown
           if (invoice.ekhniiUldegdel != null &&
               invoice.ekhniiUldegdel! != 0) ...[
@@ -455,16 +478,18 @@ class InvoiceCard extends StatelessWidget {
                       ],
                       if (guilgee.tailbar != null &&
                           guilgee.tailbar!.isNotEmpty) ...[
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(10.r),
                           child: Container(
-                            padding: EdgeInsets.all(12.w),
+                            padding: EdgeInsets.all(10.w),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.04),
-                              borderRadius: BorderRadius.circular(12.r),
+                              color: context.isDarkMode
+                                  ? Colors.white.withOpacity(0.04)
+                                  : const Color(0xFFF8F8F8),
+                              borderRadius: BorderRadius.circular(10.r),
                               border: Border.all(
-                                color: AppColors.deepGreen.withOpacity(0.3),
+                                color: AppColors.deepGreen.withOpacity(0.2),
                                 width: 1,
                               ),
                             ),
@@ -474,9 +499,9 @@ class InvoiceCard extends StatelessWidget {
                                 Icon(
                                   Icons.info_outline,
                                   color: AppColors.deepGreen,
-                                  size: 16.sp,
+                                  size: 14.sp,
                                 ),
-                                SizedBox(width: 8.w),
+                                SizedBox(width: 6.w),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -484,15 +509,18 @@ class InvoiceCard extends StatelessWidget {
                                     children: [
                                       Text(
                                         'Авлагын шалтгаан:',
-                                        style: context.expandedTitleStyle(
+                                        style: TextStyle(
                                           color: AppColors.deepGreen,
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      SizedBox(height: 4.h),
+                                      SizedBox(height: 3.h),
                                       Text(
                                         guilgee.tailbar!,
-                                        style: context.expandedTextStyle(
+                                        style: TextStyle(
                                           color: context.textPrimaryColor,
+                                          fontSize: 10.sp,
                                         ),
                                       ),
                                     ],
@@ -554,16 +582,16 @@ class InvoiceCard extends StatelessWidget {
                           zardal.formattedDisplayAmount,
                         ),
                         if (zardal.turul.isNotEmpty) ...[
-                          SizedBox(height: 4.h),
+                          SizedBox(height: 3.h),
                           Padding(
-                            padding: EdgeInsets.only(left: 16.w),
+                            padding: EdgeInsets.only(left: 12.w),
                             child: Text(
                               'Төрөл: ${zardal.turul}',
-                              style: context
-                                  .secondaryDescriptionStyle(
-                                    color: context.textSecondaryColor,
-                                  )
-                                  .copyWith(fontStyle: FontStyle.italic),
+                              style: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: 9.sp,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ),
                         ],
@@ -590,16 +618,20 @@ class InvoiceCard extends StatelessWidget {
           if (invoice.medeelel != null &&
               invoice.medeelel!.tailbar != null &&
               invoice.medeelel!.tailbar!.isNotEmpty) ...[
-            SizedBox(height: 16.h),
+            SizedBox(height: 12.h),
             ClipRRect(
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(10.r),
               child: Container(
-                padding: EdgeInsets.all(12.w),
+                padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(12.r),
+                  color: context.isDarkMode
+                      ? Colors.white.withOpacity(0.04)
+                      : const Color(0xFFF8F8F8),
+                  borderRadius: BorderRadius.circular(10.r),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.12),
+                    color: context.isDarkMode
+                        ? Colors.white.withOpacity(0.12)
+                        : AppColors.deepGreen.withOpacity(0.15),
                     width: 1,
                   ),
                 ),
@@ -611,22 +643,25 @@ class InvoiceCard extends StatelessWidget {
                         Icon(
                           Icons.note_outlined,
                           color: AppColors.deepGreen,
-                          size: 16.sp,
+                          size: 14.sp,
                         ),
-                        SizedBox(width: 6.w),
+                        SizedBox(width: 4.w),
                         Text(
                           'Тайлбар',
-                          style: context.expandedTitleStyle(
+                          style: TextStyle(
                             color: AppColors.deepGreen,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: 6.h),
                     Text(
                       invoice.medeelel!.tailbar!,
-                      style: context.expandedTextStyle(
+                      style: TextStyle(
                         color: context.textPrimaryColor,
+                        fontSize: 10.sp,
                       ),
                     ),
                   ],
@@ -634,17 +669,21 @@ class InvoiceCard extends StatelessWidget {
               ),
             ),
           ],
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
           // Total amount
           ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(10.r),
             child: Container(
-              padding: EdgeInsets.all(16.w),
+              padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(12.r),
+                color: context.isDarkMode
+                    ? Colors.white.withOpacity(0.04)
+                    : const Color(0xFFF8F8F8),
+                borderRadius: BorderRadius.circular(10.r),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.12),
+                  color: context.isDarkMode
+                      ? Colors.white.withOpacity(0.12)
+                      : AppColors.deepGreen.withOpacity(0.15),
                   width: 1,
                 ),
               ),
@@ -653,14 +692,18 @@ class InvoiceCard extends StatelessWidget {
                 children: [
                   Text(
                     'Нийт дүн:',
-                    style: context.expandedTitleStyle(
+                    style: TextStyle(
                       color: context.textPrimaryColor,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
                     invoice.formattedAmount,
-                    style: context.expandedTitleStyle(
+                    style: TextStyle(
                       color: AppColors.deepGreen,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -668,34 +711,34 @@ class InvoiceCard extends StatelessWidget {
             ),
           ),
           if (isHistory && onShowVATReceipt != null) ...[
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
             ClipRRect(
-              borderRadius: BorderRadius.circular(12.r),
+              borderRadius: BorderRadius.circular(10.r),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: onShowVATReceipt,
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(10.r),
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
                     decoration: BoxDecoration(
                       color: AppColors.deepGreen,
-                      borderRadius: BorderRadius.circular(12.r),
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.receipt_long_rounded,
-                          size: 18.sp,
+                          size: 14.sp,
                           color: Colors.white,
                         ),
-                        SizedBox(width: 8.w),
+                        SizedBox(width: 6.w),
                         Text(
                           'Баримт харах',
                           style: TextStyle(
-                            fontSize: 14.sp,
+                            fontSize: 11.sp,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -715,11 +758,15 @@ class InvoiceCard extends StatelessWidget {
   Widget _buildInfoText(BuildContext context, String text) {
     return Padding(
       padding: EdgeInsets.only(
-        bottom: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+        bottom: isVerySmallScreen ? 4 : (isSmallScreen ? 5 : 6),
       ),
       child: Text(
         text,
-        style: context.expandedTextStyle(color: context.textPrimaryColor),
+        style: TextStyle(
+          color: context.textPrimaryColor,
+          fontSize: 9.sp,
+          height: 1.3,
+        ),
       ),
     );
   }
@@ -727,19 +774,25 @@ class InvoiceCard extends StatelessWidget {
   Widget _buildPriceRow(BuildContext context, String label, String amount) {
     return Padding(
       padding: EdgeInsets.symmetric(
-        vertical: isVerySmallScreen ? 6 : (isSmallScreen ? 7 : 8),
+        vertical: isVerySmallScreen ? 4 : (isSmallScreen ? 5 : 6),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: context.expandedTextStyle(color: context.textSecondaryColor),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: context.textSecondaryColor,
+                fontSize: 10.sp,
+              ),
+            ),
           ),
           Text(
             amount,
-            style: context.expandedTextStyle(
+            style: TextStyle(
               color: AppColors.deepGreen,
+              fontSize: 11.sp,
               fontWeight: FontWeight.w600,
             ),
           ),

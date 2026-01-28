@@ -138,11 +138,18 @@ class _QPayQRModalState extends State<QPayQRModal> {
         backgroundColor: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            color: context.cardBackgroundColor,
-            borderRadius: BorderRadius.circular(20.w),
-            border: Border.all(color: context.borderColor, width: 1),
+            color: context.isDarkMode
+                ? const Color(0xFF1A1A1A)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.08),
+              width: 1,
+            ),
           ),
-          padding: EdgeInsets.all(20.w),
+          padding: EdgeInsets.all(16.w),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -150,18 +157,22 @@ class _QPayQRModalState extends State<QPayQRModal> {
                 'QR код олдсонгүй',
                 style: TextStyle(
                   color: context.textPrimaryColor,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 12.h),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.deepGreen,
                   foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
                 ),
-                child: const Text('Хаах'),
+                child: Text('Хаах', style: TextStyle(fontSize: 11.sp)),
               ),
             ],
           ),
@@ -173,11 +184,18 @@ class _QPayQRModalState extends State<QPayQRModal> {
       backgroundColor: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          color: context.cardBackgroundColor,
-          borderRadius: BorderRadius.circular(20.w),
-          border: Border.all(color: context.borderColor, width: 1),
+          color: context.isDarkMode
+              ? const Color(0xFF1A1A1A)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(
+            color: context.isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.08),
+            width: 1,
+          ),
         ),
-        padding: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(16.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -185,11 +203,11 @@ class _QPayQRModalState extends State<QPayQRModal> {
               'QPay хэтэвч QR код',
               style: TextStyle(
                 color: context.textPrimaryColor,
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 14.h),
             // Show 2 QR codes side by side if both exist, otherwise show single
             if (hasOwnOrg && (hasWallet || hasQrText))
               Row(
@@ -203,25 +221,23 @@ class _QPayQRModalState extends State<QPayQRModal> {
                           'Орон сууцны төлбөр',
                           style: TextStyle(
                             color: context.textSecondaryColor,
-                            fontSize: 12.sp,
+                            fontSize: 10.sp,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         Container(
-                          padding: EdgeInsets.all(12.w),
+                          padding: EdgeInsets.all(10.w),
                           decoration: BoxDecoration(
-                            color: context.isDarkMode
-                                ? Colors.white
-                                : AppColors.lightSurface,
-                            borderRadius: BorderRadius.circular(12.w),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
-                          child: _buildQRCode(null, widget.qrImageOwnOrg, size: 150.w),
+                          child: _buildQRCode(null, widget.qrImageOwnOrg, size: 130.w),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(width: 16.w),
+                  SizedBox(width: 12.w),
                   // WALLET QR
                   Expanded(
                     child: Column(
@@ -230,23 +246,21 @@ class _QPayQRModalState extends State<QPayQRModal> {
                           'Хэтэвчний төлбөр',
                           style: TextStyle(
                             color: context.textSecondaryColor,
-                            fontSize: 12.sp,
+                            fontSize: 10.sp,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 6.h),
                         Container(
-                          padding: EdgeInsets.all(12.w),
+                          padding: EdgeInsets.all(10.w),
                           decoration: BoxDecoration(
-                            color: context.isDarkMode
-                                ? Colors.white
-                                : AppColors.lightSurface,
-                            borderRadius: BorderRadius.circular(12.w),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: _buildQRCode(
                             widget.qrText,
                             widget.qrImageWallet,
-                            size: 150.w,
+                            size: 130.w,
                           ),
                         ),
                       ],
@@ -257,53 +271,55 @@ class _QPayQRModalState extends State<QPayQRModal> {
             else
               // Single QR code
               Container(
-                padding: EdgeInsets.all(16.w),
+                padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
-                  color: context.isDarkMode
-                      ? Colors.white
-                      : AppColors.lightSurface,
-                  borderRadius: BorderRadius.circular(12.w),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: _buildQRCode(
                   widget.qrText,
                   hasOwnOrg ? widget.qrImageOwnOrg : widget.qrImageWallet,
-                  size: 250.w,
+                  size: 200.w,
                 ),
               ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 14.h),
             Text(
               'QPay апп-аараа QR кодыг уншуулна уу',
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 14.sp,
+                fontSize: 10.sp,
               ),
               textAlign: TextAlign.center,
             ),
             if (_resultMessage != null) ...[
-              SizedBox(height: 12.h),
+              SizedBox(height: 10.h),
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.all(12.w),
+                padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
                   color: (_paidResult == true)
                       ? Colors.green.withOpacity(0.12)
                       : (_paidResult == false)
                       ? Colors.red.withOpacity(0.12)
-                      : context.accentBackgroundColor,
-                  borderRadius: BorderRadius.circular(12.w),
+                      : (context.isDarkMode
+                          ? Colors.white.withOpacity(0.05)
+                          : const Color(0xFFF8F8F8)),
+                  borderRadius: BorderRadius.circular(10.r),
                   border: Border.all(
                     color: (_paidResult == true)
                         ? Colors.green.withOpacity(0.35)
                         : (_paidResult == false)
                         ? Colors.red.withOpacity(0.35)
-                        : context.borderColor,
+                        : (context.isDarkMode
+                            ? Colors.white.withOpacity(0.1)
+                            : Colors.black.withOpacity(0.08)),
                   ),
                 ),
                 child: Text(
                   _resultMessage!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
                     color: context.textPrimaryColor,
                   ),
@@ -312,7 +328,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
             ],
             if (widget.onCheckPaymentAsync != null ||
                 widget.onCheckPayment != null) ...[
-              SizedBox(height: 20.h),
+              SizedBox(height: 14.h),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -320,15 +336,15 @@ class _QPayQRModalState extends State<QPayQRModal> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.deepGreen,
                     foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.w),
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                   ),
                   child: _isChecking
                       ? SizedBox(
-                          height: 20.h,
-                          width: 20.w,
+                          height: 16.h,
+                          width: 16.w,
                           child: const CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
@@ -339,21 +355,21 @@ class _QPayQRModalState extends State<QPayQRModal> {
                       : Text(
                           'Төлбөр шалгах',
                           style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                 ),
               ),
             ],
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Хаах',
                 style: TextStyle(
                   color: context.textSecondaryColor,
-                  fontSize: 14.sp,
+                  fontSize: 11.sp,
                 ),
               ),
             ),

@@ -90,11 +90,11 @@ class _SideMenuState extends State<SideMenu> {
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: context.responsiveFontSize(
-                      small: 20,
-                      medium: 22,
-                      large: 24,
-                      tablet: 26,
-                      veryNarrow: 16,
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 18,
+                      veryNarrow: 12,
                     ),
                     fontWeight: FontWeight.bold,
                   ),
@@ -116,11 +116,11 @@ class _SideMenuState extends State<SideMenu> {
                   style: TextStyle(
                     color: context.textSecondaryColor,
                     fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 12,
+                      small: 11,
+                      medium: 12,
+                      large: 13,
+                      tablet: 14,
+                      veryNarrow: 10,
                     ),
                     height: 1.5,
                   ),
@@ -171,11 +171,11 @@ class _SideMenuState extends State<SideMenu> {
                       'Ойлголоо',
                       style: TextStyle(
                         fontSize: context.responsiveFontSize(
-                          small: 16,
-                          medium: 17,
-                          large: 18,
-                          tablet: 19,
-                          veryNarrow: 14,
+                          small: 12,
+                          medium: 13,
+                          large: 14,
+                          tablet: 15,
+                          veryNarrow: 11,
                         ),
                         fontWeight: FontWeight.bold,
                       ),
@@ -206,81 +206,30 @@ class _SideMenuState extends State<SideMenu> {
             color: AppColors.getDeepGreen(context.isDarkMode),
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top,
-              bottom: context.responsiveSpacing(
-                small: 16,
-                medium: 18,
-                large: 20,
-                tablet: 22,
-                veryNarrow: 12,
-              ),
+              bottom: 12,
             ),
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: context.responsiveHorizontalPadding(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     AppLogo(
-                      minHeight: context.responsiveSpacing(
-                        small: 40,
-                        medium: 44,
-                        large: 48,
-                        tablet: 52,
-                        veryNarrow: 32,
-                      ),
-                      maxHeight: context.responsiveSpacing(
-                        small: 40,
-                        medium: 44,
-                        large: 48,
-                        tablet: 52,
-                        veryNarrow: 32,
-                      ),
-                      minWidth: context.responsiveSpacing(
-                        small: 40,
-                        medium: 44,
-                        large: 48,
-                        tablet: 52,
-                        veryNarrow: 32,
-                      ),
-                      maxWidth: context.responsiveSpacing(
-                        small: 40,
-                        medium: 44,
-                        large: 48,
-                        tablet: 52,
-                        veryNarrow: 32,
-                      ),
+                      minHeight: 32,
+                      maxHeight: 32,
+                      minWidth: 32,
+                      maxWidth: 32,
                       showImage: true,
                     ),
-                    SizedBox(
-                      width: context.responsiveSpacing(
-                        small: 12,
-                        medium: 14,
-                        large: 16,
-                        tablet: 18,
-                        veryNarrow: 8,
-                      ),
-                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Amarhome',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: context.responsiveFontSize(
-                            small: 24,
-                            medium: 26,
-                            large: 28,
-                            tablet: 30,
-                            veryNarrow: 18,
-                          ),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: context.isVeryNarrow ? 1.0 : 2.0,
-                          height: 1.2,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ),
@@ -295,14 +244,7 @@ class _SideMenuState extends State<SideMenu> {
               top: false,
               child: Column(
                 children: [
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 10,
-                      medium: 12,
-                      large: 14,
-                      tablet: 16,
-                    ),
-                  ),
+                  const SizedBox(height: 8),
                   // Wrap menu items in SingleChildScrollView
                   Expanded(
                     child: SingleChildScrollView(
@@ -437,11 +379,11 @@ class _SideMenuState extends State<SideMenu> {
                                       style: TextStyle(
                                         color: AppColors.deepGreen,
                                         fontSize: context.responsiveFontSize(
-                                          small: 20,
-                                          medium: 22,
-                                          large: 24,
-                                          tablet: 26,
-                                          veryNarrow: 18,
+                                          small: 14,
+                                          medium: 15,
+                                          large: 16,
+                                          tablet: 18,
+                                          veryNarrow: 12,
                                         ),
                                         fontWeight: FontWeight.w500,
                                         letterSpacing: 0.8,
@@ -452,11 +394,11 @@ class _SideMenuState extends State<SideMenu> {
                                       style: TextStyle(
                                         color: context.textSecondaryColor,
                                         fontSize: context.responsiveFontSize(
-                                          small: 16,
-                                          medium: 17,
-                                          large: 18,
-                                          tablet: 19,
-                                          veryNarrow: 14,
+                                          small: 11,
+                                          medium: 12,
+                                          large: 13,
+                                          tablet: 14,
+                                          veryNarrow: 10,
                                         ),
                                       ),
                                     ),
@@ -473,11 +415,11 @@ class _SideMenuState extends State<SideMenu> {
                                             color: context.textSecondaryColor,
                                             fontSize: context
                                                 .responsiveFontSize(
-                                                  small: 16,
-                                                  medium: 17,
-                                                  large: 18,
-                                                  tablet: 19,
-                                                  veryNarrow: 14,
+                                                  small: 11,
+                                                  medium: 12,
+                                                  large: 13,
+                                                  tablet: 14,
+                                                  veryNarrow: 10,
                                                 ),
                                           ),
                                         ),
@@ -492,11 +434,11 @@ class _SideMenuState extends State<SideMenu> {
                                             color: Colors.red,
                                             fontSize: context
                                                 .responsiveFontSize(
-                                                  small: 16,
-                                                  medium: 17,
-                                                  large: 18,
-                                                  tablet: 19,
-                                                  veryNarrow: 14,
+                                                  small: 11,
+                                                  medium: 12,
+                                                  large: 13,
+                                                  tablet: 14,
+                                                  veryNarrow: 10,
                                                 ),
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -524,57 +466,23 @@ class _SideMenuState extends State<SideMenu> {
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 10,
-                      medium: 12,
-                      large: 14,
-                      tablet: 16,
-                      veryNarrow: 8,
-                    ),
-                  ),
+                  const SizedBox(height: 8),
                   // Footer stays at the bottom
                   Padding(
-                    padding: EdgeInsets.only(
-                      bottom: context.responsiveSpacing(
-                        small: 5,
-                        medium: 6,
-                        large: 7,
-                        tablet: 8,
-                        veryNarrow: 4,
-                      ),
-                      top: context.responsiveSpacing(
-                        small: 10,
-                        medium: 12,
-                        large: 14,
-                        tablet: 16,
-                        veryNarrow: 8,
-                      ),
+                    padding: const EdgeInsets.only(
+                      bottom: 8,
+                      top: 8,
                     ),
                     child: Text(
                       '© 2025 Powered by Zevtabs LLC',
                       style: TextStyle(
-                        fontSize: context.responsiveFontSize(
-                          small: 12,
-                          medium: 13,
-                          large: 14,
-                          tablet: 15,
-                          veryNarrow: 10,
-                        ),
+                        fontSize: 10,
                         color: context.textSecondaryColor,
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 20,
-                      medium: 24,
-                      large: 28,
-                      tablet: 32,
-                      veryNarrow: 16,
-                    ),
-                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -604,113 +512,39 @@ class _SideMenuState extends State<SideMenu> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 8,
-            medium: 10,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 6,
-          ),
-        ),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: context.responsiveSpacing(
-              small: 24,
-              medium: 26,
-              large: 28,
-              tablet: 30,
-              veryNarrow: 16,
-            ),
-            vertical: context.responsiveSpacing(
-              small: 12,
-              medium: 14,
-              large: 16,
-              tablet: 18,
-              veryNarrow: 10,
-            ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
           ),
           child: Row(
             children: [
-              // Icon with outline style
-              Container(
-                padding: context.responsivePadding(
-                  small: 8,
-                  medium: 9,
-                  large: 10,
-                  tablet: 11,
-                  veryNarrow: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 8,
-                      medium: 10,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 6,
-                    ),
-                  ),
-                  border: Border.all(
-                    color: isLogout
-                        ? Colors.red.withOpacity(0.3)
-                        : AppColors.deepGreen.withOpacity(0.3),
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  color: isLogout ? Colors.red : AppColors.deepGreen,
-                  size: context.responsiveIconSize(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 26,
-                    veryNarrow: 18,
-                  ),
-                ),
+              // Clean icon without border
+              Icon(
+                icon,
+                color: isLogout ? Colors.red : AppColors.deepGreen,
+                size: 20,
               ),
-              SizedBox(
-                width: context.responsiveSpacing(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
+              const SizedBox(width: 12),
               // Title text
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
                     color: isLogout ? Colors.red : context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 12,
-                    ),
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 0.5,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               // Right arrow
               Icon(
-                Icons.arrow_forward_ios,
+                Icons.chevron_right,
                 color: isLogout
                     ? Colors.red.withOpacity(0.5)
                     : context.textSecondaryColor,
-                size: context.responsiveIconSize(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 14,
-                ),
+                size: 18,
               ),
             ],
           ),

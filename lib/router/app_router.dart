@@ -26,6 +26,7 @@ import 'package:sukh_app/screens/pdf_viewer/pdf_viewer_screen.dart';
 import 'package:sukh_app/screens/gariinAvlaga/gariin_avlaga.dart';
 import 'package:sukh_app/screens/ebarimt/ebarimt_page.dart';
 import 'package:sukh_app/screens/contact/contact_page.dart';
+import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/main.dart';
@@ -42,6 +43,7 @@ final GoRouter appRouter = GoRouter(
     final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
     final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
     final isGoingToBiometricOnboarding = state.matchedLocation == '/hoyrdah';
+    final isGoingToPasswordReset = state.matchedLocation == '/nuuts-ug-sergeekh';
     if (isLoggedIn && (isGoingToLogin || isGoingToRegister)) {
       return '/nuur';
     }
@@ -54,7 +56,8 @@ final GoRouter appRouter = GoRouter(
         !isGoingToLogin &&
         !isGoingToRegister &&
         !isGoingToOnboarding &&
-        !isGoingToBiometricOnboarding) {
+        !isGoingToBiometricOnboarding &&
+        !isGoingToPasswordReset) {
       return '/newtrekh';
     }
 
@@ -308,6 +311,14 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: const ContactPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/nuuts-ug-sergeekh',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const NuutsUgSergeekh(),
           ),
     ),
   ],
