@@ -130,20 +130,50 @@ class HomeHeader extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     SizedBox(
-                      height: 48.h,
+                      height: context.responsiveSpacing(
+                        small: 52,
+                        medium: 54,
+                        large: 56,
+                        tablet: 60,
+                        veryNarrow: 48,
+                      ),
                       child: OptimizedGlass(
-                        borderRadius: BorderRadius.circular(11.r),
+                        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                          small: 12,
+                          medium: 13,
+                          large: 14,
+                          tablet: 16,
+                          veryNarrow: 10,
+                        )),
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: onNotificationTap,
-                            borderRadius: BorderRadius.circular(11.r),
+                            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                              small: 12,
+                              medium: 13,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 10,
+                            )),
                             child: Padding(
-                              padding: EdgeInsets.all(11.w),
+                              padding: EdgeInsets.all(context.responsiveSpacing(
+                                small: 12,
+                                medium: 13,
+                                large: 14,
+                                tablet: 16,
+                                veryNarrow: 10,
+                              )),
                               child: Icon(
                                 Icons.notifications_outlined,
                                 color: context.textPrimaryColor,
-                                size: 22.sp,
+                                size: context.responsiveFontSize(
+                                  small: 26,
+                                  medium: 27,
+                                  large: 28,
+                                  tablet: 30,
+                                  veryNarrow: 22,
+                                ),
                               ),
                             ),
                           ),

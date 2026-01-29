@@ -2339,13 +2339,24 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
     final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
 
     return Scaffold(
+      backgroundColor: context.backgroundColor,
       appBar: buildStandardAppBar(
         context,
         title: 'Нэхэмжлэх',
         actions: availableContracts.length > 1
             ? [
                 IconButton(
-                  icon: const Icon(Icons.swap_horiz, color: Colors.white),
+                  icon: Icon(
+                    Icons.swap_horiz,
+                    color: Colors.white,
+                    size: context.responsiveIconSize(
+                      small: 26,
+                      medium: 28,
+                      large: 30,
+                      tablet: 32,
+                      veryNarrow: 22,
+                    ),
+                  ),
                   onPressed: _showContractSelectionModal,
                   tooltip: 'Гэрээ солих',
                 ),

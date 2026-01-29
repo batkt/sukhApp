@@ -11,6 +11,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/screens/settings/app_icon_selection_sheet.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 
@@ -694,6 +695,45 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 : AppColors.deepGreen,
             size: 16.sp,
           ),
+          SizedBox(width: 6.w),
+          Text(
+            title,
+            style: TextStyle(
+              color: isDark
+                  ? Colors.white.withOpacity(0.9)
+                  : AppColors.deepGreen,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBiometricSectionHeader(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      child: Row(
+        children: [
+          Platform.isIOS
+              ? Image.asset(
+                  'lib/assets/img/face-id.png',
+                  width: 16.sp,
+                  height: 16.sp,
+                  color: isDark
+                      ? AppColors.deepGreen.withOpacity(0.7)
+                      : AppColors.deepGreen,
+                )
+              : Icon(
+                  Icons.fingerprint_rounded,
+                  color: isDark
+                      ? AppColors.deepGreen.withOpacity(0.7)
+                      : AppColors.deepGreen,
+                  size: 16.sp,
+                ),
           SizedBox(width: 6.w),
           Text(
             title,
@@ -2105,11 +2145,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
                                     // Biometric Settings Section
                                     if (_biometricAvailable) ...[
-                                      _buildSubSectionHeader(
+                                      _buildBiometricSectionHeader(
                                         'Биометрийн баталгаажуулалт',
-                                        Platform.isIOS
-                                            ? Icons.face_rounded
-                                            : Icons.fingerprint_rounded,
                                       ),
                                       SizedBox(height: 12.h),
                                       _buildSectionCard(
@@ -2209,6 +2246,70 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                               ),
                                             ),
                                           ],
+                                        ),
+                                      ),
+                                      SizedBox(height: 24.h),
+                                    ],
+
+                                    // App Icon Selection Section (iOS only)
+                                    if (Platform.isIOS) ...[
+                                      _buildSubSectionHeader(
+                                        'Апп дүрс',
+                                        Icons.palette_outlined,
+                                      ),
+                                      SizedBox(height: 12.h),
+                                      _buildSectionCard(
+                                        GestureDetector(
+                                          onTap: () => showAppIconSelectionSheet(context),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                padding: EdgeInsets.all(10.w),
+                                                decoration: BoxDecoration(
+                                                  gradient: const LinearGradient(
+                                                    begin: Alignment.topLeft,
+                                                    end: Alignment.bottomRight,
+                                                    colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+                                                  ),
+                                                  borderRadius: BorderRadius.circular(10.r),
+                                                ),
+                                                child: Icon(
+                                                  Icons.home_rounded,
+                                                  color: Colors.white,
+                                                  size: 18.sp,
+                                                ),
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Апп дүрс солих',
+                                                      style: TextStyle(
+                                                        color: context.textPrimaryColor,
+                                                        fontSize: 13.sp,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 4.h),
+                                                    Text(
+                                                      'Өөрт тохирох өнгө сонгох',
+                                                      style: TextStyle(
+                                                        color: context.textSecondaryColor,
+                                                        fontSize: 11.sp,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Icon(
+                                                Icons.chevron_right_rounded,
+                                                color: context.textSecondaryColor,
+                                                size: 20.sp,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                       SizedBox(height: 24.h),

@@ -705,7 +705,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               Column(
                                 children: [
                                   Text(
-                                    '© 2025 Powered by Zevtabs LLC',
+                                    '© 2026 Powered by Zevtabs LLC',
                                     style: TextStyle(
                                       fontSize: 10.sp,
                                       color: isDark
@@ -922,22 +922,22 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                   ),
                 ],
         ),
-        child: FutureBuilder<IconData>(
-          future: BiometricService.getBiometricIcon(),
-          builder: (context, snapshot) {
-            final icon = snapshot.data ?? 
-                (Theme.of(context).platform == TargetPlatform.iOS 
-                    ? Icons.face_retouching_natural 
-                    : Icons.fingerprint);
-            return Icon(
-              icon,
-              color: isDark
-                  ? AppColors.deepGreenLight
-                  : AppColors.deepGreen,
-              size: 26.sp,
-            );
-          },
-        ),
+        child: Theme.of(context).platform == TargetPlatform.iOS
+            ? Image.asset(
+                'lib/assets/img/face-id.png',
+                width: 26.sp,
+                height: 26.sp,
+                color: isDark
+                    ? AppColors.deepGreenLight
+                    : AppColors.deepGreen,
+              )
+            : Icon(
+                Icons.fingerprint,
+                color: isDark
+                    ? AppColors.deepGreenLight
+                    : AppColors.deepGreen,
+                size: 26.sp,
+              ),
       ),
     );
   }

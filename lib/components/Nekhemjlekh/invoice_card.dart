@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 
 class InvoiceCard extends StatelessWidget {
@@ -99,7 +100,13 @@ class InvoiceCard extends StatelessWidget {
                               invoice.formattedDate,
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 10.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  tablet: 15,
+                                  veryNarrow: 10,
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -121,7 +128,13 @@ class InvoiceCard extends StatelessWidget {
                                 statusLabel,
                                 style: TextStyle(
                                   color: statusColor,
-                                  fontSize: 9.sp,
+                                  fontSize: context.responsiveFontSize(
+                                    small: 11,
+                                    medium: 12,
+                                    large: 13,
+                                    tablet: 14,
+                                    veryNarrow: 9,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.3,
                                 ),
@@ -174,7 +187,13 @@ class InvoiceCard extends StatelessWidget {
                                     invoice.displayName,
                                     style: TextStyle(
                                       color: context.textPrimaryColor,
-                                      fontSize: 13.sp,
+                                      fontSize: context.responsiveFontSize(
+                                        small: 15,
+                                        medium: 16,
+                                        large: 17,
+                                        tablet: 18,
+                                        veryNarrow: 13,
+                                      ),
                                       fontWeight: FontWeight.w600,
                                     ),
                                     maxLines: 1,
@@ -185,7 +204,13 @@ class InvoiceCard extends StatelessWidget {
                                     invoice.gereeniiDugaar,
                                     style: TextStyle(
                                       color: context.textSecondaryColor,
-                                      fontSize: 10.sp,
+                                      fontSize: context.responsiveFontSize(
+                                        small: 12,
+                                        medium: 13,
+                                        large: 14,
+                                        tablet: 15,
+                                        veryNarrow: 10,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -199,7 +224,13 @@ class InvoiceCard extends StatelessWidget {
                                   invoice.formattedAmount,
                                   style: TextStyle(
                                     color: AppColors.deepGreen,
-                                    fontSize: 13.sp,
+                                    fontSize: context.responsiveFontSize(
+                                      small: 16,
+                                      medium: 17,
+                                      large: 18,
+                                      tablet: 20,
+                                      veryNarrow: 14,
+                                    ),
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -274,7 +305,13 @@ class InvoiceCard extends StatelessWidget {
                                                 ? Icon(
                                                     Icons.check_rounded,
                                                     color: Colors.white,
-                                                    size: 14.sp,
+                                                    size: context.responsiveFontSize(
+                                                      small: 16,
+                                                      medium: 17,
+                                                      large: 18,
+                                                      tablet: 20,
+                                                      veryNarrow: 14,
+                                                    ),
                                                     weight: 3,
                                                   )
                                                 : const SizedBox.shrink(),
@@ -298,7 +335,13 @@ class InvoiceCard extends StatelessWidget {
                                     ? Icons.keyboard_arrow_up
                                     : Icons.keyboard_arrow_down,
                                 color: AppColors.deepGreen,
-                                size: 16.sp,
+                                size: context.responsiveFontSize(
+                                  small: 20,
+                                  medium: 21,
+                                  large: 22,
+                                  tablet: 24,
+                                  veryNarrow: 16,
+                                ),
                               ),
                             ],
                           ),
@@ -356,14 +399,26 @@ class InvoiceCard extends StatelessWidget {
                             Icon(
                               Icons.business,
                               color: AppColors.deepGreen,
-                              size: 14.sp,
+                              size: context.responsiveFontSize(
+                                small: 16,
+                                medium: 17,
+                                large: 18,
+                                tablet: 20,
+                                veryNarrow: 14,
+                              ),
                             ),
                             SizedBox(width: 4.w),
                             Text(
                               'Нэхэмжлэгч',
                               style: TextStyle(
                                 color: AppColors.deepGreen,
-                                fontSize: 10.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  tablet: 15,
+                                  veryNarrow: 10,
+                                ),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -412,14 +467,26 @@ class InvoiceCard extends StatelessWidget {
                             Icon(
                               Icons.person,
                               color: AppColors.deepGreen,
-                              size: 14.sp,
+                              size: context.responsiveFontSize(
+                                small: 16,
+                                medium: 17,
+                                large: 18,
+                                tablet: 20,
+                                veryNarrow: 14,
+                              ),
                             ),
                             SizedBox(width: 4.w),
                             Text(
                               'Төлөгч',
                               style: TextStyle(
                                 color: AppColors.deepGreen,
-                                fontSize: 10.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  tablet: 15,
+                                  veryNarrow: 10,
+                                ),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -499,7 +566,13 @@ class InvoiceCard extends StatelessWidget {
                                 Icon(
                                   Icons.info_outline,
                                   color: AppColors.deepGreen,
-                                  size: 14.sp,
+                                  size: context.responsiveFontSize(
+                                    small: 16,
+                                    medium: 17,
+                                    large: 18,
+                                    tablet: 20,
+                                    veryNarrow: 14,
+                                  ),
                                 ),
                                 SizedBox(width: 6.w),
                                 Expanded(
@@ -511,7 +584,13 @@ class InvoiceCard extends StatelessWidget {
                                         'Авлагын шалтгаан:',
                                         style: TextStyle(
                                           color: AppColors.deepGreen,
-                                          fontSize: 10.sp,
+                                          fontSize: context.responsiveFontSize(
+                                            small: 12,
+                                            medium: 13,
+                                            large: 14,
+                                            tablet: 15,
+                                            veryNarrow: 10,
+                                          ),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -520,7 +599,13 @@ class InvoiceCard extends StatelessWidget {
                                         guilgee.tailbar!,
                                         style: TextStyle(
                                           color: context.textPrimaryColor,
-                                          fontSize: 10.sp,
+                                          fontSize: context.responsiveFontSize(
+                                            small: 12,
+                                            medium: 13,
+                                            large: 14,
+                                            tablet: 15,
+                                            veryNarrow: 10,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -589,7 +674,13 @@ class InvoiceCard extends StatelessWidget {
                               'Төрөл: ${zardal.turul}',
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 9.sp,
+                                fontSize: context.responsiveFontSize(
+                                  small: 11,
+                                  medium: 12,
+                                  large: 13,
+                                  tablet: 14,
+                                  veryNarrow: 9,
+                                ),
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -643,14 +734,26 @@ class InvoiceCard extends StatelessWidget {
                         Icon(
                           Icons.note_outlined,
                           color: AppColors.deepGreen,
-                          size: 14.sp,
+                          size: context.responsiveFontSize(
+                            small: 16,
+                            medium: 17,
+                            large: 18,
+                            tablet: 20,
+                            veryNarrow: 14,
+                          ),
                         ),
                         SizedBox(width: 4.w),
                         Text(
                           'Тайлбар',
                           style: TextStyle(
                             color: AppColors.deepGreen,
-                            fontSize: 10.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 12,
+                              medium: 13,
+                              large: 14,
+                              tablet: 15,
+                              veryNarrow: 10,
+                            ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -661,7 +764,13 @@ class InvoiceCard extends StatelessWidget {
                       invoice.medeelel!.tailbar!,
                       style: TextStyle(
                         color: context.textPrimaryColor,
-                        fontSize: 10.sp,
+                        fontSize: context.responsiveFontSize(
+                          small: 12,
+                          medium: 13,
+                          large: 14,
+                          tablet: 15,
+                          veryNarrow: 10,
+                        ),
                       ),
                     ),
                   ],
@@ -694,7 +803,13 @@ class InvoiceCard extends StatelessWidget {
                     'Нийт дүн:',
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: 11.sp,
+                      fontSize: context.responsiveFontSize(
+                        small: 14,
+                        medium: 15,
+                        large: 16,
+                        tablet: 17,
+                        veryNarrow: 11,
+                      ),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -702,7 +817,13 @@ class InvoiceCard extends StatelessWidget {
                     invoice.formattedAmount,
                     style: TextStyle(
                       color: AppColors.deepGreen,
-                      fontSize: 13.sp,
+                      fontSize: context.responsiveFontSize(
+                        small: 16,
+                        medium: 17,
+                        large: 18,
+                        tablet: 20,
+                        veryNarrow: 13,
+                      ),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -731,14 +852,26 @@ class InvoiceCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.receipt_long_rounded,
-                          size: 14.sp,
+                          size: context.responsiveFontSize(
+                            small: 16,
+                            medium: 17,
+                            large: 18,
+                            tablet: 20,
+                            veryNarrow: 14,
+                          ),
                           color: Colors.white,
                         ),
                         SizedBox(width: 6.w),
                         Text(
                           'Баримт харах',
                           style: TextStyle(
-                            fontSize: 11.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 13,
+                              medium: 14,
+                              large: 15,
+                              tablet: 16,
+                              veryNarrow: 11,
+                            ),
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -764,7 +897,13 @@ class InvoiceCard extends StatelessWidget {
         text,
         style: TextStyle(
           color: context.textPrimaryColor,
-          fontSize: 9.sp,
+          fontSize: context.responsiveFontSize(
+            small: 11,
+            medium: 12,
+            large: 13,
+            tablet: 14,
+            veryNarrow: 9,
+          ),
           height: 1.3,
         ),
       ),
@@ -784,7 +923,13 @@ class InvoiceCard extends StatelessWidget {
               label,
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 10.sp,
+                fontSize: context.responsiveFontSize(
+                  small: 12,
+                  medium: 13,
+                  large: 14,
+                  tablet: 15,
+                  veryNarrow: 10,
+                ),
               ),
             ),
           ),
@@ -792,7 +937,13 @@ class InvoiceCard extends StatelessWidget {
             amount,
             style: TextStyle(
               color: AppColors.deepGreen,
-              fontSize: 11.sp,
+              fontSize: context.responsiveFontSize(
+                small: 13,
+                medium: 14,
+                large: 15,
+                tablet: 16,
+                veryNarrow: 11,
+              ),
               fontWeight: FontWeight.w600,
             ),
           ),

@@ -119,7 +119,13 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           'Төрөл сонгох',
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 16.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 17,
+                              medium: 18,
+                              large: 19,
+                              tablet: 20,
+                              veryNarrow: 15,
+                            ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -173,7 +179,13 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           'Гарчиг',
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 16.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 17,
+                              medium: 18,
+                              large: 19,
+                              tablet: 20,
+                              veryNarrow: 15,
+                            ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -190,7 +202,13 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           controller: _titleController,
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 16.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 17,
+                              medium: 18,
+                              large: 19,
+                              tablet: 20,
+                              veryNarrow: 15,
+                            ),
                           ),
                           decoration: InputDecoration(
                             hintText: 'Гарчиг оруулах',
@@ -291,7 +309,13 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           'Дэлгэрэнгүй',
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 16.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 17,
+                              medium: 18,
+                              large: 19,
+                              tablet: 20,
+                              veryNarrow: 15,
+                            ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -308,7 +332,13 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           controller: _messageController,
                           style: TextStyle(
                             color: context.textPrimaryColor,
-                            fontSize: 16.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 17,
+                              medium: 18,
+                              large: 19,
+                              tablet: 20,
+                              veryNarrow: 15,
+                            ),
                           ),
                           maxLines: 8,
                           decoration: InputDecoration(
@@ -453,7 +483,13 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                                 : Text(
                                     'Илгээх',
                                     style: TextStyle(
-                                      fontSize: 16.sp,
+                                      fontSize: context.responsiveFontSize(
+                                        small: 17,
+                                        medium: 18,
+                                        large: 19,
+                                        tablet: 20,
+                                        veryNarrow: 15,
+                                      ),
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
@@ -498,12 +534,33 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
         });
       },
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
+        padding: EdgeInsets.symmetric(
+          vertical: context.responsiveSpacing(
+            small: 16,
+            medium: 18,
+            large: 20,
+            tablet: 22,
+            veryNarrow: 14,
+          ),
+          horizontal: context.responsiveSpacing(
+            small: 16,
+            medium: 18,
+            large: 20,
+            tablet: 22,
+            veryNarrow: 14,
+          ),
+        ),
         decoration: BoxDecoration(
           color: isSelected
               ? selectedColor.withOpacity(0.2)
               : unselectedBgColor,
-          borderRadius: BorderRadius.circular(12.w),
+          borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 10,
+          )),
           border: Border.all(
             color: isSelected ? selectedColor : unselectedBorderColor,
             width: isSelected ? 2 : 1,
@@ -515,14 +572,26 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
             Icon(
               icon,
               color: isSelected ? selectedColor : unselectedTextColor,
-              size: 20.sp,
+              size: context.responsiveFontSize(
+                small: 22,
+                medium: 24,
+                large: 26,
+                tablet: 28,
+                veryNarrow: 18,
+              ),
             ),
             SizedBox(width: 8.w),
             Text(
               label,
               style: TextStyle(
                 color: isSelected ? selectedColor : unselectedTextColor,
-                fontSize: 14.sp,
+                fontSize: context.responsiveFontSize(
+                  small: 15,
+                  medium: 16,
+                  large: 17,
+                  tablet: 18,
+                  veryNarrow: 13,
+                ),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),

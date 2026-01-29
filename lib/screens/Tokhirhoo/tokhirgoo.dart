@@ -6,6 +6,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/screens/settings/app_icon_selection_sheet.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -599,6 +600,34 @@ class _TokhirgooState extends State<Tokhirgoo>
                             veryNarrow: 24,
                           ),
                         ),
+                        // App Icon Selection Section
+                        Text(
+                          'Апп дүрс тохируулах',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 12,
+                            medium: 14,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 8,
+                          ),
+                        ),
+                        _buildAppIconButton(),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 32,
+                            medium: 36,
+                            large: 40,
+                            tablet: 44,
+                            veryNarrow: 24,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -782,6 +811,80 @@ class _TokhirgooState extends State<Tokhirgoo>
         }
         return null;
       },
+    );
+  }
+
+  Widget _buildAppIconButton() {
+    return GestureDetector(
+      onTap: () => showAppIconSelectionSheet(context),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 12,
+              medium: 14,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 10,
+            ),
+          ),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+                ),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Icon(
+                Icons.home_rounded,
+                color: Colors.white,
+                size: 20.sp,
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Апп дүрс солих',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'Өөрт тохирох өнгө сонгох',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 10.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white.withOpacity(0.6),
+              size: 20.sp,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

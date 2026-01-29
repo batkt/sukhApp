@@ -61,7 +61,7 @@ class BillerUtils {
         );
       }
 
-      // Check if it's Скаймедиа and use logo-skymedia-blue.svg
+      // Check if it's Скаймедиа and use sky.png
       if (nameLower.contains('скаймедиа') ||
           nameLower.contains('скай медиа') ||
           nameLower.contains('скай-медиа') ||
@@ -69,15 +69,13 @@ class BillerUtils {
           nameLower.contains('sky media') ||
           nameLower.contains('sky-media') ||
           (nameLower.contains('скай') && nameLower.contains('медиа'))) {
-        return SvgPicture.asset(
-          'lib/assets/img/logo-skymedia-blue.svg',
-          width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.contain,
-          placeholderBuilder: (BuildContext context) => Icon(
-            Icons.receipt_long_rounded,
-            color: AppColors.secondaryAccent,
-            size: 24.sp,
+        return Transform.scale(
+          scale: 3.0,
+          child: Image.asset(
+            'lib/assets/img/sky.png',
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.contain,
           ),
         );
       }

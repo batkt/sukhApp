@@ -509,7 +509,7 @@ class _SideMenuState extends State<SideMenu> {
                       top: isTablet ? 12 : 8,
                     ),
                     child: Text(
-                      '© 2025 Powered by Zevtabs LLC',
+                      '© 2026 Powered by Zevtabs LLC',
                       style: TextStyle(
                         fontSize: isTablet ? 12 : 10,
                         color: context.textSecondaryColor,

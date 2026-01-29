@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class MedegdelPage extends StatefulWidget {
@@ -38,13 +39,42 @@ class _MedegdelPageState extends State<MedegdelPage>
           children: [
             // Tab bar
             Container(
-              height: 40.h,
-              margin: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+              height: context.responsiveSpacing(
+                small: 40,
+                medium: 44,
+                large: 48,
+                tablet: 52,
+                veryNarrow: 36,
+              ),
+              margin: EdgeInsets.symmetric(
+                horizontal: context.responsiveSpacing(
+                  small: 14,
+                  medium: 15,
+                  large: 16,
+                  tablet: 18,
+                  veryNarrow: 12,
+                ),
+                vertical: context.responsiveSpacing(
+                  small: 8,
+                  medium: 10,
+                  large: 12,
+                  tablet: 14,
+                  veryNarrow: 6,
+                ),
+              ),
               decoration: BoxDecoration(
                 color: context.isDarkMode
                     ? const Color(0xFF1A1A1A)
                     : const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(12.r),
+                borderRadius: BorderRadius.circular(
+                  context.responsiveBorderRadius(
+                    small: 10,
+                    medium: 11,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 8,
+                  ),
+                ),
                 border: Border.all(
                   color: context.isDarkMode
                       ? AppColors.deepGreen.withOpacity(0.2)
@@ -58,16 +88,36 @@ class _MedegdelPageState extends State<MedegdelPage>
                 unselectedLabelColor: context.textSecondaryColor,
                 indicator: BoxDecoration(
                   color: AppColors.deepGreen,
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(
+                    context.responsiveBorderRadius(
+                      small: 8,
+                      medium: 9,
+                      large: 10,
+                      tablet: 12,
+                      veryNarrow: 6,
+                    ),
+                  ),
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
                 labelStyle: TextStyle(
-                  fontSize: 10.sp,
+                  fontSize: context.responsiveFontSize(
+                    small: 10,
+                    medium: 11,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 9,
+                  ),
                   fontWeight: FontWeight.w600,
                 ),
                 unselectedLabelStyle: TextStyle(
-                  fontSize: 10.sp,
+                  fontSize: context.responsiveFontSize(
+                    small: 10,
+                    medium: 11,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 9,
+                  ),
                   fontWeight: FontWeight.w500,
                 ),
                 labelPadding: EdgeInsets.zero,
@@ -80,7 +130,13 @@ class _MedegdelPageState extends State<MedegdelPage>
               ),
             ),
 
-            SizedBox(height: 8.h),
+            SizedBox(height: context.responsiveSpacing(
+              small: 8,
+              medium: 10,
+              large: 12,
+              tablet: 14,
+              veryNarrow: 6,
+            )),
 
             Expanded(
               child: TabBarView(
@@ -101,7 +157,15 @@ class _MedegdelPageState extends State<MedegdelPage>
 
   Widget _buildNotificationList() {
     return ListView(
-      padding: EdgeInsets.symmetric(horizontal: 14.w),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.responsiveSpacing(
+          small: 14,
+          medium: 15,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 12,
+        ),
+      ),
       children: [
         _buildNotificationItem(
           title: 'Санал',
@@ -109,42 +173,78 @@ class _MedegdelPageState extends State<MedegdelPage>
           timestamp: '2025-08-29 14:40:28',
           status: 'pending',
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        )),
         _buildNotificationItem(
           title: 'Шаардлага',
           description: 'yhutgjioerkpfe.wlmkij n b',
           timestamp: '2025-08-29 14:40:21',
           status: 'done',
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        )),
         _buildNotificationItem(
           title: 'Шаардлага',
           description: 'yhutgjioerkpfe.wlmkij n b',
           timestamp: '2025-08-29 14:40:12',
           status: 'done',
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        )),
         _buildNotificationItem(
           title: 'Санал',
           description: 'hiuhujdqwldjqdjwdqwdqdq',
           timestamp: '2025-08-29 14:36:15',
           status: 'pending',
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        )),
         _buildNotificationItem(
           title: 'Санал',
           description: 'dqwdqw',
           timestamp: '2025-08-26 12:01:06',
           status: 'pending',
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        )),
         _buildNotificationItem(
           title: 'Санал',
           description: 'lp',
           timestamp: '2025-08-26 12:00:58',
           status: 'replied',
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: context.responsiveSpacing(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 24,
+          veryNarrow: 12,
+        )),
       ],
     );
   }
@@ -177,12 +277,26 @@ class _MedegdelPageState extends State<MedegdelPage>
     }
 
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(context.responsiveSpacing(
+        small: 12,
+        medium: 14,
+        large: 16,
+        tablet: 18,
+        veryNarrow: 10,
+      )),
       decoration: BoxDecoration(
         color: context.isDarkMode
             ? const Color(0xFF1A1A1A)
             : Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 12,
+            medium: 13,
+            large: 14,
+            tablet: 16,
+            veryNarrow: 10,
+          ),
+        ),
         border: Border.all(
           color: statusColor.withOpacity(0.2),
           width: 1,
@@ -203,18 +317,44 @@ class _MedegdelPageState extends State<MedegdelPage>
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8.w),
+                padding: EdgeInsets.all(context.responsiveSpacing(
+                  small: 8,
+                  medium: 9,
+                  large: 10,
+                  tablet: 12,
+                  veryNarrow: 6,
+                )),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8.r),
+                  borderRadius: BorderRadius.circular(
+                    context.responsiveBorderRadius(
+                      small: 8,
+                      medium: 9,
+                      large: 10,
+                      tablet: 12,
+                      veryNarrow: 6,
+                    ),
+                  ),
                 ),
                 child: Icon(
                   statusIcon,
                   color: statusColor,
-                  size: 14.sp,
+                  size: context.responsiveFontSize(
+                    small: 14,
+                    medium: 16,
+                    large: 18,
+                    tablet: 20,
+                    veryNarrow: 12,
+                  ),
                 ),
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: context.responsiveSpacing(
+                small: 10,
+                medium: 11,
+                large: 12,
+                tablet: 14,
+                veryNarrow: 8,
+              )),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,16 +363,34 @@ class _MedegdelPageState extends State<MedegdelPage>
                       title,
                       style: TextStyle(
                         color: context.textPrimaryColor,
-                        fontSize: 12.sp,
+                        fontSize: context.responsiveFontSize(
+                          small: 12,
+                          medium: 13,
+                          large: 14,
+                          tablet: 16,
+                          veryNarrow: 11,
+                        ),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(height: 2.h),
+                    SizedBox(height: context.responsiveSpacing(
+                      small: 2,
+                      medium: 3,
+                      large: 4,
+                      tablet: 5,
+                      veryNarrow: 2,
+                    )),
                     Text(
                       timestamp,
                       style: TextStyle(
                         color: context.textSecondaryColor,
-                        fontSize: 9.sp,
+                        fontSize: context.responsiveFontSize(
+                          small: 9,
+                          medium: 10,
+                          large: 11,
+                          tablet: 12,
+                          veryNarrow: 8,
+                        ),
                       ),
                     ),
                   ],
@@ -240,30 +398,68 @@ class _MedegdelPageState extends State<MedegdelPage>
               ),
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: 8.w,
-                  vertical: 4.h,
+                  horizontal: context.responsiveSpacing(
+                    small: 8,
+                    medium: 9,
+                    large: 10,
+                    tablet: 12,
+                    veryNarrow: 6,
+                  ),
+                  vertical: context.responsiveSpacing(
+                    small: 4,
+                    medium: 5,
+                    large: 6,
+                    tablet: 8,
+                    veryNarrow: 3,
+                  ),
                 ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8.r),
+                  borderRadius: BorderRadius.circular(
+                    context.responsiveBorderRadius(
+                      small: 8,
+                      medium: 9,
+                      large: 10,
+                      tablet: 12,
+                      veryNarrow: 6,
+                    ),
+                  ),
                 ),
                 child: Text(
                   statusText,
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 9.sp,
+                    fontSize: context.responsiveFontSize(
+                      small: 9,
+                      medium: 10,
+                      large: 11,
+                      tablet: 12,
+                      veryNarrow: 8,
+                    ),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: context.responsiveSpacing(
+            small: 10,
+            medium: 11,
+            large: 12,
+            tablet: 14,
+            veryNarrow: 8,
+          )),
           Text(
             description,
             style: TextStyle(
               color: context.textSecondaryColor,
-              fontSize: 11.sp,
+              fontSize: context.responsiveFontSize(
+                small: 11,
+                medium: 12,
+                large: 13,
+                tablet: 15,
+                veryNarrow: 10,
+              ),
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
