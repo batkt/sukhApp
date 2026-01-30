@@ -436,11 +436,11 @@ class _SideMenuState extends State<SideMenu> {
                                       style: TextStyle(
                                         color: context.textSecondaryColor,
                                         fontSize: context.responsiveFontSize(
-                                          small: 11,
-                                          medium: 12,
-                                          large: 13,
-                                          tablet: 14,
-                                          veryNarrow: 10,
+                                          small: 13,
+                                          medium: 14,
+                                          large: 15,
+                                          tablet: 16,
+                                          veryNarrow: 11,
                                         ),
                                       ),
                                     ),
