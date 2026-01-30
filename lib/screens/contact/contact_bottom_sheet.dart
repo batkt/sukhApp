@@ -203,6 +203,15 @@ class _ContactBottomSheetState extends State<ContactBottomSheet> {
                   onTap: () => _launchPhone('105'),
                   isEmergency: true,
                 ),
+                SizedBox(height: 8.h),
+                _buildContactOption(
+                  context,
+                  icon: Icons.power,
+                  label: '7004-7004',
+                  subtitle: 'Цахилгаан',
+                  onTap: () => _launchPhone('70047004'),
+                  isEmergency: true,
+                ),
 
                 SizedBox(height: 20.h),
               ],
