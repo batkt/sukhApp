@@ -519,11 +519,11 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
-                              small: 12,
-                              medium: 13,
-                              large: 14,
-                              tablet: 16,
-                              veryNarrow: 10,
+                              small: 14,
+                              medium: 15,
+                              large: 16,
+                              tablet: 18,
+                              veryNarrow: 12,
                             ),
                             fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
                           ),
@@ -564,11 +564,11 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                     style: TextStyle(
                       color: context.textSecondaryColor,
                       fontSize: context.responsiveFontSize(
-                        small: 11,
-                        medium: 12,
-                        large: 13,
-                        tablet: 15,
-                        veryNarrow: 10,
+                        small: 13,
+                        medium: 14,
+                        large: 15,
+                        tablet: 17,
+                        veryNarrow: 11,
                       ),
                     ),
                     maxLines: 2,

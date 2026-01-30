@@ -446,10 +446,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     height: 130.w,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: AppColors.deepGreen,
+                                      color: Colors.black,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppColors.deepGreen.withOpacity(0.3),
+                                          color: Colors.black.withOpacity(0.3),
                                           blurRadius: 20,
                                           spreadRadius: 2,
                                         ),
@@ -604,16 +604,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                 ],
                               ),
                               
-                              SizedBox(height: 24.h),
+                              SizedBox(height: 12.h),
                               
-                              // Hint text
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: Text(
-                                  _showEmailField
-                                      ? 'Системд бүртгэлгүй байна'
-                                      : '',
-                                  key: ValueKey(_showEmailField),
+                              // Hint text (only when in signup mode)
+                              if (_showEmailField) ...[
+                                Text(
+                                  'Системд бүртгэлгүй байна',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: isDark
@@ -622,9 +618,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     fontSize: 13.sp,
                                   ),
                                 ),
-                              ),
-                              
-                              SizedBox(height: 12.h),
+                                SizedBox(height: 8.h),
+                              ],
                               
                               // Divider with text
                               Row(
@@ -638,7 +633,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     ),
                                   ),
                                   Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                    padding: EdgeInsets.symmetric(horizontal: 12.w),
                                     child: Text(
                                       'эсвэл',
                                       style: TextStyle(
@@ -663,7 +658,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                               
                               SizedBox(height: 12.h),
                               
-                              // Register button - outline style
+                              // Sign up button
                               GestureDetector(
                                 onTap: () {
                                   context.push(

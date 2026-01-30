@@ -739,334 +739,436 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
 
         showDialog(
           context: context,
-          barrierColor: Colors.black.withOpacity(0.7),
+          barrierColor: Colors.black.withOpacity(0.5),
           builder: (BuildContext context) {
             return Dialog(
               backgroundColor: Colors.transparent,
               elevation: 0,
               insetPadding: context.responsiveHorizontalPadding(
-                small: 20,
-                medium: 24,
-                large: 28,
-                tablet: 32,
-                veryNarrow: 14,
+                small: 24,
+                medium: 28,
+                large: 32,
+                tablet: 40,
+                veryNarrow: 16,
               ),
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 250),
                 curve: Curves.easeOutCubic,
                 builder: (context, value, child) {
                   return Transform.scale(
-                    scale: 0.8 + (0.2 * value),
+                    scale: 0.9 + (0.1 * value),
                     child: Opacity(opacity: value, child: child),
                   );
                 },
-                child: OptimizedGlass(
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 24,
-                      medium: 26,
-                      large: 28,
-                      tablet: 30,
-                      veryNarrow: 18,
-                    ),
-                  ),
-                  opacity: 0.10,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.darkBackground.withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 24,
-                          medium: 26,
-                          large: 28,
-                          tablet: 30,
-                        ),
-                      ),
-                      border: Border.all(
-                        color: AppColors.secondaryAccent.withOpacity(0.3),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.secondaryAccent.withOpacity(0.2),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    padding: context.responsivePadding(
-                      small: 24,
-                      medium: 26,
-                      large: 28,
-                      tablet: 30,
-                      veryNarrow: 18,
-                    ),
-                    child: Container(
-                      padding: context.responsivePadding(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.isDarkMode
+                        ? const Color(0xFF1E1E1E)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
                         small: 20,
                         medium: 22,
                         large: 24,
-                        tablet: 26,
-                        veryNarrow: 14,
+                        tablet: 28,
+                        veryNarrow: 16,
                       ),
-                      decoration: BoxDecoration(
-                        color: context.cardBackgroundColor,
-                        borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(context.isDarkMode ? 0.4 : 0.15),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  padding: context.responsivePadding(
+                    small: 24,
+                    medium: 28,
+                    large: 32,
+                    tablet: 36,
+                    veryNarrow: 20,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Close button
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            padding: EdgeInsets.all(context.responsiveSpacing(
+                              small: 6,
+                              medium: 8,
+                              large: 10,
+                              tablet: 12,
+                              veryNarrow: 4,
+                            )),
+                            decoration: BoxDecoration(
+                              color: context.isDarkMode
+                                  ? Colors.white.withOpacity(0.08)
+                                  : Colors.grey.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              color: context.textSecondaryColor,
+                              size: context.responsiveIconSize(
+                                small: 18,
+                                medium: 20,
+                                large: 22,
+                                tablet: 24,
+                                veryNarrow: 16,
+                              ),
+                            ),
                           ),
                         ),
-                        border: Border.all(
-                          color: AppColors.deepGreen.withOpacity(0.2),
-                          width: 1,
+                      ),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 8,
+                          medium: 12,
+                          large: 16,
+                          tablet: 20,
+                          veryNarrow: 6,
                         ),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Close button
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                      // Warning icon
+                      Container(
+                        padding: EdgeInsets.all(context.responsiveSpacing(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 24,
+                          veryNarrow: 12,
+                        )),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.orange,
+                          size: context.responsiveIconSize(
+                            small: 32,
+                            medium: 36,
+                            large: 40,
+                            tablet: 48,
+                            veryNarrow: 28,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 16,
+                          medium: 20,
+                          large: 24,
+                          tablet: 28,
+                          veryNarrow: 12,
+                        ),
+                      ),
+                      // Message
+                      Text(
+                        "И-Баримтын тохиргоо хийгдээгүй байна",
+                        style: TextStyle(
+                          fontSize: context.responsiveFontSize(
+                            small: 16,
+                            medium: 17,
+                            large: 18,
+                            tablet: 20,
+                            veryNarrow: 14,
+                          ),
+                          fontWeight: FontWeight.w600,
+                          color: context.textPrimaryColor,
+                          height: 1.3,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 8,
+                          medium: 10,
+                          large: 12,
+                          tablet: 14,
+                          veryNarrow: 6,
+                        ),
+                      ),
+                      // Subtitle
+                      Text(
+                        "Тохиргоо хийлгэхийн тулд СӨХ-тэй холбогдоно уу",
+                        style: TextStyle(
+                          fontSize: context.responsiveFontSize(
+                            small: 12,
+                            medium: 13,
+                            large: 14,
+                            tablet: 15,
+                            veryNarrow: 11,
+                          ),
+                          fontWeight: FontWeight.w400,
+                          color: context.textSecondaryColor,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 20,
+                          medium: 24,
+                          large: 28,
+                          tablet: 32,
+                          veryNarrow: 16,
+                        ),
+                      ),
+                      if (suhUtas.isNotEmpty) ...[
+                        // Phone number card
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              small: 16,
+                              medium: 20,
+                              large: 24,
+                              tablet: 28,
+                              veryNarrow: 12,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              small: 14,
+                              medium: 16,
+                              large: 18,
+                              tablet: 22,
+                              veryNarrow: 10,
+                            ),
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.isDarkMode
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.grey.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(
+                              context.responsiveBorderRadius(
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 10,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              IconButton(
-                                icon: Icon(
-                                  Icons.close_rounded,
-                                  color: context.textSecondaryColor,
-                                ),
-                                onPressed: () => Navigator.of(context).pop(),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                iconSize: context.responsiveIconSize(
+                              Icon(
+                                Icons.phone_rounded,
+                                color: AppColors.deepGreen,
+                                size: context.responsiveIconSize(
                                   small: 20,
                                   medium: 22,
                                   large: 24,
-                                  tablet: 26,
+                                  tablet: 28,
                                   veryNarrow: 18,
+                                ),
+                              ),
+                              SizedBox(width: context.responsiveSpacing(
+                                small: 10,
+                                medium: 12,
+                                large: 14,
+                                tablet: 16,
+                                veryNarrow: 8,
+                              )),
+                              GestureDetector(
+                                onLongPress: () {
+                                  Clipboard.setData(ClipboardData(text: suhUtas));
+                                  HapticFeedback.lightImpact();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Дугаар хуулагдлаа: $suhUtas',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      backgroundColor: AppColors.deepGreen,
+                                      duration: const Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  suhUtas,
+                                  style: TextStyle(
+                                    fontSize: context.responsiveFontSize(
+                                      small: 18,
+                                      medium: 20,
+                                      large: 22,
+                                      tablet: 24,
+                                      veryNarrow: 16,
+                                    ),
+                                    fontWeight: FontWeight.w700,
+                                    color: context.textPrimaryColor,
+                                    letterSpacing: 1.2,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 8,
-                              medium: 10,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 6,
-                            ),
-                          ),
-                          // Message
-                          Text(
-                            "И-Баримтын тохиргоо хийгдээгүй байна.",
-                            style: TextStyle(
-                              fontSize: context.responsiveFontSize(
-                                small: 14,
-                                medium: 15,
-                                large: 16,
-                                tablet: 17,
-                                veryNarrow: 12,
-                              ),
-                              fontWeight: FontWeight.w500,
-                              color: context.textPrimaryColor,
-                              height: 1.4,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 16,
-                              medium: 18,
-                              large: 20,
-                              tablet: 22,
-                              veryNarrow: 12,
-                            ),
-                          ),
-                          // Phone number label
-                          Text(
-                            "СӨХ-тэй холбогдох утасны дугаар:",
-                            style: TextStyle(
-                              fontSize: context.responsiveFontSize(
-                                small: 12,
-                                medium: 13,
-                                large: 14,
-                                tablet: 15,
-                                veryNarrow: 11,
-                              ),
-                              fontWeight: FontWeight.w500,
-                              color: context.textSecondaryColor,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 8,
-                              medium: 10,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 6,
-                            ),
-                          ),
-                          if (suhUtas.isNotEmpty) ...[
-                            // Phone number
-                            GestureDetector(
-                              onLongPress: () {
-                                Clipboard.setData(ClipboardData(text: suhUtas));
-                                HapticFeedback.lightImpact();
+                        ),
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 16,
+                          medium: 20,
+                          large: 24,
+                          tablet: 28,
+                          veryNarrow: 12,
+                        )),
+                        // Call button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              HapticFeedback.mediumImpact();
+                              final uri = Uri.parse('tel:$suhUtas');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                      'Дугаар хуулагдлаа: $suhUtas',
-                                      style: TextStyle(
-                                        color: context.textPrimaryColor,
-                                      ),
-                                    ),
-                                    backgroundColor: AppColors.secondaryAccent
-                                        .withOpacity(0.9),
-                                    duration: const Duration(seconds: 2),
+                                    content: const Text('Утас дуудах боломжгүй'),
+                                    backgroundColor: Colors.red,
                                     behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
                                   ),
                                 );
-                              },
-                              child: Text(
-                                suhUtas,
-                                style: TextStyle(
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.secondaryAccent,
-                                  letterSpacing: 1.0,
-                                ),
-                                textAlign: TextAlign.center,
+                              }
+                            },
+                            icon: Icon(
+                              Icons.call_rounded,
+                              size: context.responsiveIconSize(
+                                small: 18,
+                                medium: 20,
+                                large: 22,
+                                tablet: 24,
+                                veryNarrow: 16,
                               ),
+                              color: Colors.white,
                             ),
-                            SizedBox(height: 16.h),
-                            // Call button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  HapticFeedback.mediumImpact();
-                                  final uri = Uri.parse('tel:$suhUtas');
-                                  if (await canLaunchUrl(uri)) {
-                                    await launchUrl(uri);
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Утас дуудах боломжгүй',
-                                          style: TextStyle(
-                                            color: context.textPrimaryColor,
-                                          ),
-                                        ),
-                                        backgroundColor: Colors.red,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                  }
-                                },
-                                icon: Icon(
-                                  Icons.phone_rounded,
-                                  size: context.responsiveIconSize(
-                                    small: 18,
-                                    medium: 20,
-                                    large: 22,
-                                    tablet: 24,
-                                    veryNarrow: 16,
-                                  ),
-                                ),
-                                label: Text(
-                                  'Залгах',
-                                  style: TextStyle(
-                                    color: context.textPrimaryColor,
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.deepGreen,
-                                  foregroundColor: context.textPrimaryColor,
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: context.responsiveSpacing(
-                                      small: 12,
-                                      medium: 14,
-                                      large: 16,
-                                      tablet: 18,
-                                      veryNarrow: 10,
-                                    ),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      context.responsiveBorderRadius(
-                                        small: 10,
-                                        medium: 12,
-                                        large: 14,
-                                        tablet: 16,
-                                        veryNarrow: 8,
-                                      ),
-                                    ),
-                                  ),
-                                  elevation: 0,
-                                ),
-                              ),
-                            ),
-                          ] else ...[
-                            // Empty state
-                            Text(
-                              '.............',
+                            label: Text(
+                              'Залгах',
                               style: TextStyle(
+                                color: Colors.white,
                                 fontSize: context.responsiveFontSize(
-                                  small: 16,
-                                  medium: 17,
+                                  small: 14,
+                                  medium: 15,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 12,
+                                ),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.deepGreen,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                vertical: context.responsiveSpacing(
+                                  small: 14,
+                                  medium: 16,
                                   large: 18,
-                                  tablet: 19,
-                                  veryNarrow: 14,
+                                  tablet: 20,
+                                  veryNarrow: 12,
                                 ),
-                                fontWeight: FontWeight.bold,
-                                color: context.textSecondaryColor.withOpacity(
-                                  0.4,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  context.responsiveBorderRadius(
+                                    small: 12,
+                                    medium: 14,
+                                    large: 16,
+                                    tablet: 18,
+                                    veryNarrow: 10,
+                                  ),
                                 ),
-                                letterSpacing: 1.0,
                               ),
-                              textAlign: TextAlign.center,
+                              elevation: 0,
                             ),
-                            SizedBox(
-                              height: context.responsiveSpacing(
-                                small: 6,
-                                medium: 8,
-                                large: 10,
-                                tablet: 12,
-                                veryNarrow: 4,
+                          ),
+                        ),
+                      ] else ...[
+                        // Empty state
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              small: 16,
+                              medium: 20,
+                              large: 24,
+                              tablet: 28,
+                              veryNarrow: 12,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              small: 20,
+                              medium: 24,
+                              large: 28,
+                              tablet: 32,
+                              veryNarrow: 16,
+                            ),
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.isDarkMode
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.grey.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(
+                              context.responsiveBorderRadius(
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 10,
                               ),
                             ),
-                            Text(
-                              'Утасны дугаар олдсонгүй',
-                              style: TextStyle(
-                                fontSize: context.responsiveFontSize(
-                                  small: 11,
-                                  medium: 12,
-                                  large: 13,
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.phone_disabled_rounded,
+                                color: context.textSecondaryColor.withOpacity(0.5),
+                                size: context.responsiveIconSize(
+                                  small: 32,
+                                  medium: 36,
+                                  large: 40,
+                                  tablet: 48,
+                                  veryNarrow: 28,
+                                ),
+                              ),
+                              SizedBox(
+                                height: context.responsiveSpacing(
+                                  small: 8,
+                                  medium: 10,
+                                  large: 12,
                                   tablet: 14,
-                                  veryNarrow: 10,
+                                  veryNarrow: 6,
                                 ),
-                                color: context.textSecondaryColor,
                               ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+                              Text(
+                                'Утасны дугаар олдсонгүй',
+                                style: TextStyle(
+                                  fontSize: context.responsiveFontSize(
+                                    small: 13,
+                                    medium: 14,
+                                    large: 15,
+                                    tablet: 16,
+                                    veryNarrow: 11,
+                                  ),
+                                  color: context.textSecondaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -2398,7 +2500,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                           Icon(
                             Icons.business_rounded,
                             color: AppColors.deepGreen,
-                            size: 14.sp,
+                            size: 16.sp,
                           ),
                           SizedBox(width: 6.w),
                           Flexible(
@@ -2406,7 +2508,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                               selectedContractDisplay!,
                               style: TextStyle(
                                 color: context.textPrimaryColor,
-                                fontSize: 11.sp,
+                                fontSize: 13.sp,
                                 fontWeight: FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -2465,7 +2567,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                     errorMessage!,
                                     style: TextStyle(
                                       color: context.textPrimaryColor,
-                                      fontSize: 12.sp,
+                                      fontSize: 14.sp,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -2489,7 +2591,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                         child: Text(
                                           'Дахин оролдох',
                                           style: TextStyle(
-                                            fontSize: 11.sp,
+                                            fontSize: 13.sp,
                                             color: Colors.white,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -2616,7 +2718,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                   : 'Одоогоор нэхэмжлэл байхгүй',
                                               style: TextStyle(
                                                 color: context.textPrimaryColor,
-                                                fontSize: 14.sp,
+                                                fontSize: 16.sp,
                                                 fontWeight: FontWeight.w600,
                                               ),
                                               textAlign: TextAlign.center,
@@ -2631,7 +2733,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                               style: TextStyle(
                                                 color:
                                                     context.textSecondaryColor,
-                                                fontSize: 11.sp,
+                                                fontSize: 13.sp,
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
@@ -2748,7 +2850,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
                                                       style: TextStyle(
                                                         color: context
                                                             .textPrimaryColor,
-                                                        fontSize: 11.sp,
+                                                        fontSize: 13.sp,
                                                         fontWeight:
                                                             FontWeight.w500,
                                                       ),

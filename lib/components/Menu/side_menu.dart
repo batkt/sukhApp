@@ -195,6 +195,7 @@ class _SideMenuState extends State<SideMenu> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isLargeScreen = screenWidth > 800;
+    final isLargePhone = screenWidth > 400 && screenWidth <= 600; // Pro Max, Plus models
     
     // Standard drawer width: 304 on phones, larger on tablets
     double drawerWidth;
@@ -202,8 +203,8 @@ class _SideMenuState extends State<SideMenu> {
       drawerWidth = 380; // Large tablets/iPads
     } else if (isTablet) {
       drawerWidth = 340; // Small tablets/iPad mini
-    } else if (screenWidth > 400) {
-      drawerWidth = 304; // iPhone Max/Plus models
+    } else if (isLargePhone) {
+      drawerWidth = 320; // iPhone Max/Plus models - slightly wider
     } else {
       drawerWidth = screenWidth * 0.82; // Smaller phones
     }
@@ -230,24 +231,22 @@ class _SideMenuState extends State<SideMenu> {
                     Container(
                       width: isTablet ? 48 : 40,
                       height: isTablet ? 48 : 40,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white.withOpacity(0.15),
                       ),
-                      child: Center(
-                        child: AppLogo(
-                          minHeight: isTablet ? 36 : 30,
-                          maxHeight: isTablet ? 36 : 30,
-                          minWidth: isTablet ? 36 : 30,
-                          maxWidth: isTablet ? 36 : 30,
-                          showImage: true,
-                        ),
+                      child: Image.asset(
+                        'lib/assets/img/logo_3.png',
+                        fit: BoxFit.contain,
+                        width: isTablet ? 32 : 26,
+                        height: isTablet ? 32 : 26,
                       ),
                     ),
                     SizedBox(width: isTablet ? 16 : 12),
                     Expanded(
                       child: Text(
-                        'Amarhome',
+                        'Амархоум',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: isTablet ? 24 : 20,
@@ -282,6 +281,7 @@ class _SideMenuState extends State<SideMenu> {
                               context.push('/tokhirgoo');
                             },
                             isTablet: isTablet,
+                            isLargePhone: isLargePhone,
                           ),
                           // Show address selection only for users without baiguullagiinId
                           if (_baiguullagiinId == null ||
@@ -297,6 +297,7 @@ class _SideMenuState extends State<SideMenu> {
                                 );
                               },
                               isTablet: isTablet,
+                              isLargePhone: isLargePhone,
                             ),
                           // Show contract / invoice / parking only for users
                           // that are linked to an organization (have baiguullagiinId)
@@ -311,6 +312,7 @@ class _SideMenuState extends State<SideMenu> {
                                 context.push('/geree');
                               },
                               isTablet: isTablet,
+                              isLargePhone: isLargePhone,
                             ),
                             _buildMenuItem(
                               context,
@@ -321,6 +323,7 @@ class _SideMenuState extends State<SideMenu> {
                                 context.push('/nekhemjlekh');
                               },
                               isTablet: isTablet,
+                              isLargePhone: isLargePhone,
                             ),
                           ],
                           _buildMenuItem(
@@ -332,19 +335,21 @@ class _SideMenuState extends State<SideMenu> {
                               context.push('/gomdol-sanal-progress');
                             },
                             isTablet: isTablet,
+                            isLargePhone: isLargePhone,
                           ),
-                          if (_baiguullagiinId != null &&
-                              _baiguullagiinId!.isNotEmpty)
-                            _buildMenuItem(
-                              context,
-                              icon: Icons.local_parking_outlined,
-                              title: 'Зогсоол',
-                              onTap: () {
-                                Navigator.pop(context);
-                                _showDevelopmentModal(context);
-                              },
-                              isTablet: isTablet,
-                            ),
+                          // if (_baiguullagiinId != null &&
+                          //     _baiguullagiinId!.isNotEmpty)
+                          //   _buildMenuItem(
+                          //     context,
+                          //     icon: Icons.local_parking_outlined,
+                          //     title: 'Зогсоол',
+                          //     onTap: () {
+                          //       Navigator.pop(context);
+                          //       _showDevelopmentModal(context);
+                          //     },
+                          //     isTablet: isTablet,
+                          //     isLargePhone: isLargePhone,
+                          //   ),
                           if (_baiguullagiinId != null &&
                               _baiguullagiinId!.isNotEmpty)
                             _buildMenuItem(
@@ -356,6 +361,7 @@ class _SideMenuState extends State<SideMenu> {
                                 context.push('/zochin-urikh');
                               },
                               isTablet: isTablet,
+                              isLargePhone: isLargePhone,
                             ),
                           _buildMenuItem(
                             context,
@@ -366,6 +372,7 @@ class _SideMenuState extends State<SideMenu> {
                               context.push('/ebarimt');
                             },
                             isTablet: isTablet,
+                            isLargePhone: isLargePhone,
                           ),
                           _buildMenuItem(
                             context,
@@ -376,6 +383,7 @@ class _SideMenuState extends State<SideMenu> {
                               _showContactBottomSheet(context);
                             },
                             isTablet: isTablet,
+                            isLargePhone: isLargePhone,
                           ),
                           _buildMenuItem(
                             context,
@@ -496,6 +504,7 @@ class _SideMenuState extends State<SideMenu> {
                             },
                             isLogout: true,
                             isTablet: isTablet,
+                            isLargePhone: isLargePhone,
                           ),
                         ],
                       ),
@@ -543,16 +552,17 @@ class _SideMenuState extends State<SideMenu> {
     required VoidCallback onTap,
     bool isLogout = false,
     bool isTablet = false,
+    bool isLargePhone = false,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(isTablet ? 12 : 8),
+        borderRadius: BorderRadius.circular(isTablet ? 12 : (isLargePhone ? 10 : 8)),
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isTablet ? 24 : 20,
-            vertical: isTablet ? 18 : 14,
+            horizontal: isTablet ? 24 : (isLargePhone ? 22 : 20),
+            vertical: isTablet ? 18 : (isLargePhone ? 16 : 14),
           ),
           child: Row(
             children: [
@@ -560,16 +570,16 @@ class _SideMenuState extends State<SideMenu> {
               Icon(
                 icon,
                 color: isLogout ? Colors.red : AppColors.deepGreen,
-                size: isTablet ? 26 : 22,
+                size: isTablet ? 26 : (isLargePhone ? 24 : 22),
               ),
-              SizedBox(width: isTablet ? 16 : 14),
+              SizedBox(width: isTablet ? 16 : (isLargePhone ? 15 : 14)),
               // Title text
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
                     color: isLogout ? Colors.red : context.textPrimaryColor,
-                    fontSize: isTablet ? 17 : 15,
+                    fontSize: isTablet ? 17 : (isLargePhone ? 16 : 15),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -580,7 +590,7 @@ class _SideMenuState extends State<SideMenu> {
                 color: isLogout
                     ? Colors.red.withOpacity(0.5)
                     : context.textSecondaryColor,
-                size: isTablet ? 24 : 20,
+                size: isTablet ? 24 : (isLargePhone ? 22 : 20),
               ),
             ],
           ),

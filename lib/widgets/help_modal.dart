@@ -136,33 +136,56 @@ class _HelpModalState extends State<HelpModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: context.responsiveModalHeight(
-        small: 0.85,
-        medium: 0.80,
-        large: 0.75,
-        tablet: 0.70,
-      ),
-      constraints: BoxConstraints(
-        maxHeight: context.isTablet ? 800.h : double.infinity,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0a0e27),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(context.responsiveBorderRadius(
-            small: 30,
-            medium: 35,
-            large: 40,
-            tablet: 45,
-          )),
-          topRight: Radius.circular(context.responsiveBorderRadius(
-            small: 30,
-            medium: 35,
-            large: 40,
-            tablet: 45,
-          )),
+    // For tablets/iPads, limit width and center the modal
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final modalWidth = isTablet ? 500.0 : screenWidth;
+    
+    return Center(
+      child: Container(
+        width: modalWidth,
+        height: context.responsiveModalHeight(
+          small: 0.85,
+          medium: 0.80,
+          large: 0.75,
+          tablet: 0.70,
         ),
-      ),
+        constraints: BoxConstraints(
+          maxHeight: context.isTablet ? 800.h : double.infinity,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0a0e27),
+          borderRadius: isTablet
+              ? BorderRadius.circular(context.responsiveBorderRadius(
+                  small: 30,
+                  medium: 35,
+                  large: 40,
+                  tablet: 45,
+                ))
+              : BorderRadius.only(
+                  topLeft: Radius.circular(context.responsiveBorderRadius(
+                    small: 30,
+                    medium: 35,
+                    large: 40,
+                    tablet: 45,
+                  )),
+                  topRight: Radius.circular(context.responsiveBorderRadius(
+                    small: 30,
+                    medium: 35,
+                    large: 40,
+                    tablet: 45,
+                  )),
+                ),
+          boxShadow: isTablet
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ]
+              : null,
+        ),
       child: OptimizedGlass(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(30.w),
@@ -336,7 +359,8 @@ class _HelpModalState extends State<HelpModal> {
             ],
           ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildFAQItem(FAQItem faq) {

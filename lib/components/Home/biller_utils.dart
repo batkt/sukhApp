@@ -36,7 +36,7 @@ class BillerUtils {
           nameLower.contains('toriin bank') ||
           nameLower.contains('state bank')) {
         return Image.asset(
-          'lib/assets/img/state.png',
+          'lib/assets/img/turiin_bankbg.png',
           width: double.infinity,
           height: double.infinity,
           fit: BoxFit.contain,
@@ -72,7 +72,7 @@ class BillerUtils {
         return Transform.scale(
           scale: 3.0,
           child: Image.asset(
-            'lib/assets/img/sky.png',
+            'lib/assets/img/skynobg.png',
             width: double.infinity,
             height: double.infinity,
             fit: BoxFit.contain,

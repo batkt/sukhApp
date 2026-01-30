@@ -55,26 +55,38 @@ class InvoiceCard extends StatelessWidget {
 
     return RepaintBoundary(
       child: Container(
-        margin: EdgeInsets.only(bottom: 10.h),
+        margin: EdgeInsets.only(bottom: context.responsiveSpacing(
+          small: 10,
+          medium: 12,
+          large: 14,
+          tablet: 16,
+          veryNarrow: 8,
+        )),
         child: Container(
           decoration: BoxDecoration(
             color: context.isDarkMode
-                ? const Color(0xFF1A1A1A)
+                ? const Color(0xFF1E1E1E)
                 : Colors.white,
-            borderRadius: BorderRadius.circular(14.r),
+            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+              small: 16,
+              medium: 18,
+              large: 20,
+              tablet: 22,
+              veryNarrow: 14,
+            )),
             border: Border.all(
               color: context.isDarkMode
-                  ? AppColors.deepGreen.withOpacity(0.2)
-                  : AppColors.deepGreen.withOpacity(0.15),
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.06),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
                 color: context.isDarkMode
-                    ? Colors.black.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                    ? Colors.black.withOpacity(0.3)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -82,9 +94,21 @@ class InvoiceCard extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: onToggleExpand,
-              borderRadius: BorderRadius.circular(14.r),
+              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                small: 16,
+                medium: 18,
+                large: 20,
+                tablet: 22,
+                veryNarrow: 14,
+              )),
               child: Padding(
-                padding: EdgeInsets.all(12.w),
+                padding: EdgeInsets.all(context.responsiveSpacing(
+                  small: 14,
+                  medium: 16,
+                  large: 18,
+                  tablet: 20,
+                  veryNarrow: 12,
+                )),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -101,11 +125,11 @@ class InvoiceCard extends StatelessWidget {
                               style: TextStyle(
                                 color: context.textSecondaryColor,
                                 fontSize: context.responsiveFontSize(
-                                  small: 12,
-                                  medium: 13,
-                                  large: 14,
-                                  tablet: 15,
-                                  veryNarrow: 10,
+                                  small: 13,
+                                  medium: 14,
+                                  large: 15,
+                                  tablet: 16,
+                                  veryNarrow: 12,
                                 ),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -113,27 +137,41 @@ class InvoiceCard extends StatelessWidget {
                             // Status tag
                             Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 8.w,
-                                vertical: 4.h,
+                                horizontal: context.responsiveSpacing(
+                                  small: 10,
+                                  medium: 12,
+                                  large: 14,
+                                  tablet: 16,
+                                  veryNarrow: 8,
+                                ),
+                                vertical: context.responsiveSpacing(
+                                  small: 5,
+                                  medium: 6,
+                                  large: 7,
+                                  tablet: 8,
+                                  veryNarrow: 4,
+                                ),
                               ),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(10.r),
-                                border: Border.all(
-                                  color: statusColor.withOpacity(0.4),
-                                  width: 1,
-                                ),
+                                color: statusColor.withOpacity(context.isDarkMode ? 0.2 : 0.1),
+                                borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                                  small: 20,
+                                  medium: 22,
+                                  large: 24,
+                                  tablet: 26,
+                                  veryNarrow: 18,
+                                )),
                               ),
                               child: Text(
                                 statusLabel,
                                 style: TextStyle(
                                   color: statusColor,
                                   fontSize: context.responsiveFontSize(
-                                    small: 11,
-                                    medium: 12,
-                                    large: 13,
-                                    tablet: 14,
-                                    veryNarrow: 9,
+                                    small: 12,
+                                    medium: 13,
+                                    large: 14,
+                                    tablet: 15,
+                                    veryNarrow: 11,
                                   ),
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.3,
@@ -142,42 +180,84 @@ class InvoiceCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        SizedBox(height: 10.h),
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 12,
+                          medium: 14,
+                          large: 16,
+                          tablet: 18,
+                          veryNarrow: 10,
+                        )),
                         // Main content row
                         Row(
                           children: [
                             // Company logo
                             Container(
-                              width: 40.w,
-                              height: 40.w,
+                              width: context.responsiveSpacing(
+                                small: 44,
+                                medium: 48,
+                                large: 52,
+                                tablet: 56,
+                                veryNarrow: 40,
+                              ),
+                              height: context.responsiveSpacing(
+                                small: 44,
+                                medium: 48,
+                                large: 52,
+                                tablet: 56,
+                                veryNarrow: 40,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppColors.deepGreen,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    AppColors.deepGreen,
+                                    AppColors.deepGreen.withOpacity(0.8),
+                                  ],
+                                ),
                                 shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.deepGreen.withOpacity(0.3),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
                               ),
                               child: ClipOval(
                                 child: Image.asset(
                                   'lib/assets/img/logo_3.png',
-                                  width: 40.w,
-                                  height: 40.w,
+                                  width: context.responsiveSpacing(
+                                    small: 44,
+                                    medium: 48,
+                                    large: 52,
+                                    tablet: 56,
+                                    veryNarrow: 40,
+                                  ),
+                                  height: context.responsiveSpacing(
+                                    small: 44,
+                                    medium: 48,
+                                    large: 52,
+                                    tablet: 56,
+                                    veryNarrow: 40,
+                                  ),
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Icon(
                                       Icons.receipt_long_rounded,
                                       color: Colors.white,
-                                      size: 18.sp,
+                                      size: context.responsiveFontSize(
+                                        small: 20,
+                                        medium: 22,
+                                        large: 24,
+                                        tablet: 26,
+                                        veryNarrow: 18,
+                                      ),
                                     );
                                   },
                                 ),
                               ),
                             ),
-                            SizedBox(width: 10.w),
+                            SizedBox(width: context.responsiveSpacing(
+                              small: 12,
+                              medium: 14,
+                              large: 16,
+                              tablet: 18,
+                              veryNarrow: 10,
+                            )),
                             // Client info
                             Expanded(
                               child: Column(
@@ -188,11 +268,11 @@ class InvoiceCard extends StatelessWidget {
                                     style: TextStyle(
                                       color: context.textPrimaryColor,
                                       fontSize: context.responsiveFontSize(
-                                        small: 15,
-                                        medium: 16,
-                                        large: 17,
-                                        tablet: 18,
-                                        veryNarrow: 13,
+                                        small: 16,
+                                        medium: 17,
+                                        large: 18,
+                                        tablet: 19,
+                                        veryNarrow: 14,
                                       ),
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -205,11 +285,11 @@ class InvoiceCard extends StatelessWidget {
                                     style: TextStyle(
                                       color: context.textSecondaryColor,
                                       fontSize: context.responsiveFontSize(
-                                        small: 12,
-                                        medium: 13,
-                                        large: 14,
-                                        tablet: 15,
-                                        veryNarrow: 10,
+                                        small: 13,
+                                        medium: 14,
+                                        large: 15,
+                                        tablet: 16,
+                                        veryNarrow: 12,
                                       ),
                                     ),
                                   ),
@@ -225,11 +305,11 @@ class InvoiceCard extends StatelessWidget {
                                   style: TextStyle(
                                     color: AppColors.deepGreen,
                                     fontSize: context.responsiveFontSize(
-                                      small: 16,
-                                      medium: 17,
-                                      large: 18,
-                                      tablet: 20,
-                                      veryNarrow: 14,
+                                      small: 17,
+                                      medium: 18,
+                                      large: 19,
+                                      tablet: 21,
+                                      veryNarrow: 15,
                                     ),
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -326,21 +406,53 @@ class InvoiceCard extends StatelessWidget {
                         ),
                         // Expand/Collapse indicator
                         Padding(
-                          padding: EdgeInsets.only(top: 6.h),
+                          padding: EdgeInsets.only(top: context.responsiveSpacing(
+                            small: 8,
+                            medium: 10,
+                            large: 12,
+                            tablet: 14,
+                            veryNarrow: 6,
+                          )),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                invoice.isExpanded
-                                    ? Icons.keyboard_arrow_up
-                                    : Icons.keyboard_arrow_down,
-                                color: AppColors.deepGreen,
-                                size: context.responsiveFontSize(
-                                  small: 20,
-                                  medium: 21,
-                                  large: 22,
-                                  tablet: 24,
-                                  veryNarrow: 16,
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: context.responsiveSpacing(
+                                    small: 12,
+                                    medium: 14,
+                                    large: 16,
+                                    tablet: 18,
+                                    veryNarrow: 10,
+                                  ),
+                                  vertical: context.responsiveSpacing(
+                                    small: 4,
+                                    medium: 5,
+                                    large: 6,
+                                    tablet: 7,
+                                    veryNarrow: 3,
+                                  ),
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.isDarkMode
+                                      ? Colors.white.withOpacity(0.06)
+                                      : Colors.black.withOpacity(0.04),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Icon(
+                                  invoice.isExpanded
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  color: context.isDarkMode
+                                      ? Colors.white.withOpacity(0.6)
+                                      : Colors.black.withOpacity(0.5),
+                                  size: context.responsiveFontSize(
+                                    small: 18,
+                                    medium: 20,
+                                    large: 22,
+                                    tablet: 24,
+                                    veryNarrow: 16,
+                                  ),
                                 ),
                               ),
                             ],
@@ -362,7 +474,13 @@ class InvoiceCard extends StatelessWidget {
 
   Widget _buildExpandedSection(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(10.w),
+      padding: EdgeInsets.all(context.responsiveSpacing(
+        small: 8,
+        medium: 10,
+        large: 12,
+        tablet: 14,
+        veryNarrow: 6,
+      )),
       decoration: BoxDecoration(color: Colors.transparent),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -374,15 +492,39 @@ class InvoiceCard extends StatelessWidget {
               // Нэхэмжлэгч section
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                    small: 8,
+                    medium: 10,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 6,
+                  )),
                   child: Container(
-                    padding: EdgeInsets.all(10.w),
-                    constraints: BoxConstraints(minHeight: 100.h),
+                    padding: EdgeInsets.all(context.responsiveSpacing(
+                      small: 8,
+                      medium: 10,
+                      large: 12,
+                      tablet: 14,
+                      veryNarrow: 6,
+                    )),
+                    constraints: BoxConstraints(minHeight: context.responsiveSpacing(
+                      small: 80,
+                      medium: 90,
+                      large: 100,
+                      tablet: 110,
+                      veryNarrow: 70,
+                    )),
                     decoration: BoxDecoration(
                       color: context.isDarkMode
                           ? Colors.white.withOpacity(0.05)
                           : const Color(0xFFF8F8F8),
-                      borderRadius: BorderRadius.circular(10.r),
+                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                        small: 8,
+                        medium: 10,
+                        large: 12,
+                        tablet: 14,
+                        veryNarrow: 6,
+                      )),
                       border: Border.all(
                         color: context.isDarkMode
                             ? AppColors.deepGreen.withOpacity(0.15)
@@ -413,24 +555,36 @@ class InvoiceCard extends StatelessWidget {
                               style: TextStyle(
                                 color: AppColors.deepGreen,
                                 fontSize: context.responsiveFontSize(
-                                  small: 12,
-                                  medium: 13,
-                                  large: 14,
-                                  tablet: 15,
-                                  veryNarrow: 10,
+                                  small: 13,
+                                  medium: 14,
+                                  large: 15,
+                                  tablet: 16,
+                                  veryNarrow: 12,
                                 ),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 4,
+                          medium: 5,
+                          large: 6,
+                          tablet: 8,
+                          veryNarrow: 3,
+                        )),
                         _buildInfoText(
                           context,
                           'Байгууллагын нэр:\n${invoice.baiguullagiinNer}',
                         ),
                         if (invoice.khayag.isNotEmpty) ...[
-                          SizedBox(height: 4.h),
+                          SizedBox(height: context.responsiveSpacing(
+                            small: 3,
+                            medium: 4,
+                            large: 5,
+                            tablet: 6,
+                            veryNarrow: 2,
+                          )),
                           _buildInfoText(context, 'Хаяг: ${invoice.khayag}'),
                         ],
                       ],
@@ -438,25 +592,49 @@ class InvoiceCard extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: context.responsiveSpacing(
+                small: 6,
+                medium: 8,
+                large: 10,
+                tablet: 12,
+                veryNarrow: 4,
+              )),
               // Төлөгч section
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                    small: 8,
+                    medium: 10,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 6,
+                  )),
                   child: Container(
-                    padding: EdgeInsets.all(10.w),
-                    constraints: BoxConstraints(minHeight: 100.h),
+                    padding: EdgeInsets.all(context.responsiveSpacing(
+                      small: 8,
+                      medium: 10,
+                      large: 12,
+                      tablet: 14,
+                      veryNarrow: 6,
+                    )),
+                    constraints: BoxConstraints(minHeight: context.responsiveSpacing(
+                      small: 80,
+                      medium: 90,
+                      large: 100,
+                      tablet: 110,
+                      veryNarrow: 70,
+                    )),
                     decoration: BoxDecoration(
                       color: context.isDarkMode
-                          ? Colors.white.withOpacity(0.05)
-                          : const Color(0xFFF8F8F8),
-                      borderRadius: BorderRadius.circular(10.r),
-                      border: Border.all(
-                        color: context.isDarkMode
-                            ? AppColors.deepGreen.withOpacity(0.15)
-                            : AppColors.deepGreen.withOpacity(0.1),
-                        width: 1,
-                      ),
+                          ? Colors.white.withOpacity(0.04)
+                          : const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                        small: 8,
+                        medium: 10,
+                        large: 12,
+                        tablet: 14,
+                        veryNarrow: 6,
+                      )),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,28 +659,46 @@ class InvoiceCard extends StatelessWidget {
                               style: TextStyle(
                                 color: AppColors.deepGreen,
                                 fontSize: context.responsiveFontSize(
-                                  small: 12,
-                                  medium: 13,
-                                  large: 14,
-                                  tablet: 15,
-                                  veryNarrow: 10,
+                                  small: 13,
+                                  medium: 14,
+                                  large: 15,
+                                  tablet: 16,
+                                  veryNarrow: 12,
                                 ),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 6.h),
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 4,
+                          medium: 5,
+                          large: 6,
+                          tablet: 8,
+                          veryNarrow: 3,
+                        )),
                         _buildInfoText(context, 'Нэр: ${invoice.displayName}'),
                         if (invoice.register.isNotEmpty) ...[
-                          SizedBox(height: 4.h),
+                          SizedBox(height: context.responsiveSpacing(
+                            small: 3,
+                            medium: 4,
+                            large: 5,
+                            tablet: 6,
+                            veryNarrow: 2,
+                          )),
                           _buildInfoText(
                             context,
                             'Регистр: ${invoice.register}',
                           ),
                         ],
                         if (invoice.phoneNumber.isNotEmpty) ...[
-                          SizedBox(height: 4.h),
+                          SizedBox(height: context.responsiveSpacing(
+                            small: 3,
+                            medium: 4,
+                            large: 5,
+                            tablet: 6,
+                            veryNarrow: 2,
+                          )),
                           _buildInfoText(
                             context,
                             'Утас: ${invoice.phoneNumber}',
@@ -515,7 +711,13 @@ class InvoiceCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: context.responsiveSpacing(
+            small: 10,
+            medium: 12,
+            large: 14,
+            tablet: 16,
+            veryNarrow: 8,
+          )),
           // Price breakdown
           if (invoice.ekhniiUldegdel != null &&
               invoice.ekhniiUldegdel! != 0) ...[
@@ -534,7 +736,13 @@ class InvoiceCard extends StatelessWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 8.h),
+                      SizedBox(height: context.responsiveSpacing(
+                        small: 6,
+                        medium: 8,
+                        large: 10,
+                        tablet: 12,
+                        veryNarrow: 4,
+                      )),
                       if (guilgee.tulukhDun != null &&
                           guilgee.tulukhDun! > 0) ...[
                         _buildPriceRow(
@@ -545,36 +753,64 @@ class InvoiceCard extends StatelessWidget {
                       ],
                       if (guilgee.tailbar != null &&
                           guilgee.tailbar!.isNotEmpty) ...[
-                        SizedBox(height: 6.h),
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 4,
+                          medium: 6,
+                          large: 8,
+                          tablet: 10,
+                          veryNarrow: 3,
+                        )),
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(10.r),
+                          borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                            small: 8,
+                            medium: 10,
+                            large: 12,
+                            tablet: 14,
+                            veryNarrow: 6,
+                          )),
                           child: Container(
-                            padding: EdgeInsets.all(10.w),
+                            padding: EdgeInsets.all(context.responsiveSpacing(
+                              small: 8,
+                              medium: 10,
+                              large: 12,
+                              tablet: 14,
+                              veryNarrow: 6,
+                            )),
                             decoration: BoxDecoration(
                               color: context.isDarkMode
                                   ? Colors.white.withOpacity(0.04)
-                                  : const Color(0xFFF8F8F8),
-                              borderRadius: BorderRadius.circular(10.r),
-                              border: Border.all(
-                                color: AppColors.deepGreen.withOpacity(0.2),
-                                width: 1,
-                              ),
+                                  : const Color(0xFFF5F5F5),
+                              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                                small: 8,
+                                medium: 10,
+                                large: 12,
+                                tablet: 14,
+                                veryNarrow: 6,
+                              )),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
-                                  Icons.info_outline,
-                                  color: AppColors.deepGreen,
+                                  Icons.info_outline_rounded,
+                                  color: context.isDarkMode
+                                      ? Colors.blue.shade300
+                                      : Colors.blue.shade600,
                                   size: context.responsiveFontSize(
-                                    small: 16,
-                                    medium: 17,
+                                    small: 14,
+                                    medium: 16,
                                     large: 18,
                                     tablet: 20,
-                                    veryNarrow: 14,
+                                    veryNarrow: 12,
                                   ),
                                 ),
-                                SizedBox(width: 6.w),
+                                SizedBox(width: context.responsiveSpacing(
+                                  small: 4,
+                                  medium: 6,
+                                  large: 8,
+                                  tablet: 10,
+                                  veryNarrow: 3,
+                                )),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -583,18 +819,26 @@ class InvoiceCard extends StatelessWidget {
                                       Text(
                                         'Авлагын шалтгаан:',
                                         style: TextStyle(
-                                          color: AppColors.deepGreen,
+                                          color: context.isDarkMode
+                                              ? Colors.blue.shade300
+                                              : Colors.blue.shade600,
                                           fontSize: context.responsiveFontSize(
                                             small: 12,
                                             medium: 13,
                                             large: 14,
                                             tablet: 15,
-                                            veryNarrow: 10,
+                                            veryNarrow: 11,
                                           ),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      SizedBox(height: 3.h),
+                                      SizedBox(height: context.responsiveSpacing(
+                                        small: 2,
+                                        medium: 3,
+                                        large: 4,
+                                        tablet: 5,
+                                        veryNarrow: 1,
+                                      )),
                                       Text(
                                         guilgee.tailbar!,
                                         style: TextStyle(
@@ -604,7 +848,7 @@ class InvoiceCard extends StatelessWidget {
                                             medium: 13,
                                             large: 14,
                                             tablet: 15,
-                                            veryNarrow: 10,
+                                            veryNarrow: 11,
                                           ),
                                         ),
                                       ),
@@ -660,16 +904,34 @@ class InvoiceCard extends StatelessWidget {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 8.h),
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        )),
                         _buildPriceRow(
                           context,
                           zardal.ner,
                           zardal.formattedDisplayAmount,
                         ),
                         if (zardal.turul.isNotEmpty) ...[
-                          SizedBox(height: 3.h),
+                          SizedBox(height: context.responsiveSpacing(
+                            small: 2,
+                            medium: 3,
+                            large: 4,
+                            tablet: 5,
+                            veryNarrow: 1,
+                          )),
                           Padding(
-                            padding: EdgeInsets.only(left: 12.w),
+                            padding: EdgeInsets.only(left: context.responsiveSpacing(
+                              small: 10,
+                              medium: 12,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 8,
+                            )),
                             child: Text(
                               'Төрөл: ${zardal.turul}',
                               style: TextStyle(
@@ -679,7 +941,7 @@ class InvoiceCard extends StatelessWidget {
                                   medium: 12,
                                   large: 13,
                                   tablet: 14,
-                                  veryNarrow: 9,
+                                  veryNarrow: 10,
                                 ),
                                 fontStyle: FontStyle.italic,
                               ),
@@ -709,16 +971,40 @@ class InvoiceCard extends StatelessWidget {
           if (invoice.medeelel != null &&
               invoice.medeelel!.tailbar != null &&
               invoice.medeelel!.tailbar!.isNotEmpty) ...[
-            SizedBox(height: 12.h),
+            SizedBox(height: context.responsiveSpacing(
+              small: 10,
+              medium: 12,
+              large: 14,
+              tablet: 16,
+              veryNarrow: 8,
+            )),
             ClipRRect(
-              borderRadius: BorderRadius.circular(10.r),
+              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                small: 8,
+                medium: 10,
+                large: 12,
+                tablet: 14,
+                veryNarrow: 6,
+              )),
               child: Container(
-                padding: EdgeInsets.all(10.w),
+                padding: EdgeInsets.all(context.responsiveSpacing(
+                  small: 8,
+                  medium: 10,
+                  large: 12,
+                  tablet: 14,
+                  veryNarrow: 6,
+                )),
                 decoration: BoxDecoration(
                   color: context.isDarkMode
                       ? Colors.white.withOpacity(0.04)
                       : const Color(0xFFF8F8F8),
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                    small: 8,
+                    medium: 10,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 6,
+                  )),
                   border: Border.all(
                     color: context.isDarkMode
                         ? Colors.white.withOpacity(0.12)
@@ -735,14 +1021,20 @@ class InvoiceCard extends StatelessWidget {
                           Icons.note_outlined,
                           color: AppColors.deepGreen,
                           size: context.responsiveFontSize(
-                            small: 16,
-                            medium: 17,
+                            small: 14,
+                            medium: 16,
                             large: 18,
                             tablet: 20,
-                            veryNarrow: 14,
+                            veryNarrow: 12,
                           ),
                         ),
-                        SizedBox(width: 4.w),
+                        SizedBox(width: context.responsiveSpacing(
+                          small: 3,
+                          medium: 4,
+                          large: 5,
+                          tablet: 6,
+                          veryNarrow: 2,
+                        )),
                         Text(
                           'Тайлбар',
                           style: TextStyle(
@@ -752,14 +1044,20 @@ class InvoiceCard extends StatelessWidget {
                               medium: 13,
                               large: 14,
                               tablet: 15,
-                              veryNarrow: 10,
+                              veryNarrow: 11,
                             ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 6.h),
+                    SizedBox(height: context.responsiveSpacing(
+                      small: 4,
+                      medium: 5,
+                      large: 6,
+                      tablet: 8,
+                      veryNarrow: 3,
+                    )),
                     Text(
                       invoice.medeelel!.tailbar!,
                       style: TextStyle(
@@ -769,7 +1067,7 @@ class InvoiceCard extends StatelessWidget {
                           medium: 13,
                           large: 14,
                           tablet: 15,
-                          veryNarrow: 10,
+                          veryNarrow: 11,
                         ),
                       ),
                     ),
@@ -778,17 +1076,41 @@ class InvoiceCard extends StatelessWidget {
               ),
             ),
           ],
-          SizedBox(height: 12.h),
+          SizedBox(height: context.responsiveSpacing(
+            small: 10,
+            medium: 12,
+            large: 14,
+            tablet: 16,
+            veryNarrow: 8,
+          )),
           // Total amount
           ClipRRect(
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+              small: 8,
+              medium: 10,
+              large: 12,
+              tablet: 14,
+              veryNarrow: 6,
+            )),
             child: Container(
-              padding: EdgeInsets.all(12.w),
+              padding: EdgeInsets.all(context.responsiveSpacing(
+                small: 10,
+                medium: 12,
+                large: 14,
+                tablet: 16,
+                veryNarrow: 8,
+              )),
               decoration: BoxDecoration(
                 color: context.isDarkMode
                     ? Colors.white.withOpacity(0.04)
                     : const Color(0xFFF8F8F8),
-                borderRadius: BorderRadius.circular(10.r),
+                borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                  small: 8,
+                  medium: 10,
+                  large: 12,
+                  tablet: 14,
+                  veryNarrow: 6,
+                )),
                 border: Border.all(
                   color: context.isDarkMode
                       ? Colors.white.withOpacity(0.12)
@@ -808,7 +1130,7 @@ class InvoiceCard extends StatelessWidget {
                         medium: 15,
                         large: 16,
                         tablet: 17,
-                        veryNarrow: 11,
+                        veryNarrow: 12,
                       ),
                       fontWeight: FontWeight.w600,
                     ),
@@ -822,7 +1144,7 @@ class InvoiceCard extends StatelessWidget {
                         medium: 17,
                         large: 18,
                         tablet: 20,
-                        veryNarrow: 13,
+                        veryNarrow: 14,
                       ),
                       fontWeight: FontWeight.w700,
                     ),
@@ -832,20 +1154,50 @@ class InvoiceCard extends StatelessWidget {
             ),
           ),
           if (isHistory && onShowVATReceipt != null) ...[
-            SizedBox(height: 10.h),
+            SizedBox(height: context.responsiveSpacing(
+              small: 8,
+              medium: 10,
+              large: 12,
+              tablet: 14,
+              veryNarrow: 6,
+            )),
             ClipRRect(
-              borderRadius: BorderRadius.circular(10.r),
+              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                small: 8,
+                medium: 10,
+                large: 12,
+                tablet: 14,
+                veryNarrow: 6,
+              )),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: onShowVATReceipt,
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                    small: 8,
+                    medium: 10,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 6,
+                  )),
                   child: Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 10.h),
+                    padding: EdgeInsets.symmetric(vertical: context.responsiveSpacing(
+                      small: 8,
+                      medium: 10,
+                      large: 12,
+                      tablet: 14,
+                      veryNarrow: 6,
+                    )),
                     decoration: BoxDecoration(
                       color: AppColors.deepGreen,
-                      borderRadius: BorderRadius.circular(10.r),
+                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                        small: 8,
+                        medium: 10,
+                        large: 12,
+                        tablet: 14,
+                        veryNarrow: 6,
+                      )),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -853,15 +1205,21 @@ class InvoiceCard extends StatelessWidget {
                         Icon(
                           Icons.receipt_long_rounded,
                           size: context.responsiveFontSize(
-                            small: 16,
-                            medium: 17,
+                            small: 14,
+                            medium: 16,
                             large: 18,
                             tablet: 20,
-                            veryNarrow: 14,
+                            veryNarrow: 12,
                           ),
                           color: Colors.white,
                         ),
-                        SizedBox(width: 6.w),
+                        SizedBox(width: context.responsiveSpacing(
+                          small: 4,
+                          medium: 6,
+                          large: 8,
+                          tablet: 10,
+                          veryNarrow: 3,
+                        )),
                         Text(
                           'Баримт харах',
                           style: TextStyle(
@@ -870,7 +1228,7 @@ class InvoiceCard extends StatelessWidget {
                               medium: 14,
                               large: 15,
                               tablet: 16,
-                              veryNarrow: 11,
+                              veryNarrow: 12,
                             ),
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -898,11 +1256,11 @@ class InvoiceCard extends StatelessWidget {
         style: TextStyle(
           color: context.textPrimaryColor,
           fontSize: context.responsiveFontSize(
-            small: 11,
-            medium: 12,
-            large: 13,
-            tablet: 14,
-            veryNarrow: 9,
+            small: 13,
+            medium: 14,
+            large: 15,
+            tablet: 16,
+            veryNarrow: 11,
           ),
           height: 1.3,
         ),

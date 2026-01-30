@@ -55,7 +55,7 @@ class PaymentSection extends StatelessWidget {
                       totalSelectedAmount,
                       style: TextStyle(
                         color: AppColors.deepGreen,
-                        fontSize: 14.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -66,7 +66,7 @@ class PaymentSection extends StatelessWidget {
                           : 'Сонгоно уу',
                       style: TextStyle(
                         color: context.textSecondaryColor,
-                        fontSize: 10.sp,
+                        fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -94,7 +94,7 @@ class PaymentSection extends StatelessWidget {
                       'Төлбөр төлөх',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        fontSize: 11.sp,
+                        fontSize: 14.sp,
                         color: selectedCount > 0
                             ? Colors.white
                             : context.textPrimaryColor.withOpacity(0.3),

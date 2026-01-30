@@ -488,11 +488,11 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             style: TextStyle(
               color: context.textPrimaryColor,
               fontSize: context.responsiveFontSize(
-                small: 14,
-                medium: 15,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 12,
+                small: 16,
+                medium: 17,
+                large: 18,
+                tablet: 20,
+                veryNarrow: 14,
               ),
               fontWeight: FontWeight.w600,
               height: 1.3,
@@ -536,11 +536,11 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               style: TextStyle(
                 color: context.textSecondaryColor,
                 fontSize: context.responsiveFontSize(
-                  small: 11,
-                  medium: 12,
-                  large: 13,
-                  tablet: 15,
-                  veryNarrow: 10,
+                  small: 14,
+                  medium: 15,
+                  large: 16,
+                  tablet: 18,
+                  veryNarrow: 12,
                 ),
                 height: 1.5,
               ),

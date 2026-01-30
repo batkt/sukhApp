@@ -216,27 +216,92 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                           prefixIcon: Icon(
                             Icons.directions_car_outlined,
                             color: AppColors.deepGreen,
+                            size: context.responsiveIconSize(
+                              small: 22,
+                              medium: 24,
+                              large: 26,
+                              tablet: 28,
+                              veryNarrow: 20,
+                            ),
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                              small: 10,
+                              medium: 12,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 8,
+                            )),
                             borderSide: BorderSide(color: context.borderColor),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                              small: 10,
+                              medium: 12,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 8,
+                            )),
                             borderSide: BorderSide(color: context.borderColor),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                              small: 10,
+                              medium: 12,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 8,
+                            )),
                             borderSide: BorderSide(color: AppColors.deepGreen, width: 2),
                           ),
                           filled: true,
                           fillColor: context.surfaceColor,
-                          labelStyle: TextStyle(color: context.textSecondaryColor),
-                          hintStyle: TextStyle(color: context.textSecondaryColor.withOpacity(0.5)),
+                          labelStyle: TextStyle(
+                            color: context.textSecondaryColor,
+                            fontSize: context.responsiveFontSize(
+                              small: 13,
+                              medium: 14,
+                              large: 15,
+                              tablet: 16,
+                              veryNarrow: 12,
+                            ),
+                          ),
+                          hintStyle: TextStyle(
+                            color: context.textSecondaryColor.withOpacity(0.5),
+                            fontSize: context.responsiveFontSize(
+                              small: 13,
+                              medium: 14,
+                              large: 15,
+                              tablet: 16,
+                              veryNarrow: 12,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              small: 14,
+                              medium: 16,
+                              large: 18,
+                              tablet: 20,
+                              veryNarrow: 12,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              small: 12,
+                              medium: 14,
+                              large: 16,
+                              tablet: 18,
+                              veryNarrow: 10,
+                            ),
+                          ),
                         ),
                         style: TextStyle(
                           color: context.textPrimaryColor,
-                          fontSize: 16.sp,
+                          fontSize: context.responsiveFontSize(
+                            small: 14,
+                            medium: 15,
+                            large: 16,
+                            tablet: 17,
+                            veryNarrow: 13,
+                          ),
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1,
                         ),
@@ -281,23 +346,82 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                           prefixIcon: Icon(
                             Icons.phone_outlined,
                             color: AppColors.deepGreen.withOpacity(0.6),
+                            size: context.responsiveIconSize(
+                              small: 22,
+                              medium: 24,
+                              large: 26,
+                              tablet: 28,
+                              veryNarrow: 20,
+                            ),
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                              small: 10,
+                              medium: 12,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 8,
+                            )),
                             borderSide: BorderSide(color: context.borderColor.withOpacity(0.5)),
                           ),
                           disabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                              small: 10,
+                              medium: 12,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 8,
+                            )),
                             borderSide: BorderSide(color: context.borderColor.withOpacity(0.5)),
                           ),
                           filled: true,
                           fillColor: context.surfaceColor.withOpacity(0.5),
-                          labelStyle: TextStyle(color: context.textSecondaryColor),
-                          hintStyle: TextStyle(color: context.textSecondaryColor.withOpacity(0.5)),
+                          labelStyle: TextStyle(
+                            color: context.textSecondaryColor,
+                            fontSize: context.responsiveFontSize(
+                              small: 13,
+                              medium: 14,
+                              large: 15,
+                              tablet: 16,
+                              veryNarrow: 12,
+                            ),
+                          ),
+                          hintStyle: TextStyle(
+                            color: context.textSecondaryColor.withOpacity(0.5),
+                            fontSize: context.responsiveFontSize(
+                              small: 13,
+                              medium: 14,
+                              large: 15,
+                              tablet: 16,
+                              veryNarrow: 12,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              small: 14,
+                              medium: 16,
+                              large: 18,
+                              tablet: 20,
+                              veryNarrow: 12,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              small: 12,
+                              medium: 14,
+                              large: 16,
+                              tablet: 18,
+                              veryNarrow: 10,
+                            ),
+                          ),
                         ),
                         style: TextStyle(
                           color: context.textPrimaryColor.withOpacity(0.7),
-                          fontSize: 16.sp,
+                          fontSize: context.responsiveFontSize(
+                            small: 14,
+                            medium: 15,
+                            large: 16,
+                            tablet: 17,
+                            veryNarrow: 13,
+                          ),
                         ),
                       ),
                       SizedBox(height: context.responsiveSpacing(
@@ -315,14 +439,35 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                           onPressed: _isLoading ? null : _inviteGuest,
                           icon: _isLoading 
                             ? SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: context.responsiveIconSize(
+                                  small: 18,
+                                  medium: 20,
+                                  large: 22,
+                                  tablet: 24,
+                                  veryNarrow: 16,
+                                ),
+                                height: context.responsiveIconSize(
+                                  small: 18,
+                                  medium: 20,
+                                  large: 22,
+                                  tablet: 24,
+                                  veryNarrow: 16,
+                                ),
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white,
                                 ),
                               )
-                            : Icon(Icons.person_add_outlined),
+                            : Icon(
+                                Icons.person_add_outlined,
+                                size: context.responsiveIconSize(
+                                  small: 20,
+                                  medium: 22,
+                                  large: 24,
+                                  tablet: 26,
+                                  veryNarrow: 18,
+                                ),
+                              ),
                           label: Text(
                             _isLoading ? 'Уриж байна...' : 'Зочин урих',
                             style: TextStyle(
@@ -341,15 +486,21 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.symmetric(
                               vertical: context.responsiveSpacing(
-                                small: 14,
-                                medium: 16,
-                                large: 18,
-                                tablet: 20,
-                                veryNarrow: 12,
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 10,
                               ),
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                                small: 10,
+                                medium: 12,
+                                large: 14,
+                                tablet: 16,
+                                veryNarrow: 8,
+                              )),
                             ),
                             elevation: 0,
                           ),
@@ -405,15 +556,21 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                   child: Container(
                     width: double.infinity,
                     padding: context.responsivePadding(
-                      small: 32,
-                      medium: 36,
-                      large: 40,
-                      tablet: 44,
-                      veryNarrow: 24,
+                      small: 28,
+                      medium: 32,
+                      large: 36,
+                      tablet: 40,
+                      veryNarrow: 20,
                     ),
                     decoration: BoxDecoration(
                       color: context.cardBackgroundColor,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                        small: 12,
+                        medium: 14,
+                        large: 16,
+                        tablet: 18,
+                        veryNarrow: 10,
+                      )),
                       border: Border.all(color: context.borderColor, width: 1),
                     ),
                     child: Column(
@@ -421,16 +578,34 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                       children: [
                         Icon(
                           Icons.person_search_outlined,
-                          size: 48,
+                          size: context.responsiveIconSize(
+                            small: 40,
+                            medium: 44,
+                            large: 48,
+                            tablet: 52,
+                            veryNarrow: 36,
+                          ),
                           color: context.textSecondaryColor.withOpacity(0.5),
                         ),
-                        SizedBox(height: 12),
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 10,
+                          medium: 12,
+                          large: 14,
+                          tablet: 16,
+                          veryNarrow: 8,
+                        )),
                         Text(
                           'Урьсан зочин байхгүй',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: context.textSecondaryColor,
-                            fontSize: 14.sp,
+                            fontSize: context.responsiveFontSize(
+                              small: 13,
+                              medium: 14,
+                              large: 15,
+                              tablet: 16,
+                              veryNarrow: 12,
+                            ),
                           ),
                         ),
                       ],
@@ -443,7 +618,13 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                     shrinkWrap: true,
                     physics: NeverScrollableScrollPhysics(),
                     itemCount: _invitedGuests.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 12),
+                    separatorBuilder: (context, index) => SizedBox(height: context.responsiveSpacing(
+                      small: 10,
+                      medium: 12,
+                      large: 14,
+                      tablet: 16,
+                      veryNarrow: 8,
+                    )),
                     itemBuilder: (context, index) {
                       final guest = _invitedGuests[index];
                       return _buildGuestCard(guest);
@@ -481,24 +662,54 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
       ),
       decoration: BoxDecoration(
         color: context.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+          small: 10,
+          medium: 12,
+          large: 14,
+          tablet: 16,
+          veryNarrow: 8,
+        )),
         border: Border.all(color: context.borderColor, width: 1),
       ),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(12),
+            padding: EdgeInsets.all(context.responsiveSpacing(
+              small: 10,
+              medium: 12,
+              large: 14,
+              tablet: 16,
+              veryNarrow: 8,
+            )),
             decoration: BoxDecoration(
               color: AppColors.deepGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                small: 8,
+                medium: 10,
+                large: 12,
+                tablet: 14,
+                veryNarrow: 6,
+              )),
             ),
             child: Icon(
               Icons.directions_car,
               color: AppColors.deepGreen,
-              size: 24,
+              size: context.responsiveIconSize(
+                small: 20,
+                medium: 22,
+                large: 24,
+                tablet: 26,
+                veryNarrow: 18,
+              ),
             ),
           ),
-          SizedBox(width: 16),
+          SizedBox(width: context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 10,
+          )),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,18 +718,36 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                   mashiniiDugaar,
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 16.sp,
+                    fontSize: context.responsiveFontSize(
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 17,
+                      veryNarrow: 13,
+                    ),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1,
                   ),
                 ),
                 if (dateStr.isNotEmpty) ...[
-                  SizedBox(height: 4),
+                  SizedBox(height: context.responsiveSpacing(
+                    small: 3,
+                    medium: 4,
+                    large: 5,
+                    tablet: 6,
+                    veryNarrow: 2,
+                  )),
                   Text(
                     dateStr,
                     style: TextStyle(
                       color: context.textSecondaryColor,
-                      fontSize: 12.sp,
+                      fontSize: context.responsiveFontSize(
+                        small: 11,
+                        medium: 12,
+                        large: 13,
+                        tablet: 14,
+                        veryNarrow: 10,
+                      ),
                     ),
                   ),
                 ],
@@ -528,7 +757,13 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
           Icon(
             Icons.check_circle,
             color: AppColors.deepGreen,
-            size: 20,
+            size: context.responsiveIconSize(
+              small: 18,
+              medium: 20,
+              large: 22,
+              tablet: 24,
+              veryNarrow: 16,
+            ),
           ),
         ],
       ),

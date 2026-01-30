@@ -38,22 +38,40 @@ class _PaymentModalState extends State<PaymentModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.isDarkMode
-            ? const Color(0xFF1A1A1A)
-            : Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(16.r),
-          topRight: Radius.circular(16.r),
-        ),
-        border: Border.all(
+    // For tablets/iPads, limit width and center the modal
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final modalWidth = isTablet ? 500.0 : screenWidth;
+    
+    return Center(
+      child: Container(
+        width: modalWidth,
+        decoration: BoxDecoration(
           color: context.isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.08),
+              ? const Color(0xFF1A1A1A)
+              : Colors.white,
+          borderRadius: isTablet
+              ? BorderRadius.circular(16.r)
+              : BorderRadius.only(
+                  topLeft: Radius.circular(16.r),
+                  topRight: Radius.circular(16.r),
+                ),
+          border: Border.all(
+            color: context.isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.08),
+          ),
+          boxShadow: isTablet
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ]
+              : null,
         ),
-      ),
-      child: Column(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Handle bar
@@ -224,6 +242,7 @@ class _PaymentModalState extends State<PaymentModal> {
           ),
         ],
       ),
+    ),
     );
   }
 

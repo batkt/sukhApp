@@ -7,6 +7,7 @@ import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/models/ajiltan_model.dart';
 
 class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
@@ -19,6 +20,7 @@ class _ContactPageState extends State<ContactPage> {
   bool isLoading = true;
   String? organizationName;
   List<String> phoneNumbers = [];
+  List<Map<String, String>> staffPhoneNumbers = []; // {name, phone}
   String? errorMessage;
 
   @override
@@ -55,12 +57,75 @@ class _ContactPageState extends State<ContactPage> {
         }
         isLoading = false;
       });
+
+      // Load staff phone numbers
+      _loadStaffPhoneNumbers();
     } catch (e) {
       print('Error loading baiguullaga info: $e');
       setState(() {
         isLoading = false;
         errorMessage = 'Мэдээлэл татахад алдаа гарлаа';
       });
+    }
+  }
+
+  Future<void> _loadStaffPhoneNumbers() async {
+    try {
+      final response = await ApiService.fetchAjiltan();
+      final barilgiinId = await StorageService.getBarilgiinId();
+      final ajiltanResponse = AjiltanResponse.fromJson(response);
+
+      print('📞 [CONTACT PAGE] Loading staff phones, barilgiinId: $barilgiinId');
+      print('📞 [CONTACT PAGE] Total ajiltan count: ${ajiltanResponse.jagsaalt.length}');
+
+      // Collect phone numbers - first try to filter by barilgiinId, if empty show all
+      List<Map<String, String>> staffPhones = [];
+      
+      for (var ajiltan in ajiltanResponse.jagsaalt) {
+        print('📞 [CONTACT PAGE] Ajiltan: ${ajiltan.ner}, utas: ${ajiltan.utas}, barilguud: ${ajiltan.barilguud}');
+        
+        // Check if current barilgiinId is in the ajiltan's barilguud list
+        final isInBuilding = barilgiinId != null && ajiltan.barilguud.contains(barilgiinId);
+        
+        if (isInBuilding && ajiltan.utas.isNotEmpty) {
+          final name = ajiltan.ovog != null && ajiltan.ovog!.isNotEmpty
+              ? '${ajiltan.ovog} ${ajiltan.ner}'
+              : ajiltan.ner;
+          staffPhones.add({
+            'name': name,
+            'phone': ajiltan.utas,
+            'position': ajiltan.albanTushaal ?? 'Ажилтан',
+          });
+        }
+      }
+
+      // If no staff found for specific building, show all staff with phone numbers
+      if (staffPhones.isEmpty) {
+        print('📞 [CONTACT PAGE] No staff for specific building, showing all staff');
+        for (var ajiltan in ajiltanResponse.jagsaalt) {
+          if (ajiltan.utas.isNotEmpty) {
+            final name = ajiltan.ovog != null && ajiltan.ovog!.isNotEmpty
+                ? '${ajiltan.ovog} ${ajiltan.ner}'
+                : ajiltan.ner;
+            staffPhones.add({
+              'name': name,
+              'phone': ajiltan.utas,
+              'position': ajiltan.albanTushaal ?? 'Ажилтан',
+            });
+          }
+        }
+      }
+
+      print('📞 [CONTACT PAGE] Final staff phones count: ${staffPhones.length}');
+
+      if (mounted) {
+        setState(() {
+          staffPhoneNumbers = staffPhones;
+        });
+      }
+    } catch (e) {
+      print('❌ [CONTACT PAGE] Error loading staff phone numbers: $e');
+      // Silent fail - staff phone numbers are optional
     }
   }
 
@@ -239,9 +304,57 @@ class _ContactPageState extends State<ContactPage> {
                                 context,
                                 icon: Icons.phone_outlined,
                                 label: phone,
+                                subtitle: 'СӨХ утас',
                                 onTap: () => _launchPhone(phone),
                               ),
                             )),
+                          // Staff phone numbers
+                          if (staffPhoneNumbers.isNotEmpty) ...[
+                            SizedBox(
+                              height: context.responsiveSpacing(
+                                small: 16,
+                                medium: 18,
+                                large: 20,
+                                tablet: 22,
+                                veryNarrow: 12,
+                              ),
+                            ),
+                            Text(
+                              'СӨХ Ажилтан',
+                              style: TextStyle(
+                                color: AppColors.deepGreen,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(
+                              height: context.responsiveSpacing(
+                                small: 12,
+                                medium: 14,
+                                large: 16,
+                                tablet: 18,
+                                veryNarrow: 10,
+                              ),
+                            ),
+                            ...staffPhoneNumbers.map((staff) => Padding(
+                              padding: EdgeInsets.only(
+                                bottom: context.responsiveSpacing(
+                                  small: 12,
+                                  medium: 14,
+                                  large: 16,
+                                  tablet: 18,
+                                  veryNarrow: 10,
+                                ),
+                              ),
+                              child: _buildContactOption(
+                                context,
+                                icon: Icons.person_outline,
+                                label: staff['phone'] ?? '',
+                                subtitle: '${staff['name']} - ${staff['position']}',
+                                onTap: () => _launchPhone(staff['phone'] ?? ''),
+                              ),
+                            )),
+                          ],
                           SizedBox(
                             height: context.responsiveSpacing(
                               small: 18,
@@ -267,6 +380,7 @@ class _ContactPageState extends State<ContactPage> {
     BuildContext context, {
     required IconData icon,
     required String label,
+    String? subtitle,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -347,13 +461,28 @@ class _ContactPageState extends State<ContactPage> {
                 ),
               ),
               Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      SizedBox(height: 2.h),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: context.textSecondaryColor,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               Icon(

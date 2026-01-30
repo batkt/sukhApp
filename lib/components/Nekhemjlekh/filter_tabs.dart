@@ -82,7 +82,7 @@ class FilterTabs extends StatelessWidget {
                     color: isSelected
                         ? Colors.white
                         : context.textPrimaryColor,
-                    fontSize: 11.sp,
+                    fontSize: 13.sp,
                     fontWeight: isSelected
                         ? FontWeight.w600
                         : FontWeight.w500,
@@ -107,7 +107,7 @@ class FilterTabs extends StatelessWidget {
                         color: isSelected
                             ? Colors.white
                             : AppColors.deepGreen,
-                        fontSize: 9.sp,
+                        fontSize: 11.sp,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -2718,6 +2719,8 @@ class ApiService {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
 
+      print('📞 [API] fetchAjiltan - baiguullagiinId: $baiguullagiinId, barilgiinId: $barilgiinId');
+
       if (baiguullagiinId == null || barilgiinId == null) {
         throw Exception('Байгууллага эсвэл барилгын мэдээлэл олдсонгүй');
       }
@@ -2726,16 +2729,28 @@ class ApiService {
         '$baseUrl/ajiltan',
       ).replace(queryParameters: {'baiguullagiinId': baiguullagiinId});
 
+      print('📞 [API] fetchAjiltan URL: $uri');
+
       final response = await http.get(uri, headers: headers);
+
+      print('📞 [API] fetchAjiltan response status: ${response.statusCode}');
+      print('📞 [API] fetchAjiltan response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
+        print('📞 [API] fetchAjiltan data keys: ${data.keys}');
+        print('📞 [API] fetchAjiltan jagsaalt type: ${data['jagsaalt']?.runtimeType}');
+        print('📞 [API] fetchAjiltan jagsaalt length: ${data['jagsaalt']?.length}');
+
         // Filter jagsaalt by baiguullagiinId on client side
         if (data['jagsaalt'] != null && data['jagsaalt'] is List) {
           final filteredList = (data['jagsaalt'] as List).where((ajiltan) {
+            print('📞 [API] Checking ajiltan: ${ajiltan['ner']}, baiguullagiinId: ${ajiltan['baiguullagiinId']}');
             return ajiltan['baiguullagiinId'] == baiguullagiinId;
           }).toList();
+
+          print('📞 [API] fetchAjiltan filtered count: ${filteredList.length}');
 
           data['jagsaalt'] = filteredList;
           data['niitMur'] = filteredList.length;
@@ -2969,11 +2984,13 @@ class ApiService {
     }
   }
 
-  /// Submit complaint or suggestion (Гомдол or Санал)
+  /// Submit complaint or suggestion (Гомдол or Санал).
+  /// Optional [imageFile] is uploaded as "zurag" (multipart); backend stores under public/medegdel/.
   static Future<Map<String, dynamic>> submitGomdolSanal({
     required String title,
     required String message,
     required String turul, // "gomdol" or "sanal"
+    File? imageFile,
   }) async {
     final turulLower = turul.toLowerCase();
     try {
@@ -2995,40 +3012,43 @@ class ApiService {
         );
       }
 
-      final headers = await getAuthHeaders();
-
-      final requestBody = {
-        'medeelel': {'title': title, 'body': message},
-        'orshinSuugchId': userId,
-        'baiguullagiinId': baiguullagiinId,
-        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
-        'turul': turulLower, // Use lowercase version
+      final authHeaders = await getAuthHeaders();
+      final headers = <String, String>{
+        if (authHeaders['Authorization'] != null)
+          'Authorization': authHeaders['Authorization']!,
       };
 
+      final medeelel = json.encode({'title': title, 'body': message});
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/medegdelIlgeeye'),
+      );
+      request.headers.addAll(headers);
+      request.fields['medeelel'] = medeelel;
+      request.fields['orshinSuugchId'] = userId;
+      request.fields['baiguullagiinId'] = baiguullagiinId;
+      request.fields['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
+      request.fields['turul'] = turulLower;
       if (barilgiinId != null && barilgiinId.isNotEmpty) {
-        requestBody['barilgiinId'] = barilgiinId;
+        request.fields['barilgiinId'] = barilgiinId;
+      }
+      if (imageFile != null && await imageFile.exists()) {
+        request.files.add(
+          await http.MultipartFile.fromPath('zurag', imageFile.path),
+        );
       }
 
-      // Debug logging
       print('=== Submitting ${turul} ===');
       print('Endpoint: /medegdelIlgeeye');
-      print('Request body: ${json.encode(requestBody)}');
-      print('tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt');
+      print('With image: ${imageFile != null}');
 
-      // Use /medegdelIlgeeye endpoint - this is the correct endpoint for creating notifications
-      // Note: This endpoint requires Firebase token, but we'll handle that error gracefully
-      final response = await http.post(
-        Uri.parse('$baseUrl/medegdelIlgeeye'),
-        headers: headers,
-        body: json.encode(requestBody),
-      );
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
 
-      // Debug response
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // The API returns "done" as a string, so we return a success response
         final responseBody = response.body.trim();
         if (responseBody.toLowerCase() == 'done' ||
             responseBody.contains('success') ||
@@ -3040,7 +3060,6 @@ class ApiService {
                 : 'Санал амжилттай илгээгдлээ',
           };
         }
-        // If response is JSON, try to parse it
         try {
           final data = json.decode(responseBody);
           if (data['success'] == true || data['message'] != null) {
@@ -3051,10 +3070,7 @@ class ApiService {
                   : 'Санал амжилттай илгээгдлээ',
             };
           }
-        } catch (_) {
-          // If not JSON, assume success if status is 200
-        }
-        // Default success response
+        } catch (_) {}
         return {
           'success': true,
           'message': turulLower == 'gomdol'
@@ -3062,11 +3078,9 @@ class ApiService {
               : 'Санал амжилттай илгээгдлээ',
         };
       } else {
-        // Try to get error message from response body
         String errorMessage =
             '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа: ${response.statusCode}';
         try {
-          // Check if response is HTML (404 error page)
           if (response.body.contains('<!DOCTYPE html>') ||
               response.body.contains('Cannot POST') ||
               response.body.contains('Cannot GET')) {
@@ -3080,8 +3094,6 @@ class ApiService {
             } else if (errorBody['error'] != null) {
               errorMessage = errorBody['error'].toString();
             }
-
-            // Handle Firebase token error with a user-friendly message
             if (errorMessage.contains('Firebase token') ||
                 errorMessage.contains('firebaseToken')) {
               errorMessage =
@@ -3089,7 +3101,6 @@ class ApiService {
             }
           }
         } catch (_) {
-          // If response is not JSON, use the raw body if it's not empty
           if (response.body.trim().isNotEmpty &&
               !response.body.contains('<!DOCTYPE html>')) {
             errorMessage = response.body.trim();

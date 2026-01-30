@@ -506,30 +506,50 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
     final groupedPayments = _groupPaymentsBySource();
     final ownOrgPayments = groupedPayments['OWN_ORG'] ?? [];
     final walletPayments = groupedPayments['WALLET_API'] ?? [];
+    
+    // For tablets/iPads, limit width and center the modal
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    final modalWidth = isTablet ? 500.0 : screenWidth;
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      width: double.infinity,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.5)),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: context.isDarkMode
-                    ? Colors.transparent
-                    : AppColors.lightBackground,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(50.r),
-                  topRight: Radius.circular(50.r),
-                ),
-                border: Border.all(color: context.borderColor, width: 1),
-              ),
+    final maxModalHeight = MediaQuery.of(context).size.height * 0.85;
+
+    return Center(
+      child: Container(
+        constraints: BoxConstraints(maxHeight: maxModalHeight, maxWidth: modalWidth),
+        width: modalWidth,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(color: Colors.black.withOpacity(0.5)),
+            ),
+            Positioned.fill(
               child: Container(
-                padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 24.h),
+                decoration: BoxDecoration(
+                  color: context.isDarkMode
+                      ? Colors.transparent
+                      : AppColors.lightBackground,
+                  borderRadius: isTablet
+                      ? BorderRadius.circular(50.r)
+                      : BorderRadius.only(
+                          topLeft: Radius.circular(50.r),
+                          topRight: Radius.circular(50.r),
+                        ),
+                  border: Border.all(color: context.borderColor, width: 1),
+                  boxShadow: isTablet
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Container(
+                padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 16.h),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Drag handle
@@ -633,47 +653,54 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                         ),
                       )
                     else
-                      Expanded(
-                        child: ListView(
-                          children: [
-                            // OWN_ORG Section
-                            if (ownOrgPayments.isNotEmpty) ...[
-                              _buildSectionHeader(
-                                'OWN_ORG',
-                                ownOrgPayments.length,
-                              ),
-                              SizedBox(height: 8.h),
-                              ...ownOrgPayments.map((payment) {
-                                final index = payment['index'] as int;
-                                return _buildPaymentItem(payment, index);
-                              }),
-                              SizedBox(height: 16.h),
-                              _buildPayButton(
-                                'OWN_ORG',
-                                _getSelectedAmountForSource('OWN_ORG'),
-                                _hasSelectedPaymentsForSource('OWN_ORG'),
-                              ),
-                              SizedBox(height: 24.h),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: maxModalHeight * 0.55,
+                        ),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // OWN_ORG Section
+                              if (ownOrgPayments.isNotEmpty) ...[
+                                _buildSectionHeader(
+                                  'OWN_ORG',
+                                  ownOrgPayments.length,
+                                ),
+                                SizedBox(height: 8.h),
+                                ...ownOrgPayments.map((payment) {
+                                  final index = payment['index'] as int;
+                                  return _buildPaymentItem(payment, index);
+                                }),
+                                SizedBox(height: 16.h),
+                                _buildPayButton(
+                                  'OWN_ORG',
+                                  _getSelectedAmountForSource('OWN_ORG'),
+                                  _hasSelectedPaymentsForSource('OWN_ORG'),
+                                ),
+                                SizedBox(height: 24.h),
+                              ],
+                              // WALLET_API Section
+                              if (walletPayments.isNotEmpty) ...[
+                                _buildSectionHeader(
+                                  'WALLET_API',
+                                  walletPayments.length,
+                                ),
+                                SizedBox(height: 8.h),
+                                ...walletPayments.map((payment) {
+                                  final index = payment['index'] as int;
+                                  return _buildPaymentItem(payment, index);
+                                }),
+                                SizedBox(height: 16.h),
+                                _buildPayButton(
+                                  'WALLET_API',
+                                  _getSelectedAmountForSource('WALLET_API'),
+                                  _hasSelectedPaymentsForSource('WALLET_API'),
+                                ),
+                              ],
                             ],
-                            // WALLET_API Section
-                            if (walletPayments.isNotEmpty) ...[
-                              _buildSectionHeader(
-                                'WALLET_API',
-                                walletPayments.length,
-                              ),
-                              SizedBox(height: 8.h),
-                              ...walletPayments.map((payment) {
-                                final index = payment['index'] as int;
-                                return _buildPaymentItem(payment, index);
-                              }),
-                              SizedBox(height: 16.h),
-                              _buildPayButton(
-                                'WALLET_API',
-                                _getSelectedAmountForSource('WALLET_API'),
-                                _hasSelectedPaymentsForSource('WALLET_API'),
-                              ),
-                            ],
-                          ],
+                          ),
                         ),
                       ),
                   ],
@@ -693,6 +720,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
             ),
         ],
       ),
+    ),
     );
   }
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -44,24 +47,66 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.backgroundColor,
+      appBar: buildStandardAppBar(
+        context,
+        title: 'Санал хүсэлт',
+      ),
       body: AppBackground(
         child: SafeArea(
           child: Column(
             children: [
-              _buildAppBar(context),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: context.responsivePadding(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 26,
+                    veryNarrow: 16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 32),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 20,
+                          medium: 24,
+                          large: 28,
+                          tablet: 32,
+                          veryNarrow: 16,
+                        ),
+                      ),
                       _buildCategorySelector(),
-                      const SizedBox(height: 24),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 26,
+                          veryNarrow: 16,
+                        ),
+                      ),
                       _buildGlassTextField(),
-                      const SizedBox(height: 24),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 26,
+                          veryNarrow: 16,
+                        ),
+                      ),
                       _buildGlassFilePicker(),
-                      const SizedBox(height: 32),
+                      SizedBox(
+                        height: context.responsiveSpacing(
+                          small: 28,
+                          medium: 30,
+                          large: 32,
+                          tablet: 36,
+                          veryNarrow: 20,
+                        ),
+                      ),
                       _buildGlassButton(),
                     ],
                   ),
@@ -74,29 +119,6 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-            onPressed: () => context.pop(),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Санал',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCategorySelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +126,15 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
         Row(
           children: [
             Expanded(child: _buildCategoryOption('Санал хүсэлт')),
-            const SizedBox(width: 16),
+            SizedBox(
+              width: context.responsiveSpacing(
+                small: 12,
+                medium: 14,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 10,
+              ),
+            ),
             Expanded(child: _buildCategoryOption('Гомдол')),
           ],
         ),
@@ -123,25 +153,66 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: EdgeInsets.symmetric(
+          vertical: context.responsiveSpacing(
+            small: 14,
+            medium: 15,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 12,
+          ),
+        ),
         decoration: BoxDecoration(
           color: isSelected
               ? const Color(0xFFe6ff00)
-              : Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(50),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+              : context.cardBackgroundColor,
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 40,
+              medium: 45,
+              large: 50,
+              tablet: 50,
+              veryNarrow: 35,
+            ),
+          ),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (isSelected)
-              const Icon(Icons.check_circle, color: Colors.black, size: 20),
-            if (isSelected) const SizedBox(width: 8),
+              Icon(
+                Icons.check_circle,
+                color: Colors.black,
+                size: context.responsiveFontSize(
+                  small: 18,
+                  medium: 19,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 16,
+                ),
+              ),
+            if (isSelected)
+              SizedBox(
+                width: context.responsiveSpacing(
+                  small: 6,
+                  medium: 7,
+                  large: 8,
+                  tablet: 10,
+                  veryNarrow: 5,
+                ),
+              ),
             Text(
               category,
               style: TextStyle(
-                color: isSelected ? Colors.black : Colors.white,
-                fontSize: 16,
+                color: isSelected ? Colors.black : context.textPrimaryColor,
+                fontSize: context.responsiveFontSize(
+                  small: 14,
+                  medium: 15,
+                  large: 16,
+                  tablet: 17,
+                  veryNarrow: 12,
+                ),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               ),
             ),
@@ -160,29 +231,75 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
           child: Text(
             descriptionLabel,
             key: ValueKey(descriptionLabel),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
+            style: TextStyle(
+              color: context.textPrimaryColor,
+              fontSize: context.responsiveFontSize(
+                small: 14,
+                medium: 15,
+                large: 16,
+                tablet: 17,
+                veryNarrow: 13,
+              ),
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 10,
+            medium: 11,
+            large: 12,
+            tablet: 14,
+            veryNarrow: 8,
+          ),
+        ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            color: context.cardBackgroundColor,
+            borderRadius: BorderRadius.circular(
+              context.responsiveBorderRadius(
+                small: 12,
+                medium: 13,
+                large: 14,
+                tablet: 16,
+                veryNarrow: 10,
+              ),
+            ),
+            border: Border.all(color: context.borderColor),
           ),
           child: TextField(
             controller: descriptionController,
-            maxLines: 8,
-            style: const TextStyle(color: Colors.white),
+            maxLines: 6,
+            style: TextStyle(
+              color: context.textPrimaryColor,
+              fontSize: context.responsiveFontSize(
+                small: 14,
+                medium: 15,
+                large: 16,
+                tablet: 17,
+                veryNarrow: 13,
+              ),
+            ),
             decoration: InputDecoration(
               hintText: descriptionHint,
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+              hintStyle: TextStyle(
+                color: context.textSecondaryColor,
+                fontSize: context.responsiveFontSize(
+                  small: 14,
+                  medium: 15,
+                  large: 16,
+                  tablet: 17,
+                  veryNarrow: 13,
+                ),
+              ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
+              contentPadding: context.responsivePadding(
+                small: 14,
+                medium: 15,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 12,
+              ),
             ),
           ),
         ),
@@ -194,15 +311,29 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Зураг хавсаргах:',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
+            color: context.textPrimaryColor,
+            fontSize: context.responsiveFontSize(
+              small: 14,
+              medium: 15,
+              large: 16,
+              tablet: 17,
+              veryNarrow: 13,
+            ),
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 10,
+            medium: 11,
+            large: 12,
+            tablet: 14,
+            veryNarrow: 8,
+          ),
+        ),
         GestureDetector(
           onTap: () {
             setState(() {
@@ -210,37 +341,96 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
             });
           },
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: context.responsivePadding(
+              small: 14,
+              medium: 15,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 12,
+            ),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              color: context.cardBackgroundColor,
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 12,
+                  medium: 13,
+                  large: 14,
+                  tablet: 16,
+                  veryNarrow: 10,
+                ),
+              ),
+              border: Border.all(color: context.borderColor),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(8),
+                  padding: context.responsivePadding(
+                    small: 10,
+                    medium: 11,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 8,
                   ),
-                  child: const Icon(
+                  decoration: BoxDecoration(
+                    color: context.isDarkMode
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(
+                      context.responsiveBorderRadius(
+                        small: 8,
+                        medium: 9,
+                        large: 10,
+                        tablet: 12,
+                        veryNarrow: 6,
+                      ),
+                    ),
+                  ),
+                  child: Icon(
                     Icons.upload_file,
-                    color: Color(0xFFe6ff00),
-                    size: 20,
+                    color: const Color(0xFFe6ff00),
+                    size: context.responsiveFontSize(
+                      small: 18,
+                      medium: 19,
+                      large: 20,
+                      tablet: 22,
+                      veryNarrow: 16,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(
+                  width: context.responsiveSpacing(
+                    small: 14,
+                    medium: 15,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 12,
+                  ),
+                ),
                 Expanded(
                   child: Text(
                     selectedFileName,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: context.responsiveFontSize(
+                        small: 13,
+                        medium: 14,
+                        large: 15,
+                        tablet: 16,
+                        veryNarrow: 12,
+                      ),
+                    ),
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.attach_file,
-                  color: Color(0xFFe6ff00),
-                  size: 20,
+                  color: const Color(0xFFe6ff00),
+                  size: context.responsiveFontSize(
+                    small: 18,
+                    medium: 19,
+                    large: 20,
+                    tablet: 22,
+                    veryNarrow: 16,
+                  ),
                 ),
               ],
             ),
@@ -256,9 +446,9 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
         borderRadius: BorderRadius.circular(100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            offset: const Offset(0, 10),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.2),
+            offset: const Offset(0, 6),
+            blurRadius: 6,
           ),
         ],
       ),
@@ -269,7 +459,15 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFCAD2DB),
             foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(
+              vertical: context.responsiveSpacing(
+                small: 14,
+                medium: 15,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 12,
+              ),
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(100),
             ),
@@ -279,7 +477,16 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
             child: Text(
               buttonText,
               key: ValueKey(buttonText),
-              style: const TextStyle(fontSize: 16),
+              style: TextStyle(
+                fontSize: context.responsiveFontSize(
+                  small: 14,
+                  medium: 15,
+                  large: 16,
+                  tablet: 17,
+                  veryNarrow: 13,
+                ),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),

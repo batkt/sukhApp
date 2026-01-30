@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -19,7 +22,9 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _messageController = TextEditingController();
+  final _picker = ImagePicker();
   String _selectedType = 'gomdol'; // 'gomdol' or 'sanal'
+  File? _selectedImage;
   bool _isSubmitting = false;
 
   @override
@@ -43,6 +48,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
         title: _titleController.text.trim(),
         message: _messageController.text.trim(),
         turul: _selectedType,
+        imageFile: _selectedImage,
       );
 
       if (mounted) {
@@ -61,6 +67,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
         // Clear form
         _titleController.clear();
         _messageController.clear();
+        setState(() => _selectedImage = null);
 
         // Navigate back
         context.pop();
@@ -120,11 +127,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
-                              small: 17,
-                              medium: 18,
-                              large: 19,
-                              tablet: 20,
-                              veryNarrow: 15,
+                              small: 14,
+                              medium: 15,
+                              large: 16,
+                              tablet: 17,
+                              veryNarrow: 13,
                             ),
                             fontWeight: FontWeight.w600,
                           ),
@@ -180,11 +187,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
-                              small: 17,
-                              medium: 18,
-                              large: 19,
-                              tablet: 20,
-                              veryNarrow: 15,
+                              small: 14,
+                              medium: 15,
+                              large: 16,
+                              tablet: 17,
+                              veryNarrow: 13,
                             ),
                             fontWeight: FontWeight.w600,
                           ),
@@ -203,11 +210,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
-                              small: 17,
-                              medium: 18,
-                              large: 19,
-                              tablet: 20,
-                              veryNarrow: 15,
+                              small: 14,
+                              medium: 15,
+                              large: 16,
+                              tablet: 17,
+                              veryNarrow: 13,
                             ),
                           ),
                           decoration: InputDecoration(
@@ -310,11 +317,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
-                              small: 17,
-                              medium: 18,
-                              large: 19,
-                              tablet: 20,
-                              veryNarrow: 15,
+                              small: 14,
+                              medium: 15,
+                              large: 16,
+                              tablet: 17,
+                              veryNarrow: 13,
                             ),
                             fontWeight: FontWeight.w600,
                           ),
@@ -333,14 +340,14 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
-                              small: 17,
-                              medium: 18,
-                              large: 19,
-                              tablet: 20,
-                              veryNarrow: 15,
+                              small: 14,
+                              medium: 15,
+                              large: 16,
+                              tablet: 17,
+                              veryNarrow: 13,
                             ),
                           ),
-                          maxLines: 8,
+                          maxLines: 6,
                           decoration: InputDecoration(
                             hintText: 'Дэлгэрэнгүй мэдээлэл оруулах',
                             hintStyle: TextStyle(
@@ -431,6 +438,17 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                         ),
                         SizedBox(
                           height: context.responsiveSpacing(
+                            small: 24,
+                            medium: 28,
+                            large: 32,
+                            tablet: 36,
+                            veryNarrow: 18,
+                          ),
+                        ),
+                        // Image attachment
+                        _buildImageSection(),
+                        SizedBox(
+                          height: context.responsiveSpacing(
                             small: 32,
                             medium: 36,
                             large: 40,
@@ -484,11 +502,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                                     'Илгээх',
                                     style: TextStyle(
                                       fontSize: context.responsiveFontSize(
-                                        small: 17,
-                                        medium: 18,
-                                        large: 19,
-                                        tablet: 20,
-                                        veryNarrow: 15,
+                                        small: 14,
+                                        medium: 15,
+                                        large: 16,
+                                        tablet: 17,
+                                        veryNarrow: 13,
                                       ),
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
@@ -505,6 +523,271 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final x = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      if (x != null && mounted) {
+        setState(() => _selectedImage = File(x.path));
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Зураг сонгоход алдаа гарлаа: $e',
+          icon: Icons.error_outline,
+          iconColor: Colors.red,
+          textColor: context.textPrimaryColor,
+          opacity: 0.3,
+          blur: 15,
+        );
+      }
+    }
+  }
+
+  void _showImageSourceSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.cardBackgroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.responsiveBorderRadius(
+            small: 16,
+            medium: 18,
+            large: 20,
+            tablet: 22,
+            veryNarrow: 14,
+          )),
+        ),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: context.responsivePadding(
+            small: 20,
+            medium: 24,
+            large: 28,
+            tablet: 32,
+            veryNarrow: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Зураг сонгох',
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: context.responsiveFontSize(
+                    small: 16,
+                    medium: 17,
+                    large: 18,
+                    tablet: 19,
+                    veryNarrow: 15,
+                  ),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(
+                height: context.responsiveSpacing(
+                  small: 16,
+                  medium: 18,
+                  large: 20,
+                  tablet: 22,
+                  veryNarrow: 12,
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library, color: AppColors.deepGreen),
+                title: Text(
+                  'Зургийн сан',
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: AppColors.deepGreen),
+                title: Text(
+                  'Камер',
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Зураг хавсаргах',
+          style: TextStyle(
+            color: context.textPrimaryColor,
+            fontSize: context.responsiveFontSize(
+              small: 14,
+              medium: 15,
+              large: 16,
+              tablet: 17,
+              veryNarrow: 13,
+            ),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 10,
+          ),
+        ),
+        if (_selectedImage != null) ...[
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(
+                  context.responsiveBorderRadius(
+                    small: 12,
+                    medium: 14,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 10,
+                  ),
+                ),
+                child: Image.file(
+                  _selectedImage!,
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: Colors.black54,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedImage = null),
+                    customBorder: const CircleBorder(),
+                    child: Padding(
+                      padding: EdgeInsets.all(8.w),
+                      child: Icon(Icons.close, color: Colors.white, size: 20.w),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 10,
+              medium: 12,
+              large: 14,
+              tablet: 16,
+              veryNarrow: 8,
+            ),
+          ),
+        ],
+        GestureDetector(
+          onTap: _showImageSourceSheet,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              vertical: context.responsiveSpacing(
+                small: 14,
+                medium: 16,
+                large: 18,
+                tablet: 20,
+                veryNarrow: 12,
+              ),
+              horizontal: context.responsiveSpacing(
+                small: 16,
+                medium: 18,
+                large: 20,
+                tablet: 22,
+                veryNarrow: 14,
+              ),
+            ),
+            decoration: BoxDecoration(
+              color: context.cardBackgroundColor,
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 12,
+                  medium: 14,
+                  large: 16,
+                  tablet: 18,
+                  veryNarrow: 10,
+                ),
+              ),
+              border: Border.all(color: context.borderColor),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.add_photo_alternate_outlined,
+                  color: context.textSecondaryColor,
+                  size: context.responsiveFontSize(
+                    small: 22,
+                    medium: 24,
+                    large: 26,
+                    tablet: 28,
+                    veryNarrow: 20,
+                  ),
+                ),
+                SizedBox(
+                  width: context.responsiveSpacing(
+                    small: 12,
+                    medium: 14,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 10,
+                  ),
+                ),
+                Text(
+                  _selectedImage != null
+                      ? 'Өөр зураг сонгох'
+                      : 'Зураг нэмэх (заавал биш)',
+                  style: TextStyle(
+                    color: context.textSecondaryColor,
+                    fontSize: context.responsiveFontSize(
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 17,
+                      veryNarrow: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -573,11 +856,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
               icon,
               color: isSelected ? selectedColor : unselectedTextColor,
               size: context.responsiveFontSize(
-                small: 22,
-                medium: 24,
-                large: 26,
-                tablet: 28,
-                veryNarrow: 18,
+                small: 18,
+                medium: 20,
+                large: 22,
+                tablet: 24,
+                veryNarrow: 16,
               ),
             ),
             SizedBox(width: 8.w),
@@ -586,11 +869,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
               style: TextStyle(
                 color: isSelected ? selectedColor : unselectedTextColor,
                 fontSize: context.responsiveFontSize(
-                  small: 15,
-                  medium: 16,
-                  large: 17,
-                  tablet: 18,
-                  veryNarrow: 13,
+                  small: 13,
+                  medium: 14,
+                  large: 15,
+                  tablet: 16,
+                  veryNarrow: 12,
                 ),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
