@@ -1662,6 +1662,44 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> updatePlateNumber(String mashiniiDugaar) async {
+    try {
+      final userId = await StorageService.getUserId();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      if (userId == null || baiguullagiinId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/orshinSuugch/$userId'),
+        headers: headers,
+        body: json.encode({
+          '_id': userId,
+          'baiguullagiinId': baiguullagiinId,
+          'mashiniiDugaar': mashiniiDugaar,
+          'dugaarUurchilsunOgnoo': DateTime.now().toIso8601String(),
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else {
+        String message = 'Дугаар солиход алдаа гарлаа';
+        try {
+          final data = json.decode(response.body);
+          message = data['message'] ?? data['aldaa'] ?? message;
+        } catch (_) {}
+        throw Exception(message);
+      }
+    } catch (e) {
+      print('Error updating plate number: $e');
+      throw Exception('Дугаар солиход алдаа гарлаа: $e');
+    }
+  }
+
   static Future<void> updateTaniltsuulgaKharakhEsekh({
     required bool taniltsuulgaKharakhEsekh,
   }) async {
@@ -3187,40 +3225,180 @@ class ApiService {
   // ZOCHIN URIKH (Guest Invitation) API Methods
   // ============================================
 
-  /// Save guest invitation
+  /// Unified Guest Registration (Save & Link)
   static Future<Map<String, dynamic>> zochinHadgalya({
     required String mashiniiDugaar,
     required String baiguullagiinId,
     String? barilgiinId,
     required String ezemshigchiinUtas,
+    Map<String, dynamic>? orshinSuugchMedeelel,
   }) async {
     try {
       final headers = await getAuthHeaders();
       final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+      final userId = await StorageService.getUserId();
+
+      // Fetch profile and settings for a complete payload that matches EzenUrisanMashin schema
+      final profile = await getUserProfile();
+      final userData = profile['result'] ?? {};
+      
+      final quota = await fetchZochinQuotaStatus();
+      Map<String, dynamic> quotaData;
+      if (quota['total'] != null) {
+        quotaData = quota;
+      } else if (quota['data'] != null && quota['data'] is Map) {
+        quotaData = Map<String, dynamic>.from(quota['data']);
+      } else {
+        quotaData = quota;
+      }
 
       final requestBody = {
-        'mashiniiDugaar': mashiniiDugaar,
         'baiguullagiinId': baiguullagiinId,
         'barilgiinId': barilgiinId,
+        'ezemshigchiinId': userId ?? "",
+        'ezemshigchiinNer': "${userData['ovog'] ?? ''} ${userData['ner'] ?? ''}".trim(),
+        'ezemshigchiinRegister': userData['registerNo'] ?? userData['register'] ?? "",
         'ezemshigchiinUtas': ezemshigchiinUtas,
-        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'urisanMashiniiDugaar': mashiniiDugaar, // Key field requested by user
+        'davtamjiinTurul': quotaData['period'] ?? "saraar",
+        'zochinErkhiinToo': quotaData['total'] ?? quotaData['zochinErkhiinToo'] ?? 0,
+        'tusBurUneguiMinut': quotaData['freeMinutesPerGuest'] ?? quotaData['zochinTusBurUneguiMinut'] ?? 0,
+        'tuluv': 0,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt ?? "amarSukh",
+        
+        // Keep legacy fields for backward compatibility if needed by some older backend logic
+        'mashiniiDugaar': mashiniiDugaar,
+        'dugaar': mashiniiDugaar,
+        'mashinuud': [mashiniiDugaar],
+        if (orshinSuugchMedeelel != null) 'orshinSuugchMedeelel': orshinSuugchMedeelel,
       };
 
       final response = await http.post(
-        Uri.parse('$baseUrl/zochinHadgalya'),
+        Uri.parse('$baseUrl/ezenUrisanMashin'),
         headers: headers,
         body: json.encode(requestBody),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+        final responseBody = response.body.trim();
+        if (responseBody == 'Amjilttai') {
+          return {'success': true, 'message': 'Amjilttai'};
+        }
+        
+        try {
+          return json.decode(responseBody);
+        } catch (e) {
+          if (responseBody.isNotEmpty) {
+            return {'success': true, 'message': responseBody};
+          }
+          return {'success': true};
+        }
       } else {
-        final errorBody = json.decode(response.body);
-        throw Exception(errorBody['message'] ?? 'Зочин хадгалахад алдаа гарлаа');
+        String message = 'Зочин хадгалахад алдаа гарлаа';
+        try {
+          final errorBody = json.decode(response.body);
+          message = errorBody['message'] ?? errorBody['aldaa'] ?? message;
+        } catch (_) {
+          if (response.statusCode == 403) {
+            message = 'Зочин урих эрх дууссан байна';
+          } else {
+            message = '$message: ${response.statusCode}';
+          }
+        }
+        throw Exception(message);
       }
     } catch (e) {
       print('Error saving guest: $e');
       throw Exception('Зочин хадгалахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Unified Guest Invitation method using the correct EzenUrisanMashin schema
+  static Future<Map<String, dynamic>> inviteGuest({
+    required String urisanMashiniiDugaar,
+    required String baiguullagiinId,
+    String? barilgiinId,
+    required String ezenId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+      
+      // Fetch profile to get inviter details
+      final profile = await getUserProfile();
+      final userData = profile['result'] ?? {};
+      
+      // Fetch quota to get current settings
+      final quota = await fetchZochinQuotaStatus();
+      Map<String, dynamic> quotaData;
+      if (quota['total'] != null) {
+        quotaData = quota;
+      } else if (quota['data'] != null && quota['data'] is Map) {
+        quotaData = Map<String, dynamic>.from(quota['data']);
+      } else if (quota['result'] != null && quota['result'] is Map) {
+        quotaData = Map<String, dynamic>.from(quota['result']);
+      } else {
+        quotaData = quota;
+      }
+
+      final requestBody = {
+        "baiguullagiinId": baiguullagiinId,
+        "barilgiinId": barilgiinId,
+        "ezemshigchiinId": ezenId,
+        "ezemshigchiinNer": "${userData['ovog'] ?? ''} ${userData['ner'] ?? ''}".trim(),
+        "ezemshigchiinRegister": userData['registerNo'] ?? userData['register'] ?? "",
+        "ezemshigchiinUtas": userData['utas']?.toString() ?? "",
+        "urisanMashiniiDugaar": urisanMashiniiDugaar,
+        "davtamjiinTurul": quotaData['period'] ?? quotaData['davtamjiinTurul'] ?? "saraar",
+        "zochinErkhiinToo": quotaData['total'] ?? quotaData['zochinErkhiinToo'] ?? 0,
+        "tusBurUneguiMinut": quotaData['freeMinutesPerGuest'] ?? quotaData['zochinTusBurUneguiMinut'] ?? 0,
+        "tuluv": 0,
+        "tukhainBaaziinKholbolt": tukhainBaaziinKholbolt ?? "amarSukh"
+      };
+
+      print('🚗 [INVITE] Pattern implementation: ${json.encode(requestBody)}');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/ezenUrisanMashin'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseBody = response.body.trim();
+        if (responseBody == 'Amjilttai' || responseBody == 'Success') {
+          return {'success': true, 'message': 'Amjilttai'};
+        }
+        
+        try {
+          final decoded = json.decode(responseBody);
+          if (decoded is Map<String, dynamic>) {
+            return decoded;
+          }
+          return {'success': true, 'data': decoded};
+        } catch (e) {
+          if (responseBody.isNotEmpty) {
+            return {'success': true, 'message': responseBody};
+          }
+          return {'success': true};
+        }
+      } else {
+        String message = 'Зочин урихад алдаа гарлаа';
+        try {
+          final errorBody = json.decode(response.body);
+          message = errorBody['message'] ?? errorBody['aldaa'] ?? errorBody['error'] ?? message;
+        } catch (_) {
+          if (response.statusCode == 403) {
+            message = 'Зочин урих эрх дууссан байна';
+          } else {
+            message = '$message: ${response.statusCode}';
+          }
+        }
+        throw Exception(message);
+      }
+    } catch (e) {
+      print('Error inviting guest: $e');
+      rethrow;
     }
   }
 
@@ -3246,17 +3424,104 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'jagsaalt': data['ezenList'] ?? [],
-          'tuukh': data['jagsaalt'] ?? [],
-        };
+        return json.decode(response.body);
       } else {
         throw Exception('Зочны түүх татахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching guest history: $e');
       throw Exception('Зочны түүх татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Delete/Cancel guest invitation
+  static Future<Map<String, dynamic>> deleteZochinInvitation({
+    required String id,
+    required String baiguullagiinId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/ezenUrisanMashin/$id'),
+        headers: headers,
+        body: json.encode({
+          'baiguullagiinId': baiguullagiinId,
+          'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseBody = response.body.trim();
+        if (responseBody == 'Amjilttai') {
+          return {'success': true, 'message': 'Amjilttai'};
+        }
+        
+        try {
+          return json.decode(responseBody);
+        } catch (e) {
+          if (responseBody.isNotEmpty) {
+            return {'success': true, 'message': responseBody};
+          }
+          return {'success': true};
+        }
+      } else {
+        String message = 'Урилга цуцлахад алдаа гарлаа';
+        try {
+          final errorBody = json.decode(response.body);
+          message = errorBody['message'] ?? errorBody['aldaa'] ?? message;
+        } catch (_) {}
+        throw Exception(message);
+      }
+    } catch (e) {
+      print('Error deleting guest invitation: $e');
+      throw Exception('Урилга цуцлахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// GET Resident Settings
+  static Future<Map<String, dynamic>> fetchZochinSettings() async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/zochinSettings'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Тохиргоо авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Тохиргоо авахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// GET Quota Status
+  static Future<Map<String, dynamic>> fetchZochinQuotaStatus() async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/zochinQuotaStatus'),
+        headers: headers,
+      );
+
+      final responseBody = response.body.trim();
+      if (response.statusCode == 200) {
+        try {
+          return json.decode(responseBody);
+        } catch (e) {
+          // If not JSON but 200, it's likely a plain text message
+          return {'success': true, 'message': responseBody};
+        }
+      } else {
+        throw Exception('Квот шалгахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching quota status: $e');
+      throw Exception('Квот шалгахад алдаа гарлаа: $e');
     }
   }
 }

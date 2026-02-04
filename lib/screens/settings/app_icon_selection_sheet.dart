@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -94,7 +95,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
   }
 
   Future<bool> _isPhysicalDevice() async {
-    if (Platform.isIOS) {
+    if (!kIsWeb && Platform.isIOS) {
       final deviceInfo = DeviceInfoPlugin();
       final iosInfo = await deviceInfo.iosInfo;
       return iosInfo.isPhysicalDevice;
@@ -104,13 +105,13 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
 
   Future<void> _loadCurrentIcon() async {
     try {
-      if (Platform.isIOS) {
+      if (!kIsWeb && Platform.isIOS) {
         final iconName = await FlutterDynamicIcon.getAlternateIconName();
         setState(() {
           currentIconName = iconName ?? 'default';
         });
       } else {
-        // For Android, load from shared preferences
+        // For Android or Web, load from shared preferences
         final prefs = await SharedPreferences.getInstance();
         setState(() {
           currentIconName = prefs.getString('app_icon') ?? 'default';
@@ -131,7 +132,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
     });
 
     try {
-      if (Platform.isIOS) {
+      if (!kIsWeb && Platform.isIOS) {
         // Check if running on simulator (dynamic icons don't work on simulator)
         final isSimulator = !await _isPhysicalDevice();
         if (isSimulator) {
@@ -167,7 +168,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
         }
       }
 
-      // Save to shared preferences for both platforms
+      // Save to shared preferences for platforms
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('app_icon', option.name);
 
@@ -293,7 +294,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
           SizedBox(height: 24.h),
 
           // Note for iOS
-          if (Platform.isIOS)
+          if (!kIsWeb && Platform.isIOS)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Container(

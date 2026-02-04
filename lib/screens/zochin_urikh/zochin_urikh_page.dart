@@ -24,12 +24,75 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
   List<Map<String, dynamic>> _invitedGuests = [];
   bool _isLoadingHistory = true;
   String? _userPhoneNumber;
+  Map<String, dynamic>? _quotaStatus;
+  bool _isLoadingQuota = true;
+  String? _quotaError;
+  bool _hasQuota = true;
 
   @override
   void initState() {
     super.initState();
     _loadUserPhone();
     _loadInvitedGuests();
+    _loadQuotaStatus();
+  }
+
+  Future<void> _loadQuotaStatus() async {
+    try {
+      if (mounted) setState(() {
+        _isLoadingQuota = true;
+        _quotaError = null;
+      });
+      
+      final status = await ApiService.fetchZochinQuotaStatus();
+      debugPrint('📊 [QUOTA] Received status: $status');
+      
+      if (mounted) {
+        setState(() {
+          // Handle various response formats (flat or wrapped in 'data'/'result')
+          Map<String, dynamic> data;
+          if (status['total'] != null) {
+            data = status;
+          } else if (status['data'] != null && status['data'] is Map) {
+            data = Map<String, dynamic>.from(status['data']);
+          } else if (status['result'] != null && status['result'] is Map) {
+            data = Map<String, dynamic>.from(status['result']);
+          } else {
+            data = status;
+          }
+          
+          // Map potential different key names for robustness
+          _quotaStatus = {
+            'total': data['total'] ?? data['zochinErkhiinToo'] ?? 0,
+            'used': data['used'] ?? data['ashiglasanToo'] ?? 0,
+            'remaining': data['remaining'] ?? data['uldsenToo'] ?? 0,
+            'period': data['period'] ?? 'saraar',
+            'freeMinutesPerGuest': data['freeMinutesPerGuest'] ?? data['zochinTusBurUneguiMinut'] ?? 0,
+          };
+          
+          // Check success flag to determine if user can invite
+          if (status['success'] == false) {
+            _hasQuota = false;
+          } else {
+            // Even if success is true, if remaining is 0 we should disable
+            final remaining = _quotaStatus!['remaining'] as int;
+            final total = _quotaStatus!['total'] as int;
+            _hasQuota = total == 0 || remaining > 0;
+          }
+          
+          _isLoadingQuota = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ [QUOTA] Error loading quota status: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingQuota = false;
+          _hasQuota = true; // Fallback to allow attempt if we can't check
+          _quotaError = e.toString();
+        });
+      }
+    }
   }
 
   Future<void> _loadUserPhone() async {
@@ -49,9 +112,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
     super.dispose();
   }
 
-  Future<void> _loadInvitedGuests() async {
+  Future<void> _loadInvitedGuests({bool showLoading = true}) async {
     try {
-      setState(() => _isLoadingHistory = true);
+      if (showLoading) setState(() => _isLoadingHistory = true);
       
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final userId = await StorageService.getUserId();
@@ -63,10 +126,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
         );
         
         if (mounted) {
-          // Try both 'jagsaalt' and 'tuukh' keys since API might return data in either
+          final ezenList = response['ezenList'] as List? ?? [];
           final jagsaalt = response['jagsaalt'] as List? ?? [];
-          final tuukh = response['tuukh'] as List? ?? [];
-          final combinedList = jagsaalt.isNotEmpty ? jagsaalt : tuukh;
+          final combinedList = ezenList.isNotEmpty ? ezenList : jagsaalt;
           
           setState(() {
             _invitedGuests = List<Map<String, dynamic>>.from(combinedList);
@@ -94,16 +156,17 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
+      final userId = await StorageService.getUserId();
       
-      if (baiguullagiinId == null) {
-        throw Exception('Байгууллагын мэдээлэл олдсонгүй');
+      if (baiguullagiinId == null || userId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
-      await ApiService.zochinHadgalya(
-        mashiniiDugaar: _mashiniiDugaarController.text.trim().toUpperCase(),
+      await ApiService.inviteGuest(
+        urisanMashiniiDugaar: _mashiniiDugaarController.text.trim().toUpperCase(),
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,
-        ezemshigchiinUtas: _ezemshigchiinUtasController.text.trim(),
+        ezenId: userId,
       );
 
       if (mounted) {
@@ -118,17 +181,36 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
           ),
         );
         
-        // Reload history
+        // Reload history and quota
         _loadInvitedGuests();
+        _loadQuotaStatus();
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = e.toString();
+        
+        // Clean up common technical prefixes
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.replaceFirst('Exception: ', '');
+        }
+        if (errorMessage.contains('Зочин хадгалахад алдаа гарлаа:')) {
+          errorMessage = errorMessage.replaceFirst('Зочин хадгалахад алдаа гарлаа:', '').trim();
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Алдаа: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            margin: EdgeInsets.all(16),
           ),
         );
+
+        // If it was a quota error (403), refresh to disable button
+        if (e.toString().contains('403') || e.toString().contains('лимит')) {
+          _loadQuotaStatus();
+        }
       }
     } finally {
       if (mounted) {
@@ -154,6 +236,55 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Quota status card
+              if (_isLoadingQuota)
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.deepGreen.withOpacity(0.5),
+                    ),
+                  ),
+                )
+              else if (_quotaError != null)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red[300], size: 20),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Квот ачаалж чадсангүй',
+                          style: TextStyle(color: Colors.red[700], fontSize: 13),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _loadQuotaStatus,
+                        child: Text('Дахин оролдох'),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_quotaStatus != null && (_quotaStatus!['total'] > 0 || _quotaStatus!['freeMinutesPerGuest'] > 0))
+                _buildQuotaCard(),
+              
+              if (!_isLoadingQuota && _quotaError == null && _quotaStatus != null && (_quotaStatus!['total'] > 0 || _quotaStatus!['freeMinutesPerGuest'] > 0))
+                SizedBox(height: context.responsiveSpacing(
+                  small: 16,
+                  medium: 20,
+                  large: 24,
+                  tablet: 28,
+                  veryNarrow: 12,
+                )),
+
               // Form card
               Container(
                 padding: context.responsivePadding(
@@ -433,79 +564,80 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                       )),
                       
                       // Submit button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _inviteGuest,
-                          icon: _isLoading 
-                            ? SizedBox(
-                                width: context.responsiveIconSize(
-                                  small: 18,
-                                  medium: 20,
-                                  large: 22,
-                                  tablet: 24,
-                                  veryNarrow: 16,
-                                ),
-                                height: context.responsiveIconSize(
-                                  small: 18,
-                                  medium: 20,
-                                  large: 22,
-                                  tablet: 24,
-                                  veryNarrow: 16,
-                                ),
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Icon(
-                                Icons.person_add_outlined,
-                                size: context.responsiveIconSize(
-                                  small: 20,
-                                  medium: 22,
-                                  large: 24,
-                                  tablet: 26,
-                                  veryNarrow: 18,
-                                ),
-                              ),
-                          label: Text(
-                            _isLoading ? 'Уриж байна...' : 'Зочин урих',
-                            style: TextStyle(
-                              fontSize: context.responsiveFontSize(
-                                small: 14,
-                                medium: 15,
-                                large: 16,
-                                tablet: 17,
-                                veryNarrow: 13,
-                              ),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.deepGreen,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              vertical: context.responsiveSpacing(
-                                small: 12,
-                                medium: 14,
-                                large: 16,
-                                tablet: 18,
-                                veryNarrow: 10,
-                              ),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                                small: 10,
-                                medium: 12,
-                                large: 14,
-                                tablet: 16,
-                                veryNarrow: 8,
-                              )),
-                            ),
-                            elevation: 0,
-                          ),
-                        ),
-                      ),
+                        GestureDetector(
+                          onTap: (_isLoading || !_hasQuota) ? null : _inviteGuest,
+                         child: AnimatedContainer(
+                           duration: const Duration(milliseconds: 200),
+                           width: double.infinity,
+                           padding: EdgeInsets.symmetric(
+                             vertical: context.responsiveSpacing(
+                               small: 12,
+                               medium: 14,
+                               large: 16,
+                               tablet: 18,
+                               veryNarrow: 10,
+                             ),
+                           ),
+                           decoration: BoxDecoration(
+                             gradient: (!_isLoading && _hasQuota)
+                                 ? LinearGradient(
+                                     colors: [AppColors.deepGreen, AppColors.deepGreenDark],
+                                     begin: Alignment.topLeft,
+                                     end: Alignment.bottomRight,
+                                   )
+                                 : null,
+                             color: (!_isLoading && _hasQuota)
+                                 ? null
+                                 : Colors.grey.withOpacity(0.3),
+                             borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                               small: 10,
+                               medium: 12,
+                               large: 14,
+                               tablet: 16,
+                               veryNarrow: 8,
+                             )),
+                             boxShadow: (!_isLoading && _hasQuota)
+                                 ? [
+                                     BoxShadow(
+                                       color: AppColors.deepGreen.withOpacity(0.3),
+                                       blurRadius: 8,
+                                       offset: const Offset(0, 4),
+                                     ),
+                                   ]
+                                 : [],
+                           ),
+                           child: Center(
+                             child: _isLoading 
+                               ? SizedBox(
+                                   width: 20.sp,
+                                   height: 20.sp,
+                                   child: const CircularProgressIndicator(
+                                     strokeWidth: 2,
+                                     color: Colors.white,
+                                   ),
+                                 )
+                               : Row(
+                                   mainAxisSize: MainAxisSize.min,
+                                   children: [
+                                     Icon(
+                                       _hasQuota ? Icons.person_add_outlined : Icons.block_flipped,
+                                       size: 20.sp,
+                                       color: Colors.white,
+                                     ),
+                                     SizedBox(width: 8.w),
+                                     Text(
+                                       _hasQuota ? 'Зочин урих' : 'Эрх дууссан',
+                                       style: TextStyle(
+                                         color: Colors.white,
+                                         fontSize: 15.sp,
+                                         fontWeight: FontWeight.bold,
+                                       ),
+                                     ),
+                                   ],
+                                 ),
+                           ),
+                         ),
+                       ),
                     ],
                   ),
                 ),
@@ -638,21 +770,223 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
     );
   }
 
-  Widget _buildGuestCard(Map<String, dynamic> guest) {
-    final mashiniiDugaar = guest['mashiniiDugaar'] ?? guest['urisanMashiniiDugaar'] ?? '-';
-    final createdAt = guest['createdAt'];
-    String dateStr = '';
-    
-    if (createdAt != null) {
-      try {
-        final date = DateTime.parse(createdAt.toString());
-        dateStr = '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-      } catch (e) {
-        dateStr = createdAt.toString();
+  Widget _buildQuotaCard() {
+    final total = _quotaStatus?['total'] ?? 0;
+    final used = _quotaStatus?['used'] ?? 0;
+    final remaining = _quotaStatus?['remaining'] ?? 0;
+    final period = _quotaStatus?['period'] == 'saraar' ? 'сард' : 'өдөрт';
+    final freeMinutes = _quotaStatus?['freeMinutesPerGuest'] ?? 0;
+
+    return Container(
+      padding: context.responsivePadding(
+        small: 16,
+        medium: 18,
+        large: 20,
+        tablet: 22,
+        veryNarrow: 12,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.deepGreen, AppColors.deepGreen.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 10,
+        )),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.deepGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Урилгын эрх ($period)',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: context.responsiveFontSize(
+                    small: 13,
+                    medium: 14,
+                    large: 15,
+                    tablet: 16,
+                    veryNarrow: 12,
+                  ),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$remaining/$total үлдсэн',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: context.responsiveFontSize(
+                      small: 11,
+                      medium: 12,
+                      large: 13,
+                      tablet: 14,
+                      veryNarrow: 10,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: total > 0 ? used / total : 0,
+              backgroundColor: Colors.white.withOpacity(0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              minHeight: 8,
+            ),
+          ),
+          if (freeMinutes > 0) ...[
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.timer_outlined, color: Colors.white, size: 16),
+                SizedBox(width: 6),
+                Text(
+                  'Зочин бүр $freeMinutes минут үнэгүй',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: context.responsiveFontSize(
+                      small: 12,
+                      medium: 13,
+                      large: 14,
+                      tablet: 15,
+                      veryNarrow: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteInvitation(Map<String, dynamic> guest) async {
+    final id = guest['_id']?.toString();
+    if (id == null) return;
+
+    // Show confirmation dialog
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Урилга цуцлах'),
+        content: Text('Та энэ урилгыг цуцлахдаа итгэлтэй байна уу?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Үгүй'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Тийм', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId == null) throw Exception('Байгууллагын ID олдсонгүй');
+
+      await ApiService.deleteZochinInvitation(
+        id: id,
+        baiguullagiinId: baiguullagiinId,
+      );
+
+      if (mounted) {
+        setState(() {
+          _invitedGuests.removeWhere((item) => item['_id'] == id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Урилга амжилттай цуцлагдлаа')),
+        );
+        _loadInvitedGuests(showLoading: false);
+        _loadQuotaStatus();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
       }
     }
+  }
+
+  Widget _buildGuestCard(Map<String, dynamic> guest) {
+    final mashiniiDugaar = guest['urisanMashiniiDugaar'] ?? guest['mashiniiDugaar'] ?? '-';
+    final rawDate = guest['ognoo'] ?? guest['createdAt'] ?? guest['ognooStr'];
+    final tuluv = guest['tuluv'] ?? 0;
+    String dateStr = '';
     
-    return Container(
+    if (rawDate != null) {
+      try {
+        final date = DateTime.parse(rawDate.toString());
+        dateStr = '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      } catch (e) {
+        dateStr = rawDate.toString();
+      }
+    }
+
+    // Status logic based on documentation
+    String statusText = 'Хүлээгдэж буй';
+    Color statusColor = Colors.orange;
+    IconData statusIcon = Icons.schedule;
+
+    switch (tuluv) {
+      case 0:
+        statusText = 'Хүлээгдэж буй';
+        statusColor = Colors.orange;
+        statusIcon = Icons.schedule;
+        break;
+      case 1:
+        statusText = 'Зогсоолд байгаа';
+        statusColor = Colors.blue;
+        statusIcon = Icons.local_parking;
+        break;
+      case 2:
+        statusText = 'Дууссан';
+        statusColor = AppColors.deepGreen;
+        statusIcon = Icons.check_circle;
+        break;
+      case -1:
+        statusText = 'Цуцлагдсан';
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel;
+        break;
+      default:
+        statusText = 'Тодорхойгүй';
+        statusColor = Colors.grey;
+        statusIcon = Icons.help_outline;
+    }
+    
+    final cardContent = Container(
       padding: context.responsivePadding(
         small: 16,
         medium: 18,
@@ -682,7 +1016,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
               veryNarrow: 8,
             )),
             decoration: BoxDecoration(
-              color: AppColors.deepGreen.withOpacity(0.1),
+              color: statusColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
                 small: 8,
                 medium: 10,
@@ -693,7 +1027,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
             ),
             child: Icon(
               Icons.directions_car,
-              color: AppColors.deepGreen,
+              color: statusColor,
               size: context.responsiveIconSize(
                 small: 20,
                 medium: 22,
@@ -754,20 +1088,62 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
               ],
             ),
           ),
-          Icon(
-            Icons.check_circle,
-            color: AppColors.deepGreen,
-            size: context.responsiveIconSize(
-              small: 18,
-              medium: 20,
-              large: 22,
-              tablet: 24,
-              veryNarrow: 16,
-            ),
+          Column(
+            children: [
+              Icon(
+                statusIcon,
+                color: statusColor,
+                size: context.responsiveIconSize(
+                  small: 18,
+                  medium: 20,
+                  large: 22,
+                  tablet: 24,
+                  veryNarrow: 16,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: context.responsiveFontSize(
+                    small: 8,
+                    medium: 9,
+                    large: 10,
+                    tablet: 11,
+                    veryNarrow: 7,
+                  ),
+                  color: statusColor,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+
+    // Only allow swipe-to-delete if "Waiting" (tuluv == 0)
+    if (tuluv == 0) {
+      return Dismissible(
+        key: Key(guest['_id']?.toString() ?? UniqueKey().toString()),
+        direction: DismissDirection.endToStart,
+        confirmDismiss: (direction) async {
+          await _deleteInvitation(guest);
+          return false; // We return false because _deleteInvitation handles the logic and refresh
+        },
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.delete_outline, color: Colors.white),
+        ),
+        child: cardContent,
+      );
+    }
+
+    return cardContent;
   }
 }
 

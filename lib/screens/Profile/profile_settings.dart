@@ -12,8 +12,9 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/screens/settings/app_icon_selection_sheet.dart';
+import 'package:sukh_app/services/session_service.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -37,6 +38,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
   // Profile controllers
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _mashiniiDugaarController = TextEditingController();
 
   // Password controllers
   final _passwordFormKey = GlobalKey<FormState>();
@@ -55,6 +57,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
   bool _isLoading = true;
   bool _isChangingPassword = false;
   bool _isDeletingAccount = false;
+  bool _isUpdatingPlate = false;
+  bool _isPlateEditMode = false;
 
   // Biometric settings
   bool _biometricAvailable = false;
@@ -63,6 +67,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
   // Address
   String? _currentAddress;
   bool _isLoadingAddress = false;
+  int? _billingDay; // Day of month when billing/cycle resets
 
   // User data
   Map<String, dynamic>? _userData;
@@ -163,6 +168,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     _deletePasswordController.dispose();
+    _mashiniiDugaarController.dispose();
     super.dispose();
   }
 
@@ -196,7 +202,68 @@ class _ProfileSettingsState extends State<ProfileSettings>
           _nameController.text = fullName;
 
           if (userData['utas'] != null) {
-            _phoneController.text = userData['utas'].toString();
+            final utas = userData['utas'];
+            if (utas is List && utas.isNotEmpty) {
+              _phoneController.text = utas.first.toString();
+            } else {
+              _phoneController.text = utas.toString();
+            }
+          }
+
+          final plateRaw = userData['mashiniiDugaar'] ?? userData['dugaar'];
+          if (plateRaw != null) {
+            if (plateRaw is List && plateRaw.isNotEmpty) {
+              _mashiniiDugaarController.text = plateRaw.first.toString();
+            } else {
+              _mashiniiDugaarController.text = plateRaw.toString();
+            }
+          }
+
+          // Fetch prioritized car plate from zochinSettings
+          try {
+            ApiService.fetchZochinSettings().then((response) {
+              if (mounted && response != null) {
+                // The settings can be at root or under data/result.mashin/orshinSuugchMashin
+                final data = response['data'] ?? response['result'] ?? response;
+                final orshinSuugchMashin = data['orshinSuugchMashin'];
+                final mashin = data['mashin'] ?? data;
+                
+                // Prioritize orshinSuugchMashin for plate and metadata
+                final plate = (orshinSuugchMashin != null) 
+                    ? (orshinSuugchMashin['mashiniiDugaar'] ?? orshinSuugchMashin['dugaar'])
+                    : (mashin['mashiniiDugaar'] ?? mashin['dugaar']);
+                
+                if (plate != null) {
+                  setState(() {
+                    final newPlate = (plate is List && plate.isNotEmpty)
+                        ? plate.first.toString()
+                        : plate.toString();
+                    
+                    _mashiniiDugaarController.text = newPlate;
+                    if (_userData != null) {
+                      _userData!['mashiniiDugaar'] = newPlate;
+                      
+                      // Sync last update date (dugaarUurchilsunOgnoo)
+                      final updateDate = (orshinSuugchMashin != null)
+                          ? orshinSuugchMashin['dugaarUurchilsunOgnoo']
+                          : (mashin['dugaarUurchilsunOgnoo'] ?? data['dugaarUurchilsunOgnoo']);
+                          
+                      if (updateDate != null) {
+                        _userData!['dugaarUurchilsunOgnoo'] = updateDate;
+                      }
+                    }
+                  });
+                }
+              }
+            });
+          } catch (e) {
+            debugPrint('Error fetching zochin settings: $e');
+          }
+
+          // Fetch billing day from cron data if available
+          final barilgiinId = userData['barilgiinId']?.toString();
+          if (barilgiinId != null && barilgiinId.isNotEmpty) {
+            _fetchBillingCronInfo(barilgiinId);
           }
 
           _isLoading = false;
@@ -217,6 +284,26 @@ class _ProfileSettingsState extends State<ProfileSettings>
           iconColor: Colors.red,
         );
       }
+    }
+  }
+
+  Future<void> _fetchBillingCronInfo(String barilgiinId) async {
+    try {
+      final cronData = await ApiService.fetchNekhemjlekhCron(barilgiinId: barilgiinId);
+      if (cronData['success'] == true && cronData['data'] != null) {
+        final List dataList = cronData['data'] is List ? cronData['data'] : [];
+        if (dataList.isNotEmpty) {
+          final firstCron = dataList.first;
+          if (firstCron['nekhemjlekhUusgekhOgnoo'] != null) {
+            setState(() {
+              _billingDay = int.tryParse(firstCron['nekhemjlekhUusgekhOgnoo'].toString());
+              debugPrint('📅 [BILLING] Reset day set to: $_billingDay');
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ [BILLING] Error fetching cron info: $e');
     }
   }
 
@@ -333,6 +420,148 @@ class _ProfileSettingsState extends State<ProfileSettings>
       if (mounted) {
         setState(() {
           _isChangingPassword = false;
+        });
+      }
+    }
+  }
+
+  bool _isPlateChangeAllowed() {
+    if (_userData == null) return true;
+    
+    // If plate is empty/null, allow change regardless of date
+    final plateNumber = _userData!['mashiniiDugaar'] ?? _userData!['dugaar'];
+    if (plateNumber == null || plateNumber.toString().isEmpty) return true;
+
+    final lastUpdate = _userData!['dugaarUurchilsunOgnoo'];
+    if (lastUpdate == null) return true;
+    
+    try {
+      final lastDate = DateTime.parse(lastUpdate.toString());
+      final now = DateTime.now();
+      
+      if (_billingDay != null) {
+        // Find the start date of the current billing cycle
+        DateTime currentCycleStart;
+        if (now.day >= _billingDay!) {
+          currentCycleStart = DateTime(now.year, now.month, _billingDay!);
+        } else {
+          int prevMonth = now.month - 1;
+          int prevYear = now.year;
+          if (prevMonth == 0) {
+            prevMonth = 12;
+            prevYear--;
+          }
+          currentCycleStart = DateTime(prevYear, prevMonth, _billingDay!);
+        }
+        
+        // Allowed if last update was before this cycle started
+        return lastDate.isBefore(currentCycleStart);
+      }
+      
+      // Default: Calendar month reset (1st of month)
+      return lastDate.month != now.month || lastDate.year != now.year;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  Future<void> _handleUpdatePlateNumber() async {
+    if (_mashiniiDugaarController.text.isEmpty) {
+      showGlassSnackBar(
+        context,
+        message: 'Машины дугаар оруулна уу',
+        icon: Icons.warning_amber_rounded,
+        iconColor: Colors.orange,
+      );
+      return;
+    }
+
+    if (!_isPlateChangeAllowed()) {
+      showGlassSnackBar(
+        context,
+        message: 'Та машины дугаараа сард 1 удаа солих боломжтой',
+        icon: Icons.info_outline,
+        iconColor: Colors.blue,
+      );
+      return;
+    }
+
+    setState(() {
+      _isUpdatingPlate = true;
+    });
+
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+      
+      if (baiguullagiinId == null) {
+        throw Exception('Байгууллагын мэдээлэл олдсонгүй');
+      }
+
+      final response = await ApiService.zochinHadgalya(
+        mashiniiDugaar: _mashiniiDugaarController.text,
+        baiguullagiinId: baiguullagiinId,
+        barilgiinId: barilgiinId,
+        ezemshigchiinUtas: _phoneController.text,
+        orshinSuugchMedeelel: {
+          'zochinTurul': 'Оршин суугч',
+        },
+      ); 
+      
+      if (mounted) {
+        if (response['success'] == true) {
+          setState(() {
+            _isPlateEditMode = false;
+            // Immediate UI update derived from the response
+            final data = response['data'] ?? response;
+            final osm = data['orshinSuugchMashin'];
+            final mashin = data['mashin'];
+            
+            final plate = (osm != null) ? (osm['mashiniiDugaar'] ?? osm['dugaar']) : mashin?['dugaar'];
+            if (plate != null && _userData != null) {
+              final newPlate = plate.toString();
+              _mashiniiDugaarController.text = newPlate;
+              _userData!['mashiniiDugaar'] = newPlate;
+              
+              // Update metadata for restriction logic
+              final updateDate = osm?['dugaarUurchilsunOgnoo'] ?? mashin?['dugaarUurchilsunOgnoo'];
+              if (updateDate != null) {
+                _userData!['dugaarUurchilsunOgnoo'] = updateDate;
+              }
+            }
+          });
+          showGlassSnackBar(
+            context,
+            message: 'Машины дугаар амжилттай шинэчлэгдлээ',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+          // Refresh background data to ensure everything is perfect
+          _loadUserProfile(); 
+        } else {
+          showGlassSnackBar(
+            context,
+            message: response['message'] ?? 'Алдаа гарлаа',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        // Remove technical prefix for cleaner display
+        String error = e.toString().replaceFirst('Exception: ', '');
+        showGlassSnackBar(
+          context,
+          message: error,
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingPlate = false;
         });
       }
     }
@@ -718,7 +947,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       child: Row(
         children: [
-          Platform.isIOS
+          Theme.of(context).platform == TargetPlatform.iOS
               ? Image.asset(
                   'lib/assets/img/face-id.png',
                   width: 16.sp,
@@ -755,37 +984,50 @@ class _ProfileSettingsState extends State<ProfileSettings>
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    required bool isActive,
+    bool isActive = false,
   }) {
     final isDark = context.isDarkMode;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10.r),
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 10.w),
+        borderRadius: BorderRadius.circular(12.r),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
           decoration: BoxDecoration(
+            gradient: isActive
+                ? LinearGradient(
+                    colors: [AppColors.deepGreen, AppColors.deepGreenDark],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
             color: isActive
-                ? AppColors.deepGreen
-                : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
-            borderRadius: BorderRadius.circular(10.r),
+                ? null
+                : (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
+            borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: isActive
-                  ? AppColors.deepGreen
+                  ? Colors.transparent
                   : (isDark
-                      ? AppColors.deepGreen.withOpacity(0.2)
-                      : AppColors.deepGreen.withOpacity(0.4)),
+                      ? Colors.white.withOpacity(0.1)
+                      : AppColors.deepGreen.withOpacity(0.2)),
               width: 1,
             ),
             boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? Colors.black.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.08),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
+              if (isActive)
+                BoxShadow(
+                  color: AppColors.deepGreen.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
+              else
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
             ],
           ),
           child: Row(
@@ -794,9 +1036,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
               Icon(
                 icon,
                 color: isActive ? Colors.white : AppColors.deepGreen,
-                size: 16.sp,
+                size: 18.sp,
               ),
-              SizedBox(width: 6.w),
+              SizedBox(width: 8.w),
               Flexible(
                 child: Text(
                   label,
@@ -804,7 +1046,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     color: isActive
                         ? Colors.white
                         : (isDark ? Colors.white : Colors.black87),
-                    fontSize: 11.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -1537,19 +1779,31 @@ class _ProfileSettingsState extends State<ProfileSettings>
       });
     }
 
+    // Машины дугаар
+    final plateNumber = _userData!['mashiniiDugaar'] ?? _userData!['dugaar'];
+    if (plateNumber != null && plateNumber.toString().isNotEmpty) {
+      dataItems.add({
+        'icon': Icons.directions_car_filled_outlined,
+        'label': 'Машины дугаар',
+        'value': plateNumber.toString(),
+      });
+    }
+
     // Байр (Address)
     String? bairText;
     if (_userData!['bairniiNer'] != null &&
         _userData!['bairniiNer'].toString().isNotEmpty) {
       bairText = _userData!['bairniiNer'].toString();
     }
-    if (bairText != null && bairText.isNotEmpty) {
-      dataItems.add({
-        'icon': Icons.location_on_outlined,
-        'label': 'Байр',
-        'value': bairText,
-      });
-    }
+    
+    // Always add Address row - explicit request to re-enable address selection if missing
+    dataItems.add({
+      'icon': Icons.location_on_outlined,
+      'label': 'Байр',
+      'value': (bairText != null && bairText.isNotEmpty) ? bairText : 'Хаяг сонгох',
+      'action': (bairText == null || bairText.isEmpty) ? () { _handleUpdateAddress(); } : null,
+      'isLink': (bairText == null || bairText.isEmpty),
+    });
 
     // Тоот (Door number)
     String? tootText;
@@ -1580,65 +1834,77 @@ class _ProfileSettingsState extends State<ProfileSettings>
         final index = entry.key;
         final item = entry.value;
         final isLast = index == dataItems.length - 1;
+        final action = item['action'] as VoidCallback?;
+        final isLink = item['isLink'] == true;
         
-        return Container(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
-          decoration: BoxDecoration(
-            border: isLast
-                ? null
-                : Border(
-                    bottom: BorderSide(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.grey.withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: AppColors.deepGreen.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Icon(
-                  item['icon'] as IconData,
-                  color: AppColors.deepGreen,
-                  size: 18.sp,
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['label'] as String,
-                      style: TextStyle(
+        return InkWell(
+          onTap: action,
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 10.h),
+            decoration: BoxDecoration(
+              border: isLast
+                  ? null
+                  : Border(
+                      bottom: BorderSide(
                         color: isDark
-                            ? Colors.white.withOpacity(0.6)
-                            : Colors.grey[600],
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w500,
+                            ? Colors.white.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.2),
+                        width: 1,
                       ),
                     ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      item['value'] as String,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black87,
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Icon(
+                    item['icon'] as IconData,
+                    color: AppColors.deepGreen,
+                    size: 18.sp,
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['label'] as String,
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.6)
+                              : Colors.grey[600],
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        item['value'] as String,
+                        style: TextStyle(
+                          color: isLink ? AppColors.deepGreen : (isDark ? Colors.white : Colors.black87),
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                          decoration: isLink ? TextDecoration.underline : null,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (isLink)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.deepGreen,
+                    size: 20.sp,
+                  ),
+              ],
+            ),
           ),
         );
       }).toList(),
@@ -1770,19 +2036,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: isDark
-              ? AppColors.deepGreen.withOpacity(0.2)
-              : AppColors.deepGreen.withOpacity(0.3),
-          width: 1,
-        ),
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+                ? Colors.black.withOpacity(0.4)
+                : AppColors.deepGreen.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -1792,22 +2052,27 @@ class _ProfileSettingsState extends State<ProfileSettings>
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: AppColors.deepGreen,
+              gradient: LinearGradient(
+                colors: [AppColors.deepGreen, AppColors.deepGreenDark],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(15.r),
-                topRight: Radius.circular(15.r),
+                topLeft: Radius.circular(16.r),
+                topRight: Radius.circular(16.r),
               ),
             ),
             child: Row(
               children: [
-                Icon(icon, size: 16.sp, color: Colors.white),
-                SizedBox(width: 8.w),
+                Icon(icon, size: 18.sp, color: Colors.white),
+                SizedBox(width: 10.w),
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
@@ -1972,7 +2237,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                     child: _buildActionButton(
                                       context,
                                       icon: Icons.lock_outline,
-                                      label: '• Нууц үг солих',
+                                      label: 'Нууц үг солих',
                                       onTap: () =>
                                           _showChangePasswordModal(context),
                                       isActive: false,
@@ -1996,6 +2261,160 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                         title: 'Хувийн Мэдээлэл',
                                         icon: Icons.person_outline_rounded,
                                         children: [_buildUserDataGrid()],
+                                      ),
+                                      SizedBox(height: 20.h),
+                                      
+                                      // Миний машин Section
+                                      _buildSection(
+                                        title: 'Миний машин',
+                                        icon: Icons.directions_car_filled_outlined,
+                                        children: [
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              color: context.isDarkMode ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F8F8),
+                                              borderRadius: BorderRadius.circular(12.r),
+                                              border: Border.all(
+                                                color: context.isDarkMode ? Colors.white.withOpacity(0.1) : AppColors.deepGreen.withOpacity(0.1),
+                                              ),
+                                            ),
+                                            padding: EdgeInsets.all(16.w),
+                                            child: Column(
+                                              children: [
+                                                _buildTextField(
+                                                  controller: _mashiniiDugaarController,
+                                                  label: 'Машины дугаар',
+                                                  icon: Icons.numbers_rounded,
+                                                  enabled: _isPlateEditMode && _isPlateChangeAllowed(),
+                                                ),
+                                                if (!_isPlateChangeAllowed())
+                                                  Padding(
+                                                    padding: EdgeInsets.only(top: 12.h),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(Icons.info_outline, size: 14.sp, color: Colors.blue[400]),
+                                                        SizedBox(width: 6.w),
+                                                        Text(
+                                                          'Сард нэг удаа солих боломжтой',
+                                                          style: TextStyle(
+                                                            color: Colors.blue[400],
+                                                            fontSize: 11.sp,
+                                                            fontStyle: FontStyle.italic,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                SizedBox(height: 20.h),
+                                                if (!_isPlateEditMode)
+                                                  _buildActionButton(
+                                                    context,
+                                                    icon: Icons.edit_outlined,
+                                                    label: 'Дугаар засах',
+                                                    onTap: () {
+                                                      if (_isPlateChangeAllowed()) {
+                                                        setState(() {
+                                                          _isPlateEditMode = true;
+                                                        });
+                                                      } else {
+                                                        showGlassSnackBar(
+                                                          context,
+                                                          message: 'Сард 1 удаа солих боломжтой',
+                                                          icon: Icons.lock_clock_outlined,
+                                                          iconColor: Colors.orange,
+                                                        );
+                                                      }
+                                                    },
+                                                    isActive: _isPlateChangeAllowed(),
+                                                  )
+                                                else
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: OutlinedButton(
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              _isPlateEditMode = false;
+                                                              // Restore original value
+                                                              final plateNumber = _userData?['mashiniiDugaar'] ?? _userData?['dugaar'];
+                                                              if (plateNumber != null) {
+                                                                _mashiniiDugaarController.text = plateNumber.toString();
+                                                              }
+                                                            });
+                                                          },
+                                                          style: OutlinedButton.styleFrom(
+                                                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                                                            side: BorderSide(color: AppColors.deepGreen),
+                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                                          ),
+                                                          child: Text('Цуцлах', style: TextStyle(color: AppColors.deepGreen)),
+                                                        ),
+                                                      ),
+                                                      SizedBox(width: 12.w),
+                                                      Expanded(
+                                                        flex: 2,
+                                                        child: GestureDetector(
+                                                          onTap: _isUpdatingPlate 
+                                                            ? null 
+                                                            : _handleUpdatePlateNumber,
+                                                          child: AnimatedContainer(
+                                                            duration: const Duration(milliseconds: 200),
+                                                            padding: EdgeInsets.symmetric(vertical: 14.h),
+                                                            decoration: BoxDecoration(
+                                                              gradient: _isUpdatingPlate
+                                                                ? null
+                                                                : LinearGradient(
+                                                                    colors: [AppColors.deepGreen, AppColors.deepGreenDark],
+                                                                    begin: Alignment.topLeft,
+                                                                    end: Alignment.bottomRight,
+                                                                  ),
+                                                              color: _isUpdatingPlate ? Colors.grey.withOpacity(0.3) : null,
+                                                              borderRadius: BorderRadius.circular(12.r),
+                                                              boxShadow: _isUpdatingPlate
+                                                                ? []
+                                                                : [
+                                                                    BoxShadow(
+                                                                      color: AppColors.deepGreen.withOpacity(0.3),
+                                                                      blurRadius: 8,
+                                                                      offset: const Offset(0, 4),
+                                                                    ),
+                                                                  ],
+                                                            ),
+                                                            child: Center(
+                                                              child: _isUpdatingPlate 
+                                                                ? SizedBox(
+                                                                    width: 18.w, 
+                                                                    height: 18.w, 
+                                                                    child: const CircularProgressIndicator(
+                                                                      strokeWidth: 2, 
+                                                                      color: Colors.white
+                                                                    )
+                                                                  )
+                                                                : Row(
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      Icon(Icons.save_outlined, size: 18.sp, color: Colors.white),
+                                                                      SizedBox(width: 8.w),
+                                                                      Text(
+                                                                        'Хадгалах',
+                                                                        style: TextStyle(
+                                                                          color: Colors.white,
+                                                                          fontSize: 14.sp,
+                                                                          fontWeight: FontWeight.bold,
+                                                                          letterSpacing: 0.2,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       SizedBox(height: 20.h),
                                     ],
@@ -2171,7 +2590,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                   ),
                                                   SizedBox(height: 4.h),
                                                   Text(
-                                                    Platform.isIOS
+                                                    Theme.of(context).platform == TargetPlatform.iOS
                                                         ? 'Face ID ашиглан нэвтрэх'
                                                         : 'Хурууны хээ ашиглан нэвтрэх',
                                                     style: TextStyle(
@@ -2252,7 +2671,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                     ],
 
                                     // App Icon Selection Section (iOS only)
-                                    if (Platform.isIOS) ...[
+                                    if (Theme.of(context).platform == TargetPlatform.iOS) ...[
                                       _buildSubSectionHeader(
                                         'Апп дүрс',
                                         Icons.palette_outlined,
@@ -2396,6 +2815,56 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                             ),
                                           ),
                                         ],
+                                      ),
+                                    ),
+                                    SizedBox(height: 12.h),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: TextButton.icon(
+                                        onPressed: () async {
+                                          final confirmed = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              backgroundColor: context.surfaceColor,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                                              title: Text('Гарах', style: TextStyle(color: context.textPrimaryColor)),
+                                              content: Text('Та системээс гарахдаа итгэлтэй байна уу?', style: TextStyle(color: context.textSecondaryColor)),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, false),
+                                                  child: Text('Үгүй', style: TextStyle(color: context.textSecondaryColor)),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context, true),
+                                                  child: const Text('Тийм', style: TextStyle(color: Colors.redAccent)),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+
+                                          if (confirmed == true && mounted) {
+                                            await SessionService.logout();
+                                            if (mounted) {
+                                              context.go('/newtrekh');
+                                            }
+                                          }
+                                        },
+                                        icon: Icon(Icons.logout_rounded, size: 20.sp),
+                                        label: Text(
+                                          'Системээс гарах',
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                                          foregroundColor: Colors.redAccent,
+                                          backgroundColor: Colors.redAccent.withOpacity(0.1),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12.r),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                     SizedBox(height: 32.h),

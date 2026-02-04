@@ -2,6 +2,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 /// BiometricService - Handles biometric authentication (Face ID/Fingerprint)
 class BiometricService {
@@ -47,13 +48,13 @@ class BiometricService {
           'Нэвтрэхийн тулд биометрийн баталгаажуулалт хийх';
 
       // Customize message based on platform and available biometrics
-      if (Platform.isIOS) {
+      if (!kIsWeb && Platform.isIOS) {
         if (availableBiometrics.contains(BiometricType.face)) {
           localizedReason = 'Нэвтрэхийн тулд Face ID ашиглана уу';
         } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
           localizedReason = 'Нэвтрэхийн тулд Touch ID ашиглана уу';
         }
-      } else if (Platform.isAndroid) {
+      } else if (!kIsWeb && Platform.isAndroid) {
         if (availableBiometrics.contains(BiometricType.fingerprint)) {
           localizedReason = 'Нэвтрэхийн тулд хурууны хээ ашиглана уу';
         } else if (availableBiometrics.contains(BiometricType.face)) {
@@ -90,14 +91,14 @@ class BiometricService {
     try {
       final availableBiometrics = await getAvailableBiometrics();
 
-      if (Platform.isIOS) {
+      if (!kIsWeb && Platform.isIOS) {
         // iOS: Prefer Face ID, fallback to Touch ID (fingerprint)
         if (availableBiometrics.contains(BiometricType.face)) {
           return Icons.face_retouching_natural; // Better Face ID icon
         } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
           return Icons.fingerprint; // Touch ID icon
         }
-      } else if (Platform.isAndroid) {
+      } else if (!kIsWeb && Platform.isAndroid) {
         // Android: Prefer fingerprint, fallback to face
         if (availableBiometrics.contains(BiometricType.fingerprint)) {
           return Icons.fingerprint; // Fingerprint icon
@@ -107,12 +108,12 @@ class BiometricService {
       }
 
       // Default fallback based on platform
-      if (Platform.isIOS) {
+      if (!kIsWeb && Platform.isIOS) {
         return Icons.face_retouching_natural;
       }
       return Icons.fingerprint;
     } catch (e) {
-      if (Platform.isIOS) {
+      if (!kIsWeb && Platform.isIOS) {
         return Icons.face_retouching_natural;
       }
       return Icons.fingerprint;

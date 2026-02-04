@@ -6,7 +6,7 @@ import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class BiometricOnboardingScreen extends StatefulWidget {
   const BiometricOnboardingScreen({super.key});
@@ -151,7 +151,7 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
 
                 // Description
                 Text(
-                  Platform.isIOS
+                  Theme.of(context).platform == TargetPlatform.iOS
                       ? 'Face ID ашиглан хурдан, аюулгүй нэвтрэх боломжтой'
                       : 'Хурууны хээ ашиглан хурдан, аюулгүй нэвтрэх боломжтой',
                   style: TextStyle(
@@ -224,7 +224,7 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                                 ),
                               ),
                               Text(
-                                Platform.isIOS
+                                Theme.of(context).platform == TargetPlatform.iOS
                                     ? 'Face ID ашиглан нэвтрэх'
                                     : 'Хурууны хээ ашиглан нэвтрэх',
                                 style: TextStyle(
