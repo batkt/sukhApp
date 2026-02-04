@@ -1764,10 +1764,12 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/nekhemjlekhiinTuukh'),
-        headers: headers,
+      final uri = Uri.parse('$baseUrl/nekhemjlekhiinTuukh').replace(
+        queryParameters: {
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
       );
+      final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
         try {
@@ -1807,6 +1809,7 @@ class ApiService {
           'query': queryJson,
           'khuudasniiDugaar': khuudasniiDugaar.toString(),
           'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(), // Cache-bust for latest invoice total, ekhniiUldegdel, avlaga
         },
       );
 

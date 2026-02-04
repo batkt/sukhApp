@@ -43,7 +43,8 @@ class NekhemjlekhPage extends StatefulWidget {
   State<NekhemjlekhPage> createState() => _NekhemjlekhPageState();
 }
 
-class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
+class _NekhemjlekhPageState extends State<NekhemjlekhPage>
+    with WidgetsBindingObserver {
   List<NekhemjlekhItem> invoices = [];
   bool isLoading = true;
   String? errorMessage;
@@ -65,6 +66,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     print('📬📬📬 NEKHEMJLEKH PAGE: initState called!');
     _loadNekhemjlekh();
     print(
@@ -249,7 +251,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refetch when app resumes (e.g. user returns from notification) to show latest invoice total, ekhniiUldegdel, avlaga
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadNekhemjlekh();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // Remove socket callback when screen is disposed
     if (_notificationCallback != null) {
       SocketService.instance.removeNotificationCallback(_notificationCallback);
