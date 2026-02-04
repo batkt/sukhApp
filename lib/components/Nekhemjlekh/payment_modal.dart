@@ -15,6 +15,8 @@ class PaymentModal extends StatefulWidget {
   final int selectedCount;
   final Future<void> Function() onPaymentTap;
   final List<NekhemjlekhItem> invoices;
+  /// When all unpaid are selected, use this (globalUldegdel) for payment amount
+  final double? contractUldegdel;
 
   const PaymentModal({
     super.key,
@@ -22,6 +24,7 @@ class PaymentModal extends StatefulWidget {
     required this.selectedCount,
     required this.onPaymentTap,
     required this.invoices,
+    this.contractUldegdel,
   });
 
   @override
@@ -257,18 +260,20 @@ class _PaymentModalState extends State<PaymentModal> {
     });
 
     try {
-      double totalAmount = 0;
       String? turul;
       List<String> selectedInvoiceIds = [];
 
-      // Calculate total amount and get invoice IDs
       for (var invoice in widget.invoices) {
         if (invoice.isSelected) {
-          totalAmount += invoice.niitTulbur;
           selectedInvoiceIds.add(invoice.id);
           turul ??= invoice.gereeniiDugaar;
         }
       }
+
+      // Use contract's globalUldegdel (same as HistoryModal) - single source of truth
+      double totalAmount = (widget.contractUldegdel != null && widget.contractUldegdel! > 0)
+          ? widget.contractUldegdel!
+          : 0;
 
       _selectedInvoiceIdsForCheck = selectedInvoiceIds;
       _gereeniiDugaarForCheck = turul;

@@ -473,6 +473,7 @@ class InvoiceCard extends StatelessWidget {
   }
 
   Widget _buildExpandedSection(BuildContext context) {
+    final toot = invoice.medeelel?.toot ?? '';
     return Container(
       padding: EdgeInsets.all(context.responsiveSpacing(
         small: 8,
@@ -485,11 +486,35 @@ class InvoiceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Нэхэмжлэгч and Төлөгч sections
+          // Үйлчилгээний нэхэмжлэх header
+          Padding(
+            padding: EdgeInsets.only(bottom: context.responsiveSpacing(
+              small: 8,
+              medium: 10,
+              large: 12,
+              tablet: 14,
+              veryNarrow: 6,
+            )),
+            child: Text(
+              'Үйлчилгээний нэхэмжлэх',
+              style: TextStyle(
+                color: AppColors.deepGreen,
+                fontSize: context.responsiveFontSize(
+                  small: 14,
+                  medium: 15,
+                  large: 16,
+                  tablet: 17,
+                  veryNarrow: 13,
+                ),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          // Нэхэмжлэгч (left) and Төлөгч (right) sections
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Нэхэмжлэгч section
+              // Left: Нэхэмжлэгч - Байгууллагын мэдээлэл
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
@@ -506,13 +531,6 @@ class InvoiceCard extends StatelessWidget {
                       large: 12,
                       tablet: 14,
                       veryNarrow: 6,
-                    )),
-                    constraints: BoxConstraints(minHeight: context.responsiveSpacing(
-                      small: 80,
-                      medium: 90,
-                      large: 100,
-                      tablet: 110,
-                      veryNarrow: 70,
                     )),
                     decoration: BoxDecoration(
                       color: context.isDarkMode
@@ -536,57 +554,10 @@ class InvoiceCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.business,
-                              color: AppColors.deepGreen,
-                              size: context.responsiveFontSize(
-                                small: 16,
-                                medium: 17,
-                                large: 18,
-                                tablet: 20,
-                                veryNarrow: 14,
-                              ),
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              'Нэхэмжлэгч',
-                              style: TextStyle(
-                                color: AppColors.deepGreen,
-                                fontSize: context.responsiveFontSize(
-                                  small: 13,
-                                  medium: 14,
-                                  large: 15,
-                                  tablet: 16,
-                                  veryNarrow: 12,
-                                ),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: context.responsiveSpacing(
-                          small: 4,
-                          medium: 5,
-                          large: 6,
-                          tablet: 8,
-                          veryNarrow: 3,
-                        )),
-                        _buildInfoText(
-                          context,
-                          'Байгууллагын нэр:\n${invoice.baiguullagiinNer}',
-                        ),
-                        if (invoice.khayag.isNotEmpty) ...[
-                          SizedBox(height: context.responsiveSpacing(
-                            small: 3,
-                            medium: 4,
-                            large: 5,
-                            tablet: 6,
-                            veryNarrow: 2,
-                          )),
-                          _buildInfoText(context, 'Хаяг: ${invoice.khayag}'),
-                        ],
+                        _buildInfoRow(context, 'Нэхэмжлэгч:', invoice.baiguullagiinNer),
+                        _buildInfoRow(context, 'Утас:', invoice.baiguullagiinUtas),
+                        _buildInfoRow(context, 'Хаяг:', invoice.baiguullagiinKhayag),
+                        _buildInfoRow(context, 'Данс:', invoice.dansniiDugaar),
                       ],
                     ),
                   ),
@@ -599,7 +570,7 @@ class InvoiceCard extends StatelessWidget {
                 tablet: 12,
                 veryNarrow: 4,
               )),
-              // Төлөгч section
+              // Right: Төлөгч - Оршин суугчийн мэдээлэл
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
@@ -617,13 +588,6 @@ class InvoiceCard extends StatelessWidget {
                       tablet: 14,
                       veryNarrow: 6,
                     )),
-                    constraints: BoxConstraints(minHeight: context.responsiveSpacing(
-                      small: 80,
-                      medium: 90,
-                      large: 100,
-                      tablet: 110,
-                      veryNarrow: 70,
-                    )),
                     decoration: BoxDecoration(
                       color: context.isDarkMode
                           ? Colors.white.withOpacity(0.04)
@@ -640,70 +604,11 @@ class InvoiceCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.person,
-                              color: AppColors.deepGreen,
-                              size: context.responsiveFontSize(
-                                small: 16,
-                                medium: 17,
-                                large: 18,
-                                tablet: 20,
-                                veryNarrow: 14,
-                              ),
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              'Төлөгч',
-                              style: TextStyle(
-                                color: AppColors.deepGreen,
-                                fontSize: context.responsiveFontSize(
-                                  small: 13,
-                                  medium: 14,
-                                  large: 15,
-                                  tablet: 16,
-                                  veryNarrow: 12,
-                                ),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: context.responsiveSpacing(
-                          small: 4,
-                          medium: 5,
-                          large: 6,
-                          tablet: 8,
-                          veryNarrow: 3,
-                        )),
-                        _buildInfoText(context, 'Нэр: ${invoice.displayName}'),
-                        if (invoice.register.isNotEmpty) ...[
-                          SizedBox(height: context.responsiveSpacing(
-                            small: 3,
-                            medium: 4,
-                            large: 5,
-                            tablet: 6,
-                            veryNarrow: 2,
-                          )),
-                          _buildInfoText(
-                            context,
-                            'Регистр: ${invoice.register}',
-                          ),
-                        ],
-                        if (invoice.phoneNumber.isNotEmpty) ...[
-                          SizedBox(height: context.responsiveSpacing(
-                            small: 3,
-                            medium: 4,
-                            large: 5,
-                            tablet: 6,
-                            veryNarrow: 2,
-                          )),
-                          _buildInfoText(
-                            context,
-                            'Утас: ${invoice.phoneNumber}',
-                          ),
-                        ],
+                        _buildInfoRow(context, 'Төлөгч:', invoice.displayName),
+                        _buildInfoRow(context, 'Гэрээний дугаар:', invoice.gereeniiDugaar),
+                        _buildInfoRow(context, 'Байр:', invoice.khayag),
+                        _buildInfoRow(context, 'Орц:', invoice.orts),
+                        _buildInfoRow(context, 'Тоот:', toot),
                       ],
                     ),
                   ),
@@ -718,21 +623,14 @@ class InvoiceCard extends StatelessWidget {
             tablet: 16,
             veryNarrow: 8,
           )),
-          // Price breakdown
-          if (invoice.ekhniiUldegdel != null &&
-              invoice.ekhniiUldegdel! != 0) ...[
-            _buildPriceRow(
-              context,
-              'Эхний үлдэгдэл',
-              '${invoice.ekhniiUldegdel!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
-            ),
-          ],
-          // Avlaga items from guilgeenuud
-          if (invoice.medeelel != null &&
-              invoice.medeelel!.guilgeenuud != null) ...[
+          // Ekhnii үлдэгдэл from guilgeenuud (each as separate row, matches web)
+          if (invoice.medeelel?.guilgeenuud != null) ...[
             ...invoice.medeelel!.guilgeenuud!
-                .where((guilgee) => guilgee.turul == 'avlaga')
+                .where((guilgee) => guilgee.ekhniiUldegdelEsekh)
                 .map((guilgee) {
+                  final amt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0) -
+                      (guilgee.tulsunDun ?? 0.0);
+                  if (amt == 0) return const SizedBox.shrink();
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -743,12 +641,54 @@ class InvoiceCard extends StatelessWidget {
                         tablet: 12,
                         veryNarrow: 4,
                       )),
-                      if (guilgee.tulukhDun != null &&
-                          guilgee.tulukhDun! > 0) ...[
+                      _buildPriceRow(
+                        context,
+                        'Эхний үлдэгдэл',
+                        '${amt.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+                      ),
+                    ],
+                  );
+                }),
+          ],
+          // Ekhnii үлдэгдэл total when only from zardluud (no guilgeenuud breakdown)
+          if (invoice.ekhniiUldegdel != null &&
+              invoice.ekhniiUldegdel! != 0 &&
+              (invoice.medeelel?.guilgeenuud == null ||
+                  !invoice.medeelel!.guilgeenuud!
+                      .any((g) => g.ekhniiUldegdelEsekh))) ...[
+            _buildPriceRow(
+              context,
+              'Эхний үлдэгдэл',
+              '${invoice.ekhniiUldegdel!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+            ),
+          ],
+          // Avlaga items from guilgeenuud (exclude ekhniiUldegdel - shown above)
+          // Match both "avlaga" and "Авлага" (API may return either)
+          if (invoice.medeelel != null &&
+              invoice.medeelel!.guilgeenuud != null) ...[
+            ...invoice.medeelel!.guilgeenuud!
+                .where((guilgee) {
+                  final t = guilgee.turul?.toLowerCase() ?? '';
+                  return (t == 'avlaga' || t == 'авлага') && !guilgee.ekhniiUldegdelEsekh;
+                })
+                .map((guilgee) {
+                  // Use tulukhDun or undsenDun (API may use either for avlaga amount)
+                  final amt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: context.responsiveSpacing(
+                        small: 6,
+                        medium: 8,
+                        large: 10,
+                        tablet: 12,
+                        veryNarrow: 4,
+                      )),
+                      if (amt > 0) ...[
                         _buildPriceRow(
                           context,
                           'Авлага',
-                          '${guilgee.tulukhDun!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+                          '${amt.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
                         ),
                       ],
                       if (guilgee.tailbar != null &&
@@ -864,43 +804,12 @@ class InvoiceCard extends StatelessWidget {
                   );
                 }),
           ],
-          // AshiglaltiinZardal items from zardluud (filter for Тогтмол and Дурын)
+          // AshiglaltiinZardal items from zardluud (Тогтмол, Дурын, Эхний үлдэгдэл, цахилгаан)
           if (invoice.medeelel != null) ...[
-            // Debug logging
-            Builder(
-              builder: (context) {
-                print('🔍 DEBUG: invoice.medeelel is not null');
-                print(
-                  '🔍 DEBUG: zardluud length: ${invoice.medeelel!.zardluud.length}',
-                );
-                for (var i = 0; i < invoice.medeelel!.zardluud.length; i++) {
-                  final zardal = invoice.medeelel!.zardluud[i];
-                  print(
-                    '🔍 DEBUG: zardluud[$i]: ner="${zardal.ner}", turul="${zardal.turul}", dun=${zardal.dun}, zaaltDefaultDun=${zardal.zaaltDefaultDun}, togtmolUtga=${zardal.togtmolUtga}',
-                  );
-                  print('🔍 DEBUG: displayAmount=${zardal.displayAmount}');
-                }
-                final filtered = invoice.medeelel!.zardluud
-                    .where(
-                      (zardal) =>
-                          zardal.turul == 'Тогтмол' || zardal.turul == 'Дурын',
-                    )
-                    .toList();
-                print('🔍 DEBUG: filtered zardluud length: ${filtered.length}');
-                return const SizedBox.shrink();
-              },
-            ),
             if (invoice.medeelel!.zardluud.isNotEmpty) ...[
-              // Filter zardluud to show only Тогтмол and Дурын items
               ...invoice.medeelel!.zardluud
-                  .where(
-                    (zardal) =>
-                        zardal.turul == 'Тогтмол' || zardal.turul == 'Дурын',
-                  )
+                  .where((zardal) => zardal.isDisplayable)
                   .map((zardal) {
-                    print(
-                      '🔍 DEBUG: Displaying zardal: ${zardal.ner}, turul=${zardal.turul}, amount=${zardal.displayAmount}',
-                    );
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -951,21 +860,7 @@ class InvoiceCard extends StatelessWidget {
                       ],
                     );
                   }),
-            ] else ...[
-              Builder(
-                builder: (context) {
-                  print('🔍 DEBUG: zardluud is empty');
-                  return const SizedBox.shrink();
-                },
-              ),
             ],
-          ] else ...[
-            Builder(
-              builder: (context) {
-                print('🔍 DEBUG: invoice.medeelel is null');
-                return const SizedBox.shrink();
-              },
-            ),
           ],
           // Tailbar field
           if (invoice.medeelel != null &&
@@ -1263,6 +1158,46 @@ class InvoiceCard extends StatelessWidget {
             veryNarrow: 11,
           ),
           height: 1.3,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    if (value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 3,
+          medium: 4,
+          large: 5,
+          tablet: 6,
+          veryNarrow: 2,
+        ),
+      ),
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            color: context.textPrimaryColor,
+            fontSize: context.responsiveFontSize(
+              small: 12,
+              medium: 13,
+              large: 14,
+              tablet: 15,
+              veryNarrow: 11,
+            ),
+            height: 1.3,
+          ),
+          children: [
+            TextSpan(
+              text: '$label ',
+              style: TextStyle(
+                color: context.textSecondaryColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            TextSpan(text: value),
+          ],
         ),
       ),
     );

@@ -25,6 +25,7 @@ import 'package:sukh_app/components/Nekhemjlekh/payment_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -53,6 +54,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   List<Map<String, dynamic>> availableContracts = [];
   String? selectedGereeniiDugaar;
   String? selectedContractDisplay;
+  double? _contractUldegdel; // Authoritative balance from backend (globalUldegdel)
   String selectedFilter = 'All'; // All, Overdue, Paid, Due this month, Pending
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
@@ -166,17 +168,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       final isInvoiceNotification =
           // Check for transaction/invoice format (guilgee with turul="avlaga")
           (guilgeeTurul == 'avlaga') ||
-          // Check title for invoice keywords
+          // Check title for invoice/avlaga keywords (including "Шинэ авлага нэмэгдлээ")
           (title.toLowerCase().contains('нэхэмжлэх') ||
               title.toLowerCase().contains('нэхэмжлэл') ||
               title.toLowerCase().contains('invoice') ||
-              title.toLowerCase().contains('шинэ')) ||
-          // Check message for invoice keywords
+              title.toLowerCase().contains('шинэ') ||
+              title.toLowerCase().contains('үүсгэ') ||
+              title.toLowerCase().contains('илгээ') ||
+              title.toLowerCase().contains('авлага') ||
+              title.toLowerCase().contains('нэмэгдлээ')) ||
+          // Check message for invoice/avlaga keywords (including manualSend, "Шинэ авлага нэмэгдлээ")
           (message.toLowerCase().contains('нэхэмжлэх') ||
               message.toLowerCase().contains('нэхэмжлэл') ||
               message.toLowerCase().contains('гэрээний дугаар') ||
               message.toLowerCase().contains('нийт төлбөр') ||
-              message.toLowerCase().contains('гэрээ')) ||
+              message.toLowerCase().contains('гэрээ') ||
+              message.toLowerCase().contains('үүсгэгдлээ') ||
+              message.toLowerCase().contains('илгээгдлээ') ||
+              message.toLowerCase().contains('авлага') ||
+              message.toLowerCase().contains('нэмэгдлээ')) ||
           // Check if turul is "мэдэгдэл" (notification type for invoices)
           (turul == 'мэдэгдэл' || turul == 'medegdel' || turul == 'app');
 
@@ -308,12 +318,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
       for (var invoice in invoices) {
         if (invoice.isSelected) {
-          totalAmount += invoice.niitTulbur;
+          totalAmount += invoice.effectiveNiitTulbur;
           selectedInvoiceIds.add(invoice.id);
 
           turul ??= invoice.gereeniiDugaar;
         }
       }
+
+      // Use effective total (sum of unpaid merged invoices or contract uldegdel)
+      final effective = _effectiveTotalAmount;
+      if (effective > 0) totalAmount = effective;
 
       if (selectedInvoiceIds.isEmpty) {
         throw Exception('Нэхэмжлэх сонгоогүй байна');
@@ -458,21 +472,60 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
         selectedGereeniiDugaar = gereeniiDugaar;
         selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
+        // Use uldegdel first (matches HistoryModal), fallback to globalUldegdel
+        final rawUldegdel = gereeToUse['uldegdel'] ?? gereeToUse['globalUldegdel'];
+        _contractUldegdel = rawUldegdel != null
+            ? ((rawUldegdel is num) ? rawUldegdel.toDouble() : (double.tryParse(rawUldegdel.toString()) ?? 0.0))
+            : null;
 
-        final response = await ApiService.fetchNekhemjlekhiinTuukh(
-          gereeniiDugaar: gereeniiDugaar,
-          khuudasniiDugaar: 1,
-          khuudasniiKhemjee: 200, // Increased to show all invoices
-        );
+        final baiguullagiinId = gereeToUse['baiguullagiinId']?.toString() ??
+            await StorageService.getBaiguullagiinId();
+        final barilgiinId = gereeToUse['barilgiinId']?.toString();
+        final gereeniiId = gereeToUse['_id']?.toString();
+
+        // Fetch both nekhemjlekhiinTuukh and gereeniiTulukhAvlaga in parallel (matches web Үйлчилгээний нэхэмжлэх)
+        final results = await Future.wait([
+          ApiService.fetchNekhemjlekhiinTuukh(
+            gereeniiDugaar: gereeniiDugaar,
+            khuudasniiDugaar: 1,
+            khuudasniiKhemjee: 200,
+          ),
+          baiguullagiinId != null
+              ? ApiService.fetchGereeniiTulukhAvlaga(
+                  baiguullagiinId: baiguullagiinId,
+                  gereeniiDugaar: gereeniiDugaar,
+                  orshinSuugchId: orshinSuugchId,
+                  barilgiinId: barilgiinId,
+                )
+              : Future.value({'jagsaalt': []}),
+        ]);
+
+        final response = results[0] as Map<String, dynamic>;
+        final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
 
         if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+          final rawInvoices = response['jagsaalt'] as List;
+          final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
+              ? (tulukhAvlagaResponse['jagsaalt'] as List)
+                  .cast<Map<String, dynamic>>()
+              : <Map<String, dynamic>>[];
+
+          // Merge gereeniiTulukhAvlaga into invoices (ekhniiUldegdel, avlaga) - matches web
+          final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
+            rawInvoices,
+            tulukhAvlagaList,
+            gereeniiId,
+            gereeniiDugaar,
+            orshinSuugchId,
+          );
+
           final previouslySelectedIds = invoices
               .where((inv) => inv.isSelected)
               .map((inv) => inv.id)
               .toSet();
 
           setState(() {
-            invoices = (response['jagsaalt'] as List)
+            invoices = mergedInvoices
                 .map((item) => NekhemjlekhItem.fromJson(item))
                 .toList();
 
@@ -533,14 +586,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   int get selectedCount =>
       invoices.where((invoice) => invoice.isSelected).length;
 
-  String get totalSelectedAmount {
-    double total = 0;
-    for (var invoice in invoices) {
-      if (invoice.isSelected) {
-        total += invoice.niitTulbur;
-      }
+  /// Effective total: prefer sum of unpaid merged invoices (includes avlaga) when
+  /// backend contract.uldegdel may be stale (e.g. after manualSend avlaga).
+  double get _effectiveTotalAmount {
+    final unpaid = invoices.where((i) => i.tuluv == 'Төлөөгүй').toList();
+    if (unpaid.isNotEmpty) {
+      final sum = unpaid.fold<double>(0, (s, i) => s + i.effectiveNiitTulbur);
+      return sum;
     }
-    return '${total.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮';
+    return _contractUldegdel ?? 0;
+  }
+
+  String get totalSelectedAmount {
+    final amount = _effectiveTotalAmount;
+    if (amount >= 0) {
+      final formatted = amount.toStringAsFixed(2).replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},');
+      return '$formatted₮';
+    }
+    return '0.00₮';
   }
 
   void toggleSelectAll() {
@@ -565,16 +629,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           .where((invoice) => invoice.tuluv == 'Төлсөн')
           .toList();
     } else if (selectedFilter == 'Avlaga') {
-      // Show only invoices with avlaga (has guilgeenuud with turul="avlaga")
+      // Show only invoices with avlaga (has guilgeenuud with turul="avlaga" or "Авлага")
       filtered = filtered
           .where(
             (invoice) =>
                 invoice.tuluv != 'Төлсөн' &&
                 invoice.medeelel != null &&
                 invoice.medeelel!.guilgeenuud != null &&
-                invoice.medeelel!.guilgeenuud!.any(
-                  (guilgee) => guilgee.turul == 'avlaga',
-                ),
+                invoice.medeelel!.guilgeenuud!.any((guilgee) {
+                  final t = guilgee.turul?.toLowerCase() ?? '';
+                  return (t == 'avlaga' || t == 'авлага') && !guilgee.ekhniiUldegdelEsekh;
+                }),
           )
           .toList();
     } else if (selectedFilter == 'AshiglaltiinZardal') {
@@ -586,8 +651,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                 invoice.medeelel != null &&
                 invoice.medeelel!.zardluud.isNotEmpty &&
                 invoice.medeelel!.zardluud.any(
-                  (zardal) =>
-                      zardal.turul == 'Тогтмол' || zardal.turul == 'Дурын',
+                  (zardal) {
+                    final t = zardal.turul.toLowerCase();
+                    return t == 'тогтмол' || t == 'дурын';
+                  },
                 ),
           )
           .toList();
@@ -614,13 +681,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   invoice.tuluv != 'Төлсөн' &&
                   invoice.medeelel != null &&
                   invoice.medeelel!.guilgeenuud != null &&
-                  invoice.medeelel!.guilgeenuud!.any(
-                    (guilgee) => guilgee.turul == 'avlaga',
-                  ),
+                  invoice.medeelel!.guilgeenuud!.any((guilgee) {
+                    final t = guilgee.turul?.toLowerCase() ?? '';
+                    return (t == 'avlaga' || t == 'авлага') && !guilgee.ekhniiUldegdelEsekh;
+                  }),
             )
             .length;
       case 'AshiglaltiinZardal':
-        // Count invoices with zardluud items that have turul "Тогтмол" or "Дурын"
         return invoices
             .where(
               (invoice) =>
@@ -628,8 +695,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   invoice.medeelel != null &&
                   invoice.medeelel!.zardluud.isNotEmpty &&
                   invoice.medeelel!.zardluud.any(
-                    (zardal) =>
-                        zardal.turul == 'Тогтмол' || zardal.turul == 'Дурын',
+                    (zardal) {
+                      final t = zardal.turul.toLowerCase();
+                      return t == 'тогтмол' || t == 'дурын';
+                    },
                   ),
             )
             .length;
@@ -2436,6 +2505,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         totalSelectedAmount: totalSelectedAmount,
         selectedCount: selectedCount,
         invoices: invoices,
+        contractUldegdel: _effectiveTotalAmount > 0 ? _effectiveTotalAmount : _contractUldegdel,
         onPaymentTap: () async {
           // Refresh invoice list after payment check
           await _loadNekhemjlekh();
@@ -2457,25 +2527,39 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       appBar: buildStandardAppBar(
         context,
         title: 'Нэхэмжлэх',
-        actions: availableContracts.length > 1
-            ? [
-                IconButton(
-                  icon: Icon(
-                    Icons.swap_horiz,
-                    color: Colors.white,
-                    size: context.responsiveIconSize(
-                      small: 26,
-                      medium: 28,
-                      large: 30,
-                      tablet: 32,
-                      veryNarrow: 22,
-                    ),
-                  ),
-                  onPressed: _showContractSelectionModal,
-                  tooltip: 'Гэрээ солих',
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: Colors.white,
+              size: context.responsiveIconSize(
+                small: 24,
+                medium: 26,
+                large: 28,
+                tablet: 30,
+                veryNarrow: 22,
+              ),
+            ),
+            onPressed: isLoading ? null : () => _loadNekhemjlekh(),
+            tooltip: 'Шинэчлэх',
+          ),
+          if (availableContracts.length > 1)
+            IconButton(
+              icon: Icon(
+                Icons.swap_horiz,
+                color: Colors.white,
+                size: context.responsiveIconSize(
+                  small: 26,
+                  medium: 28,
+                  large: 30,
+                  tablet: 32,
+                  veryNarrow: 22,
                 ),
-              ]
-            : null,
+              ),
+              onPressed: _showContractSelectionModal,
+              tooltip: 'Гэрээ солих',
+            ),
+        ],
       ),
       body: AppBackground(
         child: SafeArea(
@@ -2757,13 +2841,17 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                 );
                               }
 
-                              return SingleChildScrollView(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isVerySmallScreen
-                                      ? 12
-                                      : (isSmallScreen ? 14 : 16),
-                                ),
-                                child: Column(
+                              return RefreshIndicator(
+                                onRefresh: _loadNekhemjlekh,
+                                color: AppColors.deepGreen,
+                                child: SingleChildScrollView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isVerySmallScreen
+                                        ? 12
+                                        : (isSmallScreen ? 14 : 16),
+                                  ),
+                                  child: Column(
                                   children: [
                                     if (selectedFilter != 'Paid' &&
                                         filteredInvoices.isNotEmpty)
@@ -2919,7 +3007,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                     ),
                                   ],
                                 ),
-                              );
+                              ),
+                            );
                             }(),
                           ),
                         ],

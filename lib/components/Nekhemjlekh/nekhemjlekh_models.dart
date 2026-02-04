@@ -4,10 +4,13 @@ import 'dart:core';
 class NekhemjlekhItem {
   final String id;
   final String baiguullagiinNer;
+  final String baiguullagiinUtas;
+  final String baiguullagiinKhayag;
   final String ovog;
   final String ner;
   final String register;
   final String khayag;
+  final String orts;
   final String gereeniiDugaar;
   final String nekhemjlekhiinOgnoo;
   final double niitTulbur;
@@ -22,10 +25,13 @@ class NekhemjlekhItem {
   NekhemjlekhItem({
     required this.id,
     required this.baiguullagiinNer,
+    this.baiguullagiinUtas = '',
+    this.baiguullagiinKhayag = '',
     required this.ovog,
     required this.ner,
     required this.register,
     required this.khayag,
+    this.orts = '',
     required this.gereeniiDugaar,
     required this.nekhemjlekhiinOgnoo,
     required this.niitTulbur,
@@ -41,26 +47,28 @@ class NekhemjlekhItem {
   factory NekhemjlekhItem.fromJson(Map<String, dynamic> json) {
     // Check if medeelel exists, otherwise create it from root-level fields
     NekhemjlekhMedeelel? medeelel;
-    
+
     if (json['medeelel'] != null) {
-      // Use medeelel if it exists
       medeelel = NekhemjlekhMedeelel.fromJson(json['medeelel']);
     } else {
-      // Check if zardluud exists at root level
       final rootZardluud = json['zardluud'];
       final rootToot = json['toot']?.toString() ?? '';
       final rootTemdeglel = json['temdeglel']?.toString() ?? '';
       final rootTailbar = json['tailbar']?.toString();
       final rootGuilgeenuud = json['guilgeenuud'];
-      
-      // If zardluud or other medeelel fields exist at root, create medeelel
-      if (rootZardluud != null || rootToot.isNotEmpty || rootTemdeglel.isNotEmpty || rootGuilgeenuud != null) {
+
+      if (rootZardluud != null ||
+          rootToot.isNotEmpty ||
+          rootTemdeglel.isNotEmpty ||
+          rootGuilgeenuud != null) {
         medeelel = NekhemjlekhMedeelel(
           zardluud: rootZardluud != null
               ? (rootZardluud as List).map((z) => Zardal.fromJson(z)).toList()
               : [],
           guilgeenuud: rootGuilgeenuud != null
-              ? (rootGuilgeenuud as List).map((g) => Guilgee.fromJson(g)).toList()
+              ? (rootGuilgeenuud as List)
+                  .map((g) => Guilgee.fromJson(g))
+                  .toList()
               : null,
           toot: rootToot,
           temdeglel: rootTemdeglel,
@@ -68,14 +76,47 @@ class NekhemjlekhItem {
         );
       }
     }
-    
+
+    // Compute ekhniiUldegdel: use top-level if present, else sum from zardluud + guilgeenuud (matches web)
+    double? ekhniiUldegdel;
+    if (json['ekhniiUldegdel'] != null) {
+      ekhniiUldegdel = (json['ekhniiUldegdel'] as num).toDouble();
+    } else if (medeelel != null) {
+      double fromZardluud = 0;
+      for (final z in medeelel.zardluud) {
+        if (z.isEkhniiUldegdel) {
+          // Match web: dun ?? tulukhDun ?? undsenDun ?? tariff
+          final amt = z.dun != 0
+              ? z.dun
+              : (z.tulukhDun ?? z.undsenDun ?? z.tariff);
+          if (amt != 0) fromZardluud += amt;
+        }
+      }
+      double fromGuilgee = 0;
+      if (medeelel.guilgeenuud != null) {
+        for (final g in medeelel.guilgeenuud!) {
+          if (g.ekhniiUldegdelEsekh) {
+            final base = g.tulukhDun ?? g.undsenDun ?? 0.0;
+            final tulsun = g.tulsunDun ?? 0.0;
+            final amt = base - tulsun;
+            if (amt != 0) fromGuilgee += amt;
+          }
+        }
+      }
+      final total = fromZardluud + fromGuilgee;
+      if (total != 0) ekhniiUldegdel = total;
+    }
+
     return NekhemjlekhItem(
       id: json['_id']?.toString() ?? '',
       baiguullagiinNer: json['baiguullagiinNer']?.toString() ?? '',
+      baiguullagiinUtas: json['baiguullagiinUtas']?.toString() ?? '',
+      baiguullagiinKhayag: json['baiguullagiinKhayag']?.toString() ?? '',
       ovog: json['ovog']?.toString() ?? '',
       ner: json['ner']?.toString() ?? '',
       register: json['register']?.toString() ?? '',
       khayag: json['khayag']?.toString() ?? '',
+      orts: json['orts']?.toString() ?? '',
       gereeniiDugaar: json['gereeniiDugaar']?.toString() ?? '',
       nekhemjlekhiinOgnoo:
           json['nekhemjlekhiinOgnoo']?.toString() ??
@@ -88,9 +129,7 @@ class NekhemjlekhItem {
       dansniiDugaar: json['dansniiDugaar']?.toString() ?? '',
       tuluv: json['tuluv']?.toString() ?? 'Төлөөгүй',
       medeelel: medeelel,
-      ekhniiUldegdel: json['ekhniiUldegdel'] != null
-          ? (json['ekhniiUldegdel'] as num).toDouble()
-          : null,
+      ekhniiUldegdel: ekhniiUldegdel,
     );
   }
 
@@ -103,8 +142,25 @@ class NekhemjlekhItem {
     }
   }
 
+  /// Total including ekhniiUldegdel and avlaga when backend niitTulbur may not include them (matches web)
+  double get effectiveNiitTulbur {
+    double total = niitTulbur + (ekhniiUldegdel ?? 0);
+    // Add avlaga from guilgeenuud (merged from gereeniiTulukhAvlaga)
+    if (medeelel?.guilgeenuud != null) {
+      for (final g in medeelel!.guilgeenuud!) {
+        final t = g.turul?.toLowerCase() ?? '';
+        if ((t == 'avlaga' || t == 'авлага') && !g.ekhniiUldegdelEsekh) {
+          final amt = (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
+          if (amt > 0) total += amt;
+        }
+      }
+    }
+    return total;
+  }
+
   String get formattedAmount {
-    final formatted = niitTulbur
+    final total = effectiveNiitTulbur;
+    final formatted = total
         .toStringAsFixed(2)
         .replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
@@ -157,9 +213,13 @@ class Zardal {
   final String tariffUsgeer;
   final String zardliinTurul;
   final double dun;
+  final double? tulukhDun;
+  final double? undsenDun;
   final double? zaaltDefaultDun;
   final double? togtmolUtga;
   final double? zaaltTariff;
+  final bool isEkhniiUldegdel;
+  final bool zaalt; // цахилгаан (electricity) - variable charge
 
   Zardal({
     required this.ner,
@@ -168,12 +228,17 @@ class Zardal {
     required this.tariffUsgeer,
     required this.zardliinTurul,
     required this.dun,
+    this.tulukhDun,
+    this.undsenDun,
     this.zaaltDefaultDun,
     this.togtmolUtga,
     this.zaaltTariff,
+    this.isEkhniiUldegdel = false,
+    this.zaalt = false,
   });
 
   factory Zardal.fromJson(Map<String, dynamic> json) {
+    final ner = (json['ner']?.toString() ?? '').toLowerCase();
     return Zardal(
       ner: json['ner']?.toString() ?? '',
       turul: json['turul']?.toString() ?? '',
@@ -181,6 +246,12 @@ class Zardal {
       tariffUsgeer: json['tariffUsgeer']?.toString() ?? '₮',
       zardliinTurul: json['zardliinTurul']?.toString() ?? '',
       dun: (json['dun'] ?? 0).toDouble(),
+      tulukhDun: json['tulukhDun'] != null
+          ? (json['tulukhDun'] as num).toDouble()
+          : null,
+      undsenDun: json['undsenDun'] != null
+          ? (json['undsenDun'] as num).toDouble()
+          : null,
       zaaltDefaultDun: json['zaaltDefaultDun'] != null
           ? (json['zaaltDefaultDun'] as num).toDouble()
           : null,
@@ -190,7 +261,23 @@ class Zardal {
       zaaltTariff: json['zaaltTariff'] != null
           ? (json['zaaltTariff'] as num).toDouble()
           : null,
+      isEkhniiUldegdel: json['isEkhniiUldegdel'] == true ||
+          ner.contains('эхний үлдэгдэл') ||
+          ner.contains('ekhniuldegdel') ||
+          ner.contains('ekhnii uldegdel'),
+      zaalt: json['zaalt'] == true || ner.contains('цахилгаан'),
     );
+  }
+
+  /// Whether this zardal should be shown in invoice breakdown (Тогтмол, Дурын, Эхний үлдэгдэл, цахилгаан)
+  bool get isDisplayable {
+    final t = turul.toLowerCase();
+    if (t == 'тогтмол' || t == 'дурын') return true;
+    if (isEkhniiUldegdel) return true;
+    if (zaalt) return true;
+    if (ner.toLowerCase().contains('цахилгаан') &&
+        !ner.toLowerCase().contains('дундын өмчлөл')) return true;
+    return false;
   }
 
   String get formattedTariff {
@@ -203,41 +290,24 @@ class Zardal {
     return '$formatted$tariffUsgeer';
   }
 
-  // Get the actual amount to display (prioritize zaaltDefaultDun, then togtmolUtga, then dun)
+  // Get the actual amount to display (matches web: dun, tulukhDun, undsenDun, tariff)
   double get displayAmount {
-    // Debug logging for amount decision
-    print(
-      '🔎 ZARDAL displayAmount calc for "$ner": '
-      'dun=$dun, zaaltDefaultDun=$zaaltDefaultDun, '
-      'togtmolUtga=$togtmolUtga, tariff=$tariff',
-    );
-
-    if (zaaltDefaultDun != null && zaaltDefaultDun! > 0) {
-      print('🔎 ZARDAL "$ner": using zaaltDefaultDun=$zaaltDefaultDun');
-      return zaaltDefaultDun!;
+    if (zaaltDefaultDun != null && zaaltDefaultDun! > 0) return zaaltDefaultDun!;
+    if (togtmolUtga != null && togtmolUtga! > 0) return togtmolUtga!;
+    if (dun > 0) return dun;
+    // For ekhniiUldegdel, API may send amount in tulukhDun/undsenDun/tariff when dun=0
+    if (isEkhniiUldegdel) {
+      final amt = tulukhDun ?? undsenDun ?? (tariff > 0 ? tariff : 0.0);
+      if (amt > 0) return amt;
     }
-    if (togtmolUtga != null && togtmolUtga! > 0) {
-      print('🔎 ZARDAL "$ner": using togtmolUtga=$togtmolUtga');
-      return togtmolUtga!;
-    }
-    // If dun is explicitly set and > 0, use it
-    if (dun > 0) {
-      print('🔎 ZARDAL "$ner": using dun=$dun');
-      return dun;
-    }
-    // Backend sometimes sends dun = 0 but tariff > 0 (e.g. "Хог" fixed fee).
-    // In that case, fall back to tariff so the user doesn't see 0.00₮.
-    if (tariff > 0) {
-      print('🔎 ZARDAL "$ner": using tariff fallback=$tariff');
-      return tariff;
-    }
-    print('🔎 ZARDAL "$ner": all values 0, returning 0');
+    if (tariff > 0) return tariff;
+    // For zaalt (цахилгаан), fallback to zaaltTariff if dun/tariff are 0
+    if (zaalt && zaaltTariff != null && zaaltTariff! > 0) return zaaltTariff!;
     return 0;
   }
 
   String get formattedDisplayAmount {
     final amount = displayAmount;
-    print('🔎 ZARDAL "$ner": final displayAmount=$amount');
     final formatted = amount
         .toStringAsFixed(2)
         .replaceAllMapped(
@@ -251,6 +321,7 @@ class Zardal {
 class Guilgee {
   final String? ognoo;
   final double? tulukhDun;
+  final double? undsenDun;
   final double? tulsunDun;
   final String? tailbar;
   final String? turul;
@@ -260,10 +331,12 @@ class Guilgee {
   final String? guilgeeKhiisenAjiltniiId;
   final int? avlagaGuilgeeIndex;
   final String? id;
+  final bool ekhniiUldegdelEsekh;
 
   Guilgee({
     this.ognoo,
     this.tulukhDun,
+    this.undsenDun,
     this.tulsunDun,
     this.tailbar,
     this.turul,
@@ -273,6 +346,7 @@ class Guilgee {
     this.guilgeeKhiisenAjiltniiId,
     this.avlagaGuilgeeIndex,
     this.id,
+    this.ekhniiUldegdelEsekh = false,
   });
 
   factory Guilgee.fromJson(Map<String, dynamic> json) {
@@ -280,6 +354,9 @@ class Guilgee {
       ognoo: json['ognoo']?.toString(),
       tulukhDun: json['tulukhDun'] != null
           ? (json['tulukhDun'] as num).toDouble()
+          : null,
+      undsenDun: json['undsenDun'] != null
+          ? (json['undsenDun'] as num).toDouble()
           : null,
       tulsunDun: json['tulsunDun'] != null
           ? (json['tulsunDun'] as num).toDouble()
@@ -292,6 +369,7 @@ class Guilgee {
       guilgeeKhiisenAjiltniiId: json['guilgeeKhiisenAjiltniiId']?.toString(),
       avlagaGuilgeeIndex: json['avlagaGuilgeeIndex'] as int?,
       id: json['_id']?.toString(),
+      ekhniiUldegdelEsekh: json['ekhniiUldegdelEsekh'] == true,
     );
   }
 }

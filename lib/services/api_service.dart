@@ -1736,10 +1736,18 @@ class ApiService {
 
   static Future<Map<String, dynamic>> fetchGeree(String orshinSuugchId) async {
     try {
-      final headers = await getAuthHeaders();
+      final authHeaders = await getAuthHeaders();
+      final headers = {
+        ...authHeaders,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      };
 
       final uri = Uri.parse('$baseUrl/geree').replace(
-        queryParameters: {'query': '{"orshinSuugchId":"$orshinSuugchId"}'},
+        queryParameters: {
+          'query': '{"orshinSuugchId":"$orshinSuugchId"}',
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
       );
 
       final response = await http.get(uri, headers: headers);
@@ -1801,7 +1809,12 @@ class ApiService {
     int khuudasniiKhemjee = 200,
   }) async {
     try {
-      final headers = await getAuthHeaders();
+      final authHeaders = await getAuthHeaders();
+      final headers = {
+        ...authHeaders,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      };
 
       final queryJson = json.encode({'gereeniiDugaar': gereeniiDugaar});
       final uri = Uri.parse('$baseUrl/nekhemjlekhiinTuukh').replace(
@@ -1809,7 +1822,7 @@ class ApiService {
           'query': queryJson,
           'khuudasniiDugaar': khuudasniiDugaar.toString(),
           'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
-          '_t': DateTime.now().millisecondsSinceEpoch.toString(), // Cache-bust for latest invoice total, ekhniiUldegdel, avlaga
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
         },
       );
 
@@ -1836,6 +1849,67 @@ class ApiService {
     } catch (e) {
       print('Error fetching nekhemjlekhiinTuukh: $e');
       throw Exception('Нэхэмжлэхийн түүх татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Fetch gereeniiTulukhAvlaga (avlaga + ekhniiUldegdel) for merging with invoices.
+  /// Matches web "Үйлчилгээний нэхэмжлэх" which merges this data for display.
+  static Future<Map<String, dynamic>> fetchGereeniiTulukhAvlaga({
+    required String baiguullagiinId,
+    String? gereeniiDugaar,
+    String? orshinSuugchId,
+    String? barilgiinId,
+    int khuudasniiDugaar = 1,
+    int khuudasniiKhemjee = 500,
+  }) async {
+    try {
+      final authHeaders = await getAuthHeaders();
+      final headers = {
+        ...authHeaders,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      };
+
+      final query = <String, dynamic>{
+        'baiguullagiinId': baiguullagiinId,
+      };
+      if (gereeniiDugaar != null && gereeniiDugaar.isNotEmpty) {
+        query['gereeniiDugaar'] = gereeniiDugaar;
+      }
+      if (orshinSuugchId != null && orshinSuugchId.isNotEmpty) {
+        query['orshinSuugchId'] = orshinSuugchId;
+      }
+      if (barilgiinId != null && barilgiinId.isNotEmpty) {
+        query['barilgiinId'] = barilgiinId;
+      }
+
+      final queryJson = json.encode(query);
+      final uri = Uri.parse('$baseUrl/gereeniiTulukhAvlaga').replace(
+        queryParameters: {
+          'query': queryJson,
+          'baiguullagiinId': baiguullagiinId,
+          'khuudasniiDugaar': khuudasniiDugaar.toString(),
+          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        try {
+          final data = json.decode(response.body);
+          if (data is String) return {'jagsaalt': []};
+          return data is Map<String, dynamic> ? data : {'jagsaalt': []};
+        } catch (e) {
+          print('JSON parsing failed for gereeniiTulukhAvlaga: ${response.body}');
+          return {'jagsaalt': []};
+        }
+      }
+      return {'jagsaalt': []};
+    } catch (e) {
+      print('Error fetching gereeniiTulukhAvlaga: $e');
+      return {'jagsaalt': []};
     }
   }
 

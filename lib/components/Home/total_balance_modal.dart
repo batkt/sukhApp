@@ -55,7 +55,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       List<Map<String, dynamic>> allPayments = [];
       double total = 0.0;
 
-      // Load OWN_ORG payments
+      // Load OWN_ORG payments - use contract's uldegdel (same as HistoryModal, home, nekhemjlekh)
       try {
         final userId = await StorageService.getUserId();
         if (userId != null) {
@@ -63,34 +63,34 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           if (gereeResponse['jagsaalt'] != null &&
               gereeResponse['jagsaalt'] is List) {
             final List<dynamic> gereeJagsaalt = gereeResponse['jagsaalt'];
-            if (gereeJagsaalt.isNotEmpty) {
-              final firstContract = gereeJagsaalt[0];
-              final geree = Geree.fromJson(firstContract);
-              final nekhemjlekhResponse =
-                  await ApiService.fetchNekhemjlekhiinTuukh(
-                    gereeniiDugaar: geree.gereeniiDugaar,
-                  );
-
-              if (nekhemjlekhResponse['jagsaalt'] != null &&
-                  nekhemjlekhResponse['jagsaalt'] is List) {
-                final List<dynamic> nekhemjlekhJagsaalt =
-                    nekhemjlekhResponse['jagsaalt'];
-                for (var invoice in nekhemjlekhJagsaalt) {
-                  if (invoice['tuluv'] == 'Төлөөгүй') {
-                    final niitTulbur = invoice['niitTulbur'];
-                    if (niitTulbur != null) {
-                      final amount = (niitTulbur is int)
-                          ? niitTulbur.toDouble()
-                          : (niitTulbur as double);
-                      total += amount;
-                      allPayments.add({
-                        'source': 'OWN_ORG',
-                        'billingName': 'Орон сууцны төлбөр',
-                        'amount': amount,
-                        'invoice': invoice,
-                      });
+            for (var c in gereeJagsaalt) {
+              final contract = c is Map<String, dynamic> ? c : Map<String, dynamic>.from(c as Map);
+              final contractUldegdel = contract['uldegdel'] ?? contract['globalUldegdel'];
+              if (contractUldegdel != null) {
+                final amt = (contractUldegdel is num)
+                    ? contractUldegdel.toDouble()
+                    : (double.tryParse(contractUldegdel.toString()) ?? 0.0);
+                if (amt > 0) {
+                  total += amt;
+                  // Fetch invoices for payment metadata (firstInvoiceId, gereeniiDugaar, etc)
+                  final geree = Geree.fromJson(contract);
+                  Map<String, dynamic> invoiceForMeta = contract;
+                  try {
+                    final nekResp = await ApiService.fetchNekhemjlekhiinTuukh(
+                      gereeniiDugaar: geree.gereeniiDugaar,
+                    );
+                    if (nekResp['jagsaalt'] != null && (nekResp['jagsaalt'] as List).isNotEmpty) {
+                      final list = (nekResp['jagsaalt'] as List).cast<Map<String, dynamic>>();
+                      final unpaid = list.where((i) => i['tuluv'] != 'Төлсөн');
+                      invoiceForMeta = unpaid.isNotEmpty ? unpaid.first : list.first;
                     }
-                  }
+                  } catch (_) {}
+                  allPayments.add({
+                    'source': 'OWN_ORG',
+                    'billingName': 'Орон сууцны төлбөр',
+                    'amount': amt,
+                    'invoice': invoiceForMeta,
+                  });
                 }
               }
             }

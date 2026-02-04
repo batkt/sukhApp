@@ -13,6 +13,8 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/models/geree_model.dart';
+import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
+import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -91,7 +93,7 @@ class NuurKhuudas extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<NuurKhuudas>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   DateTime? paymentDate;
   bool isLoadingPaymentData = true;
   Geree? gereeData;
@@ -127,7 +129,8 @@ class _BookingScreenState extends State<NuurKhuudas>
   final GlobalKey<BillingListSectionState> _billingListSectionKey =
       GlobalKey<BillingListSectionState>();
 
-  // All billing payments for total balance modal
+  // Periodic refresh for balance (fallback when socket notification is missed)
+  Timer? _balanceRefreshTimer;
 
   // Animation controller for circular progress
   late AnimationController _progressAnimationController;
@@ -146,6 +149,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       curve: Curves.easeOutCubic,
     );
 
+    WidgetsBinding.instance.addObserver(this);
     _loadBillers();
     _loadBillingList();
     _loadNotificationCount();
@@ -153,6 +157,11 @@ class _BookingScreenState extends State<NuurKhuudas>
     _loadGereeData();
     _loadNekhemjlekhCron(); // Load nekhemjlekh cron data for date calculation
     _loadAllBillingPayments(); // Load total balance on init
+
+    // Periodic balance refresh (every 60s) - fallback when socket notification is missed
+    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (mounted) _loadAllBillingPayments();
+    });
 
     // Trigger animation after a short delay to ensure data is loaded
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -162,7 +171,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     });
   }
 
-  bool _hasLoadedBalance = false;
+  DateTime? _lastBalanceRefresh;
 
   void _setupSocketListener() {
     // Set up socket notification callback
@@ -171,10 +180,30 @@ class _BookingScreenState extends State<NuurKhuudas>
       print('🔔 HOME: Notification data: $notification');
 
       if (mounted) {
-        // Refresh from API to get accurate count
-        // Don't increment locally to avoid double counting
-        print('🔔 HOME: Widget is mounted, calling _loadNotificationCount()');
         _loadNotificationCount();
+        // Refresh balance when invoice/avlaga notification (e.g. manualSend avlaga)
+        final title = notification['title']?.toString() ?? '';
+        final message = notification['message']?.toString() ?? '';
+        final turul = notification['turul']?.toString().toLowerCase() ?? '';
+        final guilgee = notification['guilgee'];
+        final guilgeeTurul = guilgee is Map
+            ? (guilgee['turul']?.toString().toLowerCase() ?? '')
+            : '';
+        final isInvoiceOrAvlaga =
+            (guilgeeTurul == 'avlaga') ||
+            title.toLowerCase().contains('нэхэмжлэх') ||
+            title.toLowerCase().contains('авлага') ||
+            title.toLowerCase().contains('нэмэгдлээ') ||
+            message.toLowerCase().contains('нэхэмжлэх') ||
+            message.toLowerCase().contains('авлага') ||
+            message.toLowerCase().contains('нэмэгдлээ') ||
+            message.toLowerCase().contains('manualsend') ||
+            (turul == 'мэдэгдэл' || turul == 'medegdel' || turul == 'app');
+        if (isInvoiceOrAvlaga) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _loadAllBillingPayments();
+          });
+        }
       } else {
         print(
           '⚠️ HOME: Widget not mounted, skipping notification count update',
@@ -188,23 +217,41 @@ class _BookingScreenState extends State<NuurKhuudas>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Re-establish socket listener when screen comes back into focus
-    // This ensures the callback is active even after modal closes
     _setupSocketListener();
-    // Also refresh notification count when page becomes visible
     _loadNotificationCount();
-    // Reload total balance when page becomes visible (only once per mount)
-    if (!_hasLoadedBalance) {
-      _hasLoadedBalance = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _loadAllBillingPayments();
-        }
+    // Refresh balance when dependencies change (e.g. returning from nekhemjlekh)
+    // Debounce: skip if refreshed in last 2 seconds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final now = DateTime.now();
+      if (_lastBalanceRefresh == null ||
+          now.difference(_lastBalanceRefresh!).inSeconds >= 2) {
+        _lastBalanceRefresh = now;
+        _loadAllBillingPayments();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadAllBillingPayments();
+      _balanceRefreshTimer?.cancel();
+      _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+        if (mounted) _loadAllBillingPayments();
       });
+    } else if (state == AppLifecycleState.paused) {
+      _balanceRefreshTimer?.cancel();
+      _balanceRefreshTimer = null;
     }
   }
 
   @override
   void dispose() {
+    _balanceRefreshTimer?.cancel();
+    _balanceRefreshTimer = null;
+    WidgetsBinding.instance.removeObserver(this);
     _billerPageController.dispose();
     _progressAnimationController.dispose();
     // Don't remove callback on dispose - let it stay active
@@ -566,8 +613,10 @@ class _BookingScreenState extends State<NuurKhuudas>
   Future<void> _loadAllBillingPayments() async {
     try {
       double total = 0.0;
+      _lastBalanceRefresh = DateTime.now();
 
-      // Load OWN_ORG payments
+      // Load OWN_ORG payments - use merged invoices (nekhemjlekhiinTuukh + gereeniiTulukhAvlaga)
+      // Same logic as nekhemjlekh screen so home header matches "Төлбөр төлөх" amount
       try {
         final userId = await StorageService.getUserId();
         if (userId != null) {
@@ -575,28 +624,67 @@ class _BookingScreenState extends State<NuurKhuudas>
           if (gereeResponse['jagsaalt'] != null &&
               gereeResponse['jagsaalt'] is List) {
             final List<dynamic> gereeJagsaalt = gereeResponse['jagsaalt'];
-            if (gereeJagsaalt.isNotEmpty) {
-              final firstContract = gereeJagsaalt[0];
-              final geree = Geree.fromJson(firstContract);
-              final nekhemjlekhResponse =
-                  await ApiService.fetchNekhemjlekhiinTuukh(
-                    gereeniiDugaar: geree.gereeniiDugaar,
+            for (var c in gereeJagsaalt) {
+              final contract = c is Map<String, dynamic> ? c : Map<String, dynamic>.from(c as Map);
+              final gereeniiDugaar = contract['gereeniiDugaar']?.toString();
+              if (gereeniiDugaar == null || gereeniiDugaar.isEmpty) continue;
+
+              final baiguullagiinId = contract['baiguullagiinId']?.toString();
+              final barilgiinId = contract['barilgiinId']?.toString();
+              final gereeniiId = contract['_id']?.toString();
+
+              try {
+                final results = await Future.wait([
+                  ApiService.fetchNekhemjlekhiinTuukh(
+                    gereeniiDugaar: gereeniiDugaar,
+                    khuudasniiDugaar: 1,
+                    khuudasniiKhemjee: 200,
+                  ),
+                  baiguullagiinId != null
+                      ? ApiService.fetchGereeniiTulukhAvlaga(
+                          baiguullagiinId: baiguullagiinId,
+                          gereeniiDugaar: gereeniiDugaar,
+                          orshinSuugchId: userId,
+                          barilgiinId: barilgiinId,
+                        )
+                      : Future.value({'jagsaalt': []}),
+                ]);
+
+                final response = results[0] as Map<String, dynamic>;
+                final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
+
+                if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
+                  final rawInvoices = response['jagsaalt'] as List;
+                  final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
+                      ? (tulukhAvlagaResponse['jagsaalt'] as List)
+                          .cast<Map<String, dynamic>>()
+                      : <Map<String, dynamic>>[];
+
+                  final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
+                    rawInvoices,
+                    tulukhAvlagaList,
+                    gereeniiId,
+                    gereeniiDugaar,
+                    userId,
                   );
 
-              if (nekhemjlekhResponse['jagsaalt'] != null &&
-                  nekhemjlekhResponse['jagsaalt'] is List) {
-                final List<dynamic> nekhemjlekhJagsaalt =
-                    nekhemjlekhResponse['jagsaalt'];
-                for (var invoice in nekhemjlekhJagsaalt) {
-                  if (invoice['tuluv'] == 'Төлөөгүй') {
-                    final niitTulbur = invoice['niitTulbur'];
-                    if (niitTulbur != null) {
-                      final amount = (niitTulbur is int)
-                          ? niitTulbur.toDouble()
-                          : (niitTulbur as double);
-                      total += amount;
+                  for (final item in mergedInvoices) {
+                    final inv = NekhemjlekhItem.fromJson(
+                      item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item as Map),
+                    );
+                    if (inv.tuluv == 'Төлөөгүй') {
+                      total += inv.effectiveNiitTulbur;
                     }
                   }
+                }
+              } catch (_) {
+                // Fallback to contract uldegdel if invoice fetch fails
+                final contractUldegdel = contract['uldegdel'] ?? contract['globalUldegdel'];
+                if (contractUldegdel != null) {
+                  final amt = (contractUldegdel is num)
+                      ? contractUldegdel.toDouble()
+                      : (double.tryParse(contractUldegdel.toString()) ?? 0.0);
+                  if (amt > 0) total += amt;
                 }
               }
             }
@@ -667,7 +755,6 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (mounted) {
         setState(() {
           totalNiitTulbur = total;
-          _hasLoadedBalance = true;
         });
       }
     } catch (e) {
