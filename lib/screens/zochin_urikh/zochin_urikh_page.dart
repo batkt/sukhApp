@@ -8,6 +8,9 @@ import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 
+import 'package:intl/intl.dart';
+import 'package:sukh_app/services/socket_service.dart';
+
 class ZochinUrikhPage extends StatefulWidget {
   const ZochinUrikhPage({super.key});
 
@@ -15,13 +18,19 @@ class ZochinUrikhPage extends StatefulWidget {
   State<ZochinUrikhPage> createState() => _ZochinUrikhPageState();
 }
 
-class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
+class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _mashiniiDugaarController = TextEditingController();
   final _ezemshigchiinUtasController = TextEditingController();
   
   bool _isLoading = false;
-  List<Map<String, dynamic>> _invitedGuests = [];
+  
+  // Lists for different statuses
+  List<Map<String, dynamic>> _pendingGuests = [];
+  List<Map<String, dynamic>> _activeGuests = [];
+  List<Map<String, dynamic>> _exitedGuests = [];
+  
+  late TabController _tabController;
   bool _isLoadingHistory = true;
   String? _userPhoneNumber;
   Map<String, dynamic>? _quotaStatus;
@@ -32,8 +41,22 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _loadUserPhone();
     _loadInvitedGuests();
+    _loadQuotaStatus();
+    _setupSocketListener();
+  }
+
+  void _setupSocketListener() {
+    SocketService.instance.setNotificationCallback(_handleSocketMessage);
+  }
+
+  void _handleSocketMessage(Map<String, dynamic> data) {
+    // Reload list on any relevant notification
+    // Optimize this later if we know specific event types for car updates
+    print('🔔 Socket message received in ZochinUrikhPage, reloading list...');
+    _loadInvitedGuests(showLoading: false);
     _loadQuotaStatus();
   }
 
@@ -107,6 +130,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
 
   @override
   void dispose() {
+    SocketService.instance.removeNotificationCallback(_handleSocketMessage);
+    _tabController.dispose();
     _mashiniiDugaarController.dispose();
     _ezemshigchiinUtasController.dispose();
     super.dispose();
@@ -128,10 +153,30 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
         if (mounted) {
           final ezenList = response['ezenList'] as List? ?? [];
           final jagsaalt = response['jagsaalt'] as List? ?? [];
-          final combinedList = ezenList.isNotEmpty ? ezenList : jagsaalt;
           
           setState(() {
-            _invitedGuests = List<Map<String, dynamic>>.from(combinedList);
+            // "Хүлээлгэ" (Pending) - Usually items in ezenList with tuluv 0
+            _pendingGuests = List<Map<String, dynamic>>.from(
+              ezenList.where((item) => (item['tuluv'] ?? 0) == 0)
+            );
+
+            // Access nested 'urisanMashin' for jagsaalt items safely
+            final historyItems = List<Map<String, dynamic>>.from(jagsaalt);
+            
+            // "Идэвхтэй" (Active) - tuluv 1
+            _activeGuests = historyItems.where((item) {
+              final um = item['urisanMashin'];
+              final tuluv = um != null ? (um['tuluv'] ?? 0) : 0;
+              return tuluv == 1;
+            }).toList();
+
+            // "Гарсан" (Exited) - tuluv 2
+            _exitedGuests = historyItems.where((item) {
+              final um = item['urisanMashin'];
+              final tuluv = um != null ? (um['tuluv'] ?? 0) : 0;
+              return tuluv == 2;
+            }).toList();
+
             _isLoadingHistory = false;
           });
         }
@@ -651,9 +696,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                 veryNarrow: 20,
               )),
               
-              // History section
+              // History section with Tabs
               Text(
-                'Урьсан зочдын түүх',
+                'Урилгын түүх',
                 style: TextStyle(
                   color: context.textPrimaryColor,
                   fontSize: context.responsiveFontSize(
@@ -666,14 +711,101 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: context.responsiveSpacing(
-                small: 12,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 10,
-              )),
+              SizedBox(height: 12.h),
               
+              Container(
+                decoration: BoxDecoration(
+                  color: context.surfaceColor, // Lighter background
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                padding: EdgeInsets.all(4.w),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    color: context.cardBackgroundColor, // Card BG for selected
+                    borderRadius: BorderRadius.circular(10.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: Color(0xFF3B82F6), // Active Color
+                  unselectedLabelColor: context.textSecondaryColor, // Inactive Color
+                  labelStyle: TextStyle(
+                    fontSize: 12.sp, 
+                    fontWeight: FontWeight.bold,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontSize: 12.sp, 
+                    fontWeight: FontWeight.w500,
+                  ),
+                  dividerColor: Colors.transparent, // Remove default divider
+                  tabs: [
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Хүлээлгэ'),
+                          if (_pendingGuests.isNotEmpty) ...[
+                            SizedBox(width: 4.w),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: _tabController.index == 0 ? Color(0xFF3B82F6).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Text(
+                                '${_pendingGuests.length}',
+                                style: TextStyle(fontSize: 10.sp),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Идэвхтэй'),
+                          if (_activeGuests.isNotEmpty) ...[
+                            SizedBox(width: 4.w),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: _tabController.index == 1 ? Color(0xFF3B82F6).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                              child: Text(
+                                '${_activeGuests.length}',
+                                style: TextStyle(fontSize: 10.sp),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Гарсан'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onTap: (index) {
+                     setState(() {});
+                  },
+                ),
+              ),
+              
+              SizedBox(height: 16.h),
+
               if (_isLoadingHistory)
                 Center(
                   child: Padding(
@@ -683,90 +815,45 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
                     ),
                   ),
                 )
-              else if (_invitedGuests.isEmpty)
-                Center(
-                  child: Container(
-                    width: double.infinity,
-                    padding: context.responsivePadding(
-                      small: 28,
-                      medium: 32,
-                      large: 36,
-                      tablet: 40,
-                      veryNarrow: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.cardBackgroundColor,
-                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                        small: 12,
-                        medium: 14,
-                        large: 16,
-                        tablet: 18,
-                        veryNarrow: 10,
-                      )),
-                      border: Border.all(color: context.borderColor, width: 1),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.person_search_outlined,
-                          size: context.responsiveIconSize(
-                            small: 40,
-                            medium: 44,
-                            large: 48,
-                            tablet: 52,
-                            veryNarrow: 36,
-                          ),
-                          color: context.textSecondaryColor.withOpacity(0.5),
-                        ),
-                        SizedBox(height: context.responsiveSpacing(
-                          small: 10,
-                          medium: 12,
-                          large: 14,
-                          tablet: 16,
-                          veryNarrow: 8,
-                        )),
-                        Text(
-                          'Урьсан зочин байхгүй',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: context.responsiveFontSize(
-                              small: 13,
-                              medium: 14,
-                              large: 15,
-                              tablet: 16,
-                              veryNarrow: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
               else
-                Center(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: _invitedGuests.length,
-                    separatorBuilder: (context, index) => SizedBox(height: context.responsiveSpacing(
-                      small: 10,
-                      medium: 12,
-                      large: 14,
-                      tablet: 16,
-                      veryNarrow: 8,
-                    )),
-                    itemBuilder: (context, index) {
-                      final guest = _invitedGuests[index];
-                      return _buildGuestCard(guest);
-                    },
+                SizedBox(
+                  height: 400.h, // Fixed height for list or use shrinkWrap with correct physics
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildGuestList(_pendingGuests, 'Хүлээлгэ'),
+                      _buildGuestList(_activeGuests, 'Идэвхтэй'),
+                      _buildGuestList(_exitedGuests, 'Гарсан'),
+                    ],
                   ),
                 ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGuestList(List<Map<String, dynamic>> guests, String type) {
+    if (guests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 40.sp, color: Colors.grey.withOpacity(0.5)),
+            SizedBox(height: 10.h),
+            Text('$type машин байхгүй', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+    return ListView.separated(
+      physics: ClampingScrollPhysics(),
+      itemCount: guests.length,
+      separatorBuilder: (context, index) => SizedBox(height: 10.h),
+      itemBuilder: (context, index) {
+        return _buildGuestCard(guests[index]);
+      },
     );
   }
 
@@ -922,7 +1009,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
 
       if (mounted) {
         setState(() {
-          _invitedGuests.removeWhere((item) => item['_id'] == id);
+          _pendingGuests.removeWhere((item) => item['_id'] == id);
+          _activeGuests.removeWhere((item) => item['_id'] == id);
+          _exitedGuests.removeWhere((item) => item['_id'] == id);
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Урилга амжилттай цуцлагдлаа')),
@@ -940,181 +1029,191 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> {
   }
 
   Widget _buildGuestCard(Map<String, dynamic> guest) {
-    final mashiniiDugaar = guest['urisanMashiniiDugaar'] ?? guest['mashiniiDugaar'] ?? '-';
-    final rawDate = guest['ognoo'] ?? guest['createdAt'] ?? guest['ognooStr'];
-    final tuluv = guest['tuluv'] ?? 0;
+    // Try to get data from either direct structure (ezenList) or nested (jagsaalt)
+    
+    // For "jagsaalt" items, the guest data is in 'urisanMashin' object,
+    // but the main object has 'mashiniiDugaar' etc.
+    final urisanMashin = guest['urisanMashin'];
+    final isHistoryItem = urisanMashin != null;
+    
+    final mashiniiDugaar = isHistoryItem
+        ? (guest['mashiniiDugaar'] ?? urisanMashin['urisanMashiniiDugaar'] ?? '')
+        : (guest['urisanMashiniiDugaar'] ?? guest['mashiniiDugaar'] ?? '');
+        
+    final tuluv = isHistoryItem 
+        ? (urisanMashin['tuluv'] ?? 0)
+        : (guest['tuluv'] ?? 0);
+        
+    final createdAt = isHistoryItem
+        ? (urisanMashin['createdAt'] ?? guest['createdAt'])
+        : guest['createdAt'];
+        
+    // Calculate entry time and duration if applicable
+    String durationStr = '';
     String dateStr = '';
     
-    if (rawDate != null) {
+    if (createdAt != null) {
       try {
-        final date = DateTime.parse(rawDate.toString());
-        dateStr = '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+        final createdDate = DateTime.parse(createdAt.toString()).toLocal();
+        dateStr = DateFormat('dd/MM/yyyy HH:mm').format(createdDate);
+        
+        // If active (1), show duration since entry
+        // For Exited (2), we could show duration if we find exit time (updateAt or tuukh)
+        if (tuluv == 1) {
+          // Find entry time from tuukh if possible
+          DateTime? entryTime;
+          if (guest['tuukh'] != null && guest['tuukh'] is List && (guest['tuukh'] as List).isNotEmpty) {
+            final lastTuukh = (guest['tuukh'] as List).last;
+            if (lastTuukh['tsagiinTuukh'] != null && (lastTuukh['tsagiinTuukh'] as List).isNotEmpty) {
+              final entering = (lastTuukh['tsagiinTuukh'] as List).first;
+              if (entering['orsonTsag'] != null) {
+                entryTime = DateTime.parse(entering['orsonTsag'].toString()).toLocal();
+              }
+            }
+          }
+          
+          if (entryTime != null) {
+            final duration = DateTime.now().difference(entryTime);
+            if (duration.inMinutes < 60) {
+              durationStr = '${duration.inMinutes}м';
+            } else {
+              durationStr = '${duration.inHours}ц ${duration.inMinutes % 60}м';
+            }
+          }
+        }
       } catch (e) {
-        dateStr = rawDate.toString();
+        // ignore date parse errors
       }
     }
 
-    // Status logic based on documentation
-    String statusText = 'Хүлээгдэж буй';
-    Color statusColor = Colors.orange;
-    IconData statusIcon = Icons.schedule;
+    String statusText;
+    Color statusColor;
+    Color statusBgColor;
 
-    switch (tuluv) {
-      case 0:
-        statusText = 'Хүлээгдэж буй';
-        statusColor = Colors.orange;
-        statusIcon = Icons.schedule;
-        break;
-      case 1:
-        statusText = 'Зогсоолд байгаа';
-        statusColor = Colors.blue;
-        statusIcon = Icons.local_parking;
-        break;
-      case 2:
-        statusText = 'Дууссан';
-        statusColor = AppColors.deepGreen;
-        statusIcon = Icons.check_circle;
-        break;
-      case -1:
-        statusText = 'Цуцлагдсан';
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusText = 'Тодорхойгүй';
-        statusColor = Colors.grey;
-        statusIcon = Icons.help_outline;
+    if (tuluv == 1) {
+      statusText = 'Идэвхтэй';
+      statusColor = Color(0xFF3B82F6); // Blue
+      statusBgColor = Color(0xFF1E3A8A).withOpacity(0.3);
+    } else if (tuluv == 2) {
+      statusText = 'Гарсан';
+      statusColor = Colors.grey;
+      statusBgColor = Colors.grey.withOpacity(0.1);
+    } else {
+      statusText = 'Хүлээлгэ';
+      statusColor = Colors.orange;
+      statusBgColor = Colors.orange.withOpacity(0.1);
     }
     
     final cardContent = Container(
-      padding: context.responsivePadding(
-        small: 16,
-        medium: 18,
-        large: 20,
-        tablet: 22,
-        veryNarrow: 12,
-      ),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: context.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-          small: 10,
-          medium: 12,
-          large: 14,
-          tablet: 16,
-          veryNarrow: 8,
-        )),
-        border: Border.all(color: context.borderColor, width: 1),
+        color: context.cardBackgroundColor, // Dark card bg
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: context.borderColor.withOpacity(0.5)),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: EdgeInsets.all(context.responsiveSpacing(
-              small: 10,
-              medium: 12,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 8,
-            )),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                small: 8,
-                medium: 10,
-                large: 12,
-                tablet: 14,
-                veryNarrow: 6,
-              )),
-            ),
-            child: Icon(
-              Icons.directions_car,
-              color: statusColor,
-              size: context.responsiveIconSize(
-                small: 20,
-                medium: 22,
-                large: 24,
-                tablet: 26,
-                veryNarrow: 18,
-              ),
-            ),
-          ),
-          SizedBox(width: context.responsiveSpacing(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          )),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mashiniiDugaar,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 13,
+          Row(
+            children: [
+              // Blue Dot if Active
+              if (tuluv == 1)
+                Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: Container(
+                    width: 8.w,
+                    height: 8.w,
+                    decoration: BoxDecoration(
+                      color: Color(0xFF3B82F6),
+                      shape: BoxShape.circle,
                     ),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
                   ),
                 ),
-                if (dateStr.isNotEmpty) ...[
-                  SizedBox(height: context.responsiveSpacing(
-                    small: 3,
-                    medium: 4,
-                    large: 5,
-                    tablet: 6,
-                    veryNarrow: 2,
-                  )),
+              
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    dateStr,
+                    mashiniiDugaar,
                     style: TextStyle(
-                      color: context.textSecondaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 11,
-                        medium: 12,
-                        large: 13,
-                        tablet: 14,
-                        veryNarrow: 10,
-                      ),
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: statusBgColor,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (tuluv == 1) ...[
+                          Icon(Icons.location_on, size: 12.sp, color: statusColor),
+                          SizedBox(width: 4.w),
+                        ],
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ],
-            ),
+              ),
+            ],
           ),
+          
           Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Icon(
-                statusIcon,
-                color: statusColor,
-                size: context.responsiveIconSize(
-                  small: 18,
-                  medium: 20,
-                  large: 22,
-                  tablet: 24,
-                  veryNarrow: 16,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                statusText,
-                style: TextStyle(
-                  fontSize: context.responsiveFontSize(
-                    small: 8,
-                    medium: 9,
-                    large: 10,
-                    tablet: 11,
-                    veryNarrow: 7,
+              if (durationStr.isNotEmpty)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  margin: EdgeInsets.only(bottom: 8.h),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF1F2937),
+                    borderRadius: BorderRadius.circular(20.r),
                   ),
-                  color: statusColor,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.access_time, size: 12.sp, color: Color(0xFF3B82F6)),
+                      SizedBox(width: 4.w),
+                      Text(
+                        durationStr,
+                        style: TextStyle(
+                          color: Color(0xFF3B82F6),
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              
+              SizedBox(height: 4.h),
+              if (dateStr.isNotEmpty)
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 12.sp, color: Colors.grey),
+                    SizedBox(width: 4.w),
+                    Text(
+                      dateStr,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ],

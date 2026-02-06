@@ -69,6 +69,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
   bool _isLoadingAddress = false;
   int? _billingDay; // Day of month when billing/cycle resets
 
+  // Organization membership
+  String? _baiguullagiinId;
+  String? _barilgiinId;
+
   // User data
   Map<String, dynamic>? _userData;
 
@@ -86,9 +90,21 @@ class _ProfileSettingsState extends State<ProfileSettings>
       parent: _animationController,
       curve: Curves.easeInOut,
     );
+    _loadOrganizationInfo();
     _loadUserProfile();
     _checkBiometricStatus();
     _loadCurrentAddress();
+  }
+
+  Future<void> _loadOrganizationInfo() async {
+    final baiguullagiinId = await StorageService.getBaiguullagiinId();
+    final barilgiinId = await StorageService.getBarilgiinId();
+    if (mounted) {
+      setState(() {
+        _baiguullagiinId = baiguullagiinId;
+        _barilgiinId = barilgiinId;
+      });
+    }
   }
 
   Future<void> _checkBiometricStatus() async {
@@ -2264,8 +2280,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       ),
                                       SizedBox(height: 20.h),
                                       
-                                      // Миний машин Section
-                                      _buildSection(
+                                      // Миний машин Section - only show if user has baiguullagiinId or barilgiinId
+                                      if (_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty ||
+                                          _barilgiinId != null && _barilgiinId!.isNotEmpty)
+                                        _buildSection(
                                         title: 'Миний машин',
                                         icon: Icons.directions_car_filled_outlined,
                                         children: [

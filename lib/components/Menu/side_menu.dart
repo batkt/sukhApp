@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
@@ -17,11 +18,13 @@ class SideMenu extends StatefulWidget {
 
 class _SideMenuState extends State<SideMenu> {
   String? _baiguullagiinId;
+  bool _canInviteGuests = false;
 
   @override
   void initState() {
     super.initState();
     _loadOrganizationInfo();
+    _checkGuestInvitePermission();
   }
 
   Future<void> _loadOrganizationInfo() async {
@@ -30,6 +33,55 @@ class _SideMenuState extends State<SideMenu> {
     setState(() {
       _baiguullagiinId = id;
     });
+  }
+
+  Future<void> _checkGuestInvitePermission() async {
+    try {
+      final response = await ApiService.fetchZochinSettings();
+      print('🔍 [SideMenu] zochinSettings response: $response');
+      
+      if (mounted && response != null) {
+        // Try to handle various response structures
+        // 1. { data: { orshinSuugchMashin: { ... } } }
+        // 2. { result: { orshinSuugchMashin: { ... } } }
+        // 3. { orshinSuugchMashin: { ... } }
+        // 4. { zochinUrikhEsekh: true } (Direct object)
+        
+        dynamic data = response;
+        if (response.containsKey('data')) {
+          data = response['data'];
+        } else if (response.containsKey('result')) {
+          data = response['result'];
+        }
+        
+        print('🔍 [SideMenu] Parsed data context: $data');
+
+        bool canInvite = false;
+
+        if (data is Map) {
+          // Check for nested orshinSuugchMashin first
+          if (data.containsKey('orshinSuugchMashin') && data['orshinSuugchMashin'] != null) {
+             final osm = data['orshinSuugchMashin'];
+             print('🔍 [SideMenu] Found orshinSuugchMashin: $osm');
+             canInvite = osm['zochinUrikhEsekh'] == true;
+          } 
+          // Check if the permission is at the root of the data object
+          else if (data.containsKey('zochinUrikhEsekh')) {
+            print('🔍 [SideMenu] Found zochinUrikhEsekh at root');
+            canInvite = data['zochinUrikhEsekh'] == true;
+          }
+        }
+        
+        print('🔍 [SideMenu] _canInviteGuests set to: $canInvite');
+
+        setState(() {
+          _canInviteGuests = canInvite;
+        });
+      }
+    } catch (e) {
+      // Permission denied or error, default to false
+      print('❌ [SideMenu] Error checking guest invite permission: $e');
+    }
   }
 
   void _showDevelopmentModal(BuildContext context) {
@@ -351,7 +403,8 @@ class _SideMenuState extends State<SideMenu> {
                           //     isLargePhone: isLargePhone,
                           //   ),
                           if (_baiguullagiinId != null &&
-                              _baiguullagiinId!.isNotEmpty)
+                              _baiguullagiinId!.isNotEmpty && 
+                              _canInviteGuests)
                             _buildMenuItem(
                               context,
                               icon: Icons.person_add_alt_outlined,
