@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/session_service.dart';
@@ -3102,11 +3102,12 @@ class ApiService {
 
   /// Submit complaint or suggestion (Гомдол or Санал).
   /// Optional [imageFile] is uploaded as "zurag" (multipart); backend stores under public/medegdel/.
+  /// Uses XFile for web support (Image.file not supported on web).
   static Future<Map<String, dynamic>> submitGomdolSanal({
     required String title,
     required String message,
     required String turul, // "gomdol" or "sanal"
-    File? imageFile,
+    XFile? imageFile,
   }) async {
     final turulLower = turul.toLowerCase();
     try {
@@ -3148,23 +3149,26 @@ class ApiService {
       if (barilgiinId != null && barilgiinId.isNotEmpty) {
         request.fields['barilgiinId'] = barilgiinId;
       }
-      if (imageFile != null && await imageFile.exists()) {
-        // Compress image to avoid 413 (phone photos often 5–15MB, nginx default 1MB)
-        final compressed = await FlutterImageCompress.compressWithFile(
-          imageFile.absolute.path,
-          minWidth: 1280,
-          minHeight: 1280,
-          quality: 80,
-          format: CompressFormat.jpeg,
-        );
-        if (compressed != null && compressed.isNotEmpty) {
-          request.files.add(
-            http.MultipartFile.fromBytes(
-              'zurag',
-              compressed,
-              filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-            ),
+      if (imageFile != null) {
+        final bytes = await imageFile.readAsBytes();
+        if (bytes.isNotEmpty) {
+          // Compress image to avoid 413; compressWithList works on web (Image.file not supported)
+          final compressed = await FlutterImageCompress.compressWithList(
+            bytes,
+            minWidth: 1280,
+            minHeight: 1280,
+            quality: 80,
+            format: CompressFormat.jpeg,
           );
+          if (compressed.isNotEmpty) {
+            request.files.add(
+              http.MultipartFile.fromBytes(
+                'zurag',
+                compressed,
+                filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+              ),
+            );
+          }
         }
       }
 

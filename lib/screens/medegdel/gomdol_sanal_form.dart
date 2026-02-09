@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -24,7 +25,8 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
   final _messageController = TextEditingController();
   final _picker = ImagePicker();
   String _selectedType = 'gomdol'; // 'gomdol' or 'sanal'
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes; // for preview (Image.memory works on web)
   bool _isSubmitting = false;
 
   @override
@@ -67,7 +69,10 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
         // Clear form
         _titleController.clear();
         _messageController.clear();
-        setState(() => _selectedImage = null);
+        setState(() {
+          _selectedImage = null;
+          _selectedImageBytes = null;
+        });
 
         // Navigate back
         context.pop();
@@ -535,7 +540,11 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
         imageQuality: 85,
       );
       if (x != null && mounted) {
-        setState(() => _selectedImage = File(x.path));
+        final bytes = await x.readAsBytes();
+        setState(() {
+          _selectedImage = x;
+          _selectedImageBytes = bytes;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -665,7 +674,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
             veryNarrow: 10,
           ),
         ),
-        if (_selectedImage != null) ...[
+        if (_selectedImage != null && _selectedImageBytes != null) ...[
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -679,11 +688,18 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                     veryNarrow: 10,
                   ),
                 ),
-                child: Image.file(
-                  _selectedImage!,
+                child: Image.memory(
+                  _selectedImageBytes!,
                   height: 160,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  cacheWidth: 800,
+                  cacheHeight: 600,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 160,
+                    color: Colors.grey.shade300,
+                    child: Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey.shade600),
+                  ),
                 ),
               ),
               Positioned(
@@ -693,7 +709,10 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                   color: Colors.black54,
                   shape: const CircleBorder(),
                   child: InkWell(
-                    onTap: () => setState(() => _selectedImage = null),
+                    onTap: () => setState(() {
+                      _selectedImage = null;
+                      _selectedImageBytes = null;
+                    }),
                     customBorder: const CircleBorder(),
                     child: Padding(
                       padding: EdgeInsets.all(8.w),
