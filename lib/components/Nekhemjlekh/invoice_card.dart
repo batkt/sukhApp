@@ -5,6 +5,7 @@ import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 
 class InvoiceCard extends StatelessWidget {
   final NekhemjlekhItem invoice;
@@ -218,8 +219,7 @@ class InvoiceCard extends StatelessWidget {
                                 shape: BoxShape.circle,
                               ),
                               child: ClipOval(
-                                child: Image.asset(
-                                  'lib/assets/img/logo_3.png',
+                                child: SelectableLogoImage(
                                   width: context.responsiveSpacing(
                                     small: 44,
                                     medium: 48,
@@ -235,19 +235,6 @@ class InvoiceCard extends StatelessWidget {
                                     veryNarrow: 40,
                                   ),
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(
-                                      Icons.receipt_long_rounded,
-                                      color: Colors.white,
-                                      size: context.responsiveFontSize(
-                                        small: 20,
-                                        medium: 22,
-                                        large: 24,
-                                        tablet: 26,
-                                        veryNarrow: 18,
-                                      ),
-                                    );
-                                  },
                                 ),
                               ),
                             ),

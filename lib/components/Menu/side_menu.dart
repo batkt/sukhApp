@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
@@ -288,8 +289,7 @@ class _SideMenuState extends State<SideMenu> {
                         shape: BoxShape.circle,
                         color: Colors.white.withOpacity(0.15),
                       ),
-                      child: Image.asset(
-                        'lib/assets/img/logo_3.png',
+                      child: SelectableLogoImage(
                         fit: BoxFit.contain,
                         width: isTablet ? 32 : 26,
                         height: isTablet ? 32 : 26,

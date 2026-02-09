@@ -1,0 +1,4 @@
+flutter_launcher_icons:
+  image_path: "lib/assets/img/logo_3green.jpg"
+  android: "ic_launcher_3"
+  ios: false

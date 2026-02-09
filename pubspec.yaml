@@ -30,7 +30,7 @@ dependencies:
   snow_fall_animation: ^0.0.1+2
   socket_io_client: ^2.0.3+1
   flutter_svg: ^2.0.9
-  flutter_dynamic_icon_plus: ^1.0.1
+  flutter_dynamic_icon_plus: ^1.4.0
   image_picker: ^1.1.2
   flutter_image_compress: ^2.3.0
   liquid_glass_renderer: ^0.2.0-dev.4

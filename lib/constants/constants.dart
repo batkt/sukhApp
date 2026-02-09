@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 String googleApiKey = "";
 
@@ -126,5 +127,40 @@ class AppColors {
   // Theme-aware deepGreen color (darker for light mode, lighter for dark mode)
   static Color getDeepGreen(bool isDark) {
     return isDark ? deepGreenLight : deepGreen; // Lighter green for dark mode, standard for light mode
+  }
+}
+
+/// App logo asset paths for icon variants (logo_3.png, logo_3black, logo_3blue, logo_3green)
+class AppLogoAssets {
+  static const String defaultLogo = 'lib/assets/img/logo_3.png';
+  static const String blackLogo = 'lib/assets/img/logo_3black.jpg';
+  static const String blueLogo = 'lib/assets/img/logo_3blue.jpg';
+  static const String greenLogo = 'lib/assets/img/logo_3green.jpg';
+
+  static String getAssetPath(String iconName) {
+    switch (iconName) {
+      case 'black':
+        return blackLogo;
+      case 'blue':
+        return blueLogo;
+      case 'green':
+        return greenLogo;
+      default:
+        return defaultLogo;
+    }
+  }
+}
+
+/// Notifier for app logo selection - triggers rebuild when logo changes
+class AppLogoNotifier {
+  static final ValueNotifier<String> currentIcon = ValueNotifier('default');
+
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    currentIcon.value = prefs.getString('app_icon') ?? 'default';
+  }
+
+  static void setIcon(String name) {
+    currentIcon.value = name;
   }
 }

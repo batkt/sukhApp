@@ -9,6 +9,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
 import 'package:sukh_app/utils/theme_extensions.dart';
@@ -460,8 +461,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   SizedBox(
                                     width: 100.w,
                                     height: 100.w,
-                                    child: Image.asset(
-                                      'lib/assets/img/logo_3.png',
+                                    child: SelectableLogoImage(
                                       fit: BoxFit.contain,
                                     ),
                                   ),

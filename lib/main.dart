@@ -20,6 +20,8 @@ void main() async {
 
   await SessionService.checkAndHandleSession();
 
+  await AppLogoNotifier.init();
+
   runApp(const MyApp());
 }
 

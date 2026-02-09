@@ -52,7 +52,11 @@ class AppLogo extends StatelessWidget {
         maxWidth: effectiveMaxWidth,
       ),
       child: showImage
-          ? OverflowBox(
+          ? ValueListenableBuilder<String>(
+              valueListenable: AppLogoNotifier.currentIcon,
+              builder: (context, iconName, _) {
+                final logoPath = AppLogoAssets.getAssetPath(iconName);
+                return OverflowBox(
               maxWidth: effectiveMaxWidth * 1.5,
               maxHeight: effectiveMaxHeight * 1.5,
               alignment: Alignment.topCenter,
@@ -67,7 +71,7 @@ class AppLogo extends StatelessWidget {
                       width: effectiveMaxWidth,
                       height: effectiveMaxHeight,
                       child: Image.asset(
-                        'lib/assets/img/logo_3.png',
+                        logoPath,
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -92,6 +96,8 @@ class AppLogo extends StatelessWidget {
                     ),
                 ],
               ),
+            );
+              },
             )
           : AspectRatio(
               aspectRatio: 1,

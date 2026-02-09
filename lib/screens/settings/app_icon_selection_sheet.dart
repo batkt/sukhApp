@@ -5,23 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_dynamic_icon_plus/flutter_dynamic_icon_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 
 class AppIconOption {
   final String name;
   final String displayName;
-  final Color primaryColor;
-  final Color secondaryColor;
-  final IconData previewIcon;
+  final String imagePath;
 
   const AppIconOption({
     required this.name,
     required this.displayName,
-    required this.primaryColor,
-    required this.secondaryColor,
-    this.previewIcon = Icons.home_rounded,
+    required this.imagePath,
   });
 }
 
@@ -36,92 +31,75 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
   String? currentIconName;
   bool isLoading = false;
 
-  // Define available icon variants
+  // Define available logo variants (logo_3.png, logo_3black, logo_3blue, logo_3green)
   static const List<AppIconOption> iconOptions = [
     AppIconOption(
       name: 'default',
       displayName: 'Үндсэн',
-      primaryColor: Color(0xFF2E7D32),
-      secondaryColor: Color(0xFF4CAF50),
+      imagePath: AppLogoAssets.defaultLogo,
+    ),
+    AppIconOption(
+      name: 'black',
+      displayName: 'Хар',
+      imagePath: AppLogoAssets.blackLogo,
     ),
     AppIconOption(
       name: 'blue',
       displayName: 'Цэнхэр',
-      primaryColor: Color(0xFF1565C0),
-      secondaryColor: Color(0xFF42A5F5),
+      imagePath: AppLogoAssets.blueLogo,
     ),
     AppIconOption(
-      name: 'purple',
-      displayName: 'Ягаан',
-      primaryColor: Color(0xFF7B1FA2),
-      secondaryColor: Color(0xFFAB47BC),
-    ),
-    AppIconOption(
-      name: 'orange',
-      displayName: 'Улбар шар',
-      primaryColor: Color(0xFFE65100),
-      secondaryColor: Color(0xFFFF9800),
-    ),
-    AppIconOption(
-      name: 'red',
-      displayName: 'Улаан',
-      primaryColor: Color(0xFFC62828),
-      secondaryColor: Color(0xFFEF5350),
-    ),
-    AppIconOption(
-      name: 'teal',
-      displayName: 'Ногоон цэнхэр',
-      primaryColor: Color(0xFF00695C),
-      secondaryColor: Color(0xFF26A69A),
-    ),
-    AppIconOption(
-      name: 'dark',
-      displayName: 'Хар',
-      primaryColor: Color(0xFF212121),
-      secondaryColor: Color(0xFF424242),
-    ),
-    AppIconOption(
-      name: 'gold',
-      displayName: 'Алтан',
-      primaryColor: Color(0xFFFF8F00),
-      secondaryColor: Color(0xFFFFD54F),
+      name: 'green',
+      displayName: 'Ногоон',
+      imagePath: AppLogoAssets.greenLogo,
     ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentIcon();
-  }
-
-  Future<bool> _isPhysicalDevice() async {
-    if (!kIsWeb && Platform.isIOS) {
-      final deviceInfo = DeviceInfoPlugin();
-      final iosInfo = await deviceInfo.iosInfo;
-      return iosInfo.isPhysicalDevice;
-    }
-    return true;
+    _loadCurrentIcon(); // async, will setState when done
   }
 
   Future<void> _loadCurrentIcon() async {
     try {
-      if (!kIsWeb && Platform.isIOS) {
+      if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
         final iconName = await FlutterDynamicIconPlus.alternateIconName;
         setState(() {
-          currentIconName = iconName ?? 'default';
+          currentIconName = _fromPlatformIconName(iconName);
         });
       } else {
-        // For Android or Web, load from shared preferences
-        final prefs = await SharedPreferences.getInstance();
         setState(() {
-          currentIconName = prefs.getString('app_icon') ?? 'default';
+          currentIconName = AppLogoNotifier.currentIcon.value;
         });
       }
     } catch (e) {
       setState(() {
-        currentIconName = 'default';
+        currentIconName = AppLogoNotifier.currentIcon.value;
       });
     }
+  }
+
+  /// Map platform icon name (icon_1, icon_2, icon_3 on Android) to our option name
+  String _fromPlatformIconName(String? platformName) {
+    if (platformName == null) return 'default';
+    if (!kIsWeb && Platform.isAndroid) {
+      if (platformName == 'icon_1') return 'black';
+      if (platformName == 'icon_2') return 'blue';
+      if (platformName == 'icon_3') return 'green';
+    }
+    return platformName;
+  }
+
+  /// Map our option name to platform icon name for FlutterDynamicIconPlus
+  String? _toPlatformIconName(String optionName) {
+    if (optionName == 'default') return null;
+    if (!kIsWeb && Platform.isAndroid) {
+      if (optionName == 'black') return 'icon_1';
+      if (optionName == 'blue') return 'icon_2';
+      if (optionName == 'green') return 'icon_3';
+    }
+    return optionName; // iOS uses black, blue, green directly
   }
 
   Future<void> _changeIcon(AppIconOption option) async {
@@ -132,45 +110,26 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
     });
 
     try {
-      if (!kIsWeb && Platform.isIOS) {
-        // Check if running on simulator (dynamic icons don't work on simulator)
-        final isSimulator = !await _isPhysicalDevice();
-        if (isSimulator) {
-          // Just save preference, don't try to change icon on simulator
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('app_icon', option.name);
-          
-          setState(() {
-            currentIconName = option.name;
-            isLoading = false;
-          });
-          
-          if (mounted) {
-            HapticFeedback.mediumImpact();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Симулятор дээр дүрс солих боломжгүй. Бодит төхөөрөмж дээр туршина уу.'),
-                backgroundColor: Colors.orange,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-              ),
+      // Change home screen app icon (iOS & Android)
+      bool iconChanged = false;
+      if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
+        try {
+          final supportsAlt = await FlutterDynamicIconPlus.supportsAlternateIcons;
+          if (supportsAlt) {
+            await FlutterDynamicIconPlus.setAlternateIconName(
+              iconName: _toPlatformIconName(option.name),
             );
+            iconChanged = true;
           }
-          return;
-        }
-        
-        if (option.name == 'default') {
-          await FlutterDynamicIconPlus.setAlternateIconName(iconName: null);
-        } else {
-          await FlutterDynamicIconPlus.setAlternateIconName(iconName: option.name);
+        } catch (e) {
+          debugPrint('FlutterDynamicIconPlus error: $e');
         }
       }
 
-      // Save to shared preferences for platforms
+      // Save preference and update in-app logo
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('app_icon', option.name);
+      AppLogoNotifier.setIcon(option.name);
 
       setState(() {
         currentIconName = option.name;
@@ -179,31 +138,37 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
 
       if (mounted) {
         HapticFeedback.mediumImpact();
+        final isAndroid = !kIsWeb && Platform.isAndroid;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Апп дүрс "${option.displayName}" болж өөрчлөгдлөө'),
+            content: Text(
+              iconChanged && isAndroid
+                  ? 'Апп дүрс солигдлоо. Өөрчлөлт харагдахын тулд аппаа бүрэн хаана уу.'
+                  : 'Апп дүрс "${option.displayName}" болж өөрчлөгдлөө',
+            ),
             backgroundColor: AppColors.deepGreen,
             behavior: SnackBarBehavior.floating,
+            duration: isAndroid ? const Duration(seconds: 5) : const Duration(seconds: 2),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10.r),
             ),
           ),
         );
       }
-    } on PlatformException catch (e) {
+    } on Exception catch (e) {
       setState(() {
         isLoading = false;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Дүрс солиход алдаа гарлаа: ${e.message ?? e.code}'),
+            content: Text('Дүрс солиход алдаа гарлаа: ${e.toString()}'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-      print('PlatformException changing icon: ${e.code} - ${e.message}');
+      print('Error changing icon: $e');
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -276,7 +241,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
+                crossAxisCount: 2,
                 crossAxisSpacing: 12.w,
                 mainAxisSpacing: 12.h,
                 childAspectRatio: 0.85,
@@ -291,13 +256,12 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
             ),
           ),
 
-          SizedBox(height: 24.h),
-
-          // Note for iOS
-          if (!kIsWeb && Platform.isIOS)
+          // Android: icon changes when app is closed
+          if (!kIsWeb && Platform.isAndroid)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Container(
+                margin: EdgeInsets.only(bottom: 12.h),
                 padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
                   color: AppColors.deepGreen.withOpacity(0.1),
@@ -313,7 +277,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
-                        'Дүрс солиход iOS системийн мэдэгдэл гарч болно',
+                        'Дүрс солиход аппаа бүрэн хаасны дараа шинэ дүрс харагдана',
                         style: TextStyle(
                           color: AppColors.deepGreen,
                           fontSize: 11.sp,
@@ -342,39 +306,34 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
-              color: isSelected ? option.primaryColor : Colors.transparent,
+              color: isSelected ? AppColors.deepGreen : Colors.transparent,
               width: 2.5,
             ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Icon preview
+              // Logo preview
               Container(
                 width: 52.w,
                 height: 52.w,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [option.primaryColor, option.secondaryColor],
-                  ),
+                  color: context.isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(12.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: option.primaryColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(
-                      Icons.home_rounded,
-                      color: Colors.white,
-                      size: 28.sp,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.r),
+                      child: Image.asset(
+                        option.imagePath,
+                        width: 44.w,
+                        height: 44.w,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                     if (isSelected)
                       Positioned(
@@ -388,7 +347,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
                           ),
                           child: Icon(
                             Icons.check_circle,
-                            color: option.primaryColor,
+                            color: AppColors.deepGreen,
                             size: 14.sp,
                           ),
                         ),
@@ -403,7 +362,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
                 option.displayName,
                 style: TextStyle(
                   color: isSelected
-                      ? option.primaryColor
+                      ? AppColors.deepGreen
                       : context.textSecondaryColor,
                   fontSize: 10.sp,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
