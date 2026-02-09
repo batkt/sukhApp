@@ -16,10 +16,12 @@ class EbarimtPage extends StatefulWidget {
   @override
   State<EbarimtPage> createState() => _EbarimtPageState();
 }
-
 class _EbarimtPageState extends State<EbarimtPage> {
   bool _isLoadingReceipts = false;
   List<VATReceipt> _ebarimtReceipts = [];
+  final TextEditingController _citizenCodeController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isSavingCode = false;
 
   @override
   void initState() {
@@ -114,6 +116,31 @@ class _EbarimtPageState extends State<EbarimtPage> {
   }
 
   @override
+  void dispose() {
+    _citizenCodeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveCitizenCode() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isSavingCode = true);
+    
+    // TODO: Implement API call when backend is ready
+    await Future.delayed(const Duration(seconds: 1));
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Амжилттай хадгалагдлаа'),
+          backgroundColor: AppColors.deepGreen,
+        ),
+      );
+      setState(() => _isSavingCode = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.backgroundColor,
@@ -129,45 +156,109 @@ class _EbarimtPageState extends State<EbarimtPage> {
       ),
       body: Column(
         children: [
-          // Ebarimt Receipts List Header
+          // Citizen Code Input Section
           Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsiveSpacing(
-                small: 16,
-                medium: 18,
-                large: 20,
-                tablet: 22,
-                veryNarrow: 12,
-              ),
-              vertical: context.responsiveSpacing(
-                small: 12,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 10,
-              ),
-            ),
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               color: context.cardBackgroundColor,
               border: Border(
                 bottom: BorderSide(color: context.borderColor, width: 1),
               ),
             ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Иргэний мэдээлэл',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _citizenCodeController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 8,
+                          decoration: InputDecoration(
+                            counterText: '',
+                            hintText: 'Иргэний 8 оронтой код',
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Кодоо оруулна уу';
+                            }
+                            if (value.length != 8) {
+                              return '8 оронтой байх ёстой';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      ElevatedButton(
+                        onPressed: _isSavingCode ? null : _saveCitizenCode,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.deepGreen,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.w,
+                            vertical: 16.h,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                        ),
+                        child: _isSavingCode
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Хадгалах',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Ebarimt Receipts List Header
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: 12.h,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'И-баримтууд (${_ebarimtReceipts.length})',
+                  'Илгээгдсэн и-баримтууд (${_ebarimtReceipts.length})',
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 if (_isLoadingReceipts)
                   SizedBox(
-                    width: 20.w,
-                    height: 20.w,
+                    width: 18.w,
+                    height: 18.w,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: AppColors.deepGreen,
@@ -194,17 +285,9 @@ class _EbarimtPageState extends State<EbarimtPage> {
                           size: 64.sp,
                           color: context.textSecondaryColor.withOpacity(0.5),
                         ),
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 16,
-                            medium: 18,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 12,
-                          ),
-                        ),
+                        SizedBox(height: 16.h),
                         Text(
-                          'И-баримт олдсонгүй',
+                          'Илгээгдсэн и-баримт олдсонгүй',
                           style: TextStyle(
                             color: context.textSecondaryColor,
                             fontSize: 16.sp,
@@ -214,13 +297,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     ),
                   )
                 : ListView.builder(
-                    padding: context.responsivePadding(
-                      small: 16,
-                      medium: 18,
-                      large: 20,
-                      tablet: 22,
-                      veryNarrow: 12,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
                     itemCount: _ebarimtReceipts.length,
                     itemBuilder: (context, index) {
                       final receipt = _ebarimtReceipts[index];

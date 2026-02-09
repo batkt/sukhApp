@@ -10,6 +10,7 @@ import 'package:sukh_app/services/storage_service.dart';
 
 import 'package:intl/intl.dart';
 import 'package:sukh_app/services/socket_service.dart';
+import 'package:sukh_app/utils/logger.dart';
 
 class ZochinUrikhPage extends StatefulWidget {
   const ZochinUrikhPage({super.key});
@@ -55,7 +56,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   void _handleSocketMessage(Map<String, dynamic> data) {
     // Reload list on any relevant notification
     // Optimize this later if we know specific event types for car updates
-    print('🔔 Socket message received in ZochinUrikhPage, reloading list...');
+    AppLogger.log('🔔 Socket message received in ZochinUrikhPage, reloading list...');
     _loadInvitedGuests(showLoading: false);
     _loadQuotaStatus();
   }
@@ -68,7 +69,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       });
       
       final status = await ApiService.fetchZochinQuotaStatus();
-      debugPrint('📊 [QUOTA] Received status: $status');
+      debugAppLogger.log('📊 [QUOTA] Received status: $status');
       
       if (mounted) {
         setState(() {
@@ -107,7 +108,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         });
       }
     } catch (e) {
-      debugPrint('❌ [QUOTA] Error loading quota status: $e');
+      debugAppLogger.log('❌ [QUOTA] Error loading quota status: $e');
       if (mounted) {
         setState(() {
           _isLoadingQuota = false;
@@ -186,7 +187,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         }
       }
     } catch (e) {
-      print('Error loading invited guests: $e');
+      AppLogger.log('Error loading invited guests: $e');
       if (mounted) {
         setState(() => _isLoadingHistory = false);
       }

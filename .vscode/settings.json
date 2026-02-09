@@ -3,5 +3,6 @@
   "dart.previewFlutterUiGuides": true,
   "dart.debugExternalPackageLibraries": false,
   "dart.debugSdkLibraries": false,
-  "dart.flutterPlatform": "android"
+  "dart.flutterPlatform": "android",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }
