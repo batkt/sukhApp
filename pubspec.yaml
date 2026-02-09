@@ -33,7 +33,7 @@ dependencies:
   flutter_dynamic_icon_plus: ^1.0.1
   image_picker: ^1.1.2
   flutter_image_compress: ^2.3.0
-  liquid_glass_renderer: ^0.2.0-dev.4
+
   syncfusion_flutter_pdfviewer: ^28.1.36
   provider: ^6.1.2
 dev_dependencies:
