@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/services/storage_service.dart';
@@ -3148,9 +3149,23 @@ class ApiService {
         request.fields['barilgiinId'] = barilgiinId;
       }
       if (imageFile != null && await imageFile.exists()) {
-        request.files.add(
-          await http.MultipartFile.fromPath('zurag', imageFile.path),
+        // Compress image to avoid 413 (phone photos often 5–15MB, nginx default 1MB)
+        final compressed = await FlutterImageCompress.compressWithFile(
+          imageFile.absolute.path,
+          minWidth: 1280,
+          minHeight: 1280,
+          quality: 80,
+          format: CompressFormat.jpeg,
         );
+        if (compressed != null && compressed.isNotEmpty) {
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'zurag',
+              compressed,
+              filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            ),
+          );
+        }
       }
 
       print('=== Submitting ${turul} ===');
