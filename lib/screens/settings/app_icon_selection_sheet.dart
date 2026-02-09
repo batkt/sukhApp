@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_dynamic_icon/flutter_dynamic_icon.dart';
+import 'package:flutter_dynamic_icon_plus/flutter_dynamic_icon_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -106,7 +106,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
   Future<void> _loadCurrentIcon() async {
     try {
       if (!kIsWeb && Platform.isIOS) {
-        final iconName = await FlutterDynamicIcon.getAlternateIconName();
+        final iconName = await FlutterDynamicIconPlus.alternateIconName;
         setState(() {
           currentIconName = iconName ?? 'default';
         });
@@ -162,9 +162,9 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
         }
         
         if (option.name == 'default') {
-          await FlutterDynamicIcon.setAlternateIconName(null);
+          await FlutterDynamicIconPlus.setAlternateIconName(iconName: null);
         } else {
-          await FlutterDynamicIcon.setAlternateIconName(option.name);
+          await FlutterDynamicIconPlus.setAlternateIconName(iconName: option.name);
         }
       }
 

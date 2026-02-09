@@ -69,7 +69,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       });
       
       final status = await ApiService.fetchZochinQuotaStatus();
-      debugAppLogger.log('📊 [QUOTA] Received status: $status');
+      AppLogger.log('📊 [QUOTA] Received status: $status');
       
       if (mounted) {
         setState(() {
@@ -108,7 +108,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         });
       }
     } catch (e) {
-      debugAppLogger.log('❌ [QUOTA] Error loading quota status: $e');
+      AppLogger.log('❌ [QUOTA] Error loading quota status: $e');
       if (mounted) {
         setState(() {
           _isLoadingQuota = false;

@@ -1,0 +1,46 @@
+Running Gradle task 'assembleRelease'...                        
+lib/screens/zochin_urikh/zochin_urikh_page.dart:72:7: Error: The getter 'debugAppLogger' isn't defined for the type '_ZochinUrikhPageState'.
+ - '_ZochinUrikhPageState' is from 'package:sukh_app/screens/zochin_urikh/zochin_urikh_page.dart' ('lib/screens/zochin_urikh/zochin_urikh_page.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'debugAppLogger'.
+      debugAppLogger.log('📊 [QUOTA] Received status: $status');
+      ^^^^^^^^^^^^^^
+lib/screens/zochin_urikh/zochin_urikh_page.dart:111:7: Error: The getter 'debugAppLogger' isn't defined for the type '_ZochinUrikhPageState'.
+ - '_ZochinUrikhPageState' is from 'package:sukh_app/screens/zochin_urikh/zochin_urikh_page.dart' ('lib/screens/zochin_urikh/zochin_urikh_page.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'debugAppLogger'.
+      debugAppLogger.log('�?� [QUOTA] Error loading quota status: $e');
+      ^^^^^^^^^^^^^^
+lib/screens/settings/app_icon_selection_sheet.dart:109:55: Error: Member not found: 'FlutterDynamicIconPlus.getAlternateIconName'.
+        final iconName = await FlutterDynamicIconPlus.getAlternateIconName();
+                                                      ^^^^^^^^^^^^^^^^^^^^
+lib/screens/settings/app_icon_selection_sheet.dart:165:60: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+          await FlutterDynamicIconPlus.setAlternateIconName(null);
+                                                           ^
+../../AppData/Local/Pub/Cache/hosted/pub.dev/flutter_dynamic_icon_plus-1.4.0/lib/flutter_dynamic_icon_plus.dart:16:23: Context: Found this candidate, but the arguments don't match.
+  static Future<void> setAlternateIconName({
+                      ^^^^^^^^^^^^^^^^^^^^
+lib/screens/settings/app_icon_selection_sheet.dart:167:60: Error: Too many positional arguments: 0 allowed, but 1 found.
+Try removing the extra positional arguments.
+          await FlutterDynamicIconPlus.setAlternateIconName(option.name);
+                                                           ^
+../../AppData/Local/Pub/Cache/hosted/pub.dev/flutter_dynamic_icon_plus-1.4.0/lib/flutter_dynamic_icon_plus.dart:16:23: Context: Found this candidate, but the arguments don't match.
+  static Future<void> setAlternateIconName({
+                      ^^^^^^^^^^^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildRelease'.
+> Process 'command 'C:\Develop\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 14s
+Running Gradle task 'assembleRelease'...                           15.0s
+Gradle task assembleRelease failed with exit code 1

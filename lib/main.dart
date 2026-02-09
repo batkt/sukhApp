@@ -366,7 +366,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     ),
                     image: DecorationImage(
                       image: const AssetImage(
-                        'lib/assets/img/background_image.png',
+                        'lib/assets/img/main_background.png',
                       ),
                       fit: BoxFit.none,
                       scale: 3,

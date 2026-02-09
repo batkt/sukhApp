@@ -43,7 +43,7 @@ class AppBackground extends StatelessWidget {
         ),
         image: (isDark && showImage)
             ? const DecorationImage(
-                image: AssetImage('lib/assets/img/background_image.png'),
+                image: AssetImage('lib/assets/img/main_background.png'),
                 fit: BoxFit.none,
                 scale: 3,
                 opacity: 0.15, // Very subtle in dark mode
