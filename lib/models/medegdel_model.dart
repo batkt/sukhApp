@@ -33,6 +33,7 @@ class MedegdelResponse {
 
 class Medegdel {
   final String id;
+  final String? parentId; // Thread root id for chat replies
   final String baiguullagiinId;
   final String? barilgiinId;
   final String ognoo;
@@ -44,15 +45,18 @@ class Medegdel {
   final String? orshinSuugchNer;
   final String? orshinSuugchUtas;
   final bool kharsanEsekh;
-  final String turul; // "gomdol", "sanal", "app", "хариу", "khariu"
+  final String turul; // "gomdol", "sanal", "app", "хариу", "khariu", "user_reply"
   final String createdAt;
   final String updatedAt;
   final String? status; // "pending", "in_progress", "done", "cancelled"
   final String? tailbar; // Reply text from admin
   final String? repliedAt; // When admin replied
+  final String? zurag; // Image path for chat
+  final String? duu; // Voice message path for chat
 
   Medegdel({
     required this.id,
+    this.parentId,
     required this.baiguullagiinId,
     this.barilgiinId,
     required this.ognoo,
@@ -70,6 +74,8 @@ class Medegdel {
     this.status,
     this.tailbar,
     this.repliedAt,
+    this.zurag,
+    this.duu,
   });
 
   factory Medegdel.fromJson(Map<String, dynamic> json) {
@@ -81,6 +87,7 @@ class Medegdel {
 
     return Medegdel(
       id: json['_id']?.toString() ?? '',
+      parentId: json['parentId']?.toString(),
       baiguullagiinId: json['baiguullagiinId']?.toString() ?? '',
       barilgiinId: json['barilgiinId']?.toString(),
       ognoo: ognooValue,
@@ -99,20 +106,27 @@ class Medegdel {
       status: json['status']?.toString(),
       tailbar: json['tailbar']?.toString(),
       repliedAt: json['repliedAt']?.toString(),
+      zurag: json['zurag']?.toString(),
+      duu: json['duu']?.toString(),
     );
   }
 
-  // Helper getter to check if notification has a reply
+  // Helper getter to check if notification has a reply (admin response for done or rejected)
   bool get hasReply =>
-      status == 'done' && tailbar != null && tailbar!.isNotEmpty;
+      (status == 'done' || status == 'rejected') &&
+      tailbar != null &&
+      tailbar!.isNotEmpty;
 
-  // Helper getter to check if it's a reply notification
+  // Helper getter to check if it's a reply notification (from admin)
   bool get isReply {
     final turulLower = turul.toLowerCase();
     return turulLower == 'хариу' ||
         turulLower == 'hariu' ||
         turulLower == 'khariu';
   }
+
+  /// True if this message is from the user (chat reply).
+  bool get isUserReply => turul.toLowerCase() == 'user_reply';
 
   String get formattedDate {
     try {

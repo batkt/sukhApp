@@ -9,6 +9,7 @@ import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/widgets/shake_hint_overlay.dart';
 import 'package:sukh_app/widgets/snow_effect.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/restore_app_icon.dart';
 import 'package:provider/provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -21,6 +22,9 @@ void main() async {
   await SessionService.checkAndHandleSession();
 
   await AppLogoNotifier.init();
+
+  // Re-apply saved icon on startup (required for Android; iOS persists but we ensure consistency)
+  await restoreAppIconOnStartup();
 
   runApp(const MyApp());
 }

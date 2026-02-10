@@ -132,6 +132,9 @@ class _BookingScreenState extends State<NuurKhuudas>
   // Periodic refresh for balance (fallback when socket notification is missed)
   Timer? _balanceRefreshTimer;
 
+  // Socket notification callback (single ref so we can remove in dispose and avoid duplicates)
+  void Function(Map<String, dynamic>)? _notificationCallback;
+
   // Animation controller for circular progress
   late AnimationController _progressAnimationController;
   late Animation<double> _progressAnimation;
@@ -174,14 +177,10 @@ class _BookingScreenState extends State<NuurKhuudas>
   DateTime? _lastBalanceRefresh;
 
   void _setupSocketListener() {
-    // Set up socket notification callback
-    SocketService.instance.setNotificationCallback((notification) {
-      print('🔔 HOME: Notification callback triggered');
-      print('🔔 HOME: Notification data: $notification');
-
+    if (_notificationCallback != null) return; // Already registered (single callback)
+    _notificationCallback = (notification) {
       if (mounted) {
         _loadNotificationCount();
-        // Refresh balance when invoice/avlaga notification (e.g. manualSend avlaga)
         final title = notification['title']?.toString() ?? '';
         final message = notification['message']?.toString() ?? '';
         final turul = notification['turul']?.toString().toLowerCase() ?? '';
@@ -204,23 +203,17 @@ class _BookingScreenState extends State<NuurKhuudas>
             if (mounted) _loadAllBillingPayments();
           });
         }
-      } else {
-        print(
-          '⚠️ HOME: Widget not mounted, skipping notification count update',
-        );
       }
-    });
+    };
+    SocketService.instance.setNotificationCallback(_notificationCallback!);
     print('🔔 HOME: Socket listener callback registered');
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Re-establish socket listener when screen comes back into focus
-    _setupSocketListener();
     _loadNotificationCount();
     // Refresh balance when dependencies change (e.g. returning from nekhemjlekh)
-    // Debounce: skip if refreshed in last 2 seconds
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final now = DateTime.now();
@@ -254,8 +247,10 @@ class _BookingScreenState extends State<NuurKhuudas>
     WidgetsBinding.instance.removeObserver(this);
     _billerPageController.dispose();
     _progressAnimationController.dispose();
-    // Don't remove callback on dispose - let it stay active
-    // The socket service will handle cleanup on logout
+    if (_notificationCallback != null) {
+      SocketService.instance.removeNotificationCallback(_notificationCallback);
+      _notificationCallback = null;
+    }
     super.dispose();
   }
 

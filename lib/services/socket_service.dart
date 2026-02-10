@@ -19,8 +19,8 @@ class SocketService {
   /// Initialize socket connection
   Future<void> connect() async {
     try {
-      // Get server URL from API service
-      const serverUrl = 'https://amarhome.mn/api';
+      // Socket.io is at site root (same as web). Do not use /api so nginx can proxy /socket.io.
+      const serverUrl = 'https://amarhome.mn';
 
       // Get user ID
       _userId = await StorageService.getUserId();
@@ -39,9 +39,10 @@ class SocketService {
       socket = IO.io(
         serverUrl,
         IO.OptionBuilder()
-            .setTransports(['websocket'])
+            .setTransports(['websocket', 'polling'])
             .enableAutoConnect()
             .setTimeout(20000)
+            .setPath('/socket.io')
             .build(),
       );
 
@@ -54,6 +55,12 @@ class SocketService {
         // Listen for user notifications after connection
         if (_userId != null) {
           _listenForUserNotifications();
+        }
+        // Re-attach baiguullagiin medegdel listener if callback was set before connect
+        if (_baiguullagiinId != null && _baiguullagiinMedegdelCallback != null) {
+          final eventName = 'baiguullagiin$_baiguullagiinId';
+          socket!.off(eventName, _onBaiguullagiinMedegdel);
+          socket!.on(eventName, _onBaiguullagiinMedegdel);
         }
       });
 
@@ -91,22 +98,29 @@ class SocketService {
     socket!.off(eventName);
     
     socket!.on(eventName, (data) {
+      // Unwrap if server sent multiple args (e.g. [payload])
+      if (data is List && data.isNotEmpty) data = data.first;
       print('📬 New notification received on $eventName: $data');
       print('🔔 DEBUG: About to notify callbacks. Total callbacks: ${_notificationCallbacks.length}');
       
-      // Show local notification if data contains title and message
+      // Show system notification (banner / lock screen) for any incoming notification
       try {
         if (data is Map<String, dynamic>) {
-          final title = data['title']?.toString() ?? 'Шинэ мэдэгдэл';
-          final message = data['message']?.toString() ?? '';
+          final title = data['title']?.toString().trim() ?? 'Шинэ мэдэгдэл';
+          final message = data['message']?.toString().trim() ?? '';
           final turul = data['turul']?.toString().toLowerCase() ?? '';
-          
-          // Only show notification for "App" type notifications
-          if (turul == 'app' && message.isNotEmpty) {
+          final body = message.isNotEmpty ? message : title;
+          final showAsBanner = title.isNotEmpty || message.isNotEmpty;
+          final isAppType = turul == 'app' ||
+              turul == 'мэдэгдэл' ||
+              turul == 'medegdel' ||
+              turul == 'khariu' ||
+              turul == 'хариу';
+          if (showAsBanner && (isAppType || message.isNotEmpty)) {
             NotificationService.showNotification(
               id: DateTime.now().millisecondsSinceEpoch % 100000,
-              title: title,
-              body: message,
+              title: title.isNotEmpty ? title : 'Шинэ мэдэгдэл',
+              body: body,
               payload: data['_id']?.toString(),
             );
           }
@@ -196,6 +210,29 @@ class SocketService {
     });
   }
 
+  Function(Map<String, dynamic>)? _baiguullagiinMedegdelCallback;
+
+  /// Listen for medegdel list updates (user reply / admin reply) on baiguullagiin channel for real-time sanal khuselt list.
+  void setBaiguullagiinMedegdelCallback(Function(Map<String, dynamic>)? callback) {
+    _baiguullagiinMedegdelCallback = callback;
+    if (_baiguullagiinId == null || socket == null) return;
+    final eventName = 'baiguullagiin$_baiguullagiinId';
+    socket!.off(eventName, _onBaiguullagiinMedegdel);
+    if (callback != null) {
+      socket!.on(eventName, _onBaiguullagiinMedegdel);
+    }
+  }
+
+  void _onBaiguullagiinMedegdel(dynamic data) {
+    if (_baiguullagiinMedegdelCallback == null) return;
+    if (data is! Map && data is! Map<String, dynamic>) return;
+    final map = data is Map<String, dynamic> ? data : Map<String, dynamic>.from(data as Map);
+    final type = map['type']?.toString();
+    if (type == 'medegdelUserReply' || type == 'medegdelAdminReply') {
+      _baiguullagiinMedegdelCallback!(map);
+    }
+  }
+
   /// Callback for notifications - use a list to support multiple callbacks
   final List<Function(Map<String, dynamic>)> _notificationCallbacks = [];
 
@@ -243,7 +280,9 @@ class SocketService {
       }
       if (_baiguullagiinId != null) {
         socket!.off('autoLogout$_baiguullagiinId');
+        socket!.off('baiguullagiin$_baiguullagiinId', _onBaiguullagiinMedegdel);
       }
+      _baiguullagiinMedegdelCallback = null;
       
       socket!.disconnect();
       socket!.dispose();

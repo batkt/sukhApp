@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -63,32 +64,19 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
 
   Future<void> _loadCurrentIcon() async {
     try {
-      if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
-        final iconName = await FlutterDynamicIconPlus.alternateIconName;
-        setState(() {
-          currentIconName = _fromPlatformIconName(iconName);
-        });
-      } else {
-        setState(() {
-          currentIconName = AppLogoNotifier.currentIcon.value;
-        });
-      }
+      // Use SharedPreferences as source of truth - platform alternateIconName
+      // can be unreliable (e.g. null on Android when default is shown)
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('app_icon');
+      final icon = saved ?? AppLogoNotifier.currentIcon.value;
+      setState(() {
+        currentIconName = (icon.isEmpty ? 'default' : icon);
+      });
     } catch (e) {
       setState(() {
         currentIconName = AppLogoNotifier.currentIcon.value;
       });
     }
-  }
-
-  /// Map platform icon name (icon_1, icon_2, icon_3 on Android) to our option name
-  String _fromPlatformIconName(String? platformName) {
-    if (platformName == null) return 'default';
-    if (!kIsWeb && Platform.isAndroid) {
-      if (platformName == 'icon_1') return 'black';
-      if (platformName == 'icon_2') return 'blue';
-      if (platformName == 'icon_3') return 'green';
-    }
-    return platformName;
   }
 
   /// Map our option name to platform icon name for FlutterDynamicIconPlus
@@ -102,9 +90,24 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
     return optionName; // iOS uses black, blue, green directly
   }
 
+  /// On Android, pass current device brand so the plugin applies the icon
+  /// immediately (blacklist path) instead of waiting for app to be closed.
+  Future<List<String>> _androidBlacklistBrands() async {
+    if (kIsWeb || !Platform.isAndroid) return const [];
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final android = await deviceInfo.androidInfo;
+      if (android.brand.isNotEmpty) {
+        return [android.brand];
+      }
+    } catch (_) {}
+    return const [];
+  }
+
   Future<void> _changeIcon(AppIconOption option) async {
     if (currentIconName == option.name) return;
 
+    debugPrint('[AppIcon] Selected: ${option.name} (${option.displayName})');
     setState(() {
       isLoading = true;
     });
@@ -115,14 +118,30 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
       if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
         try {
           final supportsAlt = await FlutterDynamicIconPlus.supportsAlternateIcons;
+          debugPrint('[AppIcon] supportsAlternateIcons: $supportsAlt');
           if (supportsAlt) {
-            await FlutterDynamicIconPlus.setAlternateIconName(
-              iconName: _toPlatformIconName(option.name),
-            );
+            final platformName = _toPlatformIconName(option.name);
+            debugPrint('[AppIcon] Platform icon name to apply: $platformName');
+            if (Platform.isAndroid) {
+              final blacklist = await _androidBlacklistBrands();
+              await FlutterDynamicIconPlus.setAlternateIconName(
+                iconName: platformName,
+                blacklistBrands: blacklist,
+              );
+            } else {
+              await FlutterDynamicIconPlus.setAlternateIconName(
+                iconName: platformName,
+                isSilent: true,
+              );
+            }
             iconChanged = true;
+            debugPrint('[AppIcon] setAlternateIconName applied successfully for: $platformName');
+          } else {
+            debugPrint('[AppIcon] Alternate icons not supported on this device');
           }
-        } catch (e) {
-          debugPrint('FlutterDynamicIconPlus error: $e');
+        } catch (e, stack) {
+          debugPrint('[AppIcon] FlutterDynamicIconPlus error: $e');
+          debugPrint('[AppIcon] Stack: $stack');
         }
       }
 
@@ -130,6 +149,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('app_icon', option.name);
       AppLogoNotifier.setIcon(option.name);
+      debugPrint('[AppIcon] Preference saved: app_icon=${option.name}');
 
       setState(() {
         currentIconName = option.name;
@@ -138,17 +158,16 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
 
       if (mounted) {
         HapticFeedback.mediumImpact();
-        final isAndroid = !kIsWeb && Platform.isAndroid;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              iconChanged && isAndroid
-                  ? 'Апп дүрс солигдлоо. Өөрчлөлт харагдахын тулд аппаа бүрэн хаана уу.'
+              iconChanged
+                  ? 'Апп дүрс "${option.displayName}" болж өөрчлөгдлөө'
                   : 'Апп дүрс "${option.displayName}" болж өөрчлөгдлөө',
             ),
             backgroundColor: AppColors.deepGreen,
             behavior: SnackBarBehavior.floating,
-            duration: isAndroid ? const Duration(seconds: 5) : const Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10.r),
             ),
@@ -256,7 +275,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
             ),
           ),
 
-          // Android: icon changes when app is closed
+          // Android: launcher may cache the icon briefly
           if (!kIsWeb && Platform.isAndroid)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -277,7 +296,7 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
-                        'Дүрс солиход аппаа бүрэн хаасны дараа шинэ дүрс харагдана',
+                        'Шинэ дүрс нь гэр болон апп жагсаалтад тун удаан шинэчлэгдэж харагдана',
                         style: TextStyle(
                           color: AppColors.deepGreen,
                           fontSize: 11.sp,

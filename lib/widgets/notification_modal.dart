@@ -105,6 +105,7 @@ class _NotificationModalState extends State<NotificationModal> {
         if (index != -1) {
           _notifications[index] = Medegdel(
             id: notification.id,
+            parentId: notification.parentId,
             baiguullagiinId: notification.baiguullagiinId,
             barilgiinId: notification.barilgiinId,
             ognoo: notification.ognoo,

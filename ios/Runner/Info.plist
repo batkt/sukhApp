@@ -69,6 +69,8 @@
 		<string>hipay</string>
 		<string>tdbwallet</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Дуу мессеж бичих боломжтой болгохын тулд микрофон ашиглана</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Нэвтрэхийн тулд Face ID ашиглана уу</string>
 	<key>CFBundleIcons</key>
@@ -81,6 +83,42 @@
 			</array>
 			<key>UIPrerenderedIcon</key>
 			<false/>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>black</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>black</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>black</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>blue</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>blue</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>blue</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>green</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>green</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>green</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
 		</dict>
 	</dict>
 </dict>

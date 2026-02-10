@@ -32,9 +32,9 @@ class NotificationService {
       '@mipmap/ic_launcher',
     );
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
 
     const initSettings = InitializationSettings(
@@ -131,7 +131,7 @@ class NotificationService {
     );
   }
 
-  /// Show a custom notification
+  /// Show a custom notification (appears as banner/lock screen like Facebook)
   static Future<void> showNotification({
     required int id,
     required String title,
@@ -139,14 +139,24 @@ class NotificationService {
     String? payload,
   }) async {
     const androidDetails = AndroidNotificationDetails(
-      'general_channel',
-      'Ерөнхий мэдэгдэл',
-      channelDescription: 'Ерөнхий мэдэгдлүүд',
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
+      'incoming_notifications',
+      'Шинэ мэдэгдэл',
+      channelDescription: 'Шинэ мэдэгдэл ирэхэд гарч ирнэ',
+      importance: Importance.max,
+      priority: Priority.max,
+      showWhen: true,
+      enableVibration: true,
+      playSound: true,
+      visibility: NotificationVisibility.public,
     );
 
-    const iosDetails = DarwinNotificationDetails();
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      presentBanner: true,
+      presentList: true,
+    );
 
     const notificationDetails = NotificationDetails(
       android: androidDetails,

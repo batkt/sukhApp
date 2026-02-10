@@ -31,11 +31,21 @@ dependencies:
   socket_io_client: ^2.0.3+1
   flutter_svg: ^2.0.9
   flutter_dynamic_icon_plus: ^1.4.0
+  device_info_plus: ^11.4.0
   image_picker: ^1.1.2
   flutter_image_compress: ^2.3.0
+  record: ^6.1.1
+  path_provider: ^2.1.0
+  audioplayers: ^6.0.0
   liquid_glass_renderer: ^0.2.0-dev.4
   syncfusion_flutter_pdfviewer: ^28.1.36
   provider: ^6.1.2
+
+# record_linux 0.7.2 does not implement record_platform_interface 1.5.0 (startStream, hasPermission signature).
+# Force a newer record_linux that implements the interface so iOS build succeeds.
+dependency_overrides:
+  record_linux: ^1.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

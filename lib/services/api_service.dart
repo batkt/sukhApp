@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io' show File;
+import 'dart:typed_data' show Uint8List;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
@@ -3314,6 +3316,143 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Мэдэгдэл тэмдэглэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  /// Get full thread (root + all replies) for chat view. [medegdelIdOrRootId] can be root or any reply in thread.
+  static Future<Map<String, dynamic>> getMedegdelThread(
+    String medegdelIdOrRootId,
+  ) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+      final headers = await getAuthHeaders();
+      final uri = Uri.parse('$baseUrl/medegdel/thread/$medegdelIdOrRootId')
+          .replace(queryParameters: {
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+      });
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      String msg = 'Thread татахад алдаа: ${response.statusCode}';
+      try {
+        final err = json.decode(response.body);
+        if (err['message'] != null) msg = err['message'].toString();
+      } catch (_) {}
+      throw Exception(msg);
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Thread татахад алдаа: $e');
+    }
+  }
+
+  /// Upload chat file from bytes (use for web or XFile). Returns path (e.g. baiguullagiinId/chat-xxx.jpg).
+  static Future<String> uploadMedegdelChatFileWithBytes(Uint8List bytes, String filename) async {
+    final baiguullagiinId = await StorageService.getBaiguullagiinId();
+    if (baiguullagiinId == null) {
+      throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+    }
+    final safeName = filename.trim().isEmpty ? 'image.jpg' : filename.split(RegExp(r'[/\\]')).last;
+    final authHeaders = await getAuthHeaders();
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/medegdel/uploadChatFile'),
+    );
+    request.headers.addAll({
+      if (authHeaders['Authorization'] != null)
+        'Authorization': authHeaders['Authorization']!,
+    });
+    request.fields['baiguullagiinId'] = baiguullagiinId;
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: safeName,
+    ));
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = json.decode(response.body);
+      final path = data['path']?.toString();
+      if (path != null && path.isNotEmpty) return path;
+    }
+    String msg = 'Файл илгээхэд алдаа: ${response.statusCode}';
+    try {
+      final err = json.decode(response.body);
+      if (err['message'] != null) msg = err['message'].toString();
+    } catch (_) {}
+    throw Exception(msg);
+  }
+
+  /// Upload chat file (image or voice) for medegdel reply. Use on mobile only (dart:io File). On web use uploadMedegdelChatFileWithBytes with XFile.readAsBytes().
+  static Future<String> uploadMedegdelChatFile({
+    required File file,
+  }) async {
+    final baiguullagiinId = await StorageService.getBaiguullagiinId();
+    if (baiguullagiinId == null) {
+      throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+    }
+    print('[ApiService] uploadMedegdelChatFile path=${file.path} exists=${file.existsSync()} size=${file.existsSync() ? file.lengthSync() : 0}');
+    final filename = file.path.split(RegExp(r'[/\\]')).last;
+    if (filename.isEmpty || !file.existsSync()) {
+      throw Exception('Файл олдсонгүй эсвэл нэр алга');
+    }
+    final bytes = await file.readAsBytes();
+    return uploadMedegdelChatFileWithBytes(bytes, filename);
+  }
+
+  /// Send user reply in a notification thread (chat). At least one of message, zurag, or voiceUrl required.
+  static Future<Map<String, dynamic>> sendMedegdelReply({
+    required String rootMedegdelId,
+    String message = '',
+    String? zurag,
+    String? voiceUrl,
+  }) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final userId = await StorageService.getUserId();
+      if (baiguullagiinId == null || userId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+      final hasMessage = message.trim().isNotEmpty;
+      final hasZurag = zurag != null && zurag.trim().isNotEmpty;
+      final hasVoice = voiceUrl != null && voiceUrl.trim().isNotEmpty;
+      if (!hasMessage && !hasZurag && !hasVoice) {
+        throw Exception('Хариу эсвэл зураг/дуу оруулна уу');
+      }
+      final headers = await getAuthHeaders();
+      final requestHeaders = Map<String, String>.from(headers);
+      requestHeaders['Content-Type'] = 'application/json';
+      final body = <String, dynamic>{
+        'parentId': rootMedegdelId,
+        'message': message.trim(),
+        'orshinSuugchId': userId,
+        'baiguullagiinId': baiguullagiinId,
+      };
+      if (hasZurag) body['zurag'] = zurag!.trim();
+      if (hasVoice) body['voiceUrl'] = voiceUrl!.trim();
+      final response = await http.post(
+        Uri.parse('$baseUrl/medegdel/reply'),
+        headers: requestHeaders,
+        body: json.encode(body),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      }
+      String msg = 'Хариу илгээхэд алдаа: ${response.statusCode}';
+      try {
+        final err = json.decode(response.body);
+        if (err['message'] != null) msg = err['message'].toString();
+      } catch (_) {}
+      throw Exception(msg);
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Хариу илгээхэд алдаа: $e');
     }
   }
 

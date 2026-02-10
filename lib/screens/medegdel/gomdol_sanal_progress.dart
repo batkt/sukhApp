@@ -50,14 +50,16 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
       final isReply = turul == 'хариу' || turul == 'hariu' || turul == 'khariu';
       final isGomdolSanal = turul == 'gomdol' || turul == 'sanal';
 
-      // Also check if it's an update notification (status changed to done with tailbar)
+      // Also check if it's an update notification (status changed to done/rejected with tailbar)
       // This handles the case where the backend emits the updated gomdol/sanal itself
       final hasStatus = notification['status'] != null;
       final hasTailbar =
           notification['tailbar'] != null &&
           notification['tailbar'].toString().isNotEmpty;
       final statusValue = notification['status']?.toString().toLowerCase();
-      final isStatusUpdate = hasStatus && hasTailbar && statusValue == 'done';
+      final isStatusUpdate = hasStatus &&
+          hasTailbar &&
+          (statusValue == 'done' || statusValue == 'rejected');
 
       if (mounted) {
         // Always refresh when we receive any notification related to gomdol/sanal

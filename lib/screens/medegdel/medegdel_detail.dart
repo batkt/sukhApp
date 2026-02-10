@@ -1,11 +1,25 @@
+import 'dart:io' show File, Platform;
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sukh_app/models/medegdel_model.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+
+/// Normalize zurag/duu path: backend may store "public/medegdel/baiguullagiinId/file" or "baiguullagiinId/file".
+/// URL must be /medegdel/baiguullagiinId/file.
+String _normalizeMedegdelPath(String? p) {
+  if (p == null || p.isEmpty) return '';
+  final n = p.replaceFirst(RegExp(r'^public/medegdel/?'), '').replaceFirst(RegExp(r'^public/?'), '');
+  return n.isEmpty ? p : n;
+}
 
 class MedegdelDetailModal extends StatefulWidget {
   final Medegdel notification;
@@ -19,12 +33,252 @@ class MedegdelDetailModal extends StatefulWidget {
 class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   late Medegdel _notification;
   bool _isMarkingAsRead = false;
+  List<Medegdel> _threadItems = [];
+  bool _threadLoading = false;
+  final TextEditingController _replyController = TextEditingController();
+  bool _sendingReply = false;
+  void Function(Map<String, dynamic>)? _socketCallback;
+  XFile? _replyImage;
+  String? _replyVoicePath;
+  bool _recording = false;
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  AudioPlayer? _voicePlayer;
+  String? _playingVoiceMessageId;
 
   @override
   void initState() {
     super.initState();
+    _voicePlayer = AudioPlayer();
+    _voicePlayer!.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _playingVoiceMessageId = null);
+    });
     _notification = widget.notification;
     _markAsReadAutomatically();
+    _loadThread();
+    final rootId = (_notification.parentId ?? _notification.id).toString().trim();
+    _socketCallback = (data) {
+      if (!mounted) return;
+      final payloadParentId = (data['parentId']?.toString() ?? '').trim();
+      final turul = (data['turul'] ?? '').toString().toLowerCase();
+      final isAdminReply = turul == 'khariu' || turul == 'хариу' || turul == 'hariu';
+      if (payloadParentId.isEmpty || rootId.isEmpty) return;
+      if (payloadParentId != rootId || !isAdminReply) return;
+      Medegdel? msg;
+      try {
+        msg = Medegdel.fromJson(Map<String, dynamic>.from(data));
+      } catch (e) {
+        try {
+          final j = Map<String, dynamic>.from(data);
+          msg = Medegdel(
+            id: j['_id']?.toString() ?? '',
+            parentId: j['parentId']?.toString(),
+            baiguullagiinId: j['baiguullagiinId']?.toString() ?? '',
+            barilgiinId: j['barilgiinId']?.toString(),
+            ognoo: j['ognoo']?.toString() ?? j['createdAt']?.toString() ?? '',
+            title: j['title']?.toString() ?? '',
+            gereeniiDugaar: j['gereeniiDugaar']?.toString(),
+            message: j['message']?.toString() ?? '',
+            orshinSuugchGereeniiDugaar: j['orshinSuugchGereeniiDugaar']?.toString(),
+            orshinSuugchId: j['orshinSuugchId']?.toString(),
+            orshinSuugchNer: j['orshinSuugchNer']?.toString(),
+            orshinSuugchUtas: j['orshinSuugchUtas']?.toString(),
+            kharsanEsekh: j['kharsanEsekh'] == true,
+            turul: j['turul']?.toString() ?? 'khariu',
+            createdAt: j['createdAt']?.toString() ?? '',
+            updatedAt: j['updatedAt']?.toString() ?? '',
+            status: j['status']?.toString(),
+            tailbar: j['tailbar']?.toString(),
+            repliedAt: j['repliedAt']?.toString(),
+            zurag: j['zurag']?.toString(),
+            duu: j['duu']?.toString(),
+          );
+        } catch (_) {
+          return;
+        }
+      }
+      if (msg == null || !mounted) return;
+      final messageId = msg.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          if (_threadItems.any((m) => m.id == messageId)) return;
+          _threadItems = [..._threadItems, msg!];
+        });
+      });
+    };
+    SocketService.instance.setNotificationCallback(_socketCallback!);
+  }
+
+  @override
+  void dispose() {
+    _voicePlayer?.dispose();
+    _voicePlayer = null;
+    if (_socketCallback != null) {
+      SocketService.instance.removeNotificationCallback(_socketCallback);
+    }
+    _replyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playOrPauseVoice(String messageId, String url) async {
+    if (!mounted) return;
+    final fullUrl = '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(url)}';
+    // iOS AVPlayer does not support WebM; stay on page and show message (no external link)
+    if (Platform.isIOS && url.toLowerCase().contains('.webm')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Энэ дууны формат (WebM) төхөөрөмж дээр тоглуулагдахгүй. M4A/MP3 илгээнэ үү.')),
+        );
+      }
+      return;
+    }
+    if (_voicePlayer == null || !mounted) return;
+    final isThisPlaying = _playingVoiceMessageId == messageId;
+    try {
+      if (isThisPlaying) {
+        final state = _voicePlayer!.state;
+        if (state == PlayerState.playing) {
+          await _voicePlayer!.pause();
+        } else {
+          await _voicePlayer!.resume();
+        }
+        if (mounted) setState(() {});
+      } else {
+        await _voicePlayer!.stop();
+        await _voicePlayer!.setSource(UrlSource(fullUrl));
+        await _voicePlayer!.resume();
+        if (mounted) setState(() => _playingVoiceMessageId = messageId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _playingVoiceMessageId = null);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
+      }
+    }
+  }
+
+  Future<void> _loadThread() async {
+    final rootId = _notification.parentId ?? _notification.id;
+    if (rootId.isEmpty) return;
+    setState(() => _threadLoading = true);
+    try {
+      final res = await ApiService.getMedegdelThread(rootId);
+      if (!mounted) return;
+      final list = (res['data'] as List?)
+          ?.map((e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList() ?? [];
+      setState(() {
+        _threadItems = list;
+        _threadLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _threadLoading = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (x == null || !mounted) {
+        if (x == null) print('[medegdel] _pickImage: user cancelled or no image');
+        return;
+      }
+      if (mounted) setState(() => _replyImage = x);
+      print('[medegdel] _pickImage: ok name=${x.name}');
+    } catch (e, st) {
+      print('[medegdel] _pickImage error: $e\n$st');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
+    }
+  }
+
+  Future<void> _startRecord() async {
+    if (_recording) return;
+    try {
+      if (!await _audioRecorder.hasPermission()) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Дуу бичих эрх олгоно уу.')));
+        return;
+      }
+      final isRecording = await _audioRecorder.isRecording();
+      if (isRecording) return;
+      final dir = await getTemporaryDirectory();
+      final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _audioRecorder.start(const RecordConfig(), path: path);
+      if (mounted) setState(() => _recording = true);
+    } catch (e, st) {
+      print('[medegdel] _startRecord error: $e\n$st');
+      if (mounted) {
+        setState(() => _recording = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
+      }
+    }
+  }
+
+  Future<void> _stopRecord() async {
+    if (!_recording) return;
+    try {
+      final isRecording = await _audioRecorder.isRecording();
+      if (!isRecording) {
+        if (mounted) setState(() => _recording = false);
+        return;
+      }
+      final path = await _audioRecorder.stop();
+      if (mounted) setState(() { _recording = false; if (path != null) _replyVoicePath = path; });
+    } catch (e, st) {
+      print('[medegdel] _stopRecord error: $e\n$st');
+      if (mounted) setState(() => _recording = false);
+    }
+  }
+
+  Future<void> _sendReply() async {
+    final text = _replyController.text.trim();
+    final hasText = text.isNotEmpty;
+    final hasImage = _replyImage != null;
+    final hasVoice = _replyVoicePath != null;
+    if ((!hasText && !hasImage && !hasVoice) || _sendingReply) return;
+    final rootId = _notification.parentId ?? _notification.id;
+    print('[medegdel] _sendReply start rootId=$rootId hasText=$hasText hasImage=$hasImage hasVoice=$hasVoice');
+    setState(() => _sendingReply = true);
+    try {
+      String? zuragPath;
+      String? voicePath;
+      if (_replyImage != null) {
+        final bytes = await _replyImage!.readAsBytes();
+        final name = _replyImage!.name;
+        zuragPath = await ApiService.uploadMedegdelChatFileWithBytes(bytes, name.isEmpty ? 'image.jpg' : name);
+        print('[medegdel] _sendReply upload ok zuragPath=$zuragPath');
+        if (mounted) setState(() => _replyImage = null);
+      }
+      if (_replyVoicePath != null) {
+        voicePath = await ApiService.uploadMedegdelChatFile(file: File(_replyVoicePath!));
+        if (mounted) setState(() => _replyVoicePath = null);
+      }
+      print('[medegdel] _sendReply sending reply zurag=$zuragPath voice=$voicePath');
+      final res = await ApiService.sendMedegdelReply(
+        rootMedegdelId: rootId,
+        message: text,
+        zurag: zuragPath,
+        voiceUrl: voicePath,
+      );
+      _replyController.clear();
+      final data = res['data'];
+      if (mounted && data is Map) {
+        try {
+          final newMsg = Medegdel.fromJson(Map<String, dynamic>.from(data));
+          setState(() => _threadItems = [..._threadItems, newMsg]);
+        } catch (_) {}
+      }
+      if (mounted) Future.delayed(const Duration(milliseconds: 500), () => _loadThread());
+      print('[medegdel] _sendReply done');
+    } catch (e, st) {
+      print('[medegdel] _sendReply error: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Илгээхэд алдаа: ${e is Exception ? e.toString() : e}')),
+        );
+      }
+    }
+    if (mounted) setState(() => _sendingReply = false);
   }
 
   Future<void> _markAsReadAutomatically() async {
@@ -53,6 +307,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         setState(() {
           _notification = Medegdel(
             id: _notification.id,
+            parentId: _notification.parentId,
             baiguullagiinId: _notification.baiguullagiinId,
             barilgiinId: _notification.barilgiinId,
             ognoo: _notification.ognoo,
@@ -74,6 +329,8 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
           );
           _isMarkingAsRead = false;
         });
+        // Backend marks root + all replies; refetch thread so "seen" shows on messages
+        _loadThread();
       }
     } catch (e) {
       if (mounted) {
@@ -200,7 +457,14 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ],
             ),
           ),
-          Expanded(child: _buildContent(isGomdol, isSanal)),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(child: _buildContent(isGomdol, isSanal)),
+                _buildReplyBar(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -859,7 +1123,399 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             tablet: 20,
             veryNarrow: 12,
           )),
+          _buildChatSection(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildChatSection() {
+    if (_threadLoading) {
+      return Padding(
+        padding: EdgeInsets.all(context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 10,
+        )),
+        child: Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.deepGreen,
+            ),
+          ),
+        ),
+      );
+    }
+    if (_threadItems.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 8,
+        )),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: context.responsiveSpacing(
+            small: 2,
+            medium: 3,
+            large: 4,
+            tablet: 6,
+            veryNarrow: 0,
+          )),
+          child: Text(
+            'Харилцлага',
+            style: TextStyle(
+              color: context.textPrimaryColor,
+              fontSize: context.responsiveFontSize(
+                small: 14,
+                medium: 15,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 12,
+              ),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        SizedBox(height: context.responsiveSpacing(
+          small: 8,
+          medium: 9,
+          large: 10,
+          tablet: 12,
+          veryNarrow: 6,
+        )),
+        ..._threadItems.map((msg) => _buildChatBubble(msg)),
+        SizedBox(height: context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 8,
+        )),
+      ],
+    );
+  }
+
+  Widget _buildChatBubble(Medegdel msg) {
+    final isUser = msg.isUserReply;
+    return Padding(
+      padding: EdgeInsets.only(bottom: context.responsiveSpacing(
+        small: 8,
+        medium: 9,
+        large: 10,
+        tablet: 12,
+        veryNarrow: 6,
+      )),
+      child: Row(
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser) const SizedBox.shrink(),
+          Flexible(
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.responsiveSpacing(
+                  small: 12,
+                  medium: 14,
+                  large: 16,
+                  tablet: 18,
+                  veryNarrow: 10,
+                ),
+                vertical: context.responsiveSpacing(
+                  small: 10,
+                  medium: 11,
+                  large: 12,
+                  tablet: 14,
+                  veryNarrow: 8,
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: isUser
+                    ? AppColors.deepGreen.withOpacity(0.15)
+                    : (context.isDarkMode
+                        ? Colors.white.withOpacity(0.08)
+                        : const Color(0xFFF0F0F0)),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(context.responsiveBorderRadius(
+                    small: 14,
+                    medium: 15,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 12,
+                  )),
+                  topRight: Radius.circular(context.responsiveBorderRadius(
+                    small: 14,
+                    medium: 15,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 12,
+                  )),
+                  bottomLeft: Radius.circular(isUser ? context.responsiveBorderRadius(
+                    small: 14,
+                    medium: 15,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 12,
+                  ) : 4),
+                  bottomRight: Radius.circular(isUser ? 4 : context.responsiveBorderRadius(
+                    small: 14,
+                    medium: 15,
+                    large: 16,
+                    tablet: 18,
+                    veryNarrow: 12,
+                  )),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (msg.zurag != null && msg.zurag!.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: context.responsiveSpacing(small: 6, medium: 8, large: 10, tablet: 12, veryNarrow: 4)),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                          child: Image.network(
+                            '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(msg.zurag)}',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (msg.duu != null && msg.duu!.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: context.responsiveSpacing(small: 6, medium: 8, large: 10, tablet: 12, veryNarrow: 4)),
+                      child: InkWell(
+                        onTap: () => _playOrPauseVoice(msg.id, msg.duu!),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _playingVoiceMessageId == msg.id && _voicePlayer?.state == PlayerState.playing
+                                  ? Icons.pause_circle
+                                  : Icons.play_circle_fill,
+                              color: AppColors.deepGreen,
+                              size: 28,
+                            ),
+                            SizedBox(width: context.responsiveSpacing(small: 6, medium: 8, large: 10, veryNarrow: 4)),
+                            Text('Дуу сонсох', style: TextStyle(color: AppColors.deepGreen, fontSize: context.responsiveFontSize(small: 12, medium: 13, large: 14, veryNarrow: 11))),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (msg.message.isNotEmpty)
+                    Text(
+                      msg.message,
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: context.responsiveFontSize(
+                          small: 13,
+                          medium: 14,
+                          large: 15,
+                          tablet: 17,
+                          veryNarrow: 12,
+                        ),
+                      ),
+                    ),
+                  if (msg.message.isNotEmpty) SizedBox(height: context.responsiveSpacing(small: 4, medium: 5, large: 6, tablet: 8, veryNarrow: 3)),
+                  Text(
+                    _formatDate(msg.createdAt),
+                    style: TextStyle(
+                      color: context.textSecondaryColor,
+                      fontSize: context.responsiveFontSize(
+                        small: 9,
+                        medium: 10,
+                        large: 11,
+                        tablet: 13,
+                        veryNarrow: 8,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isUser) const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReplyBar() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        context.responsiveSpacing(small: 12, medium: 14, large: 16, tablet: 18, veryNarrow: 10),
+        context.responsiveSpacing(small: 8, medium: 9, large: 10, tablet: 12, veryNarrow: 6),
+        context.responsiveSpacing(small: 12, medium: 14, large: 16, tablet: 18, veryNarrow: 10),
+        context.responsiveSpacing(small: 8, medium: 10, large: 12, tablet: 14, veryNarrow: 6),
+      ),
+      decoration: BoxDecoration(
+        color: context.isDarkMode ? const Color(0xFF252525) : const Color(0xFFF5F5F5),
+        border: Border(
+          top: BorderSide(
+            color: context.isDarkMode ? Colors.white10 : Colors.black12,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_replyImage != null || _replyVoicePath != null)
+              Padding(
+                padding: EdgeInsets.only(bottom: context.responsiveSpacing(small: 6, medium: 8, veryNarrow: 4)),
+                child: Row(
+                  children: [
+                    if (_replyImage != null)
+                      Chip(
+                        label: const Text('Зураг'),
+                        onDeleted: () => setState(() => _replyImage = null),
+                        avatar: const Icon(Icons.image, size: 18),
+                      ),
+                    if (_replyVoicePath != null) ...[
+                      if (_replyImage != null) const SizedBox(width: 8),
+                      Chip(
+                        label: const Text('Дуу'),
+                        onDeleted: () => setState(() => _replyVoicePath = null),
+                        avatar: const Icon(Icons.mic, size: 18),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: _sendingReply ? null : _pickImage,
+                  icon: Icon(Icons.image_outlined, color: AppColors.deepGreen, size: context.responsiveFontSize(small: 22, medium: 24, veryNarrow: 20)),
+                ),
+                if (!_recording)
+                  IconButton(
+                    onPressed: _sendingReply ? null : _startRecord,
+                    icon: Icon(Icons.mic_none, color: AppColors.deepGreen, size: context.responsiveFontSize(small: 22, medium: 24, veryNarrow: 20)),
+                  )
+                else
+                  IconButton(
+                    onPressed: _stopRecord,
+                    icon: Icon(Icons.stop_rounded, color: Colors.red, size: context.responsiveFontSize(small: 22, medium: 24, veryNarrow: 20)),
+                  ),
+                Expanded(
+                  child: TextField(
+                    controller: _replyController,
+                    cursorColor: AppColors.deepGreen,
+                    cursorHeight: context.responsiveFontSize(
+                      small: 18,
+                      medium: 20,
+                      large: 22,
+                      tablet: 24,
+                      veryNarrow: 16,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Хариу бичих...',
+                      hintStyle: TextStyle(
+                        color: context.textSecondaryColor,
+                        fontSize: context.responsiveFontSize(
+                          small: 14,
+                          medium: 15,
+                          large: 16,
+                          tablet: 18,
+                          veryNarrow: 12,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: context.isDarkMode
+                          ? Colors.white.withOpacity(0.08)
+                          : Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                          small: 20,
+                          medium: 22,
+                          large: 24,
+                          tablet: 28,
+                          veryNarrow: 16,
+                        )),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: context.responsiveSpacing(
+                          small: 14,
+                          medium: 16,
+                          large: 18,
+                          tablet: 20,
+                          veryNarrow: 12,
+                        ),
+                        vertical: context.responsiveSpacing(
+                          small: 10,
+                          medium: 12,
+                          large: 14,
+                          tablet: 16,
+                          veryNarrow: 8,
+                        ),
+                      ),
+                    ),
+                    style: TextStyle(
+                      color: context.isDarkMode
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A),
+                      fontSize: context.responsiveFontSize(
+                        small: 14,
+                        medium: 15,
+                        large: 16,
+                        tablet: 18,
+                        veryNarrow: 12,
+                      ),
+                    ),
+                    maxLines: 3,
+                    minLines: 1,
+                    onSubmitted: (_) => _sendReply(),
+                  ),
+                ),
+                SizedBox(width: context.responsiveSpacing(
+                  small: 8,
+                  medium: 10,
+                  large: 12,
+                  tablet: 14,
+                  veryNarrow: 6,
+                )),
+                IconButton(
+                  onPressed: (_sendingReply || (_replyController.text.trim().isEmpty && _replyImage == null && _replyVoicePath == null)) ? null : _sendReply,
+                  icon: _sendingReply
+                      ? SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.deepGreen,
+                          ),
+                        )
+                      : Icon(
+                          Icons.send_rounded,
+                          color: AppColors.deepGreen,
+                          size: context.responsiveFontSize(
+                            small: 22,
+                            medium: 24,
+                            large: 26,
+                            tablet: 28,
+                            veryNarrow: 20,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1003,6 +1659,17 @@ class MedegdelDetailScreen extends StatefulWidget {
 class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
   late Medegdel _notification;
   bool _isMarkingAsRead = false;
+  List<Medegdel> _threadItems = [];
+  bool _threadLoading = false;
+  final TextEditingController _replyController = TextEditingController();
+  bool _sendingReply = false;
+  void Function(Map<String, dynamic>)? _socketCallback;
+  XFile? _replyImage;
+  String? _replyVoicePath;
+  bool _recording = false;
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  AudioPlayer? _voicePlayer;
+  String? _playingVoiceMessageId;
 
   String _getDisplayTurul(String turul) {
     final turulLower = turul.toLowerCase();
@@ -1048,8 +1715,237 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _voicePlayer = AudioPlayer();
+    _voicePlayer!.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _playingVoiceMessageId = null);
+    });
     _notification = widget.notification;
     _markAsReadAutomatically();
+    _loadThread();
+    final rootId = (_notification.parentId ?? _notification.id).toString().trim();
+    _socketCallback = (data) {
+      if (!mounted) return;
+      final payloadParentId = (data['parentId']?.toString() ?? '').trim();
+      final turul = (data['turul'] ?? '').toString().toLowerCase();
+      final isAdminReply = turul == 'khariu' || turul == 'хариу' || turul == 'hariu';
+      if (payloadParentId.isEmpty || rootId.isEmpty) return;
+      if (payloadParentId != rootId || !isAdminReply) return;
+      Medegdel? msg;
+      try {
+        msg = Medegdel.fromJson(Map<String, dynamic>.from(data));
+      } catch (e) {
+        try {
+          final j = Map<String, dynamic>.from(data);
+          msg = Medegdel(
+            id: j['_id']?.toString() ?? '',
+            parentId: j['parentId']?.toString(),
+            baiguullagiinId: j['baiguullagiinId']?.toString() ?? '',
+            barilgiinId: j['barilgiinId']?.toString(),
+            ognoo: j['ognoo']?.toString() ?? j['createdAt']?.toString() ?? '',
+            title: j['title']?.toString() ?? '',
+            gereeniiDugaar: j['gereeniiDugaar']?.toString(),
+            message: j['message']?.toString() ?? '',
+            orshinSuugchGereeniiDugaar: j['orshinSuugchGereeniiDugaar']?.toString(),
+            orshinSuugchId: j['orshinSuugchId']?.toString(),
+            orshinSuugchNer: j['orshinSuugchNer']?.toString(),
+            orshinSuugchUtas: j['orshinSuugchUtas']?.toString(),
+            kharsanEsekh: j['kharsanEsekh'] == true,
+            turul: j['turul']?.toString() ?? 'khariu',
+            createdAt: j['createdAt']?.toString() ?? '',
+            updatedAt: j['updatedAt']?.toString() ?? '',
+            status: j['status']?.toString(),
+            tailbar: j['tailbar']?.toString(),
+            repliedAt: j['repliedAt']?.toString(),
+            zurag: j['zurag']?.toString(),
+            duu: j['duu']?.toString(),
+          );
+        } catch (_) {
+          return;
+        }
+      }
+      if (msg == null || !mounted) return;
+      final messageId = msg.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          if (_threadItems.any((m) => m.id == messageId)) return;
+          _threadItems = [..._threadItems, msg!];
+        });
+      });
+    };
+    SocketService.instance.setNotificationCallback(_socketCallback!);
+  }
+
+  @override
+  void dispose() {
+    _voicePlayer?.dispose();
+    _voicePlayer = null;
+    if (_socketCallback != null) {
+      SocketService.instance.removeNotificationCallback(_socketCallback);
+    }
+    _replyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playOrPauseVoice(String messageId, String url) async {
+    if (!mounted) return;
+    final fullUrl = '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(url)}';
+    // iOS AVPlayer does not support WebM; stay on page and show message (no external link)
+    if (Platform.isIOS && url.toLowerCase().contains('.webm')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Энэ дууны формат (WebM) төхөөрөмж дээр тоглуулагдахгүй. M4A/MP3 илгээнэ үү.')),
+        );
+      }
+      return;
+    }
+    if (_voicePlayer == null || !mounted) return;
+    final isThisPlaying = _playingVoiceMessageId == messageId;
+    try {
+      if (isThisPlaying) {
+        final state = _voicePlayer!.state;
+        if (state == PlayerState.playing) {
+          await _voicePlayer!.pause();
+        } else {
+          await _voicePlayer!.resume();
+        }
+        if (mounted) setState(() {});
+      } else {
+        await _voicePlayer!.stop();
+        await _voicePlayer!.setSource(UrlSource(fullUrl));
+        await _voicePlayer!.resume();
+        if (mounted) setState(() => _playingVoiceMessageId = messageId);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _playingVoiceMessageId = null);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
+      }
+    }
+  }
+
+  Future<void> _loadThread() async {
+    final rootId = _notification.parentId ?? _notification.id;
+    if (rootId.isEmpty) return;
+    setState(() => _threadLoading = true);
+    try {
+      final res = await ApiService.getMedegdelThread(rootId);
+      if (!mounted) return;
+      final list = (res['data'] as List?)
+          ?.map((e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList() ?? [];
+      setState(() {
+        _threadItems = list;
+        _threadLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _threadLoading = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (x == null || !mounted) {
+        if (x == null) print('[medegdel] _pickImage: user cancelled or no image');
+        return;
+      }
+      if (mounted) setState(() => _replyImage = x);
+      print('[medegdel] _pickImage: ok name=${x.name}');
+    } catch (e, st) {
+      print('[medegdel] _pickImage error: $e\n$st');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
+    }
+  }
+
+  Future<void> _startRecord() async {
+    if (_recording) return;
+    try {
+      if (!await _audioRecorder.hasPermission()) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Дуу бичих эрх олгоно уу.')));
+        return;
+      }
+      final isRecording = await _audioRecorder.isRecording();
+      if (isRecording) return;
+      final dir = await getTemporaryDirectory();
+      final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _audioRecorder.start(const RecordConfig(), path: path);
+      if (mounted) setState(() => _recording = true);
+    } catch (e, st) {
+      print('[medegdel] _startRecord error: $e\n$st');
+      if (mounted) {
+        setState(() => _recording = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
+      }
+    }
+  }
+
+  Future<void> _stopRecord() async {
+    if (!_recording) return;
+    try {
+      final isRecording = await _audioRecorder.isRecording();
+      if (!isRecording) {
+        if (mounted) setState(() => _recording = false);
+        return;
+      }
+      final path = await _audioRecorder.stop();
+      if (mounted) setState(() { _recording = false; if (path != null) _replyVoicePath = path; });
+    } catch (e, st) {
+      print('[medegdel] _stopRecord error: $e\n$st');
+      if (mounted) setState(() => _recording = false);
+    }
+  }
+
+  Future<void> _sendReply() async {
+    final text = _replyController.text.trim();
+    final hasText = text.isNotEmpty;
+    final hasImage = _replyImage != null;
+    final hasVoice = _replyVoicePath != null;
+    if ((!hasText && !hasImage && !hasVoice) || _sendingReply) return;
+    final rootId = _notification.parentId ?? _notification.id;
+    print('[medegdel] _sendReply start rootId=$rootId hasText=$hasText hasImage=$hasImage hasVoice=$hasVoice');
+    setState(() => _sendingReply = true);
+    try {
+      String? zuragPath;
+      String? voicePath;
+      if (_replyImage != null) {
+        final bytes = await _replyImage!.readAsBytes();
+        final name = _replyImage!.name;
+        zuragPath = await ApiService.uploadMedegdelChatFileWithBytes(bytes, name.isEmpty ? 'image.jpg' : name);
+        print('[medegdel] _sendReply upload ok zuragPath=$zuragPath');
+        if (mounted) setState(() => _replyImage = null);
+      }
+      if (_replyVoicePath != null) {
+        voicePath = await ApiService.uploadMedegdelChatFile(file: File(_replyVoicePath!));
+        if (mounted) setState(() => _replyVoicePath = null);
+      }
+      print('[medegdel] _sendReply sending reply zurag=$zuragPath voice=$voicePath');
+      final res = await ApiService.sendMedegdelReply(
+        rootMedegdelId: rootId,
+        message: text,
+        zurag: zuragPath,
+        voiceUrl: voicePath,
+      );
+      _replyController.clear();
+      final data = res['data'];
+      if (mounted && data is Map) {
+        try {
+          final newMsg = Medegdel.fromJson(Map<String, dynamic>.from(data));
+          setState(() => _threadItems = [..._threadItems, newMsg]);
+        } catch (_) {}
+      }
+      if (mounted) Future.delayed(const Duration(milliseconds: 500), () => _loadThread());
+      print('[medegdel] _sendReply done');
+    } catch (e, st) {
+      print('[medegdel] _sendReply error: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Илгээхэд алдаа: ${e is Exception ? e.toString() : e}')),
+        );
+      }
+    }
+    if (mounted) setState(() => _sendingReply = false);
   }
 
   Future<void> _markAsReadAutomatically() async {
@@ -1078,6 +1974,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         setState(() {
           _notification = Medegdel(
             id: _notification.id,
+            parentId: _notification.parentId,
             baiguullagiinId: _notification.baiguullagiinId,
             barilgiinId: _notification.barilgiinId,
             ognoo: _notification.ognoo,
@@ -1099,6 +1996,8 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
           );
           _isMarkingAsRead = false;
         });
+        // Backend marks root + all replies; refetch thread so "seen" shows on messages
+        _loadThread();
       }
     } catch (e) {
       if (mounted) {
@@ -1877,13 +2776,302 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                             ],
                           ),
                         ),
+                        _buildChatSectionScreen(),
                       ],
                     ),
                   ),
                 ),
-              ],
+              _buildReplyBarScreen(),
+            ],
+          ),
+        ),
+      ),
+    ),
+    );
+  }
+
+  Widget _buildChatSectionScreen() {
+    if (_threadLoading) {
+      return Padding(
+        padding: EdgeInsets.all(context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 10,
+        )),
+        child: Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.deepGreen,
             ),
           ),
+        ),
+      );
+    }
+    if (_threadItems.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: context.responsiveSpacing(
+          small: 20,
+          medium: 24,
+          large: 28,
+          tablet: 32,
+          veryNarrow: 14,
+        )),
+        Text(
+          'Харилцлага',
+          style: TextStyle(
+            color: context.textPrimaryColor,
+            fontSize: context.responsiveFontSize(
+              small: 17,
+              medium: 18,
+              large: 19,
+              tablet: 21,
+              veryNarrow: 14,
+            ),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 8,
+        )),
+        ..._threadItems.map((msg) => _buildChatBubbleScreen(msg)),
+        SizedBox(height: context.responsiveSpacing(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 24,
+          veryNarrow: 10,
+        )),
+      ],
+    );
+  }
+
+  Widget _buildChatBubbleScreen(Medegdel msg) {
+    final isUser = msg.isUserReply;
+    return Padding(
+      padding: EdgeInsets.only(bottom: context.responsiveSpacing(
+        small: 10,
+        medium: 12,
+        large: 14,
+        tablet: 16,
+        veryNarrow: 8,
+      )),
+      child: Row(
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser) const SizedBox.shrink(),
+          Flexible(
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.responsiveSpacing(
+                  small: 14,
+                  medium: 16,
+                  large: 18,
+                  tablet: 20,
+                  veryNarrow: 12,
+                ),
+                vertical: context.responsiveSpacing(
+                  small: 12,
+                  medium: 14,
+                  large: 16,
+                  tablet: 18,
+                  veryNarrow: 10,
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: isUser
+                    ? AppColors.deepGreen.withOpacity(0.15)
+                    : context.textPrimaryColor.withOpacity(0.08),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                  bottomLeft: Radius.circular(isUser ? 16 : 4),
+                  bottomRight: Radius.circular(isUser ? 4 : 16),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (msg.zurag != null && msg.zurag!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                          child: Image.network(
+                            '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(msg.zurag)}',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (msg.duu != null && msg.duu!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        onTap: () => _playOrPauseVoice(msg.id, msg.duu!),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _playingVoiceMessageId == msg.id && _voicePlayer?.state == PlayerState.playing
+                                  ? Icons.pause_circle
+                                  : Icons.play_circle_fill,
+                              color: AppColors.deepGreen,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Дуу сонсох', style: TextStyle(color: AppColors.deepGreen, fontSize: context.responsiveFontSize(small: 12, medium: 13, large: 14, veryNarrow: 11))),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (msg.message.isNotEmpty)
+                    Text(
+                      msg.message,
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: context.responsiveFontSize(
+                          small: 14,
+                          medium: 15,
+                          large: 16,
+                          tablet: 18,
+                          veryNarrow: 12,
+                        ),
+                      ),
+                    ),
+                  if (msg.message.isNotEmpty) const SizedBox(height: 6),
+                  Text(
+                    _formatDate(msg.createdAt),
+                    style: TextStyle(
+                      color: context.textSecondaryColor,
+                      fontSize: context.responsiveFontSize(
+                        small: 10,
+                        medium: 11,
+                        large: 12,
+                        tablet: 14,
+                        veryNarrow: 9,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isUser) const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReplyBarScreen() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        context.responsiveSpacing(small: 16, medium: 18, large: 20, tablet: 22, veryNarrow: 12),
+        context.responsiveSpacing(small: 10, medium: 12, large: 14, tablet: 16, veryNarrow: 8),
+        context.responsiveSpacing(small: 16, medium: 18, large: 20, tablet: 22, veryNarrow: 12),
+        context.responsiveSpacing(small: 10, medium: 12, large: 14, tablet: 16, veryNarrow: 8),
+      ),
+      decoration: BoxDecoration(
+        color: context.isDarkMode ? const Color(0xFF252525) : const Color(0xFFF5F5F5),
+        border: Border(top: BorderSide(color: context.isDarkMode ? Colors.white10 : Colors.black12)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_replyImage != null || _replyVoicePath != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    if (_replyImage != null)
+                      Chip(
+                        label: const Text('Зураг'),
+                        onDeleted: () => setState(() => _replyImage = null),
+                        avatar: const Icon(Icons.image, size: 18),
+                      ),
+                    if (_replyVoicePath != null) ...[
+                      if (_replyImage != null) const SizedBox(width: 8),
+                      Chip(
+                        label: const Text('Дуу'),
+                        onDeleted: () => setState(() => _replyVoicePath = null),
+                        avatar: const Icon(Icons.mic, size: 18),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: _sendingReply ? null : _pickImage,
+                  icon: Icon(Icons.image_outlined, color: AppColors.deepGreen, size: 24),
+                ),
+                if (!_recording)
+                  IconButton(
+                    onPressed: _sendingReply ? null : _startRecord,
+                    icon: Icon(Icons.mic_none, color: AppColors.deepGreen, size: 24),
+                  )
+                else
+                  IconButton(
+                    onPressed: _stopRecord,
+                    icon: const Icon(Icons.stop_rounded, color: Colors.red, size: 24),
+                  ),
+                Expanded(
+                  child: TextField(
+                    controller: _replyController,
+                    cursorColor: AppColors.deepGreen,
+                    cursorHeight: 20,
+                    decoration: InputDecoration(
+                      hintText: 'Хариу бичих...',
+                      hintStyle: TextStyle(color: context.textSecondaryColor, fontSize: 15),
+                      filled: true,
+                      fillColor: context.isDarkMode
+                          ? Colors.white.withOpacity(0.08)
+                          : Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    style: TextStyle(
+                      color: context.isDarkMode
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A),
+                      fontSize: 15,
+                    ),
+                    maxLines: 3,
+                    minLines: 1,
+                    onSubmitted: (_) => _sendReply(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                IconButton(
+                  onPressed: (_sendingReply || (_replyController.text.trim().isEmpty && _replyImage == null && _replyVoicePath == null)) ? null : _sendReply,
+                  icon: _sendingReply
+                      ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.deepGreen))
+                      : Icon(Icons.send_rounded, color: AppColors.deepGreen, size: 26),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

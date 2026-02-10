@@ -29,30 +29,68 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
     super.initState();
     _loadNotifications();
     _setupSocketListener();
+    _setupBaiguullagiinMedegdelListener();
   }
 
   void _setupSocketListener() {
-    // Listen for real-time notifications via socket
+    // Listen for real-time notifications via orshinSuugch (admin reply, etc.)
     _notificationCallback = (notification) {
-      // Check notification type
       final turul = notification['turul']?.toString().toLowerCase() ?? '';
       final isReply = turul == 'хариу' || turul == 'hariu' || turul == 'khariu';
+      final isUserReply = turul == 'user_reply';
       final isGomdolSanal = turul == 'gomdol' || turul == 'sanal';
       final isApp = turul == 'app';
       final isMedegdel = turul == 'мэдэгдэл' || turul == 'medegdel';
+      final hasStatus = notification['status'] != null;
+      final hasTailbar = notification['tailbar'] != null &&
+          notification['tailbar'].toString().trim().isNotEmpty;
 
-      // Refresh for "app" type, "мэдэгдэл" (notification), and reply notifications (khariu)
-      // But not for gomdol/sanal (those are handled by gomdol_sanal_progress screen)
-      if (mounted && (isApp || isMedegdel || isReply) && !isGomdolSanal) {
+      // Refresh for new notifications, admin replies, user's own reply (so bell list/thread stay in sync), and status updates
+      if (mounted &&
+          ((isApp || isMedegdel || isReply || isUserReply) && !isGomdolSanal || hasStatus || hasTailbar)) {
+        print('[medegdel_list] RECV socket orshinSuugch -> refresh list turul=$turul');
         _loadNotifications();
       }
     };
     SocketService.instance.setNotificationCallback(_notificationCallback!);
   }
 
+  void _setupBaiguullagiinMedegdelListener() {
+    // Real-time sanal khuselt list when user reply or admin reply is received on baiguullagiin channel
+    SocketService.instance.setBaiguullagiinMedegdelCallback((payload) {
+      if (mounted) {
+        print('[medegdel_list] RECV socket baiguullagiin medegdel -> refresh list type=${payload['type']}');
+        _loadNotifications();
+      }
+    });
+  }
+
+  /// Admin status label for display in notification card
+  String _getStatusLabel(String? status) {
+    if (status == null || status.isEmpty) return '';
+    final s = status.toLowerCase().trim();
+    if (s == 'done' || s == 'approved') return 'Баталгаажсан';
+    if (s == 'rejected' || s == 'declined' || s == 'cancelled') return 'Татгалзсан';
+    if (s == 'pending') return 'Хүлээгдэж буй';
+    if (s == 'in_progress' || s == 'in progress') return 'Боловсруулж буй';
+    return status;
+  }
+
+  bool _isDoneStatus(String? status) {
+    if (status == null || status.isEmpty) return false;
+    final s = status.toLowerCase().trim();
+    return s == 'done' || s == 'approved';
+  }
+
+  bool _isRejectedStatus(String? status) {
+    if (status == null || status.isEmpty) return false;
+    final s = status.toLowerCase().trim();
+    return s == 'rejected' || s == 'declined' || s == 'cancelled';
+  }
+
   @override
   void dispose() {
-    // Remove socket callback when screen is disposed
+    SocketService.instance.setBaiguullagiinMedegdelCallback(null);
     if (_notificationCallback != null) {
       SocketService.instance.removeNotificationCallback(_notificationCallback);
     }
@@ -66,13 +104,26 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
     });
 
     try {
+      print('[medegdel_list] SEND fetchMedegdel');
       final response = await ApiService.fetchMedegdel();
       final medegdelResponse = MedegdelResponse.fromJson(response);
 
+      // Sort by last activity (updatedAt) so last replied chat is on top
+      final list = medegdelResponse.data;
+      list.sort((a, b) {
+        final at = a.updatedAt ?? a.createdAt;
+        final bt = b.updatedAt ?? b.createdAt;
+        if (at == null && bt == null) return 0;
+        if (at == null) return 1;
+        if (bt == null) return -1;
+        return bt.compareTo(at);
+      });
+
       setState(() {
-        _notifications = medegdelResponse.data;
+        _notifications = list;
         _isLoading = false;
       });
+      print('[medegdel_list] RECV fetchMedegdel count=${list.length}');
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -108,6 +159,7 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
         if (index != -1) {
           _notifications[index] = Medegdel(
             id: notification.id,
+            parentId: notification.parentId,
             baiguullagiinId: notification.baiguullagiinId,
             barilgiinId: notification.barilgiinId,
             ognoo: notification.ognoo,
@@ -574,8 +626,9 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // Show reply indicator if has reply
-                  if (hasReply && (isGomdol || isSanal)) ...[
+                  // Show admin status and reply (for any notification with status/tailbar)
+                  if (notification.status != null &&
+                      notification.status!.trim().isNotEmpty) ...[
                     SizedBox(height: context.responsiveSpacing(
                       small: 6,
                       medium: 7,
@@ -583,71 +636,161 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                       tablet: 10,
                       veryNarrow: 4,
                     )),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: context.responsiveSpacing(
-                          small: 6,
-                          medium: 7,
-                          large: 8,
-                          tablet: 10,
-                          veryNarrow: 4,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              small: 6,
+                              medium: 7,
+                              large: 8,
+                              tablet: 10,
+                              veryNarrow: 4,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              small: 3,
+                              medium: 4,
+                              large: 5,
+                              tablet: 6,
+                              veryNarrow: 2,
+                            ),
+                          ),
+                          decoration: BoxDecoration(
+                            color: _isDoneStatus(notification.status)
+                                ? AppColors.success.withOpacity(0.1)
+                                : _isRejectedStatus(notification.status)
+                                    ? AppColors.error.withOpacity(0.1)
+                                    : AppColors.deepGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(
+                                context.responsiveBorderRadius(
+                              small: 6,
+                              medium: 7,
+                              large: 8,
+                              tablet: 10,
+                              veryNarrow: 4,
+                            )),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.admin_panel_settings,
+                                color: _isDoneStatus(notification.status)
+                                    ? AppColors.success
+                                    : _isRejectedStatus(notification.status)
+                                        ? AppColors.error
+                                        : AppColors.deepGreen,
+                                size: context.responsiveFontSize(
+                                  small: 10,
+                                  medium: 11,
+                                  large: 12,
+                                  tablet: 14,
+                                  veryNarrow: 9,
+                                ),
+                              ),
+                              SizedBox(width: context.responsiveSpacing(
+                                small: 4,
+                                medium: 5,
+                                large: 6,
+                                tablet: 8,
+                                veryNarrow: 3,
+                              )),
+                              Text(
+                                _getStatusLabel(notification.status),
+                                style: TextStyle(
+                                  color: _isDoneStatus(notification.status)
+                                      ? AppColors.success
+                                      : _isRejectedStatus(notification.status)
+                                          ? AppColors.error
+                                          : AppColors.deepGreen,
+                                  fontSize: context.responsiveFontSize(
+                                    small: 9,
+                                    medium: 10,
+                                    large: 11,
+                                    tablet: 13,
+                                    veryNarrow: 8,
+                                  ),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        vertical: context.responsiveSpacing(
-                          small: 3,
-                          medium: 4,
-                          large: 5,
-                          tablet: 6,
-                          veryNarrow: 2,
-                        ),
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                      ],
+                    ),
+                    if (notification.tailbar != null &&
+                        notification.tailbar!.trim().isNotEmpty) ...[
+                      SizedBox(height: context.responsiveSpacing(
+                        small: 4,
+                        medium: 5,
+                        large: 6,
+                        tablet: 8,
+                        veryNarrow: 3,
+                      )),
+                      Container(
+                        padding: EdgeInsets.all(context.responsiveSpacing(
                           small: 6,
                           medium: 7,
                           large: 8,
                           tablet: 10,
                           veryNarrow: 4,
                         )),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.reply,
-                            color: AppColors.success,
-                            size: context.responsiveFontSize(
-                              small: 10,
-                              medium: 11,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 9,
-                            ),
-                          ),
-                          SizedBox(width: context.responsiveSpacing(
-                            small: 4,
-                            medium: 5,
-                            large: 6,
-                            tablet: 8,
-                            veryNarrow: 3,
+                        decoration: BoxDecoration(
+                          color: context.isDarkMode
+                              ? Colors.white.withOpacity(0.06)
+                              : AppColors.deepGreen.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(
+                              context.responsiveBorderRadius(
+                            small: 6,
+                            medium: 7,
+                            large: 8,
+                            tablet: 10,
+                            veryNarrow: 4,
                           )),
-                          Text(
-                            'Хариу ирсэн',
-                            style: TextStyle(
-                              color: AppColors.success,
-                              fontSize: context.responsiveFontSize(
-                                small: 9,
-                                medium: 10,
-                                large: 11,
-                                tablet: 13,
-                                veryNarrow: 8,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.reply,
+                              color: context.textSecondaryColor,
+                              size: context.responsiveFontSize(
+                                small: 12,
+                                medium: 13,
+                                large: 14,
+                                tablet: 16,
+                                veryNarrow: 10,
                               ),
-                              fontWeight: FontWeight.w600,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: context.responsiveSpacing(
+                              small: 6,
+                              medium: 7,
+                              large: 8,
+                              tablet: 10,
+                              veryNarrow: 4,
+                            )),
+                            Expanded(
+                              child: Text(
+                                notification.tailbar!,
+                                style: TextStyle(
+                                  color: context.textSecondaryColor,
+                                  fontSize: context.responsiveFontSize(
+                                    small: 11,
+                                    medium: 12,
+                                    large: 13,
+                                    tablet: 15,
+                                    veryNarrow: 10,
+                                  ),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                   if (isReply) ...[
                     SizedBox(height: context.responsiveSpacing(
