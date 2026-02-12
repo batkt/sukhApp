@@ -88,6 +88,14 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
     return s == 'rejected' || s == 'declined' || s == 'cancelled';
   }
 
+  /// Мэдэгдэл (App/Мессеж/Mail) has no status; only sanal/gomdol show status.
+  bool _showStatusForTurul(String? turul) {
+    if (turul == null || turul.isEmpty) return false;
+    final t = turul.toLowerCase().trim();
+    if (t == 'app' || t == 'мессеж' || t == 'mail' || t == 'мэдэгдэл' || t == 'medegdel') return false;
+    return t == 'sanal' || t == 'санал' || t == 'gomdol' || t == 'гомдол';
+  }
+
   @override
   void dispose() {
     SocketService.instance.setBaiguullagiinMedegdelCallback(null);
@@ -626,8 +634,9 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // Show admin status and reply (for any notification with status/tailbar)
-                  if (notification.status != null &&
+                  // Show admin status only for sanal/gomdol; Мэдэгдэл (App) has no status
+                  if (_showStatusForTurul(notification.turul) &&
+                      notification.status != null &&
                       notification.status!.trim().isNotEmpty) ...[
                     SizedBox(height: context.responsiveSpacing(
                       small: 6,

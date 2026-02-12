@@ -3251,52 +3251,41 @@ class ApiService {
     }
   }
 
-  /// Mark notification as read
+  /// Mark notification/thread as seen (PATCH /medegdel/:id/kharsanEsekh). Marks root + all replies in thread.
   static Future<Map<String, dynamic>> markMedegdelAsRead(
     String medegdelId,
   ) async {
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      final tukhainBaaziinKholbolt =
-          await StorageService.getTukhainBaaziinKholbolt();
 
-      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+      if (baiguullagiinId == null) {
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
       final headers = await getAuthHeaders();
-
-      // Ensure Content-Type header is set
       final requestHeaders = Map<String, String>.from(headers);
       requestHeaders['Content-Type'] = 'application/json';
 
-      final requestBody = {
-        'baiguullagiinId': baiguullagiinId,
-        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
-        'kharsanEsekh': true,
-      };
+      final uri = Uri.parse('$baseUrl/medegdel/$medegdelId/kharsanEsekh').replace(
+        queryParameters: {'baiguullagiinId': baiguullagiinId},
+      );
 
-      final url = '$baseUrl/medegdel/$medegdelId';
-
-      final response = await http.put(
-        Uri.parse(url),
+      final response = await http.patch(
+        uri,
         headers: requestHeaders,
-        body: json.encode(requestBody),
+        body: json.encode({}),
       );
 
       if (response.statusCode == 200) {
         try {
           final responseData = json.decode(response.body);
-          // Verify the response indicates success
           if (responseData['success'] == true ||
               (responseData['data'] != null &&
                   responseData['data']['kharsanEsekh'] == true)) {
             return responseData;
           }
-          // If response doesn't have success flag, assume it worked if status is 200
           return {'success': true, 'data': responseData};
         } catch (e) {
-          // If response is not JSON, assume success if status is 200
           return {'success': true};
         }
       } else {

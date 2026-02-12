@@ -182,86 +182,24 @@ class HomeHeader extends StatelessWidget {
                     ),
                     if (unreadNotificationCount > 0)
                       Positioned(
-                        right: context.responsiveSpacing(
-                          small: -2,
-                          medium: -2,
-                          large: -2,
-                          tablet: -2,
-                          veryNarrow: -1.5,
-                        ),
-                        top: context.responsiveSpacing(
-                          small: -2,
-                          medium: -2,
-                          large: -2,
-                          tablet: -2,
-                          veryNarrow: -1.5,
-                        ),
+                        right: 0,
+                        top: 0,
                         child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: context.responsiveSpacing(
-                              small: 5,
-                              medium: 6,
-                              large: 7,
-                              tablet: 8,
-                              veryNarrow: 4,
-                            ),
-                            vertical: context.responsiveSpacing(
-                              small: 2,
-                              medium: 2,
-                              large: 3,
-                              tablet: 3,
-                              veryNarrow: 1.5,
-                            ),
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.secondaryAccent,
-                                AppColors.secondaryAccent.withOpacity(0.8),
-                              ],
-                            ),
-                            shape: BoxShape.circle,
+                            color: AppColors.secondaryAccent,
+                            shape: BoxShape.rectangle,
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: context.backgroundColor,
-                              width: context.responsiveSpacing(
-                                small: 1.5,
-                                medium: 2,
-                                large: 2,
-                                tablet: 2.5,
-                                veryNarrow: 1.5,
-                              ),
+                              width: 1,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.secondaryAccent.withOpacity(
-                                  0.5,
-                                ),
-                                blurRadius: context.responsiveSpacing(
-                                  small: 3,
-                                  medium: 4,
-                                  large: 5,
-                                  tablet: 6,
-                                  veryNarrow: 2.5,
-                                ),
-                                spreadRadius: 0,
-                              ),
-                            ],
                           ),
-                          constraints: BoxConstraints(
-                            minWidth: context.responsiveSpacing(
-                              small: 18,
-                              medium: 20,
-                              large: 22,
-                              tablet: 24,
-                              veryNarrow: 16,
-                            ),
-                            minHeight: context.responsiveSpacing(
-                              small: 18,
-                              medium: 20,
-                              large: 22,
-                              tablet: 24,
-                              veryNarrow: 16,
-                            ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                            maxWidth: 24,
+                            maxHeight: 16,
                           ),
                           child: Center(
                             child: Text(
@@ -270,13 +208,7 @@ class HomeHeader extends StatelessWidget {
                                   : '$unreadNotificationCount',
                               style: TextStyle(
                                 color: context.backgroundColor,
-                                fontSize: context.responsiveFontSize(
-                                  small: 10,
-                                  medium: 11,
-                                  large: 12,
-                                  tablet: 13,
-                                  veryNarrow: 9,
-                                ),
+                                fontSize: 9,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

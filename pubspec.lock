@@ -903,7 +903,7 @@ packages:
       sha256: "223258060a1d25c62bae18282c16783f28581ec19401d17e56b5205b9f039d78"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.8"
+    version: "1.0.9"
   rename:
     dependency: "direct main"
     description:

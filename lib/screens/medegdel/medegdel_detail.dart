@@ -21,6 +21,12 @@ String _normalizeMedegdelPath(String? p) {
   return n.isEmpty ? p : n;
 }
 
+/// Split zurag (may be comma-separated for multiple images) into list of normalized paths for image URLs.
+List<String> _zuragPaths(String? zurag) {
+  if (zurag == null || zurag.isEmpty) return [];
+  return zurag.split(',').map((e) => _normalizeMedegdelPath(e.trim())).where((e) => e.isNotEmpty).toList();
+}
+
 class MedegdelDetailModal extends StatefulWidget {
   final Medegdel notification;
 
@@ -102,7 +108,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         if (!mounted) return;
         setState(() {
           if (_threadItems.any((m) => m.id == messageId)) return;
-          _threadItems = [..._threadItems, msg!];
+          // When receiver (admin) sends a message, previous messages were seen — show blue check on all
+          final markedSeen = _threadItems.map((m) => m.copyWith(kharsanEsekh: true)).toList();
+          _threadItems = [...markedSeen, msg!];
         });
       });
     };
@@ -287,9 +295,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     }
 
     final turul = _notification.turul.toLowerCase();
-    final isMedegdel = turul == 'app';
+    final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
 
-    if (!isMedegdel) {
+    if (!isChatOrMedegdel) {
       return;
     }
 
@@ -448,9 +456,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   ),
                   onPressed: () {
                     final turul = _notification.turul.toLowerCase();
-                    final isMedegdel = turul == 'app';
+                    final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
                     final wasMarkedAsRead =
-                        _notification.kharsanEsekh && isMedegdel;
+                        _notification.kharsanEsekh && isChatOrMedegdel;
                     Navigator.pop(context, wasMarkedAsRead);
                   },
                 ),
@@ -509,6 +517,13 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         status == 'declined' ||
         status == 'cancelled' ||
         status == 'татгалзсан';
+  }
+
+  /// Мэдэгдэл (App/Мессеж/Mail) has no status; only sanal/gomdol show status.
+  bool _showStatusForNotification(Medegdel n) {
+    final t = n.turul?.toLowerCase().trim() ?? '';
+    if (t == 'app' || t == 'мессеж' || t == 'mail' || t == 'мэдэгдэл' || t == 'medegdel') return false;
+    return t == 'sanal' || t == 'санал' || t == 'gomdol' || t == 'гомдол';
   }
 
   Widget _buildContent(bool isGomdol, bool isSanal) {
@@ -810,6 +825,29 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ),
             ),
           ),
+          if (_notification.zurag != null && _notification.zurag!.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: context.responsiveSpacing(small: 10, medium: 12, large: 14, tablet: 16, veryNarrow: 8)),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _zuragPaths(_notification.zurag).map((path) {
+                  final url = '${ApiService.baseUrl}/medegdel/$path';
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 280, maxHeight: 220),
+                      child: Image.network(
+                        url,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 140, width: 200, child: Center(child: CircularProgressIndicator())),
+                        errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined, size: 48),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           if (_notification.hasReply && (isGomdol || isSanal)) ...[
             SizedBox(height: context.responsiveSpacing(
               small: 14,
@@ -1091,17 +1129,18 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     _notification.orshinSuugchUtas!,
                     Icons.phone,
                   ),
-                _buildDetailRow(
-                  'Төлөв',
-                  _getStatusText(_notification),
-                  _isStatusDone(_notification)
-                      ? Icons.check_circle_outline
-                      : _isStatusRejected(_notification)
-                      ? Icons.cancel_outlined
-                      : _notification.hasReply
-                      ? Icons.check_circle_outline
-                      : Icons.schedule,
-                ),
+                if (_showStatusForNotification(_notification))
+                  _buildDetailRow(
+                    'Төлөв',
+                    _getStatusText(_notification),
+                    _isStatusDone(_notification)
+                        ? Icons.check_circle_outline
+                        : _isStatusRejected(_notification)
+                        ? Icons.cancel_outlined
+                        : _notification.hasReply
+                        ? Icons.check_circle_outline
+                        : Icons.schedule,
+                  ),
                 _buildDetailRow(
                   'Үүсгэсэн огноо',
                   _formatDate(_notification.createdAt),
@@ -1170,20 +1209,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             tablet: 6,
             veryNarrow: 0,
           )),
-          child: Text(
-            'Харилцлага',
-            style: TextStyle(
-              color: context.textPrimaryColor,
-              fontSize: context.responsiveFontSize(
-                small: 14,
-                medium: 15,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 12,
-              ),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          
         ),
         SizedBox(height: context.responsiveSpacing(
           small: 8,
@@ -1281,16 +1307,24 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   if (msg.zurag != null && msg.zurag!.isNotEmpty)
                     Padding(
                       padding: EdgeInsets.only(bottom: context.responsiveSpacing(small: 6, medium: 8, large: 10, tablet: 12, veryNarrow: 4)),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
-                          child: Image.network(
-                            '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(msg.zurag)}',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
-                          ),
-                        ),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _zuragPaths(msg.zurag).map((path) {
+                          final url = '${ApiService.baseUrl}/medegdel/$path';
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                              child: Image.network(
+                                url,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
+                                errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
                   if (msg.duu != null && msg.duu!.isNotEmpty)
@@ -1342,6 +1376,25 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                       ),
                     ),
                   ),
+                  if (isUser && msg.kharsanEsekh && msg.updatedAt.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: context.responsiveSpacing(small: 2, medium: 3, large: 4, veryNarrow: 1)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.done_all, size: 14, color: Colors.blue.shade600),
+                          SizedBox(width: context.responsiveSpacing(small: 3, medium: 4, veryNarrow: 2)),
+                          Text(
+                            _formatTimeOnly(msg.updatedAt),
+                            style: TextStyle(
+                              color: context.textSecondaryColor.withOpacity(0.8),
+                              fontSize: context.responsiveFontSize(small: 8, medium: 9, large: 10, veryNarrow: 7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1645,6 +1698,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
       return dateString;
     }
   }
+
+  String _formatTimeOnly(String dateString) {
+    try {
+      final date = DateTime.parse(dateString).toLocal();
+      return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateString;
+    }
+  }
 }
 
 class MedegdelDetailScreen extends StatefulWidget {
@@ -1712,6 +1774,13 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         status == 'татгалзсан';
   }
 
+  /// Мэдэгдэл (App/Мессеж/Mail) has no status; only sanal/gomdol show status.
+  bool _showStatusForNotification(Medegdel n) {
+    final t = n.turul?.toLowerCase().trim() ?? '';
+    if (t == 'app' || t == 'мессеж' || t == 'mail' || t == 'мэдэгдэл' || t == 'medegdel') return false;
+    return t == 'sanal' || t == 'санал' || t == 'gomdol' || t == 'гомдол';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1769,7 +1838,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         if (!mounted) return;
         setState(() {
           if (_threadItems.any((m) => m.id == messageId)) return;
-          _threadItems = [..._threadItems, msg!];
+          // When receiver (admin) sends a message, previous messages were seen — show blue check on all
+          final markedSeen = _threadItems.map((m) => m.copyWith(kharsanEsekh: true)).toList();
+          _threadItems = [...markedSeen, msg!];
         });
       });
     };
@@ -1954,9 +2025,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     }
 
     final turul = _notification.turul.toLowerCase();
-    final isMedegdel = turul == 'app';
+    final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
 
-    if (!isMedegdel) {
+    if (!isChatOrMedegdel) {
       return;
     }
 
@@ -2018,8 +2089,8 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           final turul = _notification.turul.toLowerCase();
-          final isMedegdel = turul == 'app';
-          final wasMarkedAsRead = _notification.kharsanEsekh && isMedegdel;
+          final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
+          final wasMarkedAsRead = _notification.kharsanEsekh && isChatOrMedegdel;
           if (Navigator.canPop(context)) {
             Navigator.pop(context, wasMarkedAsRead);
           } else {
@@ -2063,9 +2134,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                         ),
                         onPressed: () {
                           final turul = _notification.turul.toLowerCase();
-                          final isMedegdel = turul == 'app';
+                          final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
                           final wasMarkedAsRead =
-                              _notification.kharsanEsekh && isMedegdel;
+                              _notification.kharsanEsekh && isChatOrMedegdel;
                           if (Navigator.canPop(context)) {
                             Navigator.pop(context, wasMarkedAsRead);
                           } else {
@@ -2416,6 +2487,29 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                             ),
                           ),
                         ),
+                        if (_notification.zurag != null && _notification.zurag!.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(top: context.responsiveSpacing(small: 14, medium: 16, large: 18, tablet: 20, veryNarrow: 10)),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _zuragPaths(_notification.zurag).map((path) {
+                                final url = '${ApiService.baseUrl}/medegdel/$path';
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 300, maxHeight: 240),
+                                    child: Image.network(
+                                      url,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 160, width: 220, child: Center(child: CircularProgressIndicator())),
+                                      errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined, size: 56),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         if (_notification.hasReply &&
                             (isGomdol || isSanal)) ...[
                           SizedBox(
@@ -2750,17 +2844,18 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                   _notification.orshinSuugchUtas!,
                                   Icons.phone,
                                 ),
-                              _buildDetailRow(
-                                'Төлөв',
-                                _getStatusText(_notification),
-                                _isStatusDone(_notification)
-                                    ? Icons.check_circle
-                                    : _isStatusRejected(_notification)
-                                    ? Icons.cancel
-                                    : _notification.hasReply
-                                    ? Icons.check_circle
-                                    : Icons.pending,
-                              ),
+                              if (_showStatusForNotification(_notification))
+                                _buildDetailRow(
+                                  'Төлөв',
+                                  _getStatusText(_notification),
+                                  _isStatusDone(_notification)
+                                      ? Icons.check_circle
+                                      : _isStatusRejected(_notification)
+                                      ? Icons.cancel
+                                      : _notification.hasReply
+                                      ? Icons.check_circle
+                                      : Icons.pending,
+                                ),
                               _buildDetailRow(
                                 'Үүсгэсэн огноо',
                                 _formatDate(_notification.createdAt),
@@ -2823,20 +2918,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
           tablet: 32,
           veryNarrow: 14,
         )),
-        Text(
-          'Харилцлага',
-          style: TextStyle(
-            color: context.textPrimaryColor,
-            fontSize: context.responsiveFontSize(
-              small: 17,
-              medium: 18,
-              large: 19,
-              tablet: 21,
-              veryNarrow: 14,
-            ),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        
         SizedBox(height: context.responsiveSpacing(
           small: 12,
           medium: 14,
@@ -2907,16 +2989,24 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                   if (msg.zurag != null && msg.zurag!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
-                          child: Image.network(
-                            '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(msg.zurag)}',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
-                          ),
-                        ),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _zuragPaths(msg.zurag).map((path) {
+                          final url = '${ApiService.baseUrl}/medegdel/$path';
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                              child: Image.network(
+                                url,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
+                                errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
                   if (msg.duu != null && msg.duu!.isNotEmpty)
@@ -2968,6 +3058,25 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                       ),
                     ),
                   ),
+                  if (isUser && msg.kharsanEsekh && msg.updatedAt.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.done_all, size: 14, color: Colors.blue.shade600),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatTimeOnly(msg.updatedAt),
+                            style: TextStyle(
+                              color: context.textSecondaryColor.withOpacity(0.8),
+                              fontSize: context.responsiveFontSize(small: 8, medium: 9, large: 10, veryNarrow: 7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -3196,6 +3305,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     try {
       final date = DateTime.parse(dateString).toLocal();
       return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  String _formatTimeOnly(String dateString) {
+    try {
+      final date = DateTime.parse(dateString).toLocal();
+      return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return dateString;
     }

@@ -1153,29 +1153,30 @@ class _BookingScreenState extends State<NuurKhuudas>
         actions: [
           Stack(
             clipBehavior: Clip.none,
+            alignment: Alignment.center,
             children: [
               IconButton(
-                icon: Icon(Icons.notifications_outlined, color: Colors.white, size: 22.sp),
+                icon: Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
                 onPressed: () {
                   context.push('/medegdel-list').then((_) => _loadNotificationCount());
                 },
               ),
               if (_unreadNotificationCount > 0)
                 Positioned(
-                  right: 8.w,
-                  top: 8.h,
+                  right: 4,
+                  top: 6,
                   child: Container(
-                    padding: EdgeInsets.all(4.w),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                     decoration: BoxDecoration(
                       color: Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.deepGreen, width: 1.5),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.deepGreen, width: 1),
                     ),
-                    constraints: BoxConstraints(minWidth: 14.w, minHeight: 14.w),
+                    constraints: const BoxConstraints(minWidth: 14, minHeight: 14, maxWidth: 24, maxHeight: 16),
                     child: Center(
                       child: Text(
                         _unreadNotificationCount > 99 ? '99+' : '$_unreadNotificationCount',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 8.sp),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
                       ),
                     ),
                   ),

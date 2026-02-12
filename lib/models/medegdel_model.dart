@@ -125,8 +125,41 @@ class Medegdel {
         turulLower == 'khariu';
   }
 
-  /// True if this message is from the user (chat reply).
-  bool get isUserReply => turul.toLowerCase() == 'user_reply';
+  /// True if this message is from the resident (root sanal/gomdol or chat user_reply).
+  bool get isUserReply {
+    final t = turul.toLowerCase();
+    return t == 'user_reply' ||
+        t == 'sanal' ||
+        t == 'санал' ||
+        t == 'gomdol' ||
+        t == 'гомдол';
+  }
+
+  Medegdel copyWith({bool? kharsanEsekh, String? updatedAt}) {
+    return Medegdel(
+      id: id,
+      parentId: parentId,
+      baiguullagiinId: baiguullagiinId,
+      barilgiinId: barilgiinId,
+      ognoo: ognoo,
+      title: title,
+      gereeniiDugaar: gereeniiDugaar,
+      message: message,
+      orshinSuugchGereeniiDugaar: orshinSuugchGereeniiDugaar,
+      orshinSuugchId: orshinSuugchId,
+      orshinSuugchNer: orshinSuugchNer,
+      orshinSuugchUtas: orshinSuugchUtas,
+      kharsanEsekh: kharsanEsekh ?? this.kharsanEsekh,
+      turul: turul,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      status: status,
+      tailbar: tailbar,
+      repliedAt: repliedAt,
+      zurag: zurag,
+      duu: duu,
+    );
+  }
 
   String get formattedDate {
     try {
