@@ -24,6 +24,8 @@ class AppBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFB),
       ),
@@ -412,322 +414,357 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   @override
   Widget build(BuildContext context) {
     bool isTablet = ScreenUtil().screenWidth > 700;
-    final isDark = context.isDarkMode;
-    
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
+        backgroundColor: context.isDarkMode
+            ? const Color(0xFF0A0E14)
+            : const Color(0xFFF8FAFB),
         resizeToAvoidBottomInset: true,
         body: AppBackground(
           child: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: isTablet ? 420.w : double.infinity,
-                      ),
-                      child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24.w,
-                            vertical: 12.h,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(height: 16.h),
-                              
-                              // Logo with elegant circular background
-                              Stack(
-                                alignment: Alignment.center,
+                final isDark = context.isDarkMode;
+                return Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isTablet ? 420.w : double.infinity,
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // Green background circle for logo
-                                  Container(
-                                    width: 130.w,
-                                    height: 130.w,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.black,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          blurRadius: 20,
-                                          spreadRadius: 2,
+                                  SizedBox(height: 16.h),
+
+                                  // Logo with elegant circular background
+                                  Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      // Green background circle for logo
+                                      Container(
+                                        width: 130.w,
+                                        height: 130.w,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.black,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.3,
+                                              ),
+                                              blurRadius: 20,
+                                              spreadRadius: 2,
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Logo
-                                  SizedBox(
-                                    width: 100.w,
-                                    height: 100.w,
-                                    child: SelectableLogoImage(
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 16.h),
-                              
-                              // Welcome text - clean typography
-                              Text(
-                                'Тавтай морил',
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.lightTextPrimary,
-                                  fontSize: 28.sp,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                'Нэвтрэх мэдээллээ оруулна уу',
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white.withOpacity(0.5)
-                                      : AppColors.lightTextSecondary.withOpacity(0.7),
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                              
-                              SizedBox(height: 24.h),
-                              
-                              // Phone input
-                              _buildModernInputField(
-                                context: context,
-                                controller: phoneController,
-                                label: 'Утасны дугаар',
-                                hint: '99001122',
-                                icon: Icons.phone_outlined,
-                                keyboardType: TextInputType.phone,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  LengthLimitingTextInputFormatter(8),
-                                ],
-                                isDark: isDark,
-                              ),
-                              
-                              SizedBox(height: 16.h),
-                              
-                              // Password input
-                              _buildModernInputField(
-                                context: context,
-                                controller: passwordController,
-                                label: 'Нууц код',
-                                hint: '••••',
-                                icon: Icons.lock_outline_rounded,
-                                keyboardType: TextInputType.number,
-                                obscureText: _obscurePassword,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  LengthLimitingTextInputFormatter(4),
-                                ],
-                                isDark: isDark,
-                                suffixIcon: passwordController.text.isNotEmpty
-                                    ? IconButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _obscurePassword = !_obscurePassword;
-                                          });
-                                        },
-                                        icon: Icon(
-                                          _obscurePassword
-                                              ? Icons.visibility_off_rounded
-                                              : Icons.visibility_rounded,
-                                          color: isDark
-                                              ? Colors.white.withOpacity(0.4)
-                                              : AppColors.lightTextSecondary.withOpacity(0.5),
-                                          size: 20.sp,
+                                      ),
+                                      // Logo
+                                      SizedBox(
+                                        width: 100.w,
+                                        height: 100.w,
+                                        child: SelectableLogoImage(
+                                          fit: BoxFit.contain,
                                         ),
-                                      )
-                                    : null,
-                              ),
-                              
-                              // Forgot password link
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: TextButton(
-                                  onPressed: _showForgotPasswordDialog,
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                                      ),
+                                    ],
                                   ),
-                                  child: Text(
-                                    'Нууц код мартсан?',
+                                  SizedBox(height: 16.h),
+
+                                  // Welcome text - clean typography
+                                  Text(
+                                    'Тавтай морил',
                                     style: TextStyle(
-                                      color: AppColors.deepGreen,
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              
-                              // Email field (conditional)
-                              if (_showEmailField) ...[
-                                SizedBox(height: 12.h),
-                                _buildModernInputField(
-                                  context: context,
-                                  controller: emailController,
-                                  label: 'Имэйл хаяг',
-                                  hint: 'example@mail.com',
-                                  icon: Icons.email_outlined,
-                                  keyboardType: TextInputType.emailAddress,
-                                  isDark: isDark,
-                                ),
-                              ],
-                              
-                              SizedBox(height: 16.h),
-                              
-                              // Login button row with biometric
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildPrimaryButton(
-                                      context: context,
-                                      onTap: _isLoading ? null : _handleLogin,
-                                      isLoading: _isLoading,
-                                      label: _showEmailField ? 'Бүртгүүлэх' : 'Нэвтрэх',
-                                      isDark: isDark,
-                                    ),
-                                  ),
-                                  if (_biometricAvailable && !_showEmailField) ...[
-                                    SizedBox(width: 12.w),
-                                    _buildBiometricButton(
-                                      context: context,
-                                      onTap: _isLoading ? null : _handleBiometricLogin,
-                                      isDark: isDark,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              
-                              SizedBox(height: 12.h),
-                              
-                              // Hint text (only when in signup mode)
-                              if (_showEmailField) ...[
-                                Text(
-                                  'Системд бүртгэлгүй байна',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white.withOpacity(0.4)
-                                        : AppColors.lightTextSecondary.withOpacity(0.6),
-                                    fontSize: 13.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 8.h),
-                              ],
-                              
-                              // Divider with text
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      height: 1,
                                       color: isDark
-                                          ? Colors.white.withOpacity(0.1)
-                                          : Colors.black.withOpacity(0.06),
+                                          ? Colors.white
+                                          : AppColors.lightTextPrimary,
+                                      fontSize: 28.sp,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.5,
                                     ),
                                   ),
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12.w),
-                                    child: Text(
-                                      'эсвэл',
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white.withOpacity(0.3)
-                                            : AppColors.lightTextSecondary.withOpacity(0.5),
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w500,
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    'Нэвтрэх мэдээллээ оруулна уу',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white.withOpacity(0.5)
+                                          : AppColors.lightTextSecondary
+                                                .withOpacity(0.7),
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+
+                                  SizedBox(height: 24.h),
+
+                                  // Phone input
+                                  _buildModernInputField(
+                                    context: context,
+                                    controller: phoneController,
+                                    label: 'Утасны дугаар',
+                                    hint: '99001122',
+                                    icon: Icons.phone_outlined,
+                                    keyboardType: TextInputType.phone,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(8),
+                                    ],
+                                    isDark: isDark,
+                                  ),
+
+                                  SizedBox(height: 16.h),
+
+                                  // Password input
+                                  _buildModernInputField(
+                                    context: context,
+                                    controller: passwordController,
+                                    label: 'Нууц код',
+                                    hint: '••••',
+                                    icon: Icons.lock_outline_rounded,
+                                    keyboardType: TextInputType.number,
+                                    obscureText: _obscurePassword,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(4),
+                                    ],
+                                    isDark: isDark,
+                                    suffixIcon:
+                                        passwordController.text.isNotEmpty
+                                        ? IconButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                _obscurePassword =
+                                                    !_obscurePassword;
+                                              });
+                                            },
+                                            icon: Icon(
+                                              _obscurePassword
+                                                  ? Icons.visibility_off_rounded
+                                                  : Icons.visibility_rounded,
+                                              color: isDark
+                                                  ? Colors.white.withOpacity(
+                                                      0.4,
+                                                    )
+                                                  : AppColors.lightTextSecondary
+                                                        .withOpacity(0.5),
+                                              size: 20.sp,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+
+                                  // Forgot password link
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: _showForgotPasswordDialog,
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 8.h,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Нууц код мартсан?',
+                                        style: TextStyle(
+                                          color: AppColors.deepGreen,
+                                          fontSize: 11.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  Expanded(
+
+                                  // Email field (conditional)
+                                  if (_showEmailField) ...[
+                                    SizedBox(height: 12.h),
+                                    _buildModernInputField(
+                                      context: context,
+                                      controller: emailController,
+                                      label: 'Имэйл хаяг',
+                                      hint: 'example@mail.com',
+                                      icon: Icons.email_outlined,
+                                      keyboardType: TextInputType.emailAddress,
+                                      isDark: isDark,
+                                    ),
+                                  ],
+
+                                  SizedBox(height: 16.h),
+
+                                  // Login button row with biometric
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildPrimaryButton(
+                                          context: context,
+                                          onTap: _isLoading
+                                              ? null
+                                              : _handleLogin,
+                                          isLoading: _isLoading,
+                                          label: _showEmailField
+                                              ? 'Бүртгүүлэх'
+                                              : 'Нэвтрэх',
+                                          isDark: isDark,
+                                        ),
+                                      ),
+                                      if (_biometricAvailable &&
+                                          !_showEmailField) ...[
+                                        SizedBox(width: 12.w),
+                                        _buildBiometricButton(
+                                          context: context,
+                                          onTap: _isLoading
+                                              ? null
+                                              : _handleBiometricLogin,
+                                          isDark: isDark,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 12.h),
+
+                                  // Hint text (only when in signup mode)
+                                  if (_showEmailField) ...[
+                                    Text(
+                                      'Системд бүртгэлгүй байна',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.4)
+                                            : AppColors.lightTextSecondary
+                                                  .withOpacity(0.6),
+                                        fontSize: 13.sp,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                  ],
+
+                                  // Divider with text
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Container(
+                                          height: 1,
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.1)
+                                              : Colors.black.withOpacity(0.06),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 12.w,
+                                        ),
+                                        child: Text(
+                                          'эсвэл',
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white.withOpacity(0.3)
+                                                : AppColors.lightTextSecondary
+                                                      .withOpacity(0.5),
+                                            fontSize: 12.sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Container(
+                                          height: 1,
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.1)
+                                              : Colors.black.withOpacity(0.06),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  SizedBox(height: 12.h),
+
+                                  // Sign up button
+                                  GestureDetector(
+                                    onTap: () {
+                                      context.push(
+                                        '/burtguulekh_signup',
+                                        extra: {'forceNoOrg': true},
+                                      );
+                                    },
                                     child: Container(
-                                      height: 1,
-                                      color: isDark
-                                          ? Colors.white.withOpacity(0.1)
-                                          : Colors.black.withOpacity(0.06),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 32.w,
+                                        vertical: 14.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.transparent,
+                                        borderRadius: BorderRadius.circular(
+                                          14.r,
+                                        ),
+                                        border: Border.all(
+                                          color: isDark
+                                              ? AppColors.deepGreen.withOpacity(
+                                                  0.5,
+                                                )
+                                              : AppColors.deepGreen.withOpacity(
+                                                  0.3,
+                                                ),
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Шинээр бүртгүүлэх',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          color: isDark
+                                              ? AppColors.deepGreenLight
+                                              : AppColors.deepGreen,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              
-                              SizedBox(height: 12.h),
-                              
-                              // Sign up button
-                              GestureDetector(
-                                onTap: () {
-                                  context.push(
-                                    '/burtguulekh_signup',
-                                    extra: {'forceNoOrg': true},
-                                  );
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 32.w,
-                                    vertical: 14.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(14.r),
-                                    border: Border.all(
-                                      color: isDark
-                                          ? AppColors.deepGreen.withOpacity(0.5)
-                                          : AppColors.deepGreen.withOpacity(0.3),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Шинээр бүртгүүлэх',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      color: isDark
-                                          ? AppColors.deepGreenLight
-                                          : AppColors.deepGreen,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              
-                              SizedBox(height: 16.h),
-                              
-                              // Footer
-                              Column(
-                                children: [
-                                  Text(
-                                    '© 2026 Powered by Zevtabs LLC',
-                                    style: TextStyle(
-                                      fontSize: 10.sp,
-                                      color: isDark
-                                          ? Colors.white.withOpacity(0.25)
-                                          : Colors.black.withOpacity(0.3),
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Text(
-                                    'Version 1.2.1',
-                                    style: TextStyle(
-                                      fontSize: 9.sp,
-                                      color: isDark
-                                          ? Colors.white.withOpacity(0.2)
-                                          : Colors.black.withOpacity(0.25),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 8.h),
-                            ],
+                            ),
                           ),
+                        ),
                       ),
                     ),
-                  ),
+                    // Footer at bottom
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 16.h),
+                      child: Column(
+                        children: [
+                          Text(
+                            '© 2026 Powered by Zevtabs LLC',
+                            style: TextStyle(
+                              fontSize: 10.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.25)
+                                  : Colors.black.withOpacity(0.3),
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'Version 1.2.1',
+                            style: TextStyle(
+                              fontSize: 9.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.2)
+                                  : Colors.black.withOpacity(0.25),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 );
               },
             ),
@@ -736,7 +773,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       ),
     );
   }
-  
+
   // Modern input field widget
   Widget _buildModernInputField({
     required BuildContext context,
@@ -807,18 +844,20 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 ),
               ),
               prefixIconConstraints: BoxConstraints(minWidth: 48.w),
-              suffixIcon: suffixIcon ?? (controller.text.isNotEmpty
-                  ? IconButton(
-                      onPressed: () => controller.clear(),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: isDark
-                            ? Colors.white.withOpacity(0.3)
-                            : AppColors.lightTextSecondary.withOpacity(0.4),
-                        size: 18.sp,
-                      ),
-                    )
-                  : null),
+              suffixIcon:
+                  suffixIcon ??
+                  (controller.text.isNotEmpty
+                      ? IconButton(
+                          onPressed: () => controller.clear(),
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: isDark
+                                ? Colors.white.withOpacity(0.3)
+                                : AppColors.lightTextSecondary.withOpacity(0.4),
+                            size: 18.sp,
+                          ),
+                        )
+                      : null),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
@@ -831,7 +870,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       ],
     );
   }
-  
+
   // Primary button widget
   Widget _buildPrimaryButton({
     required BuildContext context,
@@ -844,15 +883,13 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        height: 52.h, // Fixed height to match biometric button
         padding: EdgeInsets.symmetric(vertical: 16.h),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              AppColors.deepGreen,
-              AppColors.deepGreenDark,
-            ],
+            colors: [AppColors.deepGreen, AppColors.deepGreenDark],
           ),
           borderRadius: BorderRadius.circular(14.r),
           boxShadow: [
@@ -887,7 +924,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       ),
     );
   }
-  
+
   // Biometric button widget
   Widget _buildBiometricButton({
     required BuildContext context,
@@ -897,11 +934,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(16.w),
+        width: 52.w, // Fixed width to make it square
+        height: 52.h, // Fixed height to match login button
+        alignment: Alignment.center, // Center the content
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : Colors.white,
+          color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(14.r),
           border: Border.all(
             color: isDark
@@ -924,27 +961,23 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 'lib/assets/img/face-id.png',
                 width: 26.sp,
                 height: 26.sp,
-                color: isDark
-                    ? AppColors.deepGreenLight
-                    : AppColors.deepGreen,
+                color: isDark ? AppColors.deepGreenLight : AppColors.deepGreen,
               )
             : Icon(
                 Icons.fingerprint,
-                color: isDark
-                    ? AppColors.deepGreenLight
-                    : AppColors.deepGreen,
+                color: isDark ? AppColors.deepGreenLight : AppColors.deepGreen,
                 size: 26.sp,
               ),
       ),
     );
   }
-  
+
   // Show forgot password dialog
   void _showForgotPasswordDialog() {
     // Navigate to the password reset screen
     context.push('/nuuts-ug-sergeekh');
   }
-  
+
   // Handle login logic - extracted for cleaner code
   Future<void> _handleLogin() async {
     String inputPhone = phoneController.text.trim();
@@ -1018,10 +1051,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         }
 
         // Register in Wallet API first
-        await ApiService.registerWalletUser(
-          utas: inputPhone,
-          mail: inputEmail,
-        );
+        await ApiService.registerWalletUser(utas: inputPhone, mail: inputEmail);
       }
 
       // Get saved address to send with login
@@ -1030,23 +1060,31 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       var savedBairName = await StorageService.getWalletBairName();
 
       if (savedBairId == null || savedDoorNo == null) {
-        print('📍 [LOGIN] Address not in local storage, backend will use saved address from profile');
+        print(
+          '📍 [LOGIN] Address not in local storage, backend will use saved address from profile',
+        );
       }
 
       print('🔐 [LOGIN] Attempting login with phone: $inputPhone');
-      print('🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo, bairName: $savedBairName');
+      print(
+        '🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo, bairName: $savedBairName',
+      );
 
       // Get OWN_ORG IDs if address is OWN_ORG type
-      final savedBaiguullagiinId = await StorageService.getWalletBairBaiguullagiinId();
+      final savedBaiguullagiinId =
+          await StorageService.getWalletBairBaiguullagiinId();
       final savedBarilgiinId = await StorageService.getWalletBairBarilgiinId();
       final savedSource = await StorageService.getWalletBairSource();
 
-      final isOwnOrg = savedSource == 'OWN_ORG' &&
+      final isOwnOrg =
+          savedSource == 'OWN_ORG' &&
           savedBaiguullagiinId != null &&
           savedBarilgiinId != null;
 
       if (isOwnOrg) {
-        print('🏢 [LOGIN] OWN_ORG address detected - baiguullagiinId: $savedBaiguullagiinId, barilgiinId: $savedBarilgiinId');
+        print(
+          '🏢 [LOGIN] OWN_ORG address detected - baiguullagiinId: $savedBaiguullagiinId, barilgiinId: $savedBarilgiinId',
+        );
       }
 
       Map<String, dynamic> loginResponse;
@@ -1064,13 +1102,16 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         final raw = e.toString();
         final msg = raw.startsWith('Exception: ') ? raw.substring(11) : raw;
 
-        final isUserNotFound = msg.toLowerCase().contains('олдсонгүй') ||
+        final isUserNotFound =
+            msg.toLowerCase().contains('олдсонгүй') ||
             msg.toLowerCase().contains('not found');
 
         if (isUserNotFound) {
           final storedOrgId = await StorageService.getBaiguullagiinId();
           if (storedOrgId != null && storedOrgId.trim().isNotEmpty) {
-            print('🏢 [LOGIN] Retry login with stored baiguullagiinId=$storedOrgId');
+            print(
+              '🏢 [LOGIN] Retry login with stored baiguullagiinId=$storedOrgId',
+            );
             loginResponse = await ApiService.loginUser(
               utas: inputPhone,
               nuutsUg: inputPassword,
@@ -1088,8 +1129,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       }
 
       // Normalize user payload
-      final userDataDynamic = loginResponse['result'] ?? loginResponse['orshinSuugch'];
-      final userData = userDataDynamic is Map<String, dynamic> ? userDataDynamic : null;
+      final userDataDynamic =
+          loginResponse['result'] ?? loginResponse['orshinSuugch'];
+      final userData = userDataDynamic is Map<String, dynamic>
+          ? userDataDynamic
+          : null;
 
       print('✅ [LOGIN] Login response received');
       print('   - Success: ${loginResponse['success']}');
@@ -1109,11 +1153,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         print('📱 [LOGIN] Phone number saved');
 
         final loginOrgId = userData?['baiguullagiinId']?.toString();
-        final hasBaiguullagiinId = loginOrgId != null &&
+        final hasBaiguullagiinId =
+            loginOrgId != null &&
             loginOrgId.trim().isNotEmpty &&
             loginOrgId.trim().toLowerCase() != 'null';
 
-        print('🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)');
+        print(
+          '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
+        );
 
         // TODO: Re-enable phone verification later
         // Handle OTP verification for WEB-created users
@@ -1164,8 +1211,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         if (!hasBaiguullagiinId) {
           final walletBairId = userData?['walletBairId']?.toString();
           final walletDoorNo = userData?['walletDoorNo']?.toString();
-          if (walletBairId != null && walletBairId.isNotEmpty &&
-              walletDoorNo != null && walletDoorNo.isNotEmpty) {
+          if (walletBairId != null &&
+              walletBairId.isNotEmpty &&
+              walletDoorNo != null &&
+              walletDoorNo.isNotEmpty) {
             await StorageService.saveWalletAddress(
               bairId: walletBairId,
               doorNo: walletDoorNo,
@@ -1188,8 +1237,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         } else if (userData != null) {
           final walletBairId = userData['walletBairId']?.toString();
           final walletDoorNo = userData['walletDoorNo']?.toString();
-          if (walletBairId != null && walletBairId.isNotEmpty &&
-              walletDoorNo != null && walletDoorNo.isNotEmpty) {
+          if (walletBairId != null &&
+              walletBairId.isNotEmpty &&
+              walletDoorNo != null &&
+              walletDoorNo.isNotEmpty) {
             await StorageService.saveWalletAddress(
               bairId: walletBairId,
               doorNo: walletDoorNo,
@@ -1205,8 +1256,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         // Check profile
         bool hasProfile = false;
         if (userData != null) {
-          final hasNer = userData['ner'] != null && userData['ner'].toString().isNotEmpty;
-          final hasOvog = userData['ovog'] != null && userData['ovog'].toString().isNotEmpty;
+          final hasNer =
+              userData['ner'] != null && userData['ner'].toString().isNotEmpty;
+          final hasOvog =
+              userData['ovog'] != null &&
+              userData['ovog'].toString().isNotEmpty;
           hasProfile = hasNer || hasOvog;
         }
 
@@ -1238,7 +1292,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         );
 
         // Navigate to home
-        final taniltsuulgaKharakhEsekh = await StorageService.getTaniltsuulgaKharakhEsekh();
+        final taniltsuulgaKharakhEsekh =
+            await StorageService.getTaniltsuulgaKharakhEsekh();
         final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
 
         await Future.delayed(const Duration(milliseconds: 300));
@@ -1284,10 +1339,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           if (mounted) {
             context.go(
               '/burtguulekh_signup',
-              extra: {
-                'forceNoOrg': true,
-                'utas': phoneController.text.trim(),
-              },
+              extra: {'forceNoOrg': true, 'utas': phoneController.text.trim()},
             );
           }
           return;

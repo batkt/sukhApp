@@ -18,7 +18,20 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(decoration: const BoxDecoration(), child: child);
+    final isDark = context.isDarkMode;
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.getGradientColors(isDark),
+          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+        ),
+      ),
+      child: child,
+    );
   }
 }
 
@@ -113,6 +126,9 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
+        backgroundColor: context.isDarkMode 
+            ? const Color(0xFF000000) 
+            : const Color(0xFFFFFFFF),
         resizeToAvoidBottomInset: true,
         body: AppBackground(
           child: Stack(

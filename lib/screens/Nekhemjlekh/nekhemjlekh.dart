@@ -1263,6 +1263,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
+        enableDrag: true,
+        isDismissible: true,
         builder: (context) => VATReceiptModal(receipt: receipts[0]),
       );
     } catch (e) {
@@ -1930,6 +1932,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
+            enableDrag: true,
+            isDismissible: true,
             builder: (context) => VATReceiptModal(receipt: receipts[0]),
           );
         }

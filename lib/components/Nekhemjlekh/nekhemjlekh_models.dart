@@ -67,8 +67,8 @@ class NekhemjlekhItem {
               : [],
           guilgeenuud: rootGuilgeenuud != null
               ? (rootGuilgeenuud as List)
-                  .map((g) => Guilgee.fromJson(g))
-                  .toList()
+                    .map((g) => Guilgee.fromJson(g))
+                    .toList()
               : null,
           toot: rootToot,
           temdeglel: rootTemdeglel,
@@ -149,8 +149,11 @@ class NekhemjlekhItem {
     if (medeelel?.guilgeenuud != null) {
       for (final g in medeelel!.guilgeenuud!) {
         final t = g.turul?.toLowerCase() ?? '';
-        if ((t == 'avlaga' || t == 'авлага') && !g.ekhniiUldegdelEsekh && !g.isLinked) {
-          final amt = (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
+        if ((t == 'avlaga' || t == 'авлага') &&
+            !g.ekhniiUldegdelEsekh &&
+            !g.isLinked) {
+          final amt =
+              (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
           if (amt > 0) total += amt;
         }
       }
@@ -261,7 +264,8 @@ class Zardal {
       zaaltTariff: json['zaaltTariff'] != null
           ? (json['zaaltTariff'] as num).toDouble()
           : null,
-      isEkhniiUldegdel: json['isEkhniiUldegdel'] == true ||
+      isEkhniiUldegdel:
+          json['isEkhniiUldegdel'] == true ||
           ner.contains('эхний үлдэгдэл') ||
           ner.contains('ekhniuldegdel') ||
           ner.contains('ekhnii uldegdel'),
@@ -276,7 +280,8 @@ class Zardal {
     if (isEkhniiUldegdel) return true;
     if (zaalt) return true;
     if (ner.toLowerCase().contains('цахилгаан') &&
-        !ner.toLowerCase().contains('дундын өмчлөл')) return true;
+        !ner.toLowerCase().contains('дундын өмчлөл'))
+      return true;
     return false;
   }
 
@@ -292,7 +297,8 @@ class Zardal {
 
   // Get the actual amount to display (matches web: dun, tulukhDun, undsenDun, tariff)
   double get displayAmount {
-    if (zaaltDefaultDun != null && zaaltDefaultDun! > 0) return zaaltDefaultDun!;
+    if (zaaltDefaultDun != null && zaaltDefaultDun! > 0)
+      return zaaltDefaultDun!;
     if (togtmolUtga != null && togtmolUtga! > 0) return togtmolUtga!;
     if (dun > 0) return dun;
     // For ekhniiUldegdel, API may send amount in tulukhDun/undsenDun/tariff when dun=0
@@ -443,13 +449,35 @@ class VATReceipt {
   });
 
   factory VATReceipt.fromJson(Map<String, dynamic> json) {
+    // Helper function to safely convert to double (handles both string and number)
+    double safeToDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        return double.tryParse(value) ?? 0.0;
+      }
+      return 0.0;
+    }
+
+    // Helper function to safely convert to int (handles both string and number)
+    int safeToInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) {
+        return int.tryParse(value) ?? 0;
+      }
+      return 0;
+    }
+
     return VATReceipt(
-      id: json['_id'] ?? json['id'] ?? '',
+      id: json['id'] ?? json['_id'] ?? '',
       qrData: json['qrData'] ?? '',
       lottery: json['lottery'],
-      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
-      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
-      totalCityTax: (json['totalCityTax'] ?? 0).toDouble(),
+      totalAmount: safeToDouble(json['totalAmount']),
+      totalVAT: safeToDouble(json['totalVAT']),
+      totalCityTax: safeToDouble(json['totalCityTax']),
       districtCode: json['districtCode'] ?? '',
       merchantTin: json['merchantTin'] ?? '',
       branchNo: json['branchNo'] ?? '',
@@ -468,7 +496,7 @@ class VATReceipt {
           : [],
       nekhemjlekhiinId: json['nekhemjlekhiinId'] ?? '',
       gereeniiDugaar: json['gereeniiDugaar'] ?? '',
-      utas: json['utas'] ?? '',
+      utas: safeToInt(json['utas']),
       receiptId: json['receiptId'],
     );
   }
@@ -511,10 +539,21 @@ class VATReceiptItem {
   });
 
   factory VATReceiptItem.fromJson(Map<String, dynamic> json) {
+    // Helper function to safely convert to double (handles both string and number)
+    double safeToDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        return double.tryParse(value) ?? 0.0;
+      }
+      return 0.0;
+    }
+
     return VATReceiptItem(
-      totalAmount: (json['totalAmount'] ?? 0).toDouble(),
-      totalVAT: (json['totalVAT'] ?? 0).toDouble(),
-      totalCityTax: (json['totalCityTax'] ?? 0).toDouble(),
+      totalAmount: safeToDouble(json['totalAmount']),
+      totalVAT: safeToDouble(json['totalVAT']),
+      totalCityTax: safeToDouble(json['totalCityTax']),
       taxType: json['taxType'] ?? '',
       merchantTin: json['merchantTin'] ?? '',
       items: json['items'] != null

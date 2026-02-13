@@ -182,24 +182,32 @@ class HomeHeader extends StatelessWidget {
                     ),
                     if (unreadNotificationCount > 0)
                       Positioned(
-                        right: 0,
-                        top: 0,
+                        right: -2,
+                        top: -2,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondaryAccent,
-                            shape: BoxShape.rectangle,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: context.backgroundColor,
-                              width: 1,
-                            ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: unreadNotificationCount > 9 ? 5.w : 4.w,
+                            vertical: 2.h,
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
-                            maxWidth: 24,
-                            maxHeight: 16,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.5),
+                                blurRadius: 4,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          constraints: BoxConstraints(
+                            minWidth: 18.w,
+                            minHeight: 18.h,
                           ),
                           child: Center(
                             child: Text(
@@ -207,9 +215,10 @@ class HomeHeader extends StatelessWidget {
                                   ? '99+'
                                   : '$unreadNotificationCount',
                               style: TextStyle(
-                                color: context.backgroundColor,
-                                fontSize: 9,
+                                color: Colors.white,
+                                fontSize: 10.sp,
                                 fontWeight: FontWeight.bold,
+                                height: 1.0,
                               ),
                             ),
                           ),

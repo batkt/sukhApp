@@ -17,6 +17,8 @@ class AppBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -603,6 +605,9 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
+        backgroundColor: context.isDarkMode 
+            ? const Color(0xFF0A0E14) 
+            : const Color(0xFFFFFFFF),
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,

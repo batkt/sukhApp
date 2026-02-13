@@ -291,7 +291,7 @@ class _DuudlagaPageState extends State<DuudlagaPage>
 
                       // Регистр field
                       const Text(
-                        'Регистр:',
+                        'ДДТД:',
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                       const SizedBox(height: 8),

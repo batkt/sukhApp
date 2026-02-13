@@ -1959,15 +1959,33 @@ class ApiService {
 
       if (response.statusCode == 200) {
         try {
-          final data = json.decode(response.body);
-
-          if (data is String) {
-            print('API returned string instead of JSON: $data');
+          // Check if response body is a plain string (not JSON)
+          final responseBody = response.body.trim();
+          if (responseBody.isEmpty) {
             return {'jagsaalt': []};
           }
-          return data;
+
+          // Try to decode as JSON
+          final data = json.decode(responseBody);
+
+          // If decoded data is a string, it means the API returned a JSON-encoded string
+          if (data is String) {
+            print('API returned string instead of JSON object: $data');
+            return {'jagsaalt': []};
+          }
+
+          // Ensure we return a Map
+          if (data is Map<String, dynamic>) {
+            return data;
+          }
+
+          // If it's not a Map, return empty result
+          print('API returned unexpected data type: ${data.runtimeType}');
+          return {'jagsaalt': []};
         } catch (e) {
+          // If JSON decode fails, the response might be a plain string
           print('JSON parsing failed. Response body: ${response.body}');
+          print('Error: $e');
           return {'jagsaalt': []};
         }
       } else {

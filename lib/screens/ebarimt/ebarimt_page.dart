@@ -382,6 +382,8 @@ class _EbarimtPageState extends State<EbarimtPage> {
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
+              enableDrag: true,
+              isDismissible: true,
               builder: (context) => VATReceiptModal(receipt: receipt),
             );
           },

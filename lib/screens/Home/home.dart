@@ -500,45 +500,51 @@ class _BookingScreenState extends State<NuurKhuudas>
                   '❌ [HOME] Single record barilgiinId mismatch: expected $barilgiinId, got $recordBarilgiinId',
                 );
               }
-            } else if (rawData is List && rawData.isNotEmpty) {
-              debugPrint('📅 [HOME] List with ${rawData.length} items');
-              // Filter list to find record matching barilgiinId
-              final matchingRecords = rawData
-                  .where(
-                    (item) =>
-                        item is Map<String, dynamic> &&
-                        item['barilgiinId']?.toString() == barilgiinId,
-                  )
-                  .toList();
-
-              debugPrint(
-                '📅 [HOME] Found ${matchingRecords.length} matching records',
-              );
-
-              if (matchingRecords.isNotEmpty) {
-                _nekhemjlekhCronData =
-                    matchingRecords.first as Map<String, dynamic>;
-                debugPrint(
-                  '✅ [HOME] Matched! Loaded nekhemjlekhCron: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
-                );
-              } else {
+            } else if (rawData is List) {
+              if (rawData.isEmpty) {
+                // Empty list is a valid response - just means no data
                 _nekhemjlekhCronData = null;
+                debugPrint('📅 [HOME] Empty list returned - no nekhemjlekhCron data');
+              } else {
+                debugPrint('📅 [HOME] List with ${rawData.length} items');
+                // Filter list to find record matching barilgiinId
+                final matchingRecords = rawData
+                    .where(
+                      (item) =>
+                          item is Map<String, dynamic> &&
+                          item['barilgiinId']?.toString() == barilgiinId,
+                    )
+                    .toList();
+
                 debugPrint(
-                  '❌ [HOME] No matching record found for barilgiinId: $barilgiinId',
+                  '📅 [HOME] Found ${matchingRecords.length} matching records',
                 );
-                // Log all barilgiinIds in the list for debugging
-                for (var i = 0; i < rawData.length; i++) {
-                  final item = rawData[i];
-                  if (item is Map<String, dynamic>) {
-                    debugPrint(
-                      '📅 [HOME] List item $i barilgiinId: ${item['barilgiinId']}',
-                    );
+
+                if (matchingRecords.isNotEmpty) {
+                  _nekhemjlekhCronData =
+                      matchingRecords.first as Map<String, dynamic>;
+                  debugPrint(
+                    '✅ [HOME] Matched! Loaded nekhemjlekhCron: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
+                  );
+                } else {
+                  _nekhemjlekhCronData = null;
+                  debugPrint(
+                    '❌ [HOME] No matching record found for barilgiinId: $barilgiinId',
+                  );
+                  // Log all barilgiinIds in the list for debugging
+                  for (var i = 0; i < rawData.length; i++) {
+                    final item = rawData[i];
+                    if (item is Map<String, dynamic>) {
+                      debugPrint(
+                        '📅 [HOME] List item $i barilgiinId: ${item['barilgiinId']}',
+                      );
+                    }
                   }
                 }
               }
             } else {
               _nekhemjlekhCronData = null;
-              debugPrint('❌ [HOME] rawData is null or empty');
+              debugPrint('❌ [HOME] rawData is null or not a List/Map');
             }
 
             if (_nekhemjlekhCronData != null) {
@@ -1163,20 +1169,42 @@ class _BookingScreenState extends State<NuurKhuudas>
               ),
               if (_unreadNotificationCount > 0)
                 Positioned(
-                  right: 4,
-                  top: 6,
+                  right: 2,
+                  top: 4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _unreadNotificationCount > 9 ? 5.w : 4.w,
+                      vertical: 2.h,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.deepGreen, width: 1),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.5),
+                          blurRadius: 4,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    constraints: const BoxConstraints(minWidth: 14, minHeight: 14, maxWidth: 24, maxHeight: 16),
+                    constraints: BoxConstraints(
+                      minWidth: 18.w,
+                      minHeight: 18.h,
+                    ),
                     child: Center(
                       child: Text(
                         _unreadNotificationCount > 99 ? '99+' : '$_unreadNotificationCount',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10.sp,
+                          height: 1.0,
+                        ),
                       ),
                     ),
                   ),
