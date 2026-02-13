@@ -23,9 +23,7 @@ class FilterTabs extends StatelessWidget {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _buildFilterTab(context, 'All', 'Бүгд'),
-          _buildFilterTab(context, 'Avlaga', 'Авлага'),
-          _buildFilterTab(context, 'AshiglaltiinZardal', 'Зардал'),
+          _buildFilterTab(context, 'All', 'Төлөх'),
           _buildFilterTab(context, 'Paid', 'Төлөгдсөн'),
         ],
       ),

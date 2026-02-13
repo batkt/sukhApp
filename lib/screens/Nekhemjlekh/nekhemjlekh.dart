@@ -26,6 +26,7 @@ import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
+import 'package:sukh_app/utils/format_util.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -62,6 +63,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   String? qpayQrImageOwnOrg;
   String? qpayQrImageWallet;
   String contactPhone = '';
+  DateTime? selectedMonth;
 
   Function(Map<String, dynamic>)? _notificationCallback;
 
@@ -600,9 +602,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   String get totalSelectedAmount {
     final amount = _effectiveTotalAmount;
     if (amount >= 0) {
-      final formatted = amount.toStringAsFixed(2).replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},');
-      return '$formatted₮';
+      return '${formatNumber(amount, 2)}₮';
     }
     return '0.00₮';
   }
@@ -622,41 +622,18 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   List<NekhemjlekhItem> _getFilteredInvoices() {
     List<NekhemjlekhItem> filtered = invoices;
 
-    // Apply filter
+    // Apply month filter
+    if (selectedMonth != null) {
+      final yearMonthStr = "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
+      filtered = filtered.where((invoice) {
+        return invoice.nekhemjlekhiinOgnoo.startsWith(yearMonthStr);
+      }).toList();
+    }
+
+    // Apply status filter
     if (selectedFilter == 'Paid') {
-      // Show only paid invoices
       filtered = filtered
           .where((invoice) => invoice.tuluv == 'Төлсөн')
-          .toList();
-    } else if (selectedFilter == 'Avlaga') {
-      // Show only invoices with avlaga (has guilgeenuud with turul="avlaga" or "Авлага")
-      filtered = filtered
-          .where(
-            (invoice) =>
-                invoice.tuluv != 'Төлсөн' &&
-                invoice.medeelel != null &&
-                invoice.medeelel!.guilgeenuud != null &&
-                invoice.medeelel!.guilgeenuud!.any((guilgee) {
-                  final t = guilgee.turul?.toLowerCase() ?? '';
-                  return (t == 'avlaga' || t == 'авлага') && !guilgee.ekhniiUldegdelEsekh;
-                }),
-          )
-          .toList();
-    } else if (selectedFilter == 'AshiglaltiinZardal') {
-      // Show only invoices with ashiglaltiinZardal (items with turul "Тогтмол" or "Дурын")
-      filtered = filtered
-          .where(
-            (invoice) =>
-                invoice.tuluv != 'Төлсөн' &&
-                invoice.medeelel != null &&
-                invoice.medeelel!.zardluud.isNotEmpty &&
-                invoice.medeelel!.zardluud.any(
-                  (zardal) {
-                    final t = zardal.turul.toLowerCase();
-                    return t == 'тогтмол' || t == 'дурын';
-                  },
-                ),
-          )
           .toList();
     } else {
       // 'All' shows all unpaid invoices
@@ -671,42 +648,101 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   // _getStatusColor and _getStatusLabel moved to components/Nekhemjlekh/invoice_card.dart
 
   int _getFilterCount(String filterKey) {
+    List<NekhemjlekhItem> monthFiltered = invoices;
+    if (selectedMonth != null) {
+      final yearMonthStr = "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
+      monthFiltered = invoices.where((invoice) => invoice.nekhemjlekhiinOgnoo.startsWith(yearMonthStr)).toList();
+    }
+
     switch (filterKey) {
       case 'All':
-        return invoices.where((invoice) => invoice.tuluv != 'Төлсөн').length;
-      case 'Avlaga':
-        return invoices
-            .where(
-              (invoice) =>
-                  invoice.tuluv != 'Төлсөн' &&
-                  invoice.medeelel != null &&
-                  invoice.medeelel!.guilgeenuud != null &&
-                  invoice.medeelel!.guilgeenuud!.any((guilgee) {
-                    final t = guilgee.turul?.toLowerCase() ?? '';
-                    return (t == 'avlaga' || t == 'авлага') && !guilgee.ekhniiUldegdelEsekh;
-                  }),
-            )
-            .length;
-      case 'AshiglaltiinZardal':
-        return invoices
-            .where(
-              (invoice) =>
-                  invoice.tuluv != 'Төлсөн' &&
-                  invoice.medeelel != null &&
-                  invoice.medeelel!.zardluud.isNotEmpty &&
-                  invoice.medeelel!.zardluud.any(
-                    (zardal) {
-                      final t = zardal.turul.toLowerCase();
-                      return t == 'тогтмол' || t == 'дурын';
-                    },
-                  ),
-            )
-            .length;
+        return monthFiltered.where((invoice) => invoice.tuluv != 'Төлсөн').length;
       case 'Paid':
-        return invoices.where((invoice) => invoice.tuluv == 'Төлсөн').length;
+        return monthFiltered.where((invoice) => invoice.tuluv == 'Төлсөн').length;
       default:
         return 0;
     }
+  }
+
+  Widget _buildMonthSelector() {
+    // Extract unique months from invoices
+    final months = <DateTime>{};
+    for (var inv in invoices) {
+      try {
+        final date = DateTime.parse(inv.nekhemjlekhiinOgnoo);
+        months.add(DateTime(date.year, date.month));
+      } catch (_) {}
+    }
+
+    if (months.isEmpty) return const SizedBox.shrink();
+
+    // Sort months descending
+    final sortedMonths = months.toList()..sort((a, b) => b.compareTo(a));
+
+    return Container(
+      height: 40.h,
+      margin: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: sortedMonths.length + 1, // +1 for "All"
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            final isSelected = selectedMonth == null;
+            return _buildMonthTab('Бүгд', isSelected, () {
+              setState(() => selectedMonth = null);
+            });
+          }
+          final monthDate = sortedMonths[index - 1];
+          final isSelected = selectedMonth?.year == monthDate.year &&
+              selectedMonth?.month == monthDate.month;
+          final label = "${monthDate.year}-${monthDate.month.toString().padLeft(2, '0')}";
+          return _buildMonthTab(label, isSelected, () {
+            setState(() => selectedMonth = monthDate);
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildMonthTab(String label, bool isSelected, VoidCallback onTap) {
+    return Container(
+      margin: EdgeInsets.only(right: 8.w),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10.r),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.deepGreen : (context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.white),
+              borderRadius: BorderRadius.circular(10.r),
+              border: Border.all(
+                color: isSelected ? AppColors.deepGreen : context.borderColor.withOpacity(0.3),
+                width: 1,
+              ),
+              boxShadow: isSelected ? [
+                BoxShadow(
+                  color: AppColors.deepGreen.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ] : null,
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : context.textPrimaryColor,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 12.sp,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // _buildFilterTab moved to components/Nekhemjlekh/filter_tabs.dart
@@ -2707,6 +2743,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                       )
                     : Column(
                         children: [
+                          // Month Selector
+                          _buildMonthSelector(),
                           // Filter Tabs
                           FilterTabs(
                             selectedFilter: selectedFilter,

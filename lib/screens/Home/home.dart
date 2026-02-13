@@ -17,6 +17,7 @@ import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
@@ -764,10 +765,7 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   String _formatNumberWithComma(double number) {
-    final parts = number.toStringAsFixed(0).split('.');
-    final integerPart = parts[0];
-    final regex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
-    return integerPart.replaceAllMapped(regex, (match) => '${match[1]},');
+    return formatNumber(number, 2);
   }
 
   int _calculateDaysPassed(String gereeniiOgnoo) {

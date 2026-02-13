@@ -1,4 +1,4 @@
-import 'dart:core';
+import 'package:sukh_app/utils/format_util.dart';
 
 // Nekhemjlekh data models
 class NekhemjlekhItem {
@@ -163,13 +163,7 @@ class NekhemjlekhItem {
 
   String get formattedAmount {
     final total = effectiveNiitTulbur;
-    final formatted = total
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]},',
-        );
-    return '$formatted₮';
+    return '${formatNumber(total, 2)}₮';
   }
 
   String get displayName =>
@@ -286,13 +280,7 @@ class Zardal {
   }
 
   String get formattedTariff {
-    final formatted = tariff
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]},',
-        );
-    return '$formatted$tariffUsgeer';
+    return '${formatNumber(tariff, 2)}$tariffUsgeer';
   }
 
   // Get the actual amount to display (matches web: dun, tulukhDun, undsenDun, tariff)
@@ -313,14 +301,7 @@ class Zardal {
   }
 
   String get formattedDisplayAmount {
-    final amount = displayAmount;
-    final formatted = amount
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]},',
-        );
-    return '$formatted₮';
+    return '${formatNumber(displayAmount, 2)}₮';
   }
 }
 
@@ -502,13 +483,7 @@ class VATReceipt {
   }
 
   String get formattedAmount {
-    final formatted = totalAmount
-        .toStringAsFixed(2)
-        .replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]},',
-        );
-    return '$formatted₮';
+    return '${formatNumber(totalAmount, 2)}₮';
   }
 
   String get formattedDate {

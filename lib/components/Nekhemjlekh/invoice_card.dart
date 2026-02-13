@@ -6,6 +6,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
+import 'package:sukh_app/utils/format_util.dart';
 
 class InvoiceCard extends StatelessWidget {
   final NekhemjlekhItem invoice;
@@ -618,7 +619,7 @@ class InvoiceCard extends StatelessWidget {
                       _buildPriceRow(
                         context,
                         'Эхний үлдэгдэл',
-                        '${amt.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+                        '${formatNumber(amt, 2)}₮',
                       ),
                     ],
                   );
@@ -632,7 +633,7 @@ class InvoiceCard extends StatelessWidget {
             _buildPriceRow(
               context,
               'Эхний үлдэгдэл',
-              '${invoice.ekhniiUldegdel!.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+              '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮',
             ),
           ],
           // Avlaga items from guilgeenuud (exclude ekhniiUldegdel - shown above)
@@ -661,7 +662,7 @@ class InvoiceCard extends StatelessWidget {
                         _buildPriceRow(
                           context,
                           'Авлага',
-                          '${amt.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}₮',
+                          '${formatNumber(amt, 2)}₮',
                         ),
                       ],
                       if (guilgee.tailbar != null &&
