@@ -43,14 +43,14 @@ android {
     
     // Split APKs by ABI to reduce individual APK size
     // This creates separate APKs for each architecture, reducing download size
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
-            isUniversalApk = false
-        }
-    }
+    // splits {
+    //     abi {
+    //         isEnable = true
+    //         reset()
+    //         include("armeabi-v7a", "arm64-v8a", "x86_64")
+    //         isUniversalApk = false
+    //     }
+    // }
 
     signingConfigs {
         create("release") {
@@ -63,7 +63,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
