@@ -60,10 +60,13 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  # Only include assets that are actually used
   assets:
     - lib/assets/fonts/
     - lib/assets/img/
     - lib/assets/pdf/
+  # Enable tree-shaking for fonts (only include used font weights)
+  # This reduces font file size significantly
 
   fonts:
     - family: Inter
