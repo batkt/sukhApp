@@ -37,6 +37,7 @@ class StorageService {
   static const String _tukhainBaaziinKholboltKey = 'tukhain_baaziin_kholbolt';
   static const String _walletBairIdKey = 'wallet_bair_id';
   static const String _walletDoorNoKey = 'wallet_door_no';
+  static const String _walletBairNameKey = 'wallet_bair_name';
   static const String _walletBairSourceKey =
       'wallet_bair_source'; // 'WALLET_API' or 'OWN_ORG'
   static const String _walletBairBaiguullagiinIdKey =
@@ -407,6 +408,7 @@ class StorageService {
   static Future<bool> saveWalletAddress({
     required String bairId,
     required String doorNo,
+    String? bairName, // Building name for Wallet API addresses
     String? source, // 'WALLET_API' or 'OWN_ORG'
     String? baiguullagiinId, // Required for OWN_ORG
     String? barilgiinId, // Required for OWN_ORG (same as bairId for OWN_ORG)
@@ -415,6 +417,11 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_walletBairIdKey, bairId);
       await prefs.setString(_walletDoorNoKey, doorNo);
+
+      // Save bairName if provided (for Wallet API addresses)
+      if (bairName != null && bairName.isNotEmpty) {
+        await prefs.setString(_walletBairNameKey, bairName);
+      }
 
       // Save OWN_ORG specific fields if provided
       if (source != null) {
@@ -448,6 +455,16 @@ class StorageService {
     try {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_walletDoorNoKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved Wallet API bairName
+  static Future<String?> getWalletBairName() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletBairNameKey);
     } catch (e) {
       return null;
     }
@@ -519,6 +536,7 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_walletBairIdKey);
       await prefs.remove(_walletDoorNoKey);
+      await prefs.remove(_walletBairNameKey);
       await prefs.remove(_walletBairSourceKey);
       await prefs.remove(_walletBairBaiguullagiinIdKey);
       await prefs.remove(_walletBairBarilgiinIdKey);

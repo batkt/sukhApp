@@ -188,6 +188,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       // Get saved address to send with login
       var savedBairId = await StorageService.getWalletBairId();
       var savedDoorNo = await StorageService.getWalletDoorNo();
+      var savedBairName = await StorageService.getWalletBairName();
 
       // Get OWN_ORG IDs if address is OWN_ORG type
       final savedBaiguullagiinId =
@@ -206,6 +207,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         nuutsUg: savedPassword,
         bairId: savedBairId,
         doorNo: savedDoorNo,
+        bairName: savedSource == 'WALLET_API' ? savedBairName : null,
         baiguullagiinId: isOwnOrg ? savedBaiguullagiinId : null,
         barilgiinId: isOwnOrg ? savedBarilgiinId : null,
       );
@@ -1025,13 +1027,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       // Get saved address to send with login
       var savedBairId = await StorageService.getWalletBairId();
       var savedDoorNo = await StorageService.getWalletDoorNo();
+      var savedBairName = await StorageService.getWalletBairName();
 
       if (savedBairId == null || savedDoorNo == null) {
         print('📍 [LOGIN] Address not in local storage, backend will use saved address from profile');
       }
 
       print('🔐 [LOGIN] Attempting login with phone: $inputPhone');
-      print('🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo');
+      print('🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo, bairName: $savedBairName');
 
       // Get OWN_ORG IDs if address is OWN_ORG type
       final savedBaiguullagiinId = await StorageService.getWalletBairBaiguullagiinId();
@@ -1053,6 +1056,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           nuutsUg: inputPassword,
           bairId: savedBairId,
           doorNo: savedDoorNo,
+          bairName: savedSource == 'WALLET_API' ? savedBairName : null,
           baiguullagiinId: isOwnOrg ? savedBaiguullagiinId : null,
           barilgiinId: isOwnOrg ? savedBarilgiinId : null,
         );
@@ -1072,6 +1076,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               nuutsUg: inputPassword,
               bairId: savedBairId,
               doorNo: savedDoorNo,
+              bairName: savedSource == 'WALLET_API' ? savedBairName : null,
               baiguullagiinId: storedOrgId.trim(),
             );
           } else {

@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
@@ -51,9 +52,18 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       });
 
       try {
+        // Get saved address info if available (for Wallet API addresses)
+        final savedBairId = await StorageService.getWalletBairId();
+        final savedDoorNo = await StorageService.getWalletDoorNo();
+        final savedBairName = await StorageService.getWalletBairName();
+        final savedSource = await StorageService.getWalletBairSource();
+
         await ApiService.registerWalletUser(
           utas: _phoneController.text.trim(),
           mail: _emailController.text.trim(),
+          bairId: savedSource == 'WALLET_API' ? savedBairId : null,
+          doorNo: savedSource == 'WALLET_API' ? savedDoorNo : null,
+          bairName: savedSource == 'WALLET_API' ? savedBairName : null,
         );
 
         if (mounted) {

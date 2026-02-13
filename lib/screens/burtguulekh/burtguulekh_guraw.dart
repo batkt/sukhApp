@@ -99,6 +99,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
             await StorageService.getWalletBairBarilgiinId();
         final savedBairId = await StorageService.getWalletBairId();
         final savedDoorNo = await StorageService.getWalletDoorNo();
+        final savedBairName = await StorageService.getWalletBairName();
 
         // Determine if this is OWN_ORG bair (from storage or registrationData)
         final source = widget.registrationData?['source'] ?? savedSource;
@@ -113,6 +114,7 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
             : null;
         final finalBairId = widget.registrationData?['bairId'] ?? savedBairId;
         final finalDoorNo = widget.registrationData?['doorNo'] ?? savedDoorNo;
+        final finalBairName = widget.registrationData?['bairName'] ?? savedBairName;
 
         final registrationPayload = {
           'utas': widget.registrationData?['utas'] ?? '',
@@ -144,8 +146,11 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
             registrationPayload['orts'] = widget.registrationData?['orts'];
           }
         } else if (finalBairId != null) {
-          // Wallet API bair - just include bairId
+          // Wallet API bair - include bairId and bairName
           registrationPayload['bairId'] = finalBairId;
+          if (finalBairName != null && finalBairName.isNotEmpty) {
+            registrationPayload['bairName'] = finalBairName;
+          }
         }
 
         if (finalDoorNo != null) {

@@ -694,6 +694,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
       String? baiguullagiinId;
       String? barilgiinId;
+      String? bairName;
+
+      // Extract bairName for Wallet API addresses
+      if (source == 'WALLET_API') {
+        bairName = _selectedBuilding!['name']?.toString() ?? 
+                   _selectedBuilding!['bairName']?.toString();
+      }
 
       if (isOwnOrg) {
         baiguullagiinId = _selectedBuilding!['baiguullagiinId']?.toString();
@@ -708,6 +715,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       await StorageService.saveWalletAddress(
         bairId: bairId,
         doorNo: doorNo,
+        bairName: bairName,
         source: source,
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,

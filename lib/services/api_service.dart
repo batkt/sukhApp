@@ -1358,12 +1358,28 @@ class ApiService {
   static Future<Map<String, dynamic>> registerWalletUser({
     required String utas,
     required String mail,
+    String? bairId,
+    String? doorNo,
+    String? bairName,
   }) async {
     try {
+      final requestBody = <String, dynamic>{'utas': utas, 'mail': mail};
+
+      // Add address fields if provided (for Wallet API addresses)
+      if (bairId != null && bairId.isNotEmpty) {
+        requestBody['bairId'] = bairId;
+      }
+      if (doorNo != null && doorNo.isNotEmpty) {
+        requestBody['doorNo'] = doorNo;
+      }
+      if (bairName != null && bairName.isNotEmpty) {
+        requestBody['bairName'] = bairName;
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/walletBurtgey'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'utas': utas, 'mail': mail}),
+        body: json.encode(requestBody),
       );
 
       final data = json.decode(response.body);
@@ -1433,6 +1449,7 @@ class ApiService {
     String? firebaseToken,
     String? bairId,
     String? doorNo,
+    String? bairName,
     String? barilgiinId,
     String? baiguullagiinId,
     String? duureg,
@@ -1452,6 +1469,9 @@ class ApiService {
     }
     if (doorNo != null && doorNo.isNotEmpty) {
       requestBody['doorNo'] = doorNo;
+    }
+    if (bairName != null && bairName.isNotEmpty) {
+      requestBody['bairName'] = bairName;
     }
     if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
       requestBody['baiguullagiinId'] = baiguullagiinId;
@@ -1665,7 +1685,9 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> updatePlateNumber(String mashiniiDugaar) async {
+  static Future<Map<String, dynamic>> updatePlateNumber(
+    String mashiniiDugaar,
+  ) async {
     try {
       final userId = await StorageService.getUserId();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -1873,9 +1895,7 @@ class ApiService {
         'Pragma': 'no-cache',
       };
 
-      final query = <String, dynamic>{
-        'baiguullagiinId': baiguullagiinId,
-      };
+      final query = <String, dynamic>{'baiguullagiinId': baiguullagiinId};
       if (gereeniiDugaar != null && gereeniiDugaar.isNotEmpty) {
         query['gereeniiDugaar'] = gereeniiDugaar;
       }
@@ -1905,7 +1925,9 @@ class ApiService {
           if (data is String) return {'jagsaalt': []};
           return data is Map<String, dynamic> ? data : {'jagsaalt': []};
         } catch (e) {
-          print('JSON parsing failed for gereeniiTulukhAvlaga: ${response.body}');
+          print(
+            'JSON parsing failed for gereeniiTulukhAvlaga: ${response.body}',
+          );
           return {'jagsaalt': []};
         }
       }
@@ -2002,6 +2024,73 @@ class ApiService {
     }
   }
 
+  /// Update consumer info for easy-register
+  static Future<Map<String, dynamic>> updateConsumerInfo({
+    required String identity,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final userId = await StorageService.getUserId();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      if (userId == null || baiguullagiinId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final requestBody = {
+        'orshinSuugchId': userId,
+        'baiguullagiinId': baiguullagiinId,
+        'identity': identity,
+        ...data,
+      };
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/easy-register/consumer'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          final responseData = json.decode(response.body);
+          return {
+            'success': true,
+            'message': 'Хэрэглэгчийн мэдээлэл амжилттай шинэчлэгдлээ',
+            'data': responseData,
+          };
+        } catch (e) {
+          return {
+            'success': true,
+            'message': 'Хэрэглэгчийн мэдээлэл амжилттай шинэчлэгдлээ',
+          };
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        String errorMessage =
+            'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage =
+              errorData['message']?.toString() ??
+              errorData['aldaa']?.toString() ??
+              errorMessage;
+        } catch (_) {
+          // If response is not JSON, use default message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      print('Error updating consumer info: $e');
+      throw Exception('Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> checkPaymentStatus({
     required String invoiceId,
   }) async {
@@ -2069,9 +2158,9 @@ class ApiService {
         queryParams['barilgiinId'] = barilgiinId;
       }
 
-      final uri = Uri.parse('$baseUrl/baiguullaga/$baiguullagiinId').replace(
-        queryParameters: queryParams.isNotEmpty ? queryParams : null,
-      );
+      final uri = Uri.parse(
+        '$baseUrl/baiguullaga/$baiguullagiinId',
+      ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: headers);
 
@@ -2837,7 +2926,9 @@ class ApiService {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
 
-      print('📞 [API] fetchAjiltan - baiguullagiinId: $baiguullagiinId, barilgiinId: $barilgiinId');
+      print(
+        '📞 [API] fetchAjiltan - baiguullagiinId: $baiguullagiinId, barilgiinId: $barilgiinId',
+      );
 
       if (baiguullagiinId == null || barilgiinId == null) {
         throw Exception('Байгууллага эсвэл барилгын мэдээлэл олдсонгүй');
@@ -2852,19 +2943,27 @@ class ApiService {
       final response = await http.get(uri, headers: headers);
 
       print('📞 [API] fetchAjiltan response status: ${response.statusCode}');
-      print('📞 [API] fetchAjiltan response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
+      print(
+        '📞 [API] fetchAjiltan response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...',
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
         print('📞 [API] fetchAjiltan data keys: ${data.keys}');
-        print('📞 [API] fetchAjiltan jagsaalt type: ${data['jagsaalt']?.runtimeType}');
-        print('📞 [API] fetchAjiltan jagsaalt length: ${data['jagsaalt']?.length}');
+        print(
+          '📞 [API] fetchAjiltan jagsaalt type: ${data['jagsaalt']?.runtimeType}',
+        );
+        print(
+          '📞 [API] fetchAjiltan jagsaalt length: ${data['jagsaalt']?.length}',
+        );
 
         // Filter jagsaalt by baiguullagiinId on client side
         if (data['jagsaalt'] != null && data['jagsaalt'] is List) {
           final filteredList = (data['jagsaalt'] as List).where((ajiltan) {
-            print('📞 [API] Checking ajiltan: ${ajiltan['ner']}, baiguullagiinId: ${ajiltan['baiguullagiinId']}');
+            print(
+              '📞 [API] Checking ajiltan: ${ajiltan['ner']}, baiguullagiinId: ${ajiltan['baiguullagiinId']}',
+            );
             return ajiltan['baiguullagiinId'] == baiguullagiinId;
           }).toList();
 
@@ -3266,9 +3365,9 @@ class ApiService {
       final requestHeaders = Map<String, String>.from(headers);
       requestHeaders['Content-Type'] = 'application/json';
 
-      final uri = Uri.parse('$baseUrl/medegdel/$medegdelId/kharsanEsekh').replace(
-        queryParameters: {'baiguullagiinId': baiguullagiinId},
-      );
+      final uri = Uri.parse(
+        '$baseUrl/medegdel/$medegdelId/kharsanEsekh',
+      ).replace(queryParameters: {'baiguullagiinId': baiguullagiinId});
 
       final response = await http.patch(
         uri,
@@ -3321,10 +3420,12 @@ class ApiService {
       }
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/medegdel/thread/$medegdelIdOrRootId')
-          .replace(queryParameters: {
-        'baiguullagiinId': baiguullagiinId,
-        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
-      });
+          .replace(
+            queryParameters: {
+              'baiguullagiinId': baiguullagiinId,
+              'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+            },
+          );
       final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3342,12 +3443,17 @@ class ApiService {
   }
 
   /// Upload chat file from bytes (use for web or XFile). Returns path (e.g. baiguullagiinId/chat-xxx.jpg).
-  static Future<String> uploadMedegdelChatFileWithBytes(Uint8List bytes, String filename) async {
+  static Future<String> uploadMedegdelChatFileWithBytes(
+    Uint8List bytes,
+    String filename,
+  ) async {
     final baiguullagiinId = await StorageService.getBaiguullagiinId();
     if (baiguullagiinId == null) {
       throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
     }
-    final safeName = filename.trim().isEmpty ? 'image.jpg' : filename.split(RegExp(r'[/\\]')).last;
+    final safeName = filename.trim().isEmpty
+        ? 'image.jpg'
+        : filename.split(RegExp(r'[/\\]')).last;
     final authHeaders = await getAuthHeaders();
     final request = http.MultipartRequest(
       'POST',
@@ -3358,11 +3464,9 @@ class ApiService {
         'Authorization': authHeaders['Authorization']!,
     });
     request.fields['baiguullagiinId'] = baiguullagiinId;
-    request.files.add(http.MultipartFile.fromBytes(
-      'file',
-      bytes,
-      filename: safeName,
-    ));
+    request.files.add(
+      http.MultipartFile.fromBytes('file', bytes, filename: safeName),
+    );
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -3379,14 +3483,14 @@ class ApiService {
   }
 
   /// Upload chat file (image or voice) for medegdel reply. Use on mobile only (dart:io File). On web use uploadMedegdelChatFileWithBytes with XFile.readAsBytes().
-  static Future<String> uploadMedegdelChatFile({
-    required File file,
-  }) async {
+  static Future<String> uploadMedegdelChatFile({required File file}) async {
     final baiguullagiinId = await StorageService.getBaiguullagiinId();
     if (baiguullagiinId == null) {
       throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
     }
-    print('[ApiService] uploadMedegdelChatFile path=${file.path} exists=${file.existsSync()} size=${file.existsSync() ? file.lengthSync() : 0}');
+    print(
+      '[ApiService] uploadMedegdelChatFile path=${file.path} exists=${file.existsSync()} size=${file.existsSync() ? file.lengthSync() : 0}',
+    );
     final filename = file.path.split(RegExp(r'[/\\]')).last;
     if (filename.isEmpty || !file.existsSync()) {
       throw Exception('Файл олдсонгүй эсвэл нэр алга');
@@ -3459,13 +3563,14 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
       final userId = await StorageService.getUserId();
 
       // Fetch profile and settings for a complete payload that matches EzenUrisanMashin schema
       final profile = await getUserProfile();
       final userData = profile['result'] ?? {};
-      
+
       final quota = await fetchZochinQuotaStatus();
       Map<String, dynamic> quotaData;
       if (quota['total'] != null) {
@@ -3480,21 +3585,28 @@ class ApiService {
         'baiguullagiinId': baiguullagiinId,
         'barilgiinId': barilgiinId,
         'ezemshigchiinId': userId ?? "",
-        'ezemshigchiinNer': "${userData['ovog'] ?? ''} ${userData['ner'] ?? ''}".trim(),
-        'ezemshigchiinRegister': userData['registerNo'] ?? userData['register'] ?? "",
+        'ezemshigchiinNer': "${userData['ovog'] ?? ''} ${userData['ner'] ?? ''}"
+            .trim(),
+        'ezemshigchiinRegister':
+            userData['registerNo'] ?? userData['register'] ?? "",
         'ezemshigchiinUtas': ezemshigchiinUtas,
         'urisanMashiniiDugaar': mashiniiDugaar, // Key field requested by user
         'davtamjiinTurul': quotaData['period'] ?? "saraar",
-        'zochinErkhiinToo': quotaData['total'] ?? quotaData['zochinErkhiinToo'] ?? 0,
-        'tusBurUneguiMinut': quotaData['freeMinutesPerGuest'] ?? quotaData['zochinTusBurUneguiMinut'] ?? 0,
+        'zochinErkhiinToo':
+            quotaData['total'] ?? quotaData['zochinErkhiinToo'] ?? 0,
+        'tusBurUneguiMinut':
+            quotaData['freeMinutesPerGuest'] ??
+            quotaData['zochinTusBurUneguiMinut'] ??
+            0,
         'tuluv': 0,
         'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt ?? "amarSukh",
-        
+
         // Keep legacy fields for backward compatibility if needed by some older backend logic
         'mashiniiDugaar': mashiniiDugaar,
         'dugaar': mashiniiDugaar,
         'mashinuud': [mashiniiDugaar],
-        if (orshinSuugchMedeelel != null) 'orshinSuugchMedeelel': orshinSuugchMedeelel,
+        if (orshinSuugchMedeelel != null)
+          'orshinSuugchMedeelel': orshinSuugchMedeelel,
       };
 
       final response = await http.post(
@@ -3508,7 +3620,7 @@ class ApiService {
         if (responseBody == 'Amjilttai') {
           return {'success': true, 'message': 'Amjilttai'};
         }
-        
+
         try {
           return json.decode(responseBody);
         } catch (e) {
@@ -3546,12 +3658,13 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
-      
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
       // Fetch profile to get inviter details
       final profile = await getUserProfile();
       final userData = profile['result'] ?? {};
-      
+
       // Fetch quota to get current settings
       final quota = await fetchZochinQuotaStatus();
       Map<String, dynamic> quotaData;
@@ -3569,15 +3682,22 @@ class ApiService {
         "baiguullagiinId": baiguullagiinId,
         "barilgiinId": barilgiinId,
         "ezemshigchiinId": ezenId,
-        "ezemshigchiinNer": "${userData['ovog'] ?? ''} ${userData['ner'] ?? ''}".trim(),
-        "ezemshigchiinRegister": userData['registerNo'] ?? userData['register'] ?? "",
+        "ezemshigchiinNer": "${userData['ovog'] ?? ''} ${userData['ner'] ?? ''}"
+            .trim(),
+        "ezemshigchiinRegister":
+            userData['registerNo'] ?? userData['register'] ?? "",
         "ezemshigchiinUtas": userData['utas']?.toString() ?? "",
         "urisanMashiniiDugaar": urisanMashiniiDugaar,
-        "davtamjiinTurul": quotaData['period'] ?? quotaData['davtamjiinTurul'] ?? "saraar",
-        "zochinErkhiinToo": quotaData['total'] ?? quotaData['zochinErkhiinToo'] ?? 0,
-        "tusBurUneguiMinut": quotaData['freeMinutesPerGuest'] ?? quotaData['zochinTusBurUneguiMinut'] ?? 0,
+        "davtamjiinTurul":
+            quotaData['period'] ?? quotaData['davtamjiinTurul'] ?? "saraar",
+        "zochinErkhiinToo":
+            quotaData['total'] ?? quotaData['zochinErkhiinToo'] ?? 0,
+        "tusBurUneguiMinut":
+            quotaData['freeMinutesPerGuest'] ??
+            quotaData['zochinTusBurUneguiMinut'] ??
+            0,
         "tuluv": 0,
-        "tukhainBaaziinKholbolt": tukhainBaaziinKholbolt ?? "amarSukh"
+        "tukhainBaaziinKholbolt": tukhainBaaziinKholbolt ?? "amarSukh",
       };
 
       print('🚗 [INVITE] Pattern implementation: ${json.encode(requestBody)}');
@@ -3593,7 +3713,7 @@ class ApiService {
         if (responseBody == 'Amjilttai' || responseBody == 'Success') {
           return {'success': true, 'message': 'Amjilttai'};
         }
-        
+
         try {
           final decoded = json.decode(responseBody);
           if (decoded is Map<String, dynamic>) {
@@ -3610,7 +3730,11 @@ class ApiService {
         String message = 'Зочин урихад алдаа гарлаа';
         try {
           final errorBody = json.decode(response.body);
-          message = errorBody['message'] ?? errorBody['aldaa'] ?? errorBody['error'] ?? message;
+          message =
+              errorBody['message'] ??
+              errorBody['aldaa'] ??
+              errorBody['error'] ??
+              message;
         } catch (_) {
           if (response.statusCode == 403) {
             message = 'Зочин урих эрх дууссан байна';
@@ -3633,7 +3757,8 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
 
       final requestBody = {
         'baiguullagiinId': baiguullagiinId,
@@ -3650,7 +3775,9 @@ class ApiService {
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        throw Exception('Зочны түүх татахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception(
+          'Зочны түүх татахад алдаа гарлаа: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error fetching guest history: $e');
@@ -3665,7 +3792,8 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      final tukhainBaaziinKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
 
       final response = await http.delete(
         Uri.parse('$baseUrl/ezenUrisanMashin/$id'),
@@ -3681,7 +3809,7 @@ class ApiService {
         if (responseBody == 'Amjilttai') {
           return {'success': true, 'message': 'Amjilttai'};
         }
-        
+
         try {
           return json.decode(responseBody);
         } catch (e) {

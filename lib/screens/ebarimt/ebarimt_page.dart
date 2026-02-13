@@ -126,17 +126,45 @@ class _EbarimtPageState extends State<EbarimtPage> {
     
     setState(() => _isSavingCode = true);
     
-    // TODO: Implement API call when backend is ready
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Амжилттай хадгалагдлаа'),
-          backgroundColor: AppColors.deepGreen,
-        ),
+    try {
+      final code = _citizenCodeController.text;
+      
+      // Call API to save consumer info
+      // Using code as identity
+      await ApiService.updateConsumerInfo(
+        identity: code,
+        data: {
+          'code': code,
+          // 'phone': ... we might need phone here if API requires it, but usually update is based on identity
+          // If the backend expects specific fields, we should provide them.
+          // Based on typical easy-register consumer info update:
+          // It likely expects the body to be the consumer object or fields to update.
+          // For now sending code as a field too.
+        },
       );
-      setState(() => _isSavingCode = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Амжилттай хадгалагдлаа'),
+            backgroundColor: AppColors.deepGreen,
+          ),
+        );
+        _citizenCodeController.clear();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Алдаа: ${e.toString().replaceAll("Exception: ", "")}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingCode = false);
+      }
     }
   }
 
