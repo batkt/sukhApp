@@ -117,15 +117,6 @@ class ContractSelectionModal extends StatelessWidget {
                                 ),
                               ),
                               SizedBox(height: 3.h),
-                              Text(
-                                'Гэрээ: $gereeniiDugaar',
-                                style: TextStyle(
-                                  color: isDarkMode
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                  fontSize: 11.sp,
-                                ),
-                              ),
                             ],
                           ),
                         ),

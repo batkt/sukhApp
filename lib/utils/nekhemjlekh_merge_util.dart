@@ -54,6 +54,7 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
       'tailbar': rec['zardliinNer'] ?? rec['tailbar'] ?? (ekhniiUldegdelEsekh ? 'Эхний үлдэгдэл' : 'Авлага'),
       'turul': turul,
       'ekhniiUldegdelEsekh': ekhniiUldegdelEsekh,
+      'isLinked': nekhemjlekhId.isNotEmpty,
       '_id': rec['_id']?.toString(),
     };
 

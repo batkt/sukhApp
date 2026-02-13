@@ -267,19 +267,7 @@ class InvoiceCard extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   SizedBox(height: 3.h),
-                                  Text(
-                                    invoice.gereeniiDugaar,
-                                    style: TextStyle(
-                                      color: context.textSecondaryColor,
-                                      fontSize: context.responsiveFontSize(
-                                        small: 13,
-                                        medium: 14,
-                                        large: 15,
-                                        tablet: 16,
-                                        veryNarrow: 12,
-                                      ),
-                                    ),
-                                  ),
+                                  SizedBox(height: 3.h),
                                 ],
                               ),
                             ),
@@ -592,7 +580,6 @@ class InvoiceCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildInfoRow(context, 'Төлөгч:', invoice.displayName),
-                        _buildInfoRow(context, 'Гэрээний дугаар:', invoice.gereeniiDugaar),
                         _buildInfoRow(context, 'Байр:', invoice.khayag),
                         _buildInfoRow(context, 'Орц:', invoice.orts),
                         _buildInfoRow(context, 'Тоот:', toot),
@@ -610,10 +597,10 @@ class InvoiceCard extends StatelessWidget {
             tablet: 16,
             veryNarrow: 8,
           )),
-          // Ekhnii үлдэгдэл from guilgeenuud (each as separate row, matches web)
+          // Ekhnii үлдэгдэл from guilgeenuud (floating/merged items NOT in zardluud)
           if (invoice.medeelel?.guilgeenuud != null) ...[
             ...invoice.medeelel!.guilgeenuud!
-                .where((guilgee) => guilgee.ekhniiUldegdelEsekh)
+                .where((guilgee) => guilgee.ekhniiUldegdelEsekh && !guilgee.isLinked)
                 .map((guilgee) {
                   final amt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0) -
                       (guilgee.tulsunDun ?? 0.0);
@@ -637,12 +624,11 @@ class InvoiceCard extends StatelessWidget {
                   );
                 }),
           ],
-          // Ekhnii үлдэгдэл total when only from zardluud (no guilgeenuud breakdown)
+          // Support dedicated ekhniiUldegdel field ONLY if not found in zardluud/guilgeenuud
           if (invoice.ekhniiUldegdel != null &&
               invoice.ekhniiUldegdel! != 0 &&
-              (invoice.medeelel?.guilgeenuud == null ||
-                  !invoice.medeelel!.guilgeenuud!
-                      .any((g) => g.ekhniiUldegdelEsekh))) ...[
+              !(invoice.medeelel?.zardluud.any((z) => z.isEkhniiUldegdel) ?? false) &&
+              !(invoice.medeelel?.guilgeenuud?.any((g) => g.ekhniiUldegdelEsekh) ?? false)) ...[
             _buildPriceRow(
               context,
               'Эхний үлдэгдэл',

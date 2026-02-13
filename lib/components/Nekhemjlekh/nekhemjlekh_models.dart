@@ -144,12 +144,12 @@ class NekhemjlekhItem {
 
   /// Total including ekhniiUldegdel and avlaga when backend niitTulbur may not include them (matches web)
   double get effectiveNiitTulbur {
-    double total = niitTulbur + (ekhniiUldegdel ?? 0);
-    // Add avlaga from guilgeenuud (merged from gereeniiTulukhAvlaga)
+    double total = niitTulbur;
+    // Add avlaga from guilgeenuud (merged floating receivables from gereeniiTulukhAvlaga)
     if (medeelel?.guilgeenuud != null) {
       for (final g in medeelel!.guilgeenuud!) {
         final t = g.turul?.toLowerCase() ?? '';
-        if ((t == 'avlaga' || t == 'авлага') && !g.ekhniiUldegdelEsekh) {
+        if ((t == 'avlaga' || t == 'авлага') && !g.ekhniiUldegdelEsekh && !g.isLinked) {
           final amt = (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
           if (amt > 0) total += amt;
         }
@@ -332,6 +332,7 @@ class Guilgee {
   final int? avlagaGuilgeeIndex;
   final String? id;
   final bool ekhniiUldegdelEsekh;
+  final bool isLinked;
 
   Guilgee({
     this.ognoo,
@@ -347,6 +348,7 @@ class Guilgee {
     this.avlagaGuilgeeIndex,
     this.id,
     this.ekhniiUldegdelEsekh = false,
+    this.isLinked = false,
   });
 
   factory Guilgee.fromJson(Map<String, dynamic> json) {
@@ -370,6 +372,7 @@ class Guilgee {
       avlagaGuilgeeIndex: json['avlagaGuilgeeIndex'] as int?,
       id: json['_id']?.toString(),
       ekhniiUldegdelEsekh: json['ekhniiUldegdelEsekh'] == true,
+      isLinked: json['isLinked'] == true,
     );
   }
 }
