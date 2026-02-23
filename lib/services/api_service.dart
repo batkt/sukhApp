@@ -190,14 +190,8 @@ class ApiService {
         }),
       );
 
-      print(
-        '🔐 [VERIFY_LOGIN_OTP] Request body: {utas: $utas, code: $code, baiguullagiinId: $baiguullagiinId}',
-      );
-      print('🔐 [VERIFY_LOGIN_OTP] Response status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('🔐 [VERIFY_LOGIN_OTP] Response body: $data');
 
         // Check for error in response
         if (data['success'] == false ||
@@ -208,18 +202,15 @@ class ApiService {
               data['aldaa'] ??
               data['error'] ??
               'Баталгаажуулах код буруу байна';
-          print('🔐 [VERIFY_LOGIN_OTP] Error: $errorMessage');
           throw Exception(errorMessage);
         }
 
         // Check if success is explicitly true
         if (data['success'] == true) {
-          print('🔐 [VERIFY_LOGIN_OTP] Verification successful');
           return data;
         }
 
         // If no explicit success/error, assume success for 200 status
-        print('🔐 [VERIFY_LOGIN_OTP] Verification successful (200 status)');
         return data;
       } else {
         final errorBody = json.decode(response.body);
@@ -228,9 +219,6 @@ class ApiService {
             errorBody['aldaa'] ??
             errorBody['error'] ??
             'Баталгаажуулах код буруу байна: ${response.statusCode}';
-        print(
-          '🔐 [VERIFY_LOGIN_OTP] Error (${response.statusCode}): $errorMessage',
-        );
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -256,14 +244,8 @@ class ApiService {
         }),
       );
 
-      print(
-        '🔐 [VERIFY_CODE] Request body: {utas: $utas, code: $code, baiguullagiinId: $baiguullagiinId, purpose: $purpose}',
-      );
-      print('🔐 [VERIFY_CODE] Response status: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('🔐 [VERIFY_CODE] Response body: $data');
 
         // Check for error in response
         if (data['success'] == false ||
@@ -274,18 +256,15 @@ class ApiService {
               data['aldaa'] ??
               data['error'] ??
               'Баталгаажуулах код буруу байна';
-          print('🔐 [VERIFY_CODE] Error: $errorMessage');
           throw Exception(errorMessage);
         }
 
         // Check if success is explicitly true
         if (data['success'] == true) {
-          print('🔐 [VERIFY_CODE] Verification successful');
           return data;
         }
 
         // If no explicit success/error, assume success for 200 status
-        print('🔐 [VERIFY_CODE] Verification successful (200 status)');
         return data;
       } else {
         final errorBody = json.decode(response.body);
@@ -294,7 +273,6 @@ class ApiService {
             errorBody['aldaa'] ??
             errorBody['error'] ??
             'Баталгаажуулах код буруу байна: ${response.statusCode}';
-        print('🔐 [VERIFY_CODE] Error (${response.statusCode}): $errorMessage');
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -356,34 +334,25 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getWalletCities() async {
     try {
       final url = '$baseUrl/walletAddress/city';
-      print('🔍 [CITIES] Fetching cities from: $url');
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
 
-      print('🔍 [CITIES] Status code: ${response.statusCode}');
-      print('🔍 [CITIES] Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('🔍 [CITIES] Parsed data type: ${data.runtimeType}');
         if (data['data'] != null && data['data'] is List) {
           final list = List<Map<String, dynamic>>.from(data['data']);
-          print('🔍 [CITIES] Found ${list.length} cities in data.data');
           return list;
         } else if (data is List) {
           final list = List<Map<String, dynamic>>.from(data);
-          print('🔍 [CITIES] Found ${list.length} cities in root array');
           return list;
         }
-        print('⚠️ [CITIES] No cities found in response');
         return [];
       } else {
         throw Exception('Хот авахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ [CITIES] Error: $e');
       throw Exception('Хот авахад алдаа гарлаа: $e');
     }
   }
@@ -393,34 +362,25 @@ class ApiService {
   ) async {
     try {
       final url = '$baseUrl/walletAddress/district/$cityId';
-      print('🔍 [DISTRICTS] Fetching districts from: $url');
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
 
-      print('🔍 [DISTRICTS] Status code: ${response.statusCode}');
-      print('🔍 [DISTRICTS] Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('🔍 [DISTRICTS] Parsed data type: ${data.runtimeType}');
         if (data['data'] != null && data['data'] is List) {
           final list = List<Map<String, dynamic>>.from(data['data']);
-          print('🔍 [DISTRICTS] Found ${list.length} districts in data.data');
           return list;
         } else if (data is List) {
           final list = List<Map<String, dynamic>>.from(data);
-          print('🔍 [DISTRICTS] Found ${list.length} districts in root array');
           return list;
         }
-        print('⚠️ [DISTRICTS] No districts found in response');
         return [];
       } else {
         throw Exception('Дүүрэг авахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ [DISTRICTS] Error: $e');
       throw Exception('Дүүрэг авахад алдаа гарлаа: $e');
     }
   }
@@ -430,34 +390,25 @@ class ApiService {
   ) async {
     try {
       final url = '$baseUrl/walletAddress/khoroo/$districtId';
-      print('🔍 [KHOROOS] Fetching khoroos from: $url');
       final response = await http.get(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
 
-      print('🔍 [KHOROOS] Status code: ${response.statusCode}');
-      print('🔍 [KHOROOS] Response body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('🔍 [KHOROOS] Parsed data type: ${data.runtimeType}');
         if (data['data'] != null && data['data'] is List) {
           final list = List<Map<String, dynamic>>.from(data['data']);
-          print('🔍 [KHOROOS] Found ${list.length} khoroos in data.data');
           return list;
         } else if (data is List) {
           final list = List<Map<String, dynamic>>.from(data);
-          print('🔍 [KHOROOS] Found ${list.length} khoroos in root array');
           return list;
         }
-        print('⚠️ [KHOROOS] No khoroos found in response');
         return [];
       } else {
         throw Exception('Хороо авахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ [KHOROOS] Error: $e');
       throw Exception('Хороо авахад алдаа гарлаа: $e');
     }
   }
@@ -513,7 +464,6 @@ class ApiService {
         print(
           '❌ [GET-WALLET-BILLERS] 404 Error - URL: $baseUrl/wallet/billers',
         );
-        print('❌ [GET-WALLET-BILLERS] Response body: ${response.body}');
         try {
           final errorData = json.decode(response.body);
           final errorMessage =
@@ -550,52 +500,27 @@ class ApiService {
       final headers = await getWalletApiHeaders();
       final url = '$baseUrl/wallet/billing/biller/$billerCode/$customerCode';
 
-      print('🔍 [FIND-BILLING] Starting request...');
-      print('🔍 [FIND-BILLING] URL: $url');
-      print('🔍 [FIND-BILLING] BillerCode: $billerCode');
-      print('🔍 [FIND-BILLING] CustomerCode: $customerCode');
-      print(
-        '🔍 [FIND-BILLING] Has Auth Header: ${headers.containsKey('Authorization')}',
-      );
-
       response = await http.get(Uri.parse(url), headers: headers);
-
-      print('🔍 [FIND-BILLING] Response status: ${response.statusCode}');
-      print('🔍 [FIND-BILLING] Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        print('🔍 [FIND-BILLING] Decoded type: ${decoded.runtimeType}');
-        print('🔍 [FIND-BILLING] Decoded value: $decoded');
 
         // Handle both Map and List responses
         Map<String, dynamic> data;
         if (decoded is Map<String, dynamic>) {
-          print('🔍 [FIND-BILLING] Response is Map');
           data = decoded;
         } else if (decoded is List) {
-          print(
-            '🔍 [FIND-BILLING] Response is List, length: ${decoded.length}',
-          );
           if (decoded.isEmpty) {
-            print('❌ [FIND-BILLING] List is empty');
             throw Exception('Биллингийн мэдээлэл олдсонгүй');
           }
           // If response is a list, wrap it in a map structure
           final firstItem = decoded[0];
-          print('🔍 [FIND-BILLING] First item type: ${firstItem.runtimeType}');
-          print('🔍 [FIND-BILLING] First item value: $firstItem');
           if (firstItem is Map<String, dynamic>) {
             data = {'success': true, 'data': firstItem};
-            print('✅ [FIND-BILLING] Wrapped list item into Map structure');
           } else {
-            print('❌ [FIND-BILLING] First item is not Map<String, dynamic>');
             throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
           }
         } else {
-          print(
-            '❌ [FIND-BILLING] Response is neither Map nor List: ${decoded.runtimeType}',
-          );
           throw Exception('Биллингийн мэдээлэл олдсонгүй');
         }
 
@@ -651,8 +576,6 @@ class ApiService {
       print('❌ [FIND-BILLING] Exception caught: $e');
       print('❌ [FIND-BILLING] Exception type: ${e.runtimeType}');
       if (response != null) {
-        print('❌ [FIND-BILLING] Response status: ${response.statusCode}');
-        print('❌ [FIND-BILLING] Response body: ${response.body}');
       }
       if (e.toString().contains('is not a subtype') ||
           e.toString().contains('List<dynamic>') ||
@@ -1814,7 +1737,7 @@ class ApiService {
           }
           return data;
         } catch (e) {
-          print('JSON parsing failed. Response body: ${response.body}');
+          // JSON parsing failed
           return {'jagsaalt': []};
         }
       } else {
@@ -1863,7 +1786,7 @@ class ApiService {
           }
           return data;
         } catch (e) {
-          print('JSON parsing failed. Response body: ${response.body}');
+          // JSON parsing failed
           return {'jagsaalt': []};
         }
       } else {
@@ -1984,7 +1907,7 @@ class ApiService {
           return {'jagsaalt': []};
         } catch (e) {
           // If JSON decode fails, the response might be a plain string
-          print('JSON parsing failed. Response body: ${response.body}');
+          // JSON parsing failed
           print('Error: $e');
           return {'jagsaalt': []};
         }
@@ -2390,8 +2313,6 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
-      print('💳 [WALLET QPAY] Response status: ${response.statusCode}');
-      print('💳 [WALLET QPAY] Response body length: ${response.body.length}');
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         print(
@@ -2846,8 +2767,6 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
-      print('📅 [API] fetchNekhemjlekhCron GET $uri -> ${response.statusCode}');
-      print('📅 [API] fetchNekhemjlekhCron response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -3298,8 +3217,6 @@ class ApiService {
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = response.body.trim();

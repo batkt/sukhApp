@@ -71,13 +71,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    print('📬📬📬 NEKHEMJLEKH PAGE: initState called!');
     _loadNekhemjlekh();
-    print(
-      '📬📬📬 NEKHEMJLEKH PAGE: About to call _connectSocketAndSetupListener',
-    );
     _connectSocketAndSetupListener();
-    print('📬📬📬 NEKHEMJLEKH PAGE: _connectSocketAndSetupListener called');
   }
 
   @override
@@ -90,53 +85,32 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   }
 
   Future<void> _connectSocketAndSetupListener() async {
-    print('📬📬📬 NEKHEMJLEKH: _connectSocketAndSetupListener STARTED!');
-    print('📬 Nekhemjlekh: Setting up socket connection and listener');
-
     // Check if socket is already connected
     if (SocketService.instance.isConnected) {
-      print('📬 Nekhemjlekh: Socket already connected, setting up listener');
       _setupSocketListener();
     } else {
-      print('📬 Nekhemjlekh: Socket not connected, connecting now...');
       try {
         await SocketService.instance.connect();
         // Wait a bit for connection to establish
         await Future.delayed(const Duration(milliseconds: 500));
 
         if (SocketService.instance.isConnected) {
-          print('📬 Nekhemjlekh: Socket connected successfully');
           _setupSocketListener();
         } else {
-          print('⚠️ Nekhemjlekh: Socket connection failed or pending');
           // Still set up listener in case it connects later
           _setupSocketListener();
         }
       } catch (e) {
-        print('❌ Nekhemjlekh: Error connecting socket: $e');
         // Still set up listener in case it connects later
         _setupSocketListener();
       }
     }
-    print('📬📬📬 NEKHEMJLEKH: _connectSocketAndSetupListener COMPLETED!');
   }
 
   void _setupSocketListener() {
-    print('📬 Nekhemjlekh: Setting up notification callback');
-
     // Listen for real-time invoice notifications via socket
     _notificationCallback = (Map<String, dynamic> notification) {
-      // CRITICAL: Print immediately at the start - no conditions, no try-catch, no mounted check
-      print('📬📬📬 NEKHEMJLEKH CALLBACK CALLED!');
-      print('📬📬📬 NEKHEMJLEKH: This is the nekhemjlekh callback!');
-      print(
-        '📬📬📬 NEKHEMJLEKH: Notification received: ${notification.toString()}',
-      );
-      print('📬📬📬 Nekhemjlekh: Socket notification received: $notification');
-      print('📬 Nekhemjlekh: Notification keys: ${notification.keys.toList()}');
-
       if (!mounted) {
-        print('📬 Nekhemjlekh: Widget not mounted, ignoring notification');
         return;
       }
 
@@ -155,13 +129,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           ? (guilgee['turul']?.toString().toLowerCase() ?? '')
           : '';
       final baiguullagiinId = notification['baiguullagiinId']?.toString();
-
-      print(
-        '📬 Nekhemjlekh: Parsed values - title="$title", message="$message", turul="$turul", guilgeeTurul="$guilgeeTurul", baiguullagiinId="$baiguullagiinId"',
-      );
-      print(
-        '📬 Nekhemjlekh: guilgee is Map: ${guilgee is Map}, guilgee value: $guilgee',
-      );
 
       // Check if this is a new invoice notification
       // Based on the documentation and actual payload:
@@ -192,70 +159,28 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           // Check if turul is "мэдэгдэл" (notification type for invoices)
           (turul == 'мэдэгдэл' || turul == 'medegdel' || turul == 'app');
 
-      print(
-        '📬 Nekhemjlekh: isInvoiceNotification=$isInvoiceNotification, mounted=$mounted',
-      );
-      print(
-        '📬 Nekhemjlekh: guilgeeTurul check: "$guilgeeTurul" == "avlaga" = ${guilgeeTurul == "avlaga"}',
-      );
-
       if (isInvoiceNotification) {
-        print(
-          '📬 Nekhemjlekh: ✅ Processing invoice notification, showing toast and refreshing list',
-        );
-
         // Invoice notification detected - refresh the invoice list
-        print(
-          '📬 Nekhemjlekh: Invoice notification detected, refreshing invoice list',
-        );
-
         // Refresh invoice list after a short delay to ensure backend has updated
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
-            print('📬 Nekhemjlekh: Refreshing invoice list');
             _loadNekhemjlekh();
           }
         });
-      } else {
-        print(
-          '📬 Nekhemjlekh: ⚠️ Notification ignored (not an invoice notification)',
-        );
-        print(
-          '📬 Nekhemjlekh: Debug - guilgeeTurul="$guilgeeTurul", title="$title", message="$message", turul="$turul"',
-        );
       }
     };
-    print('📬 Nekhemjlekh: Registering callback...');
-    print(
-      '📬 Nekhemjlekh: Callback function before registration: $_notificationCallback',
-    );
-    print('📬 Nekhemjlekh: Callback is null: ${_notificationCallback == null}');
 
     if (_notificationCallback == null) {
-      print('❌❌❌ Nekhemjlekh: CRITICAL - Callback is NULL! Cannot register!');
       return;
     }
 
     SocketService.instance.setNotificationCallback(_notificationCallback!);
-    print('📬 Nekhemjlekh: ✅ Socket listener callback registered');
-    print(
-      '📬 Nekhemjlekh: Socket connected status: ${SocketService.instance.isConnected}',
-    );
-
-    // Verify callback was registered by checking if socket service has it
-    print(
-      '📬 Nekhemjlekh: Callback function after registration: $_notificationCallback',
-    );
 
     // Check socket connection status periodically
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         final isConnected = SocketService.instance.isConnected;
-        print('📬 Nekhemjlekh: Socket status check - connected: $isConnected');
         if (!isConnected) {
-          print(
-            '⚠️ Nekhemjlekh: Socket not connected, attempting to reconnect...',
-          );
           _connectSocketAndSetupListener();
         }
       }
@@ -290,27 +215,19 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
     // Fetch contact phone from baiguullaga (organization)
     try {
-      print('📞 [EBARIMT] Fetching baiguullaga for contact phone...');
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       if (baiguullagiinId != null) {
         final baiguullagaResponse = await ApiService.fetchBaiguullagaById(baiguullagiinId);
-        print('📞 [EBARIMT] Baiguullaga response: $baiguullagaResponse');
         if (baiguullagaResponse['utas'] != null && baiguullagaResponse['utas'] is List) {
           final utasList = baiguullagaResponse['utas'] as List;
           if (utasList.isNotEmpty) {
             contactPhone = utasList.first.toString();
-            print('📞 [EBARIMT] Contact phone found from baiguullaga: $contactPhone');
           }
         }
       }
-      if (contactPhone.isEmpty) {
-        print('📞 [EBARIMT] No phone found in baiguullaga');
-      }
     } catch (e) {
-      print('❌ [EBARIMT] Error fetching baiguullaga contact: $e');
       contactPhone = '';
     }
-    print('📞 [EBARIMT] Final contactPhone value: $contactPhone');
 
     try {
       double totalAmount = 0;

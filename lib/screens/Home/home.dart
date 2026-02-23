@@ -464,16 +464,11 @@ class _BookingScreenState extends State<NuurKhuudas>
   Future<void> _loadNekhemjlekhCron() async {
     try {
       final barilgiinId = await StorageService.getBarilgiinId();
-      debugPrint(
-        '📅 [HOME] Loading nekhemjlekhCron for barilgiinId: $barilgiinId',
-      );
 
       if (barilgiinId != null) {
         final response = await ApiService.fetchNekhemjlekhCron(
           barilgiinId: barilgiinId,
         );
-
-        debugPrint('📅 [HOME] API response: ${response.toString()}');
 
         if (mounted) {
           setState(() {
@@ -481,33 +476,21 @@ class _BookingScreenState extends State<NuurKhuudas>
             // 1) { success, data: { ... } }
             // 2) { success, data: [ { ... }, ... ] }
             final rawData = response['data'];
-            debugPrint('📅 [HOME] rawData type: ${rawData.runtimeType}');
 
             if (rawData is Map<String, dynamic>) {
               // Check if this single record matches our barilgiinId
               final recordBarilgiinId = rawData['barilgiinId']?.toString();
-              debugPrint(
-                '📅 [HOME] Single record - recordBarilgiinId: $recordBarilgiinId, expected: $barilgiinId',
-              );
 
               if (recordBarilgiinId == barilgiinId) {
                 _nekhemjlekhCronData = rawData;
-                debugPrint(
-                  '✅ [HOME] Matched! Loaded nekhemjlekhCron: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
-                );
               } else {
                 _nekhemjlekhCronData = null;
-                debugPrint(
-                  '❌ [HOME] Single record barilgiinId mismatch: expected $barilgiinId, got $recordBarilgiinId',
-                );
               }
             } else if (rawData is List) {
               if (rawData.isEmpty) {
                 // Empty list is a valid response - just means no data
                 _nekhemjlekhCronData = null;
-                debugPrint('📅 [HOME] Empty list returned - no nekhemjlekhCron data');
               } else {
-                debugPrint('📅 [HOME] List with ${rawData.length} items');
                 // Filter list to find record matching barilgiinId
                 final matchingRecords = rawData
                     .where(
@@ -517,54 +500,20 @@ class _BookingScreenState extends State<NuurKhuudas>
                     )
                     .toList();
 
-                debugPrint(
-                  '📅 [HOME] Found ${matchingRecords.length} matching records',
-                );
-
                 if (matchingRecords.isNotEmpty) {
                   _nekhemjlekhCronData =
                       matchingRecords.first as Map<String, dynamic>;
-                  debugPrint(
-                    '✅ [HOME] Matched! Loaded nekhemjlekhCron: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
-                  );
                 } else {
                   _nekhemjlekhCronData = null;
-                  debugPrint(
-                    '❌ [HOME] No matching record found for barilgiinId: $barilgiinId',
-                  );
-                  // Log all barilgiinIds in the list for debugging
-                  for (var i = 0; i < rawData.length; i++) {
-                    final item = rawData[i];
-                    if (item is Map<String, dynamic>) {
-                      debugPrint(
-                        '📅 [HOME] List item $i barilgiinId: ${item['barilgiinId']}',
-                      );
-                    }
-                  }
                 }
               }
             } else {
               _nekhemjlekhCronData = null;
-              debugPrint('❌ [HOME] rawData is null or not a List/Map');
-            }
-
-            if (_nekhemjlekhCronData != null) {
-              debugPrint(
-                '✅ [HOME] Final nekhemjlekhCron data: barilgiinId=${_nekhemjlekhCronData!['barilgiinId']}, nekhemjlekhUusgekhOgnoo=${_nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo']}',
-              );
-            } else {
-              debugPrint(
-                '❌ [HOME] nekhemjlekhCron data is null/empty after processing',
-              );
             }
           });
         }
-      } else {
-        debugPrint('❌ [HOME] barilgiinId is null, cannot load nekhemjlekhCron');
       }
     } catch (e) {
-      debugPrint('❌ [HOME] Error loading nekhemjlekh cron: $e');
-      print('Error loading nekhemjlekh cron: $e');
       // Silent fail - date calculation will fallback to contract date
     }
   }

@@ -121,7 +121,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
   Future<void> _checkBiometricStatus() async {
     final isAvailable = await BiometricService.isAvailable();
-    print('🔐 [BIOMETRIC] Available: $isAvailable');
     if (mounted) {
       setState(() {
         _biometricAvailable = isAvailable;
@@ -333,7 +332,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         try {
           await SocketService.instance.connect();
         } catch (e) {
-          print('Failed to connect socket: $e');
+          // Silent fail
         }
 
         setState(() {
@@ -753,7 +752,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                           ),
                           SizedBox(height: 2.h),
                           Text(
-                            'Version 1.2.1',
+                            'Version 2.0.1',
                             style: TextStyle(
                               fontSize: 9.sp,
                               color: isDark
@@ -1059,17 +1058,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       var savedDoorNo = await StorageService.getWalletDoorNo();
       var savedBairName = await StorageService.getWalletBairName();
 
-      if (savedBairId == null || savedDoorNo == null) {
-        print(
-          '📍 [LOGIN] Address not in local storage, backend will use saved address from profile',
-        );
-      }
-
-      print('🔐 [LOGIN] Attempting login with phone: $inputPhone');
-      print(
-        '🔐 [LOGIN] Sending address - bairId: $savedBairId, doorNo: $savedDoorNo, bairName: $savedBairName',
-      );
-
       // Get OWN_ORG IDs if address is OWN_ORG type
       final savedBaiguullagiinId =
           await StorageService.getWalletBairBaiguullagiinId();
@@ -1080,12 +1068,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           savedSource == 'OWN_ORG' &&
           savedBaiguullagiinId != null &&
           savedBarilgiinId != null;
-
-      if (isOwnOrg) {
-        print(
-          '🏢 [LOGIN] OWN_ORG address detected - baiguullagiinId: $savedBaiguullagiinId, barilgiinId: $savedBarilgiinId',
-        );
-      }
 
       Map<String, dynamic> loginResponse;
       try {
@@ -1109,9 +1091,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         if (isUserNotFound) {
           final storedOrgId = await StorageService.getBaiguullagiinId();
           if (storedOrgId != null && storedOrgId.trim().isNotEmpty) {
-            print(
-              '🏢 [LOGIN] Retry login with stored baiguullagiinId=$storedOrgId',
-            );
             loginResponse = await ApiService.loginUser(
               utas: inputPhone,
               nuutsUg: inputPassword,
@@ -1135,32 +1114,21 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           ? userDataDynamic
           : null;
 
-      print('✅ [LOGIN] Login response received');
-      print('   - Success: ${loginResponse['success']}');
-      print('   - Has token: ${loginResponse['token'] != null}');
-
       // Verify token was saved
       final tokenSaved = await StorageService.isLoggedIn();
-      print('🔑 [LOGIN] Token saved check: $tokenSaved');
 
       if (!tokenSaved) {
         throw Exception('Токен хадгалахад алдаа гарлаа. Дахин оролдоно уу.');
       }
 
       if (mounted) {
-        print('📱 [LOGIN] ========== STARTING POST-LOGIN FLOW ==========');
         await StorageService.savePhoneNumber(inputPhone);
-        print('📱 [LOGIN] Phone number saved');
 
         final loginOrgId = userData?['baiguullagiinId']?.toString();
         final hasBaiguullagiinId =
             loginOrgId != null &&
             loginOrgId.trim().isNotEmpty &&
             loginOrgId.trim().toLowerCase() != 'null';
-
-        print(
-          '🏢 [LOGIN] baiguullagiinId from loginResponse: $loginOrgId (hasBaiguullagiinId=$hasBaiguullagiinId)',
-        );
 
         // TODO: Re-enable phone verification later
         // Handle OTP verification for WEB-created users
@@ -1199,12 +1167,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         // } else {
         //   print('✅ [LOGIN] User without baiguullagiinId - skipping OTP verification');
         // }
-        print('📱 [LOGIN] Phone verification TEMPORARILY DISABLED');
 
         // Save credentials for biometric
         await StorageService.savePhoneNumber(inputPhone);
         await StorageService.savePasswordForBiometric(inputPassword);
-        print('🔐 [LOGIN] Credentials saved for biometric login');
 
         // Check address
         bool hasAddress = false;
@@ -1276,7 +1242,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         try {
           await SocketService.instance.connect();
         } catch (e) {
-          print('Failed to connect socket: $e');
+          // Silent fail
         }
 
         setState(() {
@@ -1328,7 +1294,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             errorMessage.contains('бүртгэлтэй биш') ||
             errorMessage.contains('not found') ||
             errorMessage.contains('олдсонгүй')) {
-          print('⚠️ [LOGIN] User not found, redirecting to signup page');
           showGlassSnackBar(
             context,
             message: 'Бүртгэлгүй хэрэглэгч бүртгүүлнэ үү',
