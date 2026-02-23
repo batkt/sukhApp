@@ -414,7 +414,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: 'Алдаа: $e',
+          message: e.toString().replaceAll("Exception: ", ""),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -749,7 +749,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           ),
           SizedBox(width: 8.w),
           Text(
-            isOwnOrg ? 'OWN_ORG' : 'WALLET',
+            isOwnOrg ? 'СӨХ-н төлбөр' : 'Бусад биллинг',
             style: TextStyle(
               color: isOwnOrg ? Colors.blue : Colors.green,
               fontSize: 12.sp,
@@ -889,7 +889,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                             borderRadius: BorderRadius.circular(11.r),
                           ),
                           child: Text(
-                            source == 'OWN_ORG' ? 'OWN_ORG' : 'WALLET',
+                            source == 'OWN_ORG' ? 'СӨХ-н төлбөр' : 'Биллинг',
                             style: TextStyle(
                               color: source == 'OWN_ORG'
                                   ? Colors.blue
@@ -951,7 +951,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                   Icon(Icons.payment_rounded, color: Colors.white, size: 22.sp),
                   SizedBox(width: 11.w),
                   Text(
-                    '${isOwnOrg ? 'OWN_ORG' : 'WALLET'} төлөх (${widget.formatNumberWithComma(amount)}₮)',
+                    '${isOwnOrg ? 'СӨХ-н төлбөр' : 'Бусад биллинг'} төлөх (${widget.formatNumberWithComma(amount)}₮)',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11.sp,

@@ -16,12 +16,16 @@ class EbarimtPage extends StatefulWidget {
   @override
   State<EbarimtPage> createState() => _EbarimtPageState();
 }
+
 class _EbarimtPageState extends State<EbarimtPage> {
   bool _isLoadingReceipts = false;
   List<VATReceipt> _ebarimtReceipts = [];
   final TextEditingController _citizenCodeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isSavingCode = false;
+  bool _isSearching = false;
+  Map<String, dynamic>? _consumerInfo;
+  Map<String, dynamic>? _foreignerInfo;
+  String? _infoType; // 'consumer' or 'foreigner'
 
   @override
   void initState() {
@@ -121,49 +125,133 @@ class _EbarimtPageState extends State<EbarimtPage> {
     super.dispose();
   }
 
-  Future<void> _saveCitizenCode() async {
+  Future<void> _searchConsumerInfo() async {
     if (!_formKey.currentState!.validate()) return;
-    
-    setState(() => _isSavingCode = true);
-    
+
+    setState(() {
+      _isSearching = true;
+      _consumerInfo = null;
+      _foreignerInfo = null;
+      _infoType = null;
+    });
+
     try {
-      final code = _citizenCodeController.text;
-      
-      // Call API to save consumer info
-      // Using code as identity
-      await ApiService.updateConsumerInfo(
-        identity: code,
-        data: {
-          'code': code,
-          // 'phone': ... we might need phone here if API requires it, but usually update is based on identity
-          // If the backend expects specific fields, we should provide them.
-          // Based on typical easy-register consumer info update:
-          // It likely expects the body to be the consumer object or fields to update.
-          // For now sending code as a field too.
-        },
-      );
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Амжилттай хадгалагдлаа'),
-            backgroundColor: AppColors.deepGreen,
-          ),
+      final identity = _citizenCodeController.text.trim();
+      print('🔍 [EBARIMT] Starting search for identity: $identity');
+
+      // Try consumer first
+      try {
+        print('🔍 [EBARIMT] Attempting consumer lookup...');
+        final consumerData = await ApiService.getConsumerInfo(
+          identity: identity,
         );
-        _citizenCodeController.clear();
+        print('✅ [EBARIMT] Consumer data received: $consumerData');
+        print('🔍 [EBARIMT] Consumer data keys: ${consumerData.keys.toList()}');
+        print('🔍 [EBARIMT] Consumer data isEmpty: ${consumerData.isEmpty}');
+
+        if (mounted) {
+          setState(() {
+            _consumerInfo = consumerData;
+            _foreignerInfo = null;
+            _infoType = 'consumer';
+            _isSearching = false;
+          });
+          print(
+            '✅ [EBARIMT] Consumer info set in state. _consumerInfo: $_consumerInfo',
+          );
+        }
+        return;
+      } catch (e) {
+        print('❌ [EBARIMT] Consumer lookup failed: $e');
+        // If consumer not found, try foreigner
+        if (e.toString().contains('олдсонгүй') ||
+            e.toString().contains('404')) {
+          print('🔍 [EBARIMT] Consumer not found, trying foreigner lookup...');
+          try {
+            final foreignerData = await ApiService.getForeignerInfo(
+              identity: identity,
+            );
+            print('✅ [EBARIMT] Foreigner data received: $foreignerData');
+            print(
+              '🔍 [EBARIMT] Foreigner data keys: ${foreignerData.keys.toList()}',
+            );
+            print(
+              '🔍 [EBARIMT] Foreigner data isEmpty: ${foreignerData.isEmpty}',
+            );
+
+            if (mounted) {
+              setState(() {
+                _foreignerInfo = foreignerData;
+                _consumerInfo = null;
+                _infoType = 'foreigner';
+                _isSearching = false;
+              });
+              print(
+                '✅ [EBARIMT] Foreigner info set in state. _foreignerInfo: $_foreignerInfo',
+              );
+            }
+            return;
+          } catch (e2) {
+            print('❌ [EBARIMT] Foreigner lookup failed: $e2');
+            // If foreigner also not found, try by login name
+            try {
+              print('🔍 [EBARIMT] Trying foreigner lookup by login name...');
+              final foreignerData =
+                  await ApiService.getForeignerInfoByLoginName(
+                    loginName: identity,
+                  );
+              print(
+                '✅ [EBARIMT] Foreigner data by login name received: $foreignerData',
+              );
+              print(
+                '🔍 [EBARIMT] Foreigner data keys: ${foreignerData.keys.toList()}',
+              );
+              print(
+                '🔍 [EBARIMT] Foreigner data isEmpty: ${foreignerData.isEmpty}',
+              );
+
+              if (mounted) {
+                setState(() {
+                  _foreignerInfo = foreignerData;
+                  _consumerInfo = null;
+                  _infoType = 'foreigner';
+                  _isSearching = false;
+                });
+                print(
+                  '✅ [EBARIMT] Foreigner info (by login) set in state. _foreignerInfo: $_foreignerInfo',
+                );
+              }
+              return;
+            } catch (e3) {
+              print('❌ [EBARIMT] All lookup methods failed. Last error: $e3');
+              // Both failed
+              throw e;
+            }
+          }
+        } else {
+          rethrow;
+        }
       }
     } catch (e) {
+      print('❌ [EBARIMT] Final error in search: $e');
       if (mounted) {
+        setState(() {
+          _isSearching = false;
+          _consumerInfo = null;
+          _foreignerInfo = null;
+          _infoType = null;
+        });
+        print(
+          '🔍 [EBARIMT] State cleared. _consumerInfo: $_consumerInfo, _foreignerInfo: $_foreignerInfo',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Алдаа: ${e.toString().replaceAll("Exception: ", "")}'),
+            content: Text(
+              e.toString().replaceAll("", ""),
+            ),
             backgroundColor: Colors.red,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSavingCode = false);
       }
     }
   }
@@ -212,11 +300,9 @@ class _EbarimtPageState extends State<EbarimtPage> {
                       Expanded(
                         child: TextFormField(
                           controller: _citizenCodeController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 8,
+                          keyboardType: TextInputType.text,
                           decoration: InputDecoration(
-                            counterText: '',
-                            hintText: 'Иргэний 8 оронтой код',
+                            hintText: 'Регистр/Паспорт дугаар эсвэл логин нэр',
                             prefixIcon: const Icon(Icons.person_outline),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10.r),
@@ -226,16 +312,13 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             if (value == null || value.isEmpty) {
                               return 'Кодоо оруулна уу';
                             }
-                            if (value.length != 8) {
-                              return '8 оронтой байх ёстой';
-                            }
                             return null;
                           },
                         ),
                       ),
                       SizedBox(width: 12.w),
                       ElevatedButton(
-                        onPressed: _isSavingCode ? null : _saveCitizenCode,
+                        onPressed: _isSearching ? null : _searchConsumerInfo,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.deepGreen,
                           padding: EdgeInsets.symmetric(
@@ -246,7 +329,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                         ),
-                        child: _isSavingCode
+                        child: _isSearching
                             ? SizedBox(
                                 width: 20.w,
                                 height: 20.w,
@@ -256,22 +339,24 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                 ),
                               )
                             : const Text(
-                                'Хадгалах',
+                                'Хайх',
                                 style: TextStyle(color: Colors.white),
                               ),
                       ),
                     ],
                   ),
+                  // Display consumer/foreigner info
+                  if (_consumerInfo != null || _foreignerInfo != null) ...[
+                    SizedBox(height: 16.h),
+                    _buildInfoCard(),
+                  ],
                 ],
               ),
             ),
           ),
           // Ebarimt Receipts List Header
           Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 12.h,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -487,6 +572,122 @@ class _EbarimtPageState extends State<EbarimtPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    print('🔍 [EBARIMT] _buildInfoCard called');
+    print('🔍 [EBARIMT] _infoType: $_infoType');
+    print('🔍 [EBARIMT] _consumerInfo: $_consumerInfo');
+    print('🔍 [EBARIMT] _foreignerInfo: $_foreignerInfo');
+
+    final info = _infoType == 'consumer' ? _consumerInfo : _foreignerInfo;
+    print('🔍 [EBARIMT] Selected info: $info');
+    print('🔍 [EBARIMT] Info is null: ${info == null}');
+
+    if (info == null) {
+      print('❌ [EBARIMT] Info is null, returning empty widget');
+      return const SizedBox.shrink();
+    }
+
+    print('✅ [EBARIMT] Building info card with data: $info');
+    print('🔍 [EBARIMT] Info keys: ${info.keys.toList()}');
+    print('🔍 [EBARIMT] Info isEmpty: ${info.isEmpty}');
+
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppColors.deepGreen.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppColors.deepGreen.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _infoType == 'consumer' ? Icons.person : Icons.public,
+                color: AppColors.deepGreen,
+                size: 20.sp,
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                _infoType == 'consumer'
+                    ? 'Иргэний мэдээлэл'
+                    : 'Гадаадын иргэний мэдээлэл',
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          if (_infoType == 'consumer') ...[
+            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
+            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
+            _buildInfoRow(
+              'Регистр',
+              info['register']?.toString() ??
+                  info['customerNo']?.toString() ??
+                  '-',
+            ),
+            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
+            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
+            _buildInfoRow('Төлөв', info['status']?.toString() ?? '-'),
+          ] else ...[
+            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
+            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
+            _buildInfoRow(
+              'Паспорт дугаар',
+              info['passportNo']?.toString() ?? '-',
+            ),
+            _buildInfoRow(
+              'Харилцагчийн дугаар',
+              info['customerNo']?.toString() ?? '-',
+            ),
+            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
+            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
+            _buildInfoRow('Төлөв', info['status']?.toString() ?? '-'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120.w,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                color: context.textSecondaryColor,
+                fontSize: 12.sp,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: context.textPrimaryColor,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

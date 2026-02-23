@@ -27,7 +27,6 @@ class SocketService {
       _baiguullagiinId = await StorageService.getBaiguullagiinId();
 
       if (_userId == null) {
-        print('⚠️ Cannot connect socket: User not logged in');
         return;
       }
 
@@ -50,7 +49,6 @@ class SocketService {
 
       socket!.onConnect((_) {
         _isConnected = true;
-        print('✅ Socket connected');
         
         // Listen for user notifications after connection
         if (_userId != null) {
@@ -66,20 +64,16 @@ class SocketService {
 
       socket!.onDisconnect((_) {
         _isConnected = false;
-        print('❌ Socket disconnected');
       });
 
       socket!.onError((error) {
-        print('❌ Socket error: $error');
         _isConnected = false;
       });
 
       socket!.onConnectError((error) {
-        print('❌ Socket connection error: $error');
         _isConnected = false;
       });
     } catch (e) {
-      print('❌ Error initializing socket: $e');
       _isConnected = false;
     }
   }
@@ -90,18 +84,12 @@ class SocketService {
 
     final eventName = 'orshinSuugch$_userId';
     
-    print('🔔 Setting up notification listener for event: $eventName');
-    print('🔔 User ID: $_userId');
-    print('🔔 Socket connected: ${socket?.connected}');
-    
     // Remove existing listener if any
     socket!.off(eventName);
     
     socket!.on(eventName, (data) {
       // Unwrap if server sent multiple args (e.g. [payload])
       if (data is List && data.isNotEmpty) data = data.first;
-      print('📬 New notification received on $eventName: $data');
-      print('🔔 DEBUG: About to notify callbacks. Total callbacks: ${_notificationCallbacks.length}');
       
       // Show system notification (banner / lock screen) for any incoming notification
       try {
@@ -126,20 +114,13 @@ class SocketService {
           }
         }
       } catch (e) {
-        print('Error showing local notification: $e');
+        // Silent fail
       }
       
       // Notify all registered callbacks
-      print('🔔🔔🔔 Notifying ${_notificationCallbacks.length} registered callback(s)');
-      if (_notificationCallbacks.isEmpty) {
-        print('⚠️⚠️⚠️ WARNING: No callbacks registered!');
-      }
-      
       for (int i = 0; i < _notificationCallbacks.length; i++) {
         try {
-          print('🔔 Calling callback #$i');
           final callback = _notificationCallbacks[i];
-          print('🔔 Callback #$i function: $callback');
           
           // Ensure data is a Map before passing
           Map<String, dynamic> notificationData;
@@ -149,19 +130,14 @@ class SocketService {
             // Convert to Map<String, dynamic>
             notificationData = Map<String, dynamic>.from(data);
           } else {
-            print('⚠️ Data is not a Map, skipping callback. Data type: ${data.runtimeType}');
             continue;
           }
           
-          print('🔔 Invoking callback #$i with data: $notificationData');
           callback(notificationData);
-          print('🔔✅ Callback #$i completed successfully');
-        } catch (e, stackTrace) {
-          print('❌❌❌ Error in notification callback #$i: $e');
-          print('❌ Stack trace: $stackTrace');
+        } catch (e) {
+          // Silent fail
         }
       }
-      print('🔔 Finished notifying all callbacks');
     });
   }
 
@@ -176,7 +152,6 @@ class SocketService {
     
     socket!.off(eventName);
     socket!.on(eventName, (data) {
-      print('💳 QPay update received: $data');
       callback(data);
     });
   }
@@ -192,7 +167,6 @@ class SocketService {
     
     socket!.off(eventName);
     socket!.on(eventName, (data) {
-      print('👤 Employee update received: $data');
       callback(data);
     });
   }
@@ -205,7 +179,6 @@ class SocketService {
     
     socket!.off(eventName);
     socket!.on(eventName, (data) {
-      print('🚪 Auto logout received: $data');
       callback(data);
     });
   }
@@ -238,19 +211,13 @@ class SocketService {
 
   /// Set callback for user notifications (adds to list, doesn't replace)
   void setNotificationCallback(Function(Map<String, dynamic>) callback) {
-    print('🔔 setNotificationCallback called. Current callbacks: ${_notificationCallbacks.length}');
     // Remove if already exists to avoid duplicates
     _notificationCallbacks.remove(callback);
     _notificationCallbacks.add(callback);
-    print('🔔 Callback added. Total callbacks now: ${_notificationCallbacks.length}');
-    print('🔔 Callback function: $callback');
     
     // If already connected, set up listener
     if (_isConnected && _userId != null) {
-      print('🔔 Socket already connected, re-setting up listener');
       _listenForUserNotifications();
-    } else {
-      print('🔔 Socket not connected yet (connected: $_isConnected, userId: $_userId)');
     }
   }
 
@@ -289,7 +256,6 @@ class SocketService {
       socket = null;
       _isConnected = false;
       _notificationCallbacks.clear();
-      print('🔌 Socket disconnected and disposed');
     }
   }
 

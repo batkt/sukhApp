@@ -62,7 +62,7 @@ flutter:
   uses-material-design: true
   # Only include assets that are actually used
   assets:
-    - lib/assets/fonts/
+    - assets/fonts/
     - lib/assets/img/
     - lib/assets/pdf/
   # Enable tree-shaking for fonts (only include used font weights)
@@ -71,9 +71,9 @@ flutter:
   fonts:
     - family: Inter
       fonts:
-        - asset: lib/assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Regular.ttf
           weight: 400
-        - asset: lib/assets/fonts/Inter-Bold.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
           weight: 700
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -181,7 +181,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
         });
         showGlassSnackBar(
           context,
-          message: 'Биллинг хайхад алдаа гарлаа: $e',
+          message: e.toString().replaceAll("", ""),
           icon: Icons.error,
           iconColor: Colors.red,
         );

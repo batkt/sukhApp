@@ -1576,6 +1576,399 @@ class ApiService {
     }
   }
 
+ // Get Consumer Info by Identity (registration number or login name)
+  static Future<Map<String, dynamic>> getConsumerInfo({
+    required String identity,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      // If default value, try to fetch from user profile
+      if (tukhainBaaziinKholbolt == 'amarSukh' ||
+          tukhainBaaziinKholbolt == null) {
+        try {
+          final userProfile = await getUserProfile();
+          if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
+            tukhainBaaziinKholbolt =
+                userProfile['result']['tukhainBaaziinKholbolt'].toString();
+            // Save it for future use
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(
+              'tukhain_baaziin_kholbolt',
+              tukhainBaaziinKholbolt,
+            );
+          }
+        } catch (e) {
+          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+        }
+      }
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй. Та дахин нэвтэрнэ үү.');
+      }
+
+      final encodedIdentity = Uri.encodeComponent(identity);
+      final uri =
+          Uri.parse(
+            '$baseUrl/easyRegister/info/consumer/$encodedIdentity',
+          ).replace(
+            queryParameters: {
+              'baiguullagiinId': baiguullagiinId,
+              'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+            },
+          );
+
+      print('🔍 [API] getConsumerInfo - URL: $uri');
+      print(
+        '🔍 [API] getConsumerInfo - Identity: $identity (encoded: $encodedIdentity)',
+      );
+      print('🔍 [API] getConsumerInfo - baiguullagiinId: $baiguullagiinId');
+      print(
+        '🔍 [API] getConsumerInfo - tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt',
+      );
+      print('🔍 [API] getConsumerInfo - Headers: ${headers.keys.toList()}');
+
+      final response = await http.get(uri, headers: headers);
+
+      print('🔍 [API] getConsumerInfo - Status: ${response.statusCode}');
+      print(
+        '🔍 [API] getConsumerInfo - Response body length: ${response.body.length}',
+      );
+      print('🔍 [API] getConsumerInfo - Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ [API] getConsumerInfo - Parsed data: $data');
+        print('🔍 [API] getConsumerInfo - Data type: ${data.runtimeType}');
+        print('🔍 [API] getConsumerInfo - Data isEmpty: ${data.isEmpty}');
+        print(
+          '🔍 [API] getConsumerInfo - Data keys: ${data is Map ? data.keys.toList() : "N/A"}',
+        );
+        return data;
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else if (response.statusCode == 404) {
+        print('❌ [API] getConsumerInfo - 404 Not Found');
+        throw Exception('Хэрэглэгч олдсонгүй');
+      } else {
+        String errorMessage =
+            'Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          print('❌ [API] getConsumerInfo - Error data: $errorData');
+        } catch (_) {
+          print('❌ [API] getConsumerInfo - Could not parse error response');
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('❌ [API] getConsumerInfo - Exception: $e');
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+    }
+  }
+
+  // Get Foreigner Info by Identity (passport number or F-register number)
+  static Future<Map<String, dynamic>> getForeignerInfo({
+    required String identity,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      // If default value, try to fetch from user profile
+      if (tukhainBaaziinKholbolt == 'amarSukh' ||
+          tukhainBaaziinKholbolt == null) {
+        try {
+          final userProfile = await getUserProfile();
+          if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
+            tukhainBaaziinKholbolt =
+                userProfile['result']['tukhainBaaziinKholbolt'].toString();
+            // Save it for future use
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(
+              'tukhain_baaziin_kholbolt',
+              tukhainBaaziinKholbolt,
+            );
+          }
+        } catch (e) {
+          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+        }
+      }
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй. Та дахин нэвтэрнэ үү.');
+      }
+
+      final encodedIdentity = Uri.encodeComponent(identity);
+      final uri =
+          Uri.parse(
+            '$baseUrl/easyRegister/info/foreigner/$encodedIdentity',
+          ).replace(
+            queryParameters: {
+              'baiguullagiinId': baiguullagiinId,
+              'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+            },
+          );
+
+      print('🔍 [API] getForeignerInfo - URL: $uri');
+      print(
+        '🔍 [API] getForeignerInfo - Identity: $identity (encoded: $encodedIdentity)',
+      );
+      print('🔍 [API] getForeignerInfo - baiguullagiinId: $baiguullagiinId');
+      print(
+        '🔍 [API] getForeignerInfo - tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt',
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      print('🔍 [API] getForeignerInfo - Status: ${response.statusCode}');
+      print(
+        '🔍 [API] getForeignerInfo - Response body length: ${response.body.length}',
+      );
+      print('🔍 [API] getForeignerInfo - Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ [API] getForeignerInfo - Parsed data: $data');
+        print('🔍 [API] getForeignerInfo - Data type: ${data.runtimeType}');
+        print('🔍 [API] getForeignerInfo - Data isEmpty: ${data.isEmpty}');
+        print(
+          '🔍 [API] getForeignerInfo - Data keys: ${data is Map ? data.keys.toList() : "N/A"}',
+        );
+        return data;
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else if (response.statusCode == 404) {
+        print('❌ [API] getForeignerInfo - 404 Not Found');
+        throw Exception('Гадаадын иргэн олдсонгүй');
+      } else {
+        String errorMessage =
+            'Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          print('❌ [API] getForeignerInfo - Error data: $errorData');
+        } catch (_) {
+          print('❌ [API] getForeignerInfo - Could not parse error response');
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('❌ [API] getForeignerInfo - Exception: $e');
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+    }
+  }
+
+  // Get Foreigner Info by Login Name (customer number)
+  static Future<Map<String, dynamic>> getForeignerInfoByLoginName({
+    required String loginName,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      // If default value, try to fetch from user profile
+      if (tukhainBaaziinKholbolt == 'amarSukh' ||
+          tukhainBaaziinKholbolt == null) {
+        try {
+          final userProfile = await getUserProfile();
+          if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
+            tukhainBaaziinKholbolt =
+                userProfile['result']['tukhainBaaziinKholbolt'].toString();
+            // Save it for future use
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(
+              'tukhain_baaziin_kholbolt',
+              tukhainBaaziinKholbolt,
+            );
+          }
+        } catch (e) {
+          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+        }
+      }
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй. Та дахин нэвтэрнэ үү.');
+      }
+
+      final encodedLoginName = Uri.encodeComponent(loginName);
+      final uri =
+          Uri.parse(
+            '$baseUrl/easyRegister/info/foreigner/customerNo/$encodedLoginName',
+          ).replace(
+            queryParameters: {
+              'baiguullagiinId': baiguullagiinId,
+              'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+            },
+          );
+
+      print('🔍 [API] getForeignerInfoByLoginName - URL: $uri');
+      print(
+        '🔍 [API] getForeignerInfoByLoginName - LoginName: $loginName (encoded: $encodedLoginName)',
+      );
+      print(
+        '🔍 [API] getForeignerInfoByLoginName - baiguullagiinId: $baiguullagiinId',
+      );
+      print(
+        '🔍 [API] getForeignerInfoByLoginName - tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt',
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      print(
+        '🔍 [API] getForeignerInfoByLoginName - Status: ${response.statusCode}',
+      );
+      print(
+        '🔍 [API] getForeignerInfoByLoginName - Response body length: ${response.body.length}',
+      );
+      print(
+        '🔍 [API] getForeignerInfoByLoginName - Response body: ${response.body}',
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ [API] getForeignerInfoByLoginName - Parsed data: $data');
+        print(
+          '🔍 [API] getForeignerInfoByLoginName - Data type: ${data.runtimeType}',
+        );
+        print(
+          '🔍 [API] getForeignerInfoByLoginName - Data isEmpty: ${data.isEmpty}',
+        );
+        print(
+          '🔍 [API] getForeignerInfoByLoginName - Data keys: ${data is Map ? data.keys.toList() : "N/A"}',
+        );
+        return data;
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else if (response.statusCode == 404) {
+        print('❌ [API] getForeignerInfoByLoginName - 404 Not Found');
+        throw Exception('Гадаадын иргэн олдсонгүй');
+      } else {
+        String errorMessage =
+            'Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          print('❌ [API] getForeignerInfoByLoginName - Error data: $errorData');
+        } catch (_) {
+          print(
+            '❌ [API] getForeignerInfoByLoginName - Could not parse error response',
+          );
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('❌ [API] getForeignerInfoByLoginName - Exception: $e');
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+    }
+  }
+
+  // Register Foreigner in e-Barimt System
+  static Future<Map<String, dynamic>> registerForeigner({
+    required String passportNo,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final encodedPassportNo = Uri.encodeComponent(passportNo);
+      final response = await http.post(
+        Uri.parse('$baseUrl/easyRegister/info/foreigner/$encodedPassportNo'),
+        headers: headers,
+        body: json.encode(data),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else if (response.statusCode == 409) {
+        throw Exception('Гадаадын иргэн аль хэдийн бүртгэгдсэн байна');
+      } else {
+        String errorMessage = 'Бүртгэхэд алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {}
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Бүртгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  // Get Profile by Phone or Customer Number
+  static Future<Map<String, dynamic>> getProfile({
+    String? phone,
+    String? customerNo,
+  }) async {
+    try {
+      if (phone == null && customerNo == null) {
+        throw Exception('Утас эсвэл харилцагчийн дугаар шаардлагатай');
+      }
+
+      final headers = await getAuthHeaders();
+      final requestBody = <String, dynamic>{};
+      if (phone != null) {
+        requestBody['phone'] = phone;
+      }
+      if (customerNo != null) {
+        requestBody['customerNo'] = customerNo;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/easyRegister/getProfile'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else if (response.statusCode == 404) {
+        throw Exception('Профайл олдсонгүй');
+      } else {
+        String errorMessage =
+            'Профайл авахад алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {}
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Профайл авахад алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> getUserProfile() async {
     try {
       final headers = await getAuthHeaders();
@@ -1603,6 +1996,9 @@ class ApiService {
         );
       }
     } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
       print('Error in getUserProfile: $e');
       throw Exception('Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: $e');
     }

@@ -13,13 +13,15 @@ void showGlassSnackBar(
   double blur = 10, // kept for API compatibility (ignored)
   Duration duration = const Duration(seconds: 2),
 }) {
+  final cleanMessage = message.replaceAll("Exception: ", "");
+  
   try {
     final overlay = Overlay.of(context, rootOverlay: true);
     OverlayEntry? overlayEntry;
 
     overlayEntry = OverlayEntry(
       builder: (context) => _SnackBarWidget(
-        message: message,
+        message: cleanMessage,
         icon: icon,
         textColor: textColor,
         iconColor: iconColor,
@@ -52,7 +54,7 @@ void showGlassSnackBar(
     print('Error showing glass snackbar, using fallback: $e');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(cleanMessage),
         duration: duration,
       ),
     );
