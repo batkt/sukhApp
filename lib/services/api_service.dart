@@ -1807,6 +1807,7 @@ class ApiService {
     String? gereeniiDugaar,
     String? orshinSuugchId,
     String? barilgiinId,
+    String? gereeniiId,
     int khuudasniiDugaar = 1,
     int khuudasniiKhemjee = 500,
   }) async {
@@ -1819,6 +1820,9 @@ class ApiService {
       };
 
       final query = <String, dynamic>{'baiguullagiinId': baiguullagiinId};
+      if (gereeniiId != null && gereeniiId.isNotEmpty) {
+        query['gereeniiId'] = gereeniiId;
+      }
       if (gereeniiDugaar != null && gereeniiDugaar.isNotEmpty) {
         query['gereeniiDugaar'] = gereeniiDugaar;
       }

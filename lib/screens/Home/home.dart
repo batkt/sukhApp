@@ -594,9 +594,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   baiguullagiinId != null
                       ? ApiService.fetchGereeniiTulukhAvlaga(
                           baiguullagiinId: baiguullagiinId,
-                          gereeniiDugaar: gereeniiDugaar,
-                          orshinSuugchId: userId,
-                          barilgiinId: barilgiinId,
+                          gereeniiId: gereeniiId,
                         )
                       : Future.value({'jagsaalt': []}),
                 ]);

@@ -412,9 +412,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           baiguullagiinId != null
               ? ApiService.fetchGereeniiTulukhAvlaga(
                   baiguullagiinId: baiguullagiinId,
-                  gereeniiDugaar: gereeniiDugaar,
-                  orshinSuugchId: orshinSuugchId,
-                  barilgiinId: barilgiinId,
+                  gereeniiId: gereeniiId,
                 )
               : Future.value({'jagsaalt': []}),
         ]);
