@@ -1537,7 +1537,6 @@ class ApiService {
     // Wallet API requires userId header with phone number (NOT UUID)
     if (userId != null && userId.isNotEmpty) {
       headers['userId'] = userId;
-      print('📱 [WALLET API] Using phone number in userId header: $userId');
     } else {
       print(
         '⚠️ [WALLET API] Warning: No phone number available for userId header',
@@ -1640,6 +1639,9 @@ class ApiService {
       print('🔍 [API] getConsumerInfo - Response body: ${response.body}');
 
       if (response.statusCode == 200) {
+        if (response.body.isEmpty) {
+          throw Exception('Хэрэглэгч олдсонгүй');
+        }
         final data = json.decode(response.body);
         print('✅ [API] getConsumerInfo - Parsed data: $data');
         print('🔍 [API] getConsumerInfo - Data type: ${data.runtimeType}');
@@ -1738,6 +1740,9 @@ class ApiService {
       print('🔍 [API] getForeignerInfo - Response body: ${response.body}');
 
       if (response.statusCode == 200) {
+        if (response.body.isEmpty) {
+          throw Exception('Гадаадын иргэн олдсонгүй');
+        }
         final data = json.decode(response.body);
         print('✅ [API] getForeignerInfo - Parsed data: $data');
         print('🔍 [API] getForeignerInfo - Data type: ${data.runtimeType}');
@@ -1842,6 +1847,9 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
+        if (response.body.isEmpty) {
+          throw Exception('Гадаадын иргэн олдсонгүй');
+        }
         final data = json.decode(response.body);
         print('✅ [API] getForeignerInfoByLoginName - Parsed data: $data');
         print(

@@ -246,9 +246,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              e.toString().replaceAll("", ""),
-            ),
+            content: Text(e.toString().replaceAll("", "")),
             backgroundColor: Colors.red,
           ),
         );
@@ -258,167 +256,280 @@ class _EbarimtPageState extends State<EbarimtPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+
     return Scaffold(
       backgroundColor: context.backgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.deepGreen,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: context.textPrimaryColor,
+            size: 20.sp,
+          ),
           onPressed: () => context.pop(),
         ),
-        title: const Text('И-Баримт', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        elevation: 0,
+        title: Text(
+          'И-Баримт',
+          style: TextStyle(
+            color: context.textPrimaryColor,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          // Citizen Code Input Section
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: context.cardBackgroundColor,
-              border: Border(
-                bottom: BorderSide(color: context.borderColor, width: 1),
-              ),
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Иргэний мэдээлэл',
-                    style: TextStyle(
-                      color: context.textPrimaryColor,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Citizen Code Input Section
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              padding: EdgeInsets.all(20.w),
+              decoration: BoxDecoration(
+                color: context.cardBackgroundColor,
+                borderRadius: BorderRadius.circular(24.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                    spreadRadius: 0,
                   ),
-                  SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _citizenCodeController,
-                          keyboardType: TextInputType.text,
-                          decoration: InputDecoration(
-                            hintText: 'Регистр/Паспорт дугаар эсвэл логин нэр',
-                            prefixIcon: const Icon(Icons.person_outline),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.r),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Кодоо оруулна уу';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      ElevatedButton(
-                        onPressed: _isSearching ? null : _searchConsumerInfo,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.deepGreen,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 20.w,
-                            vertical: 16.h,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                        ),
-                        child: _isSearching
-                            ? SizedBox(
-                                width: 20.w,
-                                height: 20.w,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Хайх',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                      ),
-                    ],
-                  ),
-                  // Display consumer/foreigner info
-                  if (_consumerInfo != null || _foreignerInfo != null) ...[
-                    SizedBox(height: 16.h),
-                    _buildInfoCard(),
-                  ],
                 ],
               ),
-            ),
-          ),
-          // Ebarimt Receipts List Header
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Илгээгдсэн и-баримтууд (${_ebarimtReceipts.length})',
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (_isLoadingReceipts)
-                  SizedBox(
-                    width: 18.w,
-                    height: 18.w,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.deepGreen,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // Ebarimt Receipts List
-          Expanded(
-            child: _isLoadingReceipts
-                ? Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.deepGreen,
-                    ),
-                  )
-                : _ebarimtReceipts.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Icon(
-                          Icons.receipt_long_outlined,
-                          size: 64.sp,
-                          color: context.textSecondaryColor.withOpacity(0.5),
+                        Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.deepGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Icon(
+                            Icons.person_search_rounded,
+                            color: AppColors.deepGreen,
+                            size: 20.sp,
+                          ),
                         ),
-                        SizedBox(height: 16.h),
+                        SizedBox(width: 12.w),
                         Text(
-                          'Илгээгдсэн и-баримт олдсонгүй',
+                          'Иргэний мэдээлэл',
                           style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: 16.sp,
+                            color: context.textPrimaryColor,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    itemCount: _ebarimtReceipts.length,
-                    itemBuilder: (context, index) {
-                      final receipt = _ebarimtReceipts[index];
-                      return _buildReceiptCard(receipt);
-                    },
+                    SizedBox(height: 20.h),
+                    TextFormField(
+                      controller: _citizenCodeController,
+                      keyboardType: TextInputType.text,
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        color: context.textPrimaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Регистр, утасны дугаар',
+                        hintStyle: TextStyle(
+                          color: context.textSecondaryColor.withOpacity(0.7),
+                          fontSize: 14.sp,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.badge_outlined,
+                          color: context.textSecondaryColor,
+                          size: 22.sp,
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : Colors.grey.withOpacity(0.05),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16.r),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16.r),
+                          borderSide: BorderSide(
+                            color: AppColors.deepGreen,
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: 16.h,
+                          horizontal: 16.w,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Хоосон байж болохгүй';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16.h),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSearching ? null : _searchConsumerInfo,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.deepGreen,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 16.h),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                        ),
+                        child: _isSearching
+                            ? SizedBox(
+                                width: 22.sp,
+                                height: 22.sp,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'Хадгалах',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                      ),
+                    ),
+                    // Display consumer/foreigner info
+                    if (_consumerInfo != null || _foreignerInfo != null) ...[
+                      SizedBox(height: 20.h),
+                      _buildInfoCard(),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            // Ebarimt Receipts List Header
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Илгээгдсэн баримтууд',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-          ),
-        ],
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.deepGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: _isLoadingReceipts
+                        ? SizedBox(
+                            width: 12.sp,
+                            height: 12.sp,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.deepGreen,
+                            ),
+                          )
+                        : Text(
+                            '${_ebarimtReceipts.length}',
+                            style: TextStyle(
+                              color: AppColors.deepGreen,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Ebarimt Receipts List
+            Expanded(
+              child: _isLoadingReceipts
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.deepGreen,
+                      ),
+                    )
+                  : _ebarimtReceipts.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(20.w),
+                                decoration: BoxDecoration(
+                                  color: context.cardBackgroundColor,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                                      blurRadius: 20,
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.receipt_long_rounded,
+                                  size: 48.sp,
+                                  color: context.textSecondaryColor
+                                      .withOpacity(0.5),
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+                              Text(
+                                'И-Баримт олдсонгүй',
+                                style: TextStyle(
+                                  color: context.textPrimaryColor,
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                'Танд илгээгдсэн цахим төлбөрийн\nбаримт одоогоор байхгүй байна.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: context.textSecondaryColor,
+                                  fontSize: 13.sp,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 8.h),
+                          itemCount: _ebarimtReceipts.length,
+                          itemBuilder: (context, index) {
+                            final receipt = _ebarimtReceipts[index];
+                            return _buildReceiptCard(receipt);
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -426,33 +537,13 @@ class _EbarimtPageState extends State<EbarimtPage> {
   Widget _buildReceiptCard(VATReceipt receipt) {
     final isDark = context.isDarkMode;
     return Container(
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          small: 12,
-          medium: 14,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 8,
-        ),
-      ),
+      margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
         color: context.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 16,
-            medium: 18,
-            large: 20,
-            tablet: 22,
-            veryNarrow: 12,
-          ),
-        ),
-        border: Border.all(
-          color: AppColors.deepGreen.withOpacity(isDark ? 0.3 : 0.2),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
             blurRadius: 15,
             spreadRadius: 0,
             offset: const Offset(0, 4),
@@ -462,6 +553,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
+          borderRadius: BorderRadius.circular(20.r),
           onTap: () {
             showModalBottomSheet(
               context: context,
@@ -472,101 +564,100 @@ class _EbarimtPageState extends State<EbarimtPage> {
               builder: (context) => VATReceiptModal(receipt: receipt),
             );
           },
-          borderRadius: BorderRadius.circular(
-            context.responsiveBorderRadius(
-              small: 12,
-              medium: 14,
-              large: 16,
-              tablet: 18,
-              veryNarrow: 10,
-            ),
-          ),
           child: Padding(
             padding: EdgeInsets.all(16.w),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  width: 48.w,
-                  height: 48.w,
+                  padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
-                    color: AppColors.deepGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(
-                      context.responsiveBorderRadius(
-                        small: 8,
-                        medium: 10,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 6,
-                      ),
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.deepGreen.withOpacity(0.2),
+                        AppColors.deepGreen.withOpacity(0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: AppColors.deepGreen.withOpacity(0.1),
                     ),
                   ),
                   child: Icon(
-                    Icons.receipt_long,
+                    Icons.receipt_rounded,
                     color: AppColors.deepGreen,
-                    size: 24.sp,
+                    size: 26.sp,
                   ),
                 ),
-                SizedBox(
-                  width: context.responsiveSpacing(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 8,
-                  ),
-                ),
+                SizedBox(width: 16.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'И-баримт',
+                        'Цахим төлбөрийн баримт',
                         style: TextStyle(
                           color: context.textPrimaryColor,
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(
-                        height: context.responsiveSpacing(
-                          small: 4,
-                          medium: 6,
-                          large: 8,
-                          tablet: 10,
-                          veryNarrow: 3,
-                        ),
-                      ),
-                      Text(
-                        receipt.formattedDate,
-                        style: TextStyle(
-                          color: context.textSecondaryColor,
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                      SizedBox(
-                        height: context.responsiveSpacing(
-                          small: 4,
-                          medium: 6,
-                          large: 8,
-                          tablet: 10,
-                          veryNarrow: 3,
-                        ),
-                      ),
-                      Text(
-                        receipt.formattedAmount,
-                        style: TextStyle(
-                          color: AppColors.deepGreen,
                           fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 6.h),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month_rounded,
+                            size: 14.sp,
+                            color: context.textSecondaryColor,
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            receipt.formattedDate,
+                            style: TextStyle(
+                              color: context.textSecondaryColor,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  color: context.textSecondaryColor,
-                  size: 24.sp,
+                SizedBox(width: 8.w),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      receipt.formattedAmount,
+                      style: TextStyle(
+                        color: AppColors.deepGreen,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 6.h),
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepGreen.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6.r),
+                      ),
+                      child: Text(
+                        'И-Баримт',
+                        style: TextStyle(
+                          color: AppColors.deepGreen,
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -577,32 +668,18 @@ class _EbarimtPageState extends State<EbarimtPage> {
   }
 
   Widget _buildInfoCard() {
-    print('🔍 [EBARIMT] _buildInfoCard called');
-    print('🔍 [EBARIMT] _infoType: $_infoType');
-    print('🔍 [EBARIMT] _consumerInfo: $_consumerInfo');
-    print('🔍 [EBARIMT] _foreignerInfo: $_foreignerInfo');
-
     final info = _infoType == 'consumer' ? _consumerInfo : _foreignerInfo;
-    print('🔍 [EBARIMT] Selected info: $info');
-    print('🔍 [EBARIMT] Info is null: ${info == null}');
+    if (info == null) return const SizedBox.shrink();
 
-    if (info == null) {
-      print('❌ [EBARIMT] Info is null, returning empty widget');
-      return const SizedBox.shrink();
-    }
-
-    print('✅ [EBARIMT] Building info card with data: $info');
-    print('🔍 [EBARIMT] Info keys: ${info.keys.toList()}');
-    print('🔍 [EBARIMT] Info isEmpty: ${info.isEmpty}');
+    final isDark = context.isDarkMode;
 
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppColors.deepGreen.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12.r),
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: AppColors.deepGreen.withOpacity(0.3),
-          width: 1,
+          color: context.borderColor.withOpacity(isDark ? 0.2 : 0.5),
         ),
       ),
       child: Column(
@@ -610,12 +687,28 @@ class _EbarimtPageState extends State<EbarimtPage> {
         children: [
           Row(
             children: [
-              Icon(
-                _infoType == 'consumer' ? Icons.person : Icons.public,
-                color: AppColors.deepGreen,
-                size: 20.sp,
+              Container(
+                padding: EdgeInsets.all(6.w),
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen,
+                  borderRadius: BorderRadius.circular(8.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.deepGreen.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _infoType == 'consumer'
+                      ? Icons.person_rounded
+                      : Icons.public_rounded,
+                  color: Colors.white,
+                  size: 16.sp,
+                ),
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: 10.w),
               Text(
                 _infoType == 'consumer'
                     ? 'Иргэний мэдээлэл'
@@ -628,7 +721,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 16.h),
           if (_infoType == 'consumer') ...[
             _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
             _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
@@ -645,11 +738,11 @@ class _EbarimtPageState extends State<EbarimtPage> {
             _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
             _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
             _buildInfoRow(
-              'Паспорт дугаар',
+              'Паспорт',
               info['passportNo']?.toString() ?? '-',
             ),
             _buildInfoRow(
-              'Харилцагчийн дугаар',
+              'Харилцагч №',
               info['customerNo']?.toString() ?? '-',
             ),
             _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
@@ -663,17 +756,18 @@ class _EbarimtPageState extends State<EbarimtPage> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120.w,
+            width: 100.w,
             child: Text(
-              '$label:',
+              label,
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 12.sp,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -682,9 +776,10 @@ class _EbarimtPageState extends State<EbarimtPage> {
               value,
               style: TextStyle(
                 color: context.textPrimaryColor,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w500,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
               ),
+              textAlign: TextAlign.right,
             ),
           ),
         ],

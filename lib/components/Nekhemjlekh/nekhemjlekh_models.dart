@@ -145,14 +145,13 @@ class NekhemjlekhItem {
   /// Total including ekhniiUldegdel and avlaga when backend niitTulbur may not include them (matches web)
   double get effectiveNiitTulbur {
     double total = niitTulbur;
-    // Add avlaga and ekhniiUldegdel from guilgeenuud (merged floating receivables from gereeniiTulukhAvlaga)
+    // Add avlaga from guilgeenuud (merged floating receivables from gereeniiTulukhAvlaga)
     if (medeelel?.guilgeenuud != null) {
       for (final g in medeelel!.guilgeenuud!) {
         final t = g.turul?.toLowerCase() ?? '';
-        final isFloating = !g.isLinked;
-        
-        // Match both 'avlaga' and 'ekhniiUldegdelEsekh' to ensure all floating balances are counted
-        if (isFloating && ((t == 'avlaga' || t == 'авлага') || g.ekhniiUldegdelEsekh)) {
+        if ((t == 'avlaga' || t == 'авлага') &&
+            !g.ekhniiUldegdelEsekh &&
+            !g.isLinked) {
           final amt =
               (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
           if (amt > 0) total += amt;

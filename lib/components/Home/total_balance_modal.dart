@@ -414,7 +414,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: e.toString().replaceAll("Exception: ", ""),
+          message: e.toString().replaceAll("", ""),
           icon: Icons.error,
           iconColor: Colors.red,
         );

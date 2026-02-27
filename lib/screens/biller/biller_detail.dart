@@ -40,6 +40,9 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
   final TextEditingController _customerCodeController = TextEditingController();
   bool _hasShownBillingNotFoundError =
       false; // Track if error was already shown
+  bool _hasAttemptedLoadBills = false; // Track if we already tried loading bills
+  bool _hasAttemptedLoadPayments = false;
+  bool _hasAttemptedLoadInvoices = false;
 
   @override
   void initState() {
@@ -887,6 +890,9 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           onTap: () {
             setState(() {
               _selectedBilling = billing;
+              _hasAttemptedLoadBills = false;
+              _hasAttemptedLoadPayments = false;
+              _hasAttemptedLoadInvoices = false;
             });
             _tabController.animateTo(1);
             _loadBills();
@@ -1013,7 +1019,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       );
     }
 
-    if (_bills.isEmpty && !_isLoadingBills) {
+    if (_bills.isEmpty && !_isLoadingBills && !_hasAttemptedLoadBills) {
+      _hasAttemptedLoadBills = true;
       _loadBills();
     }
 
@@ -1219,7 +1226,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       );
     }
 
-    if (_payments.isEmpty && !_isLoadingPayments) {
+    if (_payments.isEmpty && !_isLoadingPayments && !_hasAttemptedLoadPayments) {
+      _hasAttemptedLoadPayments = true;
       _loadPayments();
     }
 
@@ -1424,7 +1432,8 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       );
     }
 
-    if (_invoices.isEmpty && !_isLoadingInvoices) {
+    if (_invoices.isEmpty && !_isLoadingInvoices && !_hasAttemptedLoadInvoices) {
+      _hasAttemptedLoadInvoices = true;
       _loadInvoices();
     }
 

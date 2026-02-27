@@ -49,13 +49,14 @@ class SocketService {
 
       socket!.onConnect((_) {
         _isConnected = true;
-        
+
         // Listen for user notifications after connection
         if (_userId != null) {
           _listenForUserNotifications();
         }
         // Re-attach baiguullagiin medegdel listener if callback was set before connect
-        if (_baiguullagiinId != null && _baiguullagiinMedegdelCallback != null) {
+        if (_baiguullagiinId != null &&
+            _baiguullagiinMedegdelCallback != null) {
           final eventName = 'baiguullagiin$_baiguullagiinId';
           socket!.off(eventName, _onBaiguullagiinMedegdel);
           socket!.on(eventName, _onBaiguullagiinMedegdel);
@@ -83,14 +84,14 @@ class SocketService {
     if (_userId == null || socket == null) return;
 
     final eventName = 'orshinSuugch$_userId';
-    
+
     // Remove existing listener if any
     socket!.off(eventName);
-    
+
     socket!.on(eventName, (data) {
       // Unwrap if server sent multiple args (e.g. [payload])
       if (data is List && data.isNotEmpty) data = data.first;
-      
+
       // Show system notification (banner / lock screen) for any incoming notification
       try {
         if (data is Map<String, dynamic>) {
@@ -99,7 +100,8 @@ class SocketService {
           final turul = data['turul']?.toString().toLowerCase() ?? '';
           final body = message.isNotEmpty ? message : title;
           final showAsBanner = title.isNotEmpty || message.isNotEmpty;
-          final isAppType = turul == 'app' ||
+          final isAppType =
+              turul == 'app' ||
               turul == 'мэдэгдэл' ||
               turul == 'medegdel' ||
               turul == 'khariu' ||
@@ -116,12 +118,12 @@ class SocketService {
       } catch (e) {
         // Silent fail
       }
-      
+
       // Notify all registered callbacks
       for (int i = 0; i < _notificationCallbacks.length; i++) {
         try {
           final callback = _notificationCallbacks[i];
-          
+
           // Ensure data is a Map before passing
           Map<String, dynamic> notificationData;
           if (data is Map<String, dynamic>) {
@@ -132,7 +134,7 @@ class SocketService {
           } else {
             continue;
           }
-          
+
           callback(notificationData);
         } catch (e) {
           // Silent fail
@@ -149,7 +151,7 @@ class SocketService {
     if (_baiguullagiinId == null || socket == null) return;
 
     final eventName = 'qpay/$_baiguullagiinId/$invoiceNumber';
-    
+
     socket!.off(eventName);
     socket!.on(eventName, (data) {
       callback(data);
@@ -164,7 +166,7 @@ class SocketService {
     if (socket == null) return;
 
     final eventName = 'ajiltan$employeeId';
-    
+
     socket!.off(eventName);
     socket!.on(eventName, (data) {
       callback(data);
@@ -176,7 +178,7 @@ class SocketService {
     if (_baiguullagiinId == null || socket == null) return;
 
     final eventName = 'autoLogout$_baiguullagiinId';
-    
+
     socket!.off(eventName);
     socket!.on(eventName, (data) {
       callback(data);
@@ -186,7 +188,9 @@ class SocketService {
   Function(Map<String, dynamic>)? _baiguullagiinMedegdelCallback;
 
   /// Listen for medegdel list updates (user reply / admin reply) on baiguullagiin channel for real-time sanal khuselt list.
-  void setBaiguullagiinMedegdelCallback(Function(Map<String, dynamic>)? callback) {
+  void setBaiguullagiinMedegdelCallback(
+    Function(Map<String, dynamic>)? callback,
+  ) {
     _baiguullagiinMedegdelCallback = callback;
     if (_baiguullagiinId == null || socket == null) return;
     final eventName = 'baiguullagiin$_baiguullagiinId';
@@ -199,7 +203,9 @@ class SocketService {
   void _onBaiguullagiinMedegdel(dynamic data) {
     if (_baiguullagiinMedegdelCallback == null) return;
     if (data is! Map && data is! Map<String, dynamic>) return;
-    final map = data is Map<String, dynamic> ? data : Map<String, dynamic>.from(data as Map);
+    final map = data is Map<String, dynamic>
+        ? data
+        : Map<String, dynamic>.from(data as Map);
     final type = map['type']?.toString();
     if (type == 'medegdelUserReply' || type == 'medegdelAdminReply') {
       _baiguullagiinMedegdelCallback!(map);
@@ -214,7 +220,7 @@ class SocketService {
     // Remove if already exists to avoid duplicates
     _notificationCallbacks.remove(callback);
     _notificationCallbacks.add(callback);
-    
+
     // If already connected, set up listener
     if (_isConnected && _userId != null) {
       _listenForUserNotifications();
@@ -228,7 +234,7 @@ class SocketService {
     } else {
       _notificationCallbacks.clear();
     }
-    
+
     // Only remove socket listener if no callbacks remain
     if (_notificationCallbacks.isEmpty && _userId != null && socket != null) {
       socket!.off('orshinSuugch$_userId');
@@ -250,7 +256,7 @@ class SocketService {
         socket!.off('baiguullagiin$_baiguullagiinId', _onBaiguullagiinMedegdel);
       }
       _baiguullagiinMedegdelCallback = null;
-      
+
       socket!.disconnect();
       socket!.dispose();
       socket = null;
@@ -266,4 +272,3 @@ class SocketService {
     await connect();
   }
 }
-
