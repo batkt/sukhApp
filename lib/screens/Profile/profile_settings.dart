@@ -2281,8 +2281,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       SizedBox(height: 20.h),
                                       
                                       // Миний машин Section - only show if user has baiguullagiinId or barilgiinId
-                                      if (_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty ||
-                                          _barilgiinId != null && _barilgiinId!.isNotEmpty)
+                                      // Hide for specific baiguullagiinId
+                                      if ((_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty ||
+                                          _barilgiinId != null && _barilgiinId!.isNotEmpty) &&
+                                          _baiguullagiinId != '698e7fd3b6dd386b6c56a808')
                                         _buildSection(
                                         title: 'Миний машин',
                                         icon: Icons.directions_car_filled_outlined,

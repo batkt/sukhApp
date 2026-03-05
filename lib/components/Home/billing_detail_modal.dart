@@ -142,13 +142,16 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
         // For tablets/iPads, limit width and center the modal
         final isTablet = constraints.maxWidth > 600;
         final modalWidth = isTablet ? 500.0 : constraints.maxWidth;
-        
-        return Center(
+
+        return Align(
+          alignment: Alignment.bottomCenter,
           child: Container(
             width: modalWidth,
-            height: constraints.maxHeight * 0.85,
+            height: constraints.maxHeight * 0.7,
             decoration: BoxDecoration(
-              color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+              color: context.isDarkMode
+                  ? const Color(0xFF1A1A1A)
+                  : Colors.white,
               borderRadius: isTablet
                   ? BorderRadius.circular(20.r)
                   : BorderRadius.only(
@@ -166,167 +169,140 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                   : null,
             ),
             child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: EdgeInsets.only(top: 10.h),
-                width: 36.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: context.isDarkMode
-                      ? Colors.white.withOpacity(0.2)
-                      : Colors.black.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-              // Header
-              Container(
-                padding: EdgeInsets.fromLTRB(14.w, 12.h, 10.w, 12.h),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.deepGreen.withOpacity(0.1),
-                      width: 1,
-                    ),
+              children: [
+                // Handle bar
+                Container(
+                  margin: EdgeInsets.only(top: 10.h),
+                  width: 36.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: context.isDarkMode
+                        ? Colors.white.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(10.w),
-                      decoration: BoxDecoration(
+                // Header
+                Container(
+                  padding: EdgeInsets.fromLTRB(14.w, 12.h, 10.w, 12.h),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
                         color: AppColors.deepGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      child: Icon(
-                        Icons.home_rounded,
-                        color: AppColors.deepGreen,
-                        size: context.responsiveFontSize(
-                          small: 18,
-                          medium: 20,
-                          large: 22,
-                          tablet: 24,
-                          veryNarrow: 16,
-                        ),
+                        width: 1,
                       ),
                     ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            billingName,
-                            style: TextStyle(
-                              color: context.textPrimaryColor,
-                              fontSize: context.responsiveFontSize(
-                                small: 14,
-                                medium: 15,
-                                large: 17,
-                                tablet: 18,
-                                veryNarrow: 13,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(10.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepGreen.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Icon(
+                          Icons.home_rounded,
+                          color: AppColors.deepGreen,
+                          size: context.responsiveFontSize(
+                            small: 18,
+                            medium: 20,
+                            large: 22,
+                            tablet: 24,
+                            veryNarrow: 16,
                           ),
-                          if (customerName.isNotEmpty) ...[
-                            SizedBox(height: 2.h),
+                        ),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              customerName,
+                              billingName,
                               style: TextStyle(
-                                color: context.textSecondaryColor,
+                                color: context.textPrimaryColor,
                                 fontSize: context.responsiveFontSize(
-                                  small: 12,
-                                  medium: 13,
-                                  large: 14,
-                                  tablet: 15,
-                                  veryNarrow: 11,
+                                  small: 14,
+                                  medium: 15,
+                                  large: 17,
+                                  tablet: 18,
+                                  veryNarrow: 13,
                                 ),
+                                fontWeight: FontWeight.w600,
                               ),
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: context.textSecondaryColor,
-                        size: context.responsiveFontSize(
-                          small: 18,
-                          medium: 20,
-                          large: 22,
-                          tablet: 24,
-                          veryNarrow: 16,
-                        ),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-              // Content
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.deepGreen,
-                        ),
-                      )
-                    : _errorMessage != null
-                    ? Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(14.w),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.error_outline_rounded,
-                                color: AppColors.error,
-                                size: context.responsiveFontSize(
-                                  small: 36,
-                                  medium: 40,
-                                  large: 44,
-                                  tablet: 48,
-                                  veryNarrow: 32,
-                                ),
-                              ),
-                              SizedBox(height: 12.h),
+                            if (customerName.isNotEmpty) ...[
+                              SizedBox(height: 2.h),
                               Text(
-                                _errorMessage!,
+                                customerName,
                                 style: TextStyle(
-                                  color: context.textPrimaryColor,
+                                  color: context.textSecondaryColor,
                                   fontSize: context.responsiveFontSize(
-                                    small: 13,
-                                    medium: 14,
-                                    large: 15,
-                                    tablet: 16,
-                                    veryNarrow: 12,
+                                    small: 12,
+                                    medium: 13,
+                                    large: 14,
+                                    tablet: 15,
+                                    veryNarrow: 11,
                                   ),
                                 ),
-                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              SizedBox(height: 12.h),
-                              ElevatedButton(
-                                onPressed: _loadBillingData,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.deepGreen,
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 16.w,
-                                    vertical: 10.h,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10.r),
+                            ],
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          color: context.textSecondaryColor,
+                          size: context.responsiveFontSize(
+                            small: 18,
+                            medium: 20,
+                            large: 22,
+                            tablet: 24,
+                            veryNarrow: 16,
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: _isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.deepGreen,
+                          ),
+                        )
+                      : _errorMessage != null
+                      ? Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(14.w),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppColors.error,
+                                  size: context.responsiveFontSize(
+                                    small: 36,
+                                    medium: 40,
+                                    large: 44,
+                                    tablet: 48,
+                                    veryNarrow: 32,
                                   ),
                                 ),
-                                child: Text(
-                                  'Дахин оролдох',
+                                SizedBox(height: 12.h),
+                                Text(
+                                  _errorMessage!,
                                   style: TextStyle(
+                                    color: context.textPrimaryColor,
                                     fontSize: context.responsiveFontSize(
                                       small: 13,
                                       medium: 14,
@@ -335,327 +311,372 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                       veryNarrow: 12,
                                     ),
                                   ),
+                                  textAlign: TextAlign.center,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(14.w, 14.w, 14.w, 20.h),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Billing Info Section
-                            Container(
-                              padding: EdgeInsets.all(12.w),
-                              decoration: BoxDecoration(
-                                color: context.isDarkMode
-                                    ? const Color(0xFF252525)
-                                    : const Color(0xFFF8F8F8),
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
-                                  color: AppColors.deepGreen.withOpacity(0.15),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.info_outline_rounded,
-                                        color: AppColors.deepGreen,
-                                        size: context.responsiveFontSize(
-                                          small: 14,
-                                          medium: 16,
-                                          large: 18,
-                                          tablet: 20,
-                                          veryNarrow: 12,
-                                        ),
-                                      ),
-                                      SizedBox(width: 6.w),
-                                      Text(
-                                        'Биллингийн мэдээлэл',
-                                        style: TextStyle(
-                                          color: AppColors.deepGreen,
-                                          fontSize: context.responsiveFontSize(
-                                            small: 14,
-                                            medium: 15,
-                                            large: 16,
-                                            tablet: 17,
-                                            veryNarrow: 13,
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 10.h),
-                                  if (widget.billing['customerCode']
-                                          ?.toString() !=
-                                      null)
-                                    _buildModernModalInfoRow(
-                                      Icons.tag_rounded,
-                                      'Харилцагчийн код',
-                                      widget.billing['customerCode'].toString(),
+                                SizedBox(height: 12.h),
+                                ElevatedButton(
+                                  onPressed: _loadBillingData,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.deepGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16.w,
+                                      vertical: 10.h,
                                     ),
-                                  if (customerAddress.isNotEmpty) ...[
-                                    if (widget.billing['customerCode']
-                                            ?.toString() !=
-                                        null)
-                                      SizedBox(height: 8.h),
-                                    _buildModernModalInfoRow(
-                                      Icons.location_on_rounded,
-                                      'Хаяг',
-                                      widget.expandAddressAbbreviations(
-                                        customerAddress,
-                                      ),
-                                    ),
-                                  ],
-                                  if (widget.billing['walletDoorNo']
-                                          ?.toString() !=
-                                      null) ...[
-                                    SizedBox(height: 8.h),
-                                    _buildModernModalInfoRow(
-                                      Icons.door_front_door_rounded,
-                                      'Орц',
-                                      widget.billing['walletDoorNo'].toString(),
-                                    ),
-                                  ],
-                                  if (hasNewBills && newBillsCount > 0) ...[
-                                    SizedBox(height: 10.h),
-                                    Container(
-                                      padding: EdgeInsets.all(10.w),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(10.r),
-                                        border: Border.all(
-                                          color: Colors.blue.withOpacity(0.2),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.new_releases_rounded,
-                                            color: Colors.blue,
-                                            size: context.responsiveFontSize(
-                                              small: 14,
-                                              medium: 16,
-                                              large: 18,
-                                              tablet: 20,
-                                              veryNarrow: 12,
-                                            ),
-                                          ),
-                                          SizedBox(width: 8.w),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Шинэ билл: $newBillsCount',
-                                                  style: TextStyle(
-                                                    color: Colors.blue,
-                                                    fontSize: context.responsiveFontSize(
-                                                      small: 13,
-                                                      medium: 14,
-                                                      large: 15,
-                                                      tablet: 16,
-                                                      veryNarrow: 12,
-                                                    ),
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                if (newBillsAmount > 0) ...[
-                                                  SizedBox(height: 2.h),
-                                                  Text(
-                                                    'Дүн: ${widget.formatNumberWithComma(newBillsAmount)}₮',
-                                                    style: TextStyle(
-                                                      color: Colors.blue.withOpacity(0.8),
-                                                      fontSize: context.responsiveFontSize(
-                                                        small: 12,
-                                                        medium: 13,
-                                                        large: 14,
-                                                        tablet: 15,
-                                                        veryNarrow: 11,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                  if (hiddenBillCount > 0) ...[
-                                    SizedBox(height: 8.h),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.visibility_off_rounded,
-                                          color: context.textSecondaryColor,
-                                          size: context.responsiveFontSize(
-                                            small: 12,
-                                            medium: 14,
-                                            large: 16,
-                                            tablet: 18,
-                                            veryNarrow: 10,
-                                          ),
-                                        ),
-                                        SizedBox(width: 6.w),
-                                        Text(
-                                          'Нуугдсан билл: $hiddenBillCount',
-                                          style: TextStyle(
-                                            color: context.textSecondaryColor,
-                                            fontSize: context.responsiveFontSize(
-                                              small: 12,
-                                              medium: 13,
-                                              large: 14,
-                                              tablet: 15,
-                                              veryNarrow: 11,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                  if (paidCount > 0) ...[
-                                    SizedBox(height: 8.h),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.check_circle_rounded,
-                                          color: AppColors.success,
-                                          size: context.responsiveFontSize(
-                                            small: 12,
-                                            medium: 14,
-                                            large: 16,
-                                            tablet: 18,
-                                            veryNarrow: 10,
-                                          ),
-                                        ),
-                                        SizedBox(width: 6.w),
-                                        Text(
-                                          'Төлсөн: $paidCount билл, ${widget.formatNumberWithComma(paidTotal)}₮',
-                                          style: TextStyle(
-                                            color: AppColors.success,
-                                            fontSize: context.responsiveFontSize(
-                                              small: 12,
-                                              medium: 13,
-                                              large: 14,
-                                              tablet: 15,
-                                              veryNarrow: 11,
-                                            ),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: 14.h),
-                            // Bills Section Header
-                            Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(6.w),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.deepGreen.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Icon(
-                                    Icons.receipt_long_rounded,
-                                    color: AppColors.deepGreen,
-                                    size: context.responsiveFontSize(
-                                      small: 14,
-                                      medium: 16,
-                                      large: 18,
-                                      tablet: 20,
-                                      veryNarrow: 12,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10.r),
                                     ),
                                   ),
-                                ),
-                                SizedBox(width: 8.w),
-                                Text(
-                                  'Биллүүд (${_bills.length})',
-                                  style: TextStyle(
-                                    color: context.textPrimaryColor,
-                                    fontSize: context.responsiveFontSize(
-                                      small: 15,
-                                      medium: 16,
-                                      large: 17,
-                                      tablet: 18,
-                                      veryNarrow: 14,
+                                  child: Text(
+                                    'Дахин оролдох',
+                                    style: TextStyle(
+                                      fontSize: context.responsiveFontSize(
+                                        small: 13,
+                                        medium: 14,
+                                        large: 15,
+                                        tablet: 16,
+                                        veryNarrow: 12,
+                                      ),
                                     ),
-                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 10.h),
-                            if (_bills.isEmpty)
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(14.w, 14.w, 14.w, 20.h),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Billing Info Section
                               Container(
-                                padding: EdgeInsets.all(20.w),
+                                padding: EdgeInsets.all(12.w),
                                 decoration: BoxDecoration(
                                   color: context.isDarkMode
                                       ? const Color(0xFF252525)
                                       : const Color(0xFFF8F8F8),
                                   borderRadius: BorderRadius.circular(12.r),
                                   border: Border.all(
-                                    color: AppColors.deepGreen.withOpacity(0.1),
+                                    color: AppColors.deepGreen.withOpacity(
+                                      0.15,
+                                    ),
                                     width: 1,
                                   ),
                                 ),
-                                child: Center(
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        Icons.receipt_long_outlined,
-                                        color: context.textSecondaryColor,
-                                        size: context.responsiveFontSize(
-                                          small: 36,
-                                          medium: 40,
-                                          large: 44,
-                                          tablet: 48,
-                                          veryNarrow: 32,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8.h),
-                                      Text(
-                                        'Билл байхгүй байна',
-                                        style: TextStyle(
-                                          color: context.textSecondaryColor,
-                                          fontSize: context.responsiveFontSize(
-                                            small: 13,
-                                            medium: 14,
-                                            large: 15,
-                                            tablet: 16,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.info_outline_rounded,
+                                          color: AppColors.deepGreen,
+                                          size: context.responsiveFontSize(
+                                            small: 14,
+                                            medium: 16,
+                                            large: 18,
+                                            tablet: 20,
                                             veryNarrow: 12,
                                           ),
                                         ),
+                                        SizedBox(width: 6.w),
+                                        Text(
+                                          'Биллингийн мэдээлэл',
+                                          style: TextStyle(
+                                            color: AppColors.deepGreen,
+                                            fontSize: context
+                                                .responsiveFontSize(
+                                                  small: 14,
+                                                  medium: 15,
+                                                  large: 16,
+                                                  tablet: 17,
+                                                  veryNarrow: 13,
+                                                ),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 10.h),
+                                    if (widget.billing['customerCode']
+                                            ?.toString() !=
+                                        null)
+                                      _buildModernModalInfoRow(
+                                        Icons.tag_rounded,
+                                        'Харилцагчийн код',
+                                        widget.billing['customerCode']
+                                            .toString(),
+                                      ),
+                                    if (customerAddress.isNotEmpty) ...[
+                                      if (widget.billing['customerCode']
+                                              ?.toString() !=
+                                          null)
+                                        SizedBox(height: 8.h),
+                                      _buildModernModalInfoRow(
+                                        Icons.location_on_rounded,
+                                        'Хаяг',
+                                        widget.expandAddressAbbreviations(
+                                          customerAddress,
+                                        ),
                                       ),
                                     ],
-                                  ),
+                                    if (widget.billing['walletDoorNo']
+                                            ?.toString() !=
+                                        null) ...[
+                                      SizedBox(height: 8.h),
+                                      _buildModernModalInfoRow(
+                                        Icons.door_front_door_rounded,
+                                        'Орц',
+                                        widget.billing['walletDoorNo']
+                                            .toString(),
+                                      ),
+                                    ],
+                                    if (hasNewBills && newBillsCount > 0) ...[
+                                      SizedBox(height: 10.h),
+                                      Container(
+                                        padding: EdgeInsets.all(10.w),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            10.r,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.blue.withOpacity(0.2),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.new_releases_rounded,
+                                              color: Colors.blue,
+                                              size: context.responsiveFontSize(
+                                                small: 14,
+                                                medium: 16,
+                                                large: 18,
+                                                tablet: 20,
+                                                veryNarrow: 12,
+                                              ),
+                                            ),
+                                            SizedBox(width: 8.w),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Шинэ билл: $newBillsCount',
+                                                    style: TextStyle(
+                                                      color: Colors.blue,
+                                                      fontSize: context
+                                                          .responsiveFontSize(
+                                                            small: 13,
+                                                            medium: 14,
+                                                            large: 15,
+                                                            tablet: 16,
+                                                            veryNarrow: 12,
+                                                          ),
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  if (newBillsAmount > 0) ...[
+                                                    SizedBox(height: 2.h),
+                                                    Text(
+                                                      'Дүн: ${widget.formatNumberWithComma(newBillsAmount)}₮',
+                                                      style: TextStyle(
+                                                        color: Colors.blue
+                                                            .withOpacity(0.8),
+                                                        fontSize: context
+                                                            .responsiveFontSize(
+                                                              small: 12,
+                                                              medium: 13,
+                                                              large: 14,
+                                                              tablet: 15,
+                                                              veryNarrow: 11,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    if (hiddenBillCount > 0) ...[
+                                      SizedBox(height: 8.h),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.visibility_off_rounded,
+                                            color: context.textSecondaryColor,
+                                            size: context.responsiveFontSize(
+                                              small: 12,
+                                              medium: 14,
+                                              large: 16,
+                                              tablet: 18,
+                                              veryNarrow: 10,
+                                            ),
+                                          ),
+                                          SizedBox(width: 6.w),
+                                          Text(
+                                            'Нуугдсан билл: $hiddenBillCount',
+                                            style: TextStyle(
+                                              color: context.textSecondaryColor,
+                                              fontSize: context
+                                                  .responsiveFontSize(
+                                                    small: 12,
+                                                    medium: 13,
+                                                    large: 14,
+                                                    tablet: 15,
+                                                    veryNarrow: 11,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                    if (paidCount > 0) ...[
+                                      SizedBox(height: 8.h),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle_rounded,
+                                            color: AppColors.success,
+                                            size: context.responsiveFontSize(
+                                              small: 12,
+                                              medium: 14,
+                                              large: 16,
+                                              tablet: 18,
+                                              veryNarrow: 10,
+                                            ),
+                                          ),
+                                          SizedBox(width: 6.w),
+                                          Text(
+                                            'Төлсөн: $paidCount билл, ${widget.formatNumberWithComma(paidTotal)}₮',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: context
+                                                  .responsiveFontSize(
+                                                    small: 12,
+                                                    medium: 13,
+                                                    large: 14,
+                                                    tablet: 15,
+                                                    veryNarrow: 11,
+                                                  ),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              )
-                            else
-                              ..._bills.map((bill) => _buildBillCard(bill)),
-                          ],
+                              ),
+                              SizedBox(height: 14.h),
+                              // Bills Section Header
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(6.w),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.deepGreen.withOpacity(
+                                        0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8.r),
+                                    ),
+                                    child: Icon(
+                                      Icons.receipt_long_rounded,
+                                      color: AppColors.deepGreen,
+                                      size: context.responsiveFontSize(
+                                        small: 14,
+                                        medium: 16,
+                                        large: 18,
+                                        tablet: 20,
+                                        veryNarrow: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  Text(
+                                    'Биллүүд (${_bills.length})',
+                                    style: TextStyle(
+                                      color: context.textPrimaryColor,
+                                      fontSize: context.responsiveFontSize(
+                                        small: 15,
+                                        medium: 16,
+                                        large: 17,
+                                        tablet: 18,
+                                        veryNarrow: 14,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 10.h),
+                              if (_bills.isEmpty)
+                                Container(
+                                  padding: EdgeInsets.all(20.w),
+                                  decoration: BoxDecoration(
+                                    color: context.isDarkMode
+                                        ? const Color(0xFF252525)
+                                        : const Color(0xFFF8F8F8),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: AppColors.deepGreen.withOpacity(
+                                        0.1,
+                                      ),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.receipt_long_outlined,
+                                          color: context.textSecondaryColor,
+                                          size: context.responsiveFontSize(
+                                            small: 36,
+                                            medium: 40,
+                                            large: 44,
+                                            tablet: 48,
+                                            veryNarrow: 32,
+                                          ),
+                                        ),
+                                        SizedBox(height: 8.h),
+                                        Text(
+                                          'Билл байхгүй байна',
+                                          style: TextStyle(
+                                            color: context.textSecondaryColor,
+                                            fontSize: context
+                                                .responsiveFontSize(
+                                                  small: 13,
+                                                  medium: 14,
+                                                  large: 15,
+                                                  tablet: 16,
+                                                  veryNarrow: 12,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              else
+                                ..._bills.map((bill) => _buildBillCard(bill)),
+                            ],
+                          ),
                         ),
-                      ),
-              ),
-              // Footer spacing
-              SizedBox(height: 14.h),
-            ],
+                ),
+                // Footer spacing
+                SizedBox(height: 14.h),
+              ],
+            ),
           ),
-        ),
         );
       },
     );
@@ -1040,7 +1061,7 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                     Text(
                       '${widget.formatNumberWithComma(billTotalAmount)}₮',
                       style: TextStyle(
-                        color: AppColors.deepGreen,
+                        color: Colors.white,
                         fontSize: context.responsiveFontSize(
                           small: 14,
                           medium: 15,

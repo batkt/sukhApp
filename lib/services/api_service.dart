@@ -2792,6 +2792,8 @@ class ApiService {
         requestBody = {
           'billingId': billingId,
           'billIds': billIds,
+          // Force Wallet-QPay path on backend as per wallet.md
+          'addressSource': 'WALLET_API',
           'vatReceiveType': vatReceiveType,
         };
 
@@ -2849,7 +2851,8 @@ class ApiService {
           final data = responseData['data'] as Map<String, dynamic>?;
 
           if (data != null) {
-            final qrText = data['qrText']?.toString();
+            // Primary QR and bank info from data
+            final rawQrText = data['qrText']?.toString();
             final paymentId = data['paymentId']?.toString();
             final paymentAmount = data['paymentAmount'];
             String? receiverBankCode = data['receiverBankCode']?.toString();
@@ -2857,6 +2860,20 @@ class ApiService {
             String? receiverAccountName = data['receiverAccountName']
                 ?.toString();
             final transactionDescrion = data['transactionDescrion']?.toString();
+
+            // New Wallet-QPay fields from backend (see wallet.md)
+            final walletBankQr =
+                responseData['walletBankQr'] as Map<String, dynamic>?;
+            final walletBankQrText = responseData['walletBankQrText']
+                ?.toString();
+
+            if (walletBankQr != null) {
+              receiverBankCode ??= walletBankQr['receiverBankCode']?.toString();
+              receiverAccountNo ??= walletBankQr['receiverAccountNo']
+                  ?.toString();
+              receiverAccountName ??= walletBankQr['receiverAccountName']
+                  ?.toString();
+            }
 
             print('✅ [WALLET QPAY] Payment created!');
             print('📱 [WALLET QPAY] Payment ID: $paymentId');
@@ -2936,7 +2953,11 @@ class ApiService {
             }
 
             // Generate QR code text if not provided
-            String? finalQrText = qrText;
+            // Priority:
+            // 1) walletBankQrText (backend-generated safe payload)
+            // 2) data.qrText (if backend provided one)
+            // 3) Generated from bank/payment details
+            String? finalQrText = walletBankQrText ?? rawQrText;
             if (finalQrText == null || finalQrText.isEmpty) {
               // Generate QPay QR code from payment details
               // Format: QPay QR code format with payment details

@@ -612,9 +612,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   }
 
   Future<void> _saveAddress() async {
-    // If user already has address on server or has baiguullagiinId, they don't need to fill address fields
-    // Just save and return success
-    if (_hasExistingAddress || _hasBaiguullagiinId) {
+    // During registration/login flow (not from menu), if user already has address on server
+    // or has baiguullagiinId, they don't need to fill address fields – just save success.
+    // From menu we ALWAYS run full save logic so address can be changed.
+    if ((_hasExistingAddress || _hasBaiguullagiinId) && !widget.fromMenu) {
       setState(() {
         _isSaving = true;
       });
@@ -1759,8 +1760,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Show address fields for users without baiguullagiinId (allow editing existing address)
-                    if (!_hasBaiguullagiinId) ...[
+                    // Show address fields:
+                    // - Always when opened from menu (allow editing/changing address)
+                    // - During registration/login only when user has no baiguullagiinId yet
+                    if (widget.fromMenu || !_hasBaiguullagiinId) ...[
                       _buildDropdown(
                         label: 'Хот',
                         items: _cities,

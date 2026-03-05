@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:snow_fall_animation/snow_fall_animation.dart';
 
+/// SnowEffect widget - returns child directly without animation
+/// (snow_fall_animation package was removed)
 class SnowEffect extends StatelessWidget {
   final Widget child;
 
@@ -8,24 +9,7 @@ class SnowEffect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.topLeft,
-      textDirection: TextDirection.ltr,
-      children: [
-        child,
-        IgnorePointer(
-          child: SnowFallAnimation(
-            config: const SnowfallConfig(
-              numberOfSnowflakes: 30,
-              speed: 0.6,
-              useEmoji: true,
-              customEmojis: ['❄️', '❅', '❆'],
-              snowColor: Colors.white,
-              holdSnowAtBottom: false,
-            ),
-          ),
-        ),
-      ],
-    );
+    // Just return the child without snow animation
+    return child;
   }
 }

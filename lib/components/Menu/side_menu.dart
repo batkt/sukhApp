@@ -40,39 +40,40 @@ class _SideMenuState extends State<SideMenu> {
     try {
       final response = await ApiService.fetchZochinSettings();
       print('🔍 [SideMenu] zochinSettings response: $response');
-      
+
       if (mounted && response != null) {
         // Try to handle various response structures
         // 1. { data: { orshinSuugchMashin: { ... } } }
         // 2. { result: { orshinSuugchMashin: { ... } } }
         // 3. { orshinSuugchMashin: { ... } }
         // 4. { zochinUrikhEsekh: true } (Direct object)
-        
+
         dynamic data = response;
         if (response.containsKey('data')) {
           data = response['data'];
         } else if (response.containsKey('result')) {
           data = response['result'];
         }
-        
+
         print('🔍 [SideMenu] Parsed data context: $data');
 
         bool canInvite = false;
 
         if (data is Map) {
           // Check for nested orshinSuugchMashin first
-          if (data.containsKey('orshinSuugchMashin') && data['orshinSuugchMashin'] != null) {
-             final osm = data['orshinSuugchMashin'];
-             print('🔍 [SideMenu] Found orshinSuugchMashin: $osm');
-             canInvite = osm['zochinUrikhEsekh'] == true;
-          } 
+          if (data.containsKey('orshinSuugchMashin') &&
+              data['orshinSuugchMashin'] != null) {
+            final osm = data['orshinSuugchMashin'];
+            print('🔍 [SideMenu] Found orshinSuugchMashin: $osm');
+            canInvite = osm['zochinUrikhEsekh'] == true;
+          }
           // Check if the permission is at the root of the data object
           else if (data.containsKey('zochinUrikhEsekh')) {
             print('🔍 [SideMenu] Found zochinUrikhEsekh at root');
             canInvite = data['zochinUrikhEsekh'] == true;
           }
         }
-        
+
         print('🔍 [SideMenu] _canInviteGuests set to: $canInvite');
 
         setState(() {
@@ -248,8 +249,9 @@ class _SideMenuState extends State<SideMenu> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isLargeScreen = screenWidth > 800;
-    final isLargePhone = screenWidth > 400 && screenWidth <= 600; // Pro Max, Plus models
-    
+    final isLargePhone =
+        screenWidth > 400 && screenWidth <= 600; // Pro Max, Plus models
+
     // Standard drawer width: 304 on phones, larger on tablets
     double drawerWidth;
     if (isLargeScreen) {
@@ -261,7 +263,7 @@ class _SideMenuState extends State<SideMenu> {
     } else {
       drawerWidth = screenWidth * 0.82; // Smaller phones
     }
-    
+
     return Drawer(
       backgroundColor: context.backgroundColor,
       width: drawerWidth,
@@ -335,26 +337,25 @@ class _SideMenuState extends State<SideMenu> {
                             isTablet: isTablet,
                             isLargePhone: isLargePhone,
                           ),
-                          // Show address selection only for users without baiguullagiinId
-                          if (_baiguullagiinId == null ||
-                              _baiguullagiinId!.isEmpty)
-                            _buildMenuItem(
-                              context,
-                              icon: Icons.location_on_outlined,
-                              title: 'Хаяг сонгох',
-                              onTap: () {
-                                Navigator.pop(context);
-                                context.push(
-                                  '/address_selection?fromMenu=true',
-                                );
-                              },
-                              isTablet: isTablet,
-                              isLargePhone: isLargePhone,
-                            ),
-                          // Show contract / invoice / parking only for users
+                          // Always show address selection so user can manage wallet/billing address
+                          _buildMenuItem(
+                            context,
+                            icon: Icons.location_on_outlined,
+                            title: 'Хаяг сонгох',
+                            onTap: () {
+                              Navigator.pop(context);
+                              context.push('/address_selection?fromMenu=true');
+                            },
+                            isTablet: isTablet,
+                            isLargePhone: isLargePhone,
+                          ),
+                          // Show contract / invoice only for users
                           // that are linked to an organization (have baiguullagiinId)
+                          // EXCEPT the pure wallet org (698e7fd3b6dd386b6c56a808)
                           if (_baiguullagiinId != null &&
-                              _baiguullagiinId!.isNotEmpty) ...[
+                              _baiguullagiinId!.isNotEmpty &&
+                              _baiguullagiinId !=
+                                  '698e7fd3b6dd386b6c56a808') ...[
                             _buildMenuItem(
                               context,
                               icon: Icons.home_outlined,
@@ -403,7 +404,7 @@ class _SideMenuState extends State<SideMenu> {
                           //     isLargePhone: isLargePhone,
                           //   ),
                           if (_baiguullagiinId != null &&
-                              _baiguullagiinId!.isNotEmpty && 
+                              _baiguullagiinId!.isNotEmpty &&
                               _canInviteGuests)
                             _buildMenuItem(
                               context,
@@ -611,7 +612,9 @@ class _SideMenuState extends State<SideMenu> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(isTablet ? 12 : (isLargePhone ? 10 : 8)),
+        borderRadius: BorderRadius.circular(
+          isTablet ? 12 : (isLargePhone ? 10 : 8),
+        ),
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: isTablet ? 24 : (isLargePhone ? 22 : 20),
