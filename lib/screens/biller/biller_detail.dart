@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -29,25 +28,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
 
   List<Map<String, dynamic>> _billings = [];
   Map<String, dynamic>? _selectedBilling;
-  List<Map<String, dynamic>> _bills = [];
-  List<Map<String, dynamic>> _payments = [];
-  List<Map<String, dynamic>> _invoices = [];
 
   bool _isLoadingBillings = true;
-  bool _isLoadingBills = false;
-  bool _isLoadingPayments = false;
-  bool _isLoadingInvoices = false;
   final TextEditingController _customerCodeController = TextEditingController();
-  bool _hasShownBillingNotFoundError =
-      false; // Track if error was already shown
-  bool _hasAttemptedLoadBills = false; // Track if we already tried loading bills
-  bool _hasAttemptedLoadPayments = false;
-  bool _hasAttemptedLoadInvoices = false;
+  bool _isBillingFound = false; // Track if billing is found from search
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 1, vsync: this);
     _loadBillings();
   }
 
@@ -140,6 +129,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               _billings.add(billingData);
               _selectedBilling = billingData;
               _isLoadingBillings = false;
+              _isBillingFound = true; // Mark that billing was found
             });
 
             // Save billing only if billingId exists (might need to find billing first)
@@ -160,14 +150,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             setState(() {
               _selectedBilling = billingData;
               _isLoadingBillings = false;
+              _isBillingFound = true; // Mark that billing was found
             });
           }
 
           _customerCodeController.clear();
-          _tabController.animateTo(1);
         } else {
           setState(() {
             _isLoadingBillings = false;
+            _isBillingFound = false; // Reset when billing not found
           });
           showGlassSnackBar(
             context,
@@ -181,317 +172,11 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       if (mounted) {
         setState(() {
           _isLoadingBillings = false;
+          _isBillingFound = false; // Reset on error
         });
         showGlassSnackBar(
           context,
           message: e.toString().replaceAll("", ""),
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
-    }
-  }
-
-  Future<void> _loadBills() async {
-    if (_selectedBilling == null) return;
-
-    setState(() {
-      _isLoadingBills = true;
-    });
-
-    try {
-      // Check if billingId exists, if not try to find it using customerId
-      String? billingId = _selectedBilling!['billingId']?.toString();
-
-      if (billingId == null || billingId.isEmpty) {
-        // Try to find billing by customerId
-        final customerId = _selectedBilling!['customerId']?.toString();
-        if (customerId != null && customerId.isNotEmpty) {
-          try {
-            final billingResponse = await ApiService.findBillingByCustomerId(
-              customerId: customerId,
-            );
-            if (billingResponse['success'] == true &&
-                billingResponse['data'] != null) {
-              final billingData = billingResponse['data'] is Map
-                  ? billingResponse['data'] as Map<String, dynamic>
-                  : null;
-              billingId = billingData?['billingId']?.toString();
-
-              // Update selected billing with billingId if found
-              if (billingId != null && billingId.isNotEmpty) {
-                setState(() {
-                  _selectedBilling!['billingId'] = billingId;
-                });
-              }
-            } else {
-              // Billing not found - this is expected for new customers
-              print('Billing not yet created for customerId: $customerId');
-            }
-          } catch (e) {
-            // Check if it's a "not found" error vs actual error
-            final errorMsg = e.toString().toLowerCase();
-            if (errorMsg.contains('олдсонгүй') ||
-                errorMsg.contains('not found')) {
-              // Expected case - billing doesn't exist yet
-              print(
-                'Billing not yet created for customerId: $customerId (expected)',
-              );
-            } else {
-              // Unexpected error
-              print('Unexpected error finding billingId by customerId: $e');
-            }
-          }
-        }
-      }
-
-      // If we still don't have billingId, we can't load bills
-      if (billingId == null || billingId.isEmpty) {
-        // Show a user-friendly message that billing needs to be created first
-        if (mounted) {
-          setState(() {
-            _isLoadingBills = false;
-          });
-          // Only show error once
-          if (!_hasShownBillingNotFoundError) {
-            _hasShownBillingNotFoundError = true;
-            showGlassSnackBar(
-              context,
-              message: 'Төлбөр олдсонгүй',
-              icon: Icons.info_outline,
-              iconColor: Colors.orange,
-            );
-          }
-        }
-        return;
-      }
-
-      final billingData = await ApiService.getWalletBillingBills(
-        billingId: billingId,
-      );
-      if (mounted) {
-        setState(() {
-          // Extract bills from the response
-          if (billingData['newBills'] != null &&
-              billingData['newBills'] is List) {
-            _bills = List<Map<String, dynamic>>.from(billingData['newBills']);
-          } else {
-            _bills = [];
-          }
-          _isLoadingBills = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingBills = false;
-        });
-        showGlassSnackBar(
-          context,
-          message: 'Биллүүд авахад алдаа гарлаа: $e',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
-    }
-  }
-
-  Future<void> _loadPayments() async {
-    if (_selectedBilling == null) return;
-
-    setState(() {
-      _isLoadingPayments = true;
-    });
-
-    try {
-      // Check if billingId exists
-      String? billingId = _selectedBilling!['billingId']?.toString();
-
-      if (billingId == null || billingId.isEmpty) {
-        // Try to find billing by customerId
-        final customerId = _selectedBilling!['customerId']?.toString();
-        if (customerId != null && customerId.isNotEmpty) {
-          try {
-            final billingResponse = await ApiService.findBillingByCustomerId(
-              customerId: customerId,
-            );
-            if (billingResponse['success'] == true &&
-                billingResponse['data'] != null) {
-              final billingData = billingResponse['data'] is Map
-                  ? billingResponse['data'] as Map<String, dynamic>
-                  : null;
-              billingId = billingData?['billingId']?.toString();
-
-              // Update selected billing with billingId if found
-              if (billingId != null && billingId.isNotEmpty) {
-                setState(() {
-                  _selectedBilling!['billingId'] = billingId;
-                });
-              }
-            } else {
-              // Billing not found - this is expected for new customers
-              // Don't print - this is expected for new customers
-            }
-          } catch (e) {
-            // Check if it's a "not found" error vs actual error
-            final errorMsg = e.toString().toLowerCase();
-            if (errorMsg.contains('олдсонгүй') ||
-                errorMsg.contains('not found') ||
-                errorMsg.contains('төлбөр олдсонгүй')) {
-              // Expected case - billing doesn't exist yet
-              // Only print once to avoid spam
-              if (!_hasShownBillingNotFoundError) {
-                _hasShownBillingNotFoundError = true;
-                // Don't print - this is expected for new customers
-              }
-            } else {
-              // Unexpected error - only print once
-              if (!_hasShownBillingNotFoundError) {
-                _hasShownBillingNotFoundError = true;
-                print('Unexpected error finding billingId by customerId: $e');
-              }
-            }
-          }
-        }
-      }
-
-      // If we still don't have billingId, we can't load payments
-      if (billingId == null || billingId.isEmpty) {
-        // Show a user-friendly message that billing needs to be created first
-        if (mounted) {
-          setState(() {
-            _isLoadingPayments = false;
-          });
-          // Only show error once
-          if (!_hasShownBillingNotFoundError) {
-            _hasShownBillingNotFoundError = true;
-            showGlassSnackBar(
-              context,
-              message: 'Төлбөр олдсонгүй',
-              icon: Icons.info_outline,
-              iconColor: Colors.orange,
-            );
-          }
-        }
-        return;
-      }
-
-      final payments = await ApiService.getWalletBillingPayments(
-        billingId: billingId,
-      );
-      if (mounted) {
-        setState(() {
-          _payments = payments;
-          _isLoadingPayments = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingPayments = false;
-        });
-        showGlassSnackBar(
-          context,
-          message: 'Төлбөрийн түүх авахад алдаа гарлаа: $e',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
-    }
-  }
-
-  Future<void> _createInvoice(List<String> billIds) async {
-    if (_selectedBilling == null || billIds.isEmpty) return;
-
-    try {
-      final response = await ApiService.createWalletInvoice(
-        billingId: _selectedBilling!['billingId'],
-        billIds: billIds,
-        vatReceiveType: 'CITIZEN',
-      );
-
-      if (mounted) {
-        if (response['success'] == true) {
-          showGlassSnackBar(
-            context,
-            message: 'Нэхэмжлэх амжилттай үүсгэлээ',
-            icon: Icons.check_circle,
-            iconColor: Colors.green,
-          );
-          _tabController.animateTo(3);
-          _loadInvoices();
-        } else {
-          showGlassSnackBar(
-            context,
-            message: response['message'] ?? 'Нэхэмжлэх үүсгэхэд алдаа гарлаа',
-            icon: Icons.error,
-            iconColor: Colors.red,
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Нэхэмжлэх үүсгэхэд алдаа гарлаа: $e',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
-    }
-  }
-
-  Future<void> _loadInvoices() async {
-    // This would need a separate endpoint to list invoices
-    // For now, we'll show a placeholder
-    setState(() {
-      _isLoadingInvoices = false;
-      _invoices = [];
-    });
-  }
-
-  Future<void> _createPayment(String invoiceId) async {
-    try {
-      final response = await ApiService.createWalletPayment(
-        invoiceId: invoiceId,
-      );
-
-      if (mounted) {
-        if (response['success'] == true && response['data'] != null) {
-          final paymentData = response['data'];
-          final paymentUrl = paymentData['paymentUrl'];
-
-          if (paymentUrl != null) {
-            // Open payment URL
-            // You might want to use url_launcher here
-            showGlassSnackBar(
-              context,
-              message: 'Төлбөрийн холбоос: $paymentUrl',
-              icon: Icons.payment,
-              iconColor: Colors.green,
-            );
-          } else {
-            showGlassSnackBar(
-              context,
-              message: 'Төлбөр амжилттай үүсгэлээ',
-              icon: Icons.check_circle,
-              iconColor: Colors.green,
-            );
-          }
-        } else {
-          showGlassSnackBar(
-            context,
-            message: response['message'] ?? 'Төлбөр үүсгэхэд алдаа гарлаа',
-            icon: Icons.error,
-            iconColor: Colors.red,
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Төлбөр үүсгэхэд алдаа гарлаа: $e',
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -554,12 +239,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                     ),
                     fontWeight: FontWeight.w500,
                   ),
-                  tabs: const [
-                    Tab(text: 'Биллинг'),
-                    Tab(text: 'Билл'),
-                    Tab(text: 'Төлбөр'),
-                    Tab(text: 'Нэхэмжлэх'),
-                  ],
+                  tabs: const [Tab(text: 'Биллинг')],
                 ),
               ),
 
@@ -567,12 +247,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [
-                    _buildBillingsTab(),
-                    _buildBillsTab(),
-                    _buildPaymentsTab(),
-                    _buildInvoicesTab(),
-                  ],
+                  children: [_buildBillingsTab()],
                 ),
               ),
             ],
@@ -584,36 +259,42 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
 
   Widget _buildBillingsTab() {
     return SingleChildScrollView(
-      padding: EdgeInsets.all(context.responsiveSpacing(
-        small: 14,
-        medium: 15,
-        large: 16,
-        tablet: 18,
-        veryNarrow: 10,
-      )),
+      padding: EdgeInsets.all(
+        context.responsiveSpacing(
+          small: 14,
+          medium: 15,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 10,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Find Billing Section
           Container(
-            padding: EdgeInsets.all(context.responsiveSpacing(
-              small: 12,
-              medium: 13,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 10,
-            )),
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? const Color(0xFF252525)
-                  : const Color(0xFFF8F8F8),
-              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+            padding: EdgeInsets.all(
+              context.responsiveSpacing(
                 small: 12,
                 medium: 13,
                 large: 14,
                 tablet: 16,
                 veryNarrow: 10,
-              )),
+              ),
+            ),
+            decoration: BoxDecoration(
+              color: context.isDarkMode
+                  ? const Color(0xFF252525)
+                  : const Color(0xFFF8F8F8),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 12,
+                  medium: 13,
+                  large: 14,
+                  tablet: 16,
+                  veryNarrow: 10,
+                ),
+              ),
               border: Border.all(
                 color: AppColors.deepGreen.withOpacity(0.15),
                 width: 1,
@@ -636,15 +317,25 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: context.responsiveSpacing(
-                  small: 10,
-                  medium: 11,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 8,
-                )),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 10,
+                    medium: 11,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 8,
+                  ),
+                ),
                 TextField(
                   controller: _customerCodeController,
+                  onChanged: (value) {
+                    // Reset billing found state when user types
+                    if (_isBillingFound) {
+                      setState(() {
+                        _isBillingFound = false;
+                      });
+                    }
+                  },
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: context.responsiveFontSize(
@@ -688,35 +379,41 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       ),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                        small: 10,
-                        medium: 11,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 8,
-                      )),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 10,
+                          medium: 11,
+                          large: 12,
+                          tablet: 14,
+                          veryNarrow: 8,
+                        ),
+                      ),
                       borderSide: BorderSide.none,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                        small: 10,
-                        medium: 11,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 8,
-                      )),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 10,
+                          medium: 11,
+                          large: 12,
+                          tablet: 14,
+                          veryNarrow: 8,
+                        ),
+                      ),
                       borderSide: BorderSide(
                         color: AppColors.deepGreen.withOpacity(0.1),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                        small: 10,
-                        medium: 11,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 8,
-                      )),
+                      borderRadius: BorderRadius.circular(
+                        context.responsiveBorderRadius(
+                          small: 10,
+                          medium: 11,
+                          large: 12,
+                          tablet: 14,
+                          veryNarrow: 8,
+                        ),
+                      ),
                       borderSide: BorderSide(
                         color: AppColors.deepGreen,
                         width: 1.5,
@@ -724,13 +421,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                     ),
                   ),
                 ),
-                SizedBox(height: context.responsiveSpacing(
-                  small: 10,
-                  medium: 11,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 8,
-                )),
+                SizedBox(
+                  height: context.responsiveSpacing(
+                    small: 10,
+                    medium: 11,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 8,
+                  ),
+                ),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -738,25 +437,29 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.deepGreen,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: context.responsiveSpacing(
-                        small: 10,
-                        medium: 11,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 8,
-                      )),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+                      padding: EdgeInsets.symmetric(
+                        vertical: context.responsiveSpacing(
                           small: 10,
                           medium: 11,
                           large: 12,
                           tablet: 14,
                           veryNarrow: 8,
-                        )),
+                        ),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 10,
+                            medium: 11,
+                            large: 12,
+                            tablet: 14,
+                            veryNarrow: 8,
+                          ),
+                        ),
                       ),
                     ),
                     child: Text(
-                      'Хайх',
+                      _isBillingFound ? 'Нэмэх' : 'Хайх',
                       style: TextStyle(
                         fontSize: context.responsiveFontSize(
                           small: 14,
@@ -774,13 +477,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             ),
           ),
 
-          SizedBox(height: context.responsiveSpacing(
-            small: 14,
-            medium: 15,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          )),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 14,
+              medium: 15,
+              large: 16,
+              tablet: 18,
+              veryNarrow: 10,
+            ),
+          ),
 
           Text(
             'Миний биллингууд',
@@ -797,24 +502,28 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             ),
           ),
 
-          SizedBox(height: context.responsiveSpacing(
-            small: 10,
-            medium: 11,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 8,
-          )),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 10,
+              medium: 11,
+              large: 12,
+              tablet: 14,
+              veryNarrow: 8,
+            ),
+          ),
 
           if (_isLoadingBillings)
             Center(
               child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
+                padding: EdgeInsets.all(
+                  context.responsiveSpacing(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 28,
+                    veryNarrow: 16,
+                  ),
+                ),
                 child: CircularProgressIndicator(
                   color: AppColors.deepGreen,
                   strokeWidth: 2,
@@ -824,13 +533,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           else if (_billings.isEmpty)
             Center(
               child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
+                padding: EdgeInsets.all(
+                  context.responsiveSpacing(
+                    small: 20,
+                    medium: 22,
+                    large: 24,
+                    tablet: 28,
+                    veryNarrow: 16,
+                  ),
+                ),
                 child: Text(
                   'Биллинг олдсонгүй',
                   style: TextStyle(
@@ -857,26 +568,30 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
     final isSelected = _selectedBilling?['billingId'] == billing['billingId'];
 
     return Container(
-      margin: EdgeInsets.only(bottom: context.responsiveSpacing(
-        small: 10,
-        medium: 11,
-        large: 12,
-        tablet: 14,
-        veryNarrow: 8,
-      )),
+      margin: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 10,
+          medium: 11,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 8,
+        ),
+      ),
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.deepGreen.withOpacity(0.1)
             : context.isDarkMode
-                ? const Color(0xFF252525)
-                : const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-          small: 12,
-          medium: 13,
-          large: 14,
-          tablet: 16,
-          veryNarrow: 10,
-        )),
+            ? const Color(0xFF252525)
+            : const Color(0xFFF8F8F8),
+        borderRadius: BorderRadius.circular(
+          context.responsiveBorderRadius(
+            small: 12,
+            medium: 13,
+            large: 14,
+            tablet: 16,
+            veryNarrow: 10,
+          ),
+        ),
         border: Border.all(
           color: isSelected
               ? AppColors.deepGreen
@@ -890,28 +605,27 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           onTap: () {
             setState(() {
               _selectedBilling = billing;
-              _hasAttemptedLoadBills = false;
-              _hasAttemptedLoadPayments = false;
-              _hasAttemptedLoadInvoices = false;
             });
-            _tabController.animateTo(1);
-            _loadBills();
           },
-          borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-            small: 12,
-            medium: 13,
-            large: 14,
-            tablet: 16,
-            veryNarrow: 10,
-          )),
-          child: Padding(
-            padding: EdgeInsets.all(context.responsiveSpacing(
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
               small: 12,
               medium: 13,
               large: 14,
               tablet: 16,
               veryNarrow: 10,
-            )),
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(
+              context.responsiveSpacing(
+                small: 12,
+                medium: 13,
+                large: 14,
+                tablet: 16,
+                veryNarrow: 10,
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -949,13 +663,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   ],
                 ),
                 if (billing['customerName'] != null) ...[
-                  SizedBox(height: context.responsiveSpacing(
-                    small: 6,
-                    medium: 7,
-                    large: 8,
-                    tablet: 10,
-                    veryNarrow: 4,
-                  )),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 6,
+                      medium: 7,
+                      large: 8,
+                      tablet: 10,
+                      veryNarrow: 4,
+                    ),
+                  ),
                   Text(
                     'Харилцагч: ${billing['customerName']}',
                     style: TextStyle(
@@ -971,13 +687,15 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                   ),
                 ],
                 if (billing['customerAddress'] != null) ...[
-                  SizedBox(height: context.responsiveSpacing(
-                    small: 3,
-                    medium: 4,
-                    large: 5,
-                    tablet: 6,
-                    veryNarrow: 2,
-                  )),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 3,
+                      medium: 4,
+                      large: 5,
+                      tablet: 6,
+                      veryNarrow: 2,
+                    ),
+                  ),
                   Text(
                     'Хаяг: ${billing['customerAddress']}',
                     style: TextStyle(
@@ -996,717 +714,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBillsTab() {
-    if (_selectedBilling == null) {
-      return Center(
-        child: Text(
-          'Биллинг сонгоно уу',
-          style: TextStyle(
-            color: context.textSecondaryColor,
-            fontSize: context.responsiveFontSize(
-              small: 13,
-              medium: 14,
-              large: 15,
-              tablet: 16,
-              veryNarrow: 12,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_bills.isEmpty && !_isLoadingBills && !_hasAttemptedLoadBills) {
-      _hasAttemptedLoadBills = true;
-      _loadBills();
-    }
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(context.responsiveSpacing(
-        small: 14,
-        medium: 15,
-        large: 16,
-        tablet: 18,
-        veryNarrow: 10,
-      )),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_isLoadingBills)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
-                child: CircularProgressIndicator(
-                  color: AppColors.deepGreen,
-                  strokeWidth: 2,
-                ),
-              ),
-            )
-          else if (_bills.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
-                child: Text(
-                  'Билл олдсонгүй',
-                  style: TextStyle(
-                    color: context.textSecondaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 13,
-                      medium: 14,
-                      large: 15,
-                      tablet: 16,
-                      veryNarrow: 12,
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else
-            ..._bills.map((bill) => _buildBillCard(bill)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBillCard(Map<String, dynamic> bill) {
-    final billAmount = bill['billAmount']?.toDouble() ?? 0.0;
-    final dueDate = bill['dueDate']?.toString() ?? '';
-    final billNo = bill['billNo']?.toString() ?? '';
-    final billPeriod = bill['billPeriod']?.toString() ?? '';
-
-    return Container(
-      margin: EdgeInsets.only(bottom: context.responsiveSpacing(
-        small: 10,
-        medium: 11,
-        large: 12,
-        tablet: 14,
-        veryNarrow: 8,
-      )),
-      padding: EdgeInsets.all(context.responsiveSpacing(
-        small: 12,
-        medium: 13,
-        large: 14,
-        tablet: 16,
-        veryNarrow: 10,
-      )),
-      decoration: BoxDecoration(
-        color: context.isDarkMode
-            ? const Color(0xFF252525)
-            : const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-          small: 12,
-          medium: 13,
-          large: 14,
-          tablet: 16,
-          veryNarrow: 10,
-        )),
-        border: Border.all(
-          color: AppColors.deepGreen.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  billNo,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 13,
-                    ),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '${billAmount.toStringAsFixed(0)}₮',
-                style: TextStyle(
-                  color: AppColors.deepGreen,
-                  fontSize: context.responsiveFontSize(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 17,
-                    veryNarrow: 13,
-                  ),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          if (billPeriod.isNotEmpty) ...[
-            SizedBox(height: context.responsiveSpacing(
-              small: 6,
-              medium: 7,
-              large: 8,
-              tablet: 10,
-              veryNarrow: 4,
-            )),
-            Text(
-              'Хугацаа: $billPeriod',
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 12,
-                  medium: 13,
-                  large: 14,
-                  tablet: 15,
-                  veryNarrow: 11,
-                ),
-              ),
-            ),
-          ],
-          if (dueDate.isNotEmpty) ...[
-            SizedBox(height: context.responsiveSpacing(
-              small: 3,
-              medium: 4,
-              large: 5,
-              tablet: 6,
-              veryNarrow: 2,
-            )),
-            Text(
-              'Төлөх огноо: $dueDate',
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 11,
-                  medium: 12,
-                  large: 13,
-                  tablet: 14,
-                  veryNarrow: 10,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentsTab() {
-    if (_selectedBilling == null) {
-      return Center(
-        child: Text(
-          'Биллинг сонгоно уу',
-          style: TextStyle(
-            color: context.textSecondaryColor,
-            fontSize: context.responsiveFontSize(
-              small: 13,
-              medium: 14,
-              large: 15,
-              tablet: 16,
-              veryNarrow: 12,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_payments.isEmpty && !_isLoadingPayments && !_hasAttemptedLoadPayments) {
-      _hasAttemptedLoadPayments = true;
-      _loadPayments();
-    }
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(context.responsiveSpacing(
-        small: 14,
-        medium: 15,
-        large: 16,
-        tablet: 18,
-        veryNarrow: 10,
-      )),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_isLoadingPayments)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
-                child: CircularProgressIndicator(
-                  color: AppColors.deepGreen,
-                  strokeWidth: 2,
-                ),
-              ),
-            )
-          else if (_payments.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
-                child: Text(
-                  'Төлбөрийн түүх олдсонгүй',
-                  style: TextStyle(
-                    color: context.textSecondaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 13,
-                      medium: 14,
-                      large: 15,
-                      tablet: 16,
-                      veryNarrow: 12,
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else
-            ..._payments.map((payment) => _buildPaymentCard(payment)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentCard(Map<String, dynamic> payment) {
-    final amount = payment['amount']?.toDouble() ?? 0.0;
-    final paymentDate = payment['paymentDate']?.toString() ?? '';
-    final status = payment['status']?.toString() ?? '';
-
-    return Container(
-      margin: EdgeInsets.only(bottom: context.responsiveSpacing(
-        small: 10,
-        medium: 11,
-        large: 12,
-        tablet: 14,
-        veryNarrow: 8,
-      )),
-      padding: EdgeInsets.all(context.responsiveSpacing(
-        small: 12,
-        medium: 13,
-        large: 14,
-        tablet: 16,
-        veryNarrow: 10,
-      )),
-      decoration: BoxDecoration(
-        color: context.isDarkMode
-            ? const Color(0xFF252525)
-            : const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-          small: 12,
-          medium: 13,
-          large: 14,
-          tablet: 16,
-          veryNarrow: 10,
-        )),
-        border: Border.all(
-          color: AppColors.deepGreen.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Төлбөр',
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 13,
-                    ),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '${amount.toStringAsFixed(0)}₮',
-                style: TextStyle(
-                  color: AppColors.deepGreen,
-                  fontSize: context.responsiveFontSize(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 17,
-                    veryNarrow: 13,
-                  ),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          if (paymentDate.isNotEmpty) ...[
-            SizedBox(height: context.responsiveSpacing(
-              small: 6,
-              medium: 7,
-              large: 8,
-              tablet: 10,
-              veryNarrow: 4,
-            )),
-            Text(
-              'Огноо: $paymentDate',
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 12,
-                  medium: 13,
-                  large: 14,
-                  tablet: 15,
-                  veryNarrow: 11,
-                ),
-              ),
-            ),
-          ],
-          if (status.isNotEmpty) ...[
-            SizedBox(height: context.responsiveSpacing(
-              small: 3,
-              medium: 4,
-              large: 5,
-              tablet: 6,
-              veryNarrow: 2,
-            )),
-            Text(
-              'Төлөв: $status',
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 11,
-                  medium: 12,
-                  large: 13,
-                  tablet: 14,
-                  veryNarrow: 10,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInvoicesTab() {
-    if (_selectedBilling == null) {
-      return Center(
-        child: Text(
-          'Биллинг сонгоно уу',
-          style: TextStyle(
-            color: context.textSecondaryColor,
-            fontSize: context.responsiveFontSize(
-              small: 13,
-              medium: 14,
-              large: 15,
-              tablet: 16,
-              veryNarrow: 12,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_invoices.isEmpty && !_isLoadingInvoices && !_hasAttemptedLoadInvoices) {
-      _hasAttemptedLoadInvoices = true;
-      _loadInvoices();
-    }
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(context.responsiveSpacing(
-        small: 14,
-        medium: 15,
-        large: 16,
-        tablet: 18,
-        veryNarrow: 10,
-      )),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_isLoadingInvoices)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
-                child: CircularProgressIndicator(
-                  color: AppColors.deepGreen,
-                  strokeWidth: 2,
-                ),
-              ),
-            )
-          else if (_invoices.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(context.responsiveSpacing(
-                  small: 20,
-                  medium: 22,
-                  large: 24,
-                  tablet: 28,
-                  veryNarrow: 16,
-                )),
-                child: Column(
-                  children: [
-                    Text(
-                      'Нэхэмжлэх олдсонгүй',
-                      style: TextStyle(
-                        color: context.textSecondaryColor,
-                        fontSize: context.responsiveFontSize(
-                          small: 13,
-                          medium: 14,
-                          large: 15,
-                          tablet: 16,
-                          veryNarrow: 12,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: context.responsiveSpacing(
-                      small: 12,
-                      medium: 13,
-                      large: 14,
-                      tablet: 16,
-                      veryNarrow: 10,
-                    )),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (_bills.isNotEmpty) {
-                          final billIds = _bills
-                              .map((b) => b['billId']?.toString())
-                              .where((id) => id != null)
-                              .cast<String>()
-                              .toList();
-                          if (billIds.isNotEmpty) {
-                            _createInvoice(billIds);
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.deepGreen,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: context.responsiveSpacing(
-                            small: 16,
-                            medium: 17,
-                            large: 18,
-                            tablet: 20,
-                            veryNarrow: 12,
-                          ),
-                          vertical: context.responsiveSpacing(
-                            small: 10,
-                            medium: 11,
-                            large: 12,
-                            tablet: 14,
-                            veryNarrow: 8,
-                          ),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                            small: 10,
-                            medium: 11,
-                            large: 12,
-                            tablet: 14,
-                            veryNarrow: 8,
-                          )),
-                        ),
-                      ),
-                      child: Text(
-                        'Нэхэмжлэх үүсгэх',
-                        style: TextStyle(
-                          fontSize: context.responsiveFontSize(
-                            small: 13,
-                            medium: 14,
-                            large: 15,
-                            tablet: 16,
-                            veryNarrow: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            ..._invoices.map((invoice) => _buildInvoiceCard(invoice)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
-    final invoiceAmount = invoice['invoiceAmount']?.toDouble() ?? 0.0;
-    final invoiceId = invoice['invoiceId']?.toString() ?? '';
-    final status =
-        invoice['invoiceStatusText']?.toString() ??
-        invoice['invoiceStatus']?.toString() ??
-        '';
-
-    return Container(
-      margin: EdgeInsets.only(bottom: context.responsiveSpacing(
-        small: 10,
-        medium: 11,
-        large: 12,
-        tablet: 14,
-        veryNarrow: 8,
-      )),
-      padding: EdgeInsets.all(context.responsiveSpacing(
-        small: 12,
-        medium: 13,
-        large: 14,
-        tablet: 16,
-        veryNarrow: 10,
-      )),
-      decoration: BoxDecoration(
-        color: context.isDarkMode
-            ? const Color(0xFF252525)
-            : const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-          small: 12,
-          medium: 13,
-          large: 14,
-          tablet: 16,
-          veryNarrow: 10,
-        )),
-        border: Border.all(
-          color: AppColors.deepGreen.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  invoiceId,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 13,
-                    ),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '${invoiceAmount.toStringAsFixed(0)}₮',
-                style: TextStyle(
-                  color: AppColors.deepGreen,
-                  fontSize: context.responsiveFontSize(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 17,
-                    veryNarrow: 13,
-                  ),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          if (status.isNotEmpty) ...[
-            SizedBox(height: context.responsiveSpacing(
-              small: 6,
-              medium: 7,
-              large: 8,
-              tablet: 10,
-              veryNarrow: 4,
-            )),
-            Text(
-              'Төлөв: $status',
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 12,
-                  medium: 13,
-                  large: 14,
-                  tablet: 15,
-                  veryNarrow: 11,
-                ),
-              ),
-            ),
-          ],
-          SizedBox(height: context.responsiveSpacing(
-            small: 10,
-            medium: 11,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 8,
-          )),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => _createPayment(invoiceId),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.goldPrimary,
-                foregroundColor: Colors.black,
-                padding: EdgeInsets.symmetric(vertical: context.responsiveSpacing(
-                  small: 10,
-                  medium: 11,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 8,
-                )),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                    small: 10,
-                    medium: 11,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 8,
-                  )),
-                ),
-              ),
-              child: Text(
-                'Төлбөр төлөх',
-                style: TextStyle(
-                  fontSize: context.responsiveFontSize(
-                    small: 13,
-                    medium: 14,
-                    large: 15,
-                    tablet: 16,
-                    veryNarrow: 12,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -12,7 +12,7 @@ import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
   final bool fromMenu; // Flag to indicate if accessed from menu
-  
+
   const AddressSelectionScreen({
     super.key,
     this.fromMenu = false, // Default to false for backward compatibility
@@ -101,7 +101,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           if (profile['result'] != null) {
             final userData = profile['result'];
             String? addressText;
-            
+
             if (userData['bairniiNer'] != null &&
                 userData['bairniiNer'].toString().isNotEmpty) {
               addressText = userData['bairniiNer'].toString();
@@ -111,7 +111,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             } else if (savedDoorNo.isNotEmpty) {
               addressText = 'Тоот: $savedDoorNo';
             }
-            
+
             if (mounted && addressText != null) {
               setState(() {
                 _currentAddressDisplay = addressText;
@@ -368,15 +368,18 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         // Auto-select Ulaanbaatar city (most common)
         Map<String, dynamic>? ulaanCity;
         for (final city in _cities) {
-          final name = (city['name'] ?? city['cityName'] ?? '').toString().toUpperCase();
+          final name = (city['name'] ?? city['cityName'] ?? '')
+              .toString()
+              .toUpperCase();
           if (name.contains('УЛААНБААТАР') || name.contains('ULAANBAATAR')) {
             ulaanCity = city;
             break;
           }
         }
-        
+
         if (ulaanCity != null) {
-          final cityId = ulaanCity['id']?.toString() ?? ulaanCity['_id']?.toString();
+          final cityId =
+              ulaanCity['id']?.toString() ?? ulaanCity['_id']?.toString();
           if (cityId != null) {
             setState(() {
               _selectedCity = ulaanCity;
@@ -698,8 +701,9 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
       // Extract bairName for Wallet API addresses
       if (source == 'WALLET_API') {
-        bairName = _selectedBuilding!['name']?.toString() ?? 
-                   _selectedBuilding!['bairName']?.toString();
+        bairName =
+            _selectedBuilding!['name']?.toString() ??
+            _selectedBuilding!['bairName']?.toString();
       }
 
       if (isOwnOrg) {
@@ -761,6 +765,108 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           }
         }
       }
+
+      // Update orshinSuugch with address FIRST (before billing fetch)
+      // This ensures address is saved even if billing fetch fails
+      print('📝 [ADDRESS] ========== STARTING ADDRESS UPDATE ==========');
+      try {
+        // Get district and khoroo from multiple sources
+        String? duureg =
+            _selectedDistrict?['name']?.toString() ??
+            _selectedDistrict?['ner']?.toString() ??
+            _selectedBuilding?['duureg']?.toString() ??
+            _selectedBuilding?['district']?.toString();
+
+        String? horoo =
+            _selectedKhoroo?['name']?.toString() ??
+            _selectedKhoroo?['ner']?.toString() ??
+            _selectedBuilding?['horoo']?.toString() ??
+            _selectedBuilding?['khoroo']?.toString();
+
+        String? soh =
+            _selectedKhoroo?['soh']?.toString() ??
+            _selectedBuilding?['soh']?.toString();
+
+        // Prepare address data - always include bairId and doorNo
+        final addressData = <String, dynamic>{
+          'bairId': bairId,
+          'doorNo': doorNo,
+        };
+
+        // Add optional fields if available
+        if (duureg != null && duureg.isNotEmpty) {
+          addressData['duureg'] = duureg;
+        }
+        if (horoo != null && horoo.isNotEmpty) {
+          addressData['horoo'] = horoo;
+        }
+        if (soh != null && soh.isNotEmpty) {
+          addressData['soh'] = soh;
+        }
+        if (bairName != null && bairName.isNotEmpty) {
+          addressData['bairName'] = bairName;
+        }
+
+        print('📝 [ADDRESS] Address data to save: $addressData');
+        print('📝 [ADDRESS] Selected district: $_selectedDistrict');
+        print('📝 [ADDRESS] Selected khoroo: $_selectedKhoroo');
+        print(
+          '📝 [ADDRESS] Selected building: ${_selectedBuilding?.keys.toList()}',
+        );
+
+        if (addressData.isNotEmpty) {
+          // Try to update orshinSuugch directly (works for users with or without baiguullagiinId)
+          try {
+            print('📝 [ADDRESS] Updating orshinSuugch with address...');
+            final result = await ApiService.updateOrshinSuugchAddress(
+              addressData: addressData,
+            );
+            print('✅ [ADDRESS] orshinSuugch updated with address: $result');
+          } catch (e) {
+            print('⚠️ [ADDRESS] Could not update orshinSuugch: $e');
+            // Try consumer info update as fallback (requires baiguullagiinId)
+            final baiguullagiinIdForUpdate =
+                await StorageService.getBaiguullagiinId();
+            if (baiguullagiinIdForUpdate != null &&
+                baiguullagiinIdForUpdate.isNotEmpty) {
+              final savedPhone = await StorageService.getSavedPhoneNumber();
+              if (savedPhone != null && savedPhone.isNotEmpty) {
+                try {
+                  // Get user profile to find registration number or use phone as identity
+                  final userProfile = await ApiService.getUserProfile();
+                  final userData = userProfile['result'] ?? userProfile;
+
+                  String? identity =
+                      userData['register']?.toString() ??
+                      userData['customerNo']?.toString() ??
+                      userData['nevtrekhNer']?.toString() ??
+                      savedPhone;
+
+                  if (addressData.isNotEmpty && identity.isNotEmpty) {
+                    print(
+                      '📝 [ADDRESS] Trying consumer info update as fallback...',
+                    );
+                    await ApiService.updateConsumerInfo(
+                      identity: identity,
+                      data: addressData,
+                    );
+                    print('✅ [ADDRESS] Consumer info updated with address');
+                  }
+                } catch (e2) {
+                  print('⚠️ [ADDRESS] Consumer info update also failed: $e2');
+                }
+              }
+            }
+          }
+        } else {
+          print('⚠️ [ADDRESS] No address data to save');
+        }
+      } catch (e, stackTrace) {
+        // Failed to update address - log but don't fail the save
+        print('⚠️ [ADDRESS] Error updating orshinSuugch address: $e');
+        print('⚠️ [ADDRESS] Stack trace: $stackTrace');
+      }
+      print('📝 [ADDRESS] ========== ADDRESS UPDATE COMPLETE ==========');
 
       // Fetch billing by address and automatically connect it
       // The /walletBillingHavakh endpoint automatically connects billing
@@ -1063,14 +1169,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 16,
-                            medium: 18,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 12,
-                          ),
-                        ),
+                              context.responsiveBorderRadius(
+                                small: 16,
+                                medium: 18,
+                                large: 20,
+                                tablet: 22,
+                                veryNarrow: 12,
+                              ),
+                            ),
                             borderSide: BorderSide(
                               color: context.borderColor,
                               width: 1.5,
@@ -1078,14 +1184,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 16,
-                            medium: 18,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 12,
-                          ),
-                        ),
+                              context.responsiveBorderRadius(
+                                small: 16,
+                                medium: 18,
+                                large: 20,
+                                tablet: 22,
+                                veryNarrow: 12,
+                              ),
+                            ),
                             borderSide: BorderSide(
                               color: AppColors.deepGreen.withOpacity(0.8),
                               width: 2,
@@ -1165,14 +1271,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     ? AppColors.deepGreen.withOpacity(0.2)
                                     : context.cardBackgroundColor,
                                 borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 16,
-                            medium: 18,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 12,
-                          ),
-                        ),
+                                  context.responsiveBorderRadius(
+                                    small: 16,
+                                    medium: 18,
+                                    large: 20,
+                                    tablet: 22,
+                                    veryNarrow: 12,
+                                  ),
+                                ),
                                 border: Border.all(
                                   color: isSelected
                                       ? AppColors.deepGreen.withOpacity(0.5)
@@ -1188,14 +1294,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     Navigator.of(context).pop();
                                   },
                                   borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 16,
-                            medium: 18,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 12,
-                          ),
-                        ),
+                                    context.responsiveBorderRadius(
+                                      small: 16,
+                                      medium: 18,
+                                      large: 20,
+                                      tablet: 22,
+                                      veryNarrow: 12,
+                                    ),
+                                  ),
                                   child: Padding(
                                     padding: context.responsivePadding(
                                       small: 18,
@@ -1298,14 +1404,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                   );
                 },
           borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 18,
-            medium: 20,
-            large: 22,
-            tablet: 24,
-            veryNarrow: 14,
+            context.responsiveBorderRadius(
+              small: 18,
+              medium: 20,
+              large: 22,
+              tablet: 24,
+              veryNarrow: 14,
+            ),
           ),
-        ),
           child: Padding(
             padding: EdgeInsets.symmetric(
               horizontal: context.responsiveSpacing(

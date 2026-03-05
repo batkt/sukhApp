@@ -342,7 +342,7 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                         ),
                       )
                     : SingleChildScrollView(
-                        padding: EdgeInsets.all(14.w),
+                        padding: EdgeInsets.fromLTRB(14.w, 14.w, 14.w, 20.h),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -651,6 +651,8 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                         ),
                       ),
               ),
+              // Footer spacing
+              SizedBox(height: 14.h),
             ],
           ),
         ),

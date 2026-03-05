@@ -6,8 +6,10 @@ import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/services/connectivity_service.dart';
 import 'package:sukh_app/services/shake_service.dart';
 import 'package:sukh_app/services/theme_service.dart';
+import 'package:sukh_app/services/update_service.dart';
 import 'package:sukh_app/widgets/shake_hint_overlay.dart';
 import 'package:sukh_app/widgets/snow_effect.dart';
+import 'package:sukh_app/widgets/update_modal.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/restore_app_icon.dart';
 import 'package:provider/provider.dart';
@@ -50,8 +52,29 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         _connectivityService.initialize(navigatorKey.currentContext!);
         // Initialize shake detection after context is ready
         ShakeService.initialize();
+        // Check for app updates
+        _checkForUpdate();
       }
     });
+  }
+
+  Future<void> _checkForUpdate() async {
+    try {
+      final hasUpdate = await UpdateService.checkForUpdate();
+      if (hasUpdate && navigatorKey.currentContext != null) {
+        // Wait a bit for the app to fully load
+        await Future.delayed(const Duration(seconds: 2));
+        if (navigatorKey.currentContext != null && mounted) {
+          showDialog(
+            context: navigatorKey.currentContext!,
+            barrierDismissible: false,
+            builder: (context) => const UpdateModal(),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error checking for update: $e');
+    }
   }
 
   @override
@@ -75,6 +98,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           appRouter.refresh();
         }
       });
+
+      // Check for updates when app resumes
+      _checkForUpdate();
     } else if (state == AppLifecycleState.paused) {
       // Optionally stop shake detection when app is paused to save battery
       // ShakeService.stop();

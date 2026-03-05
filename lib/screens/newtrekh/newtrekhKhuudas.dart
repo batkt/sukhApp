@@ -7,8 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
-import 'package:sukh_app/services/session_service.dart';
-import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
@@ -94,6 +92,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  final FocusNode phoneFocusNode = FocusNode();
+  final FocusNode passwordFocusNode = FocusNode();
+  final FocusNode emailFocusNode = FocusNode();
 
   bool _isLoading = false;
   bool _showEmailField = false;
@@ -407,6 +408,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     phoneController.dispose();
     passwordController.dispose();
     emailController.dispose();
+    phoneFocusNode.dispose();
+    passwordFocusNode.dispose();
+    emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -511,10 +515,15 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   _buildModernInputField(
                                     context: context,
                                     controller: phoneController,
+                                    focusNode: phoneFocusNode,
                                     label: 'Утасны дугаар',
                                     hint: '99001122',
                                     icon: Icons.phone_outlined,
                                     keyboardType: TextInputType.phone,
+                                    textInputAction: TextInputAction.next,
+                                    onFieldSubmitted: (_) {
+                                      passwordFocusNode.requestFocus();
+                                    },
                                     inputFormatters: [
                                       FilteringTextInputFormatter.digitsOnly,
                                       LengthLimitingTextInputFormatter(8),
@@ -528,10 +537,17 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                   _buildModernInputField(
                                     context: context,
                                     controller: passwordController,
+                                    focusNode: passwordFocusNode,
                                     label: 'Нууц код',
                                     hint: '••••',
                                     icon: Icons.lock_outline_rounded,
                                     keyboardType: TextInputType.number,
+                                    textInputAction: TextInputAction.done,
+                                    onFieldSubmitted: (_) {
+                                      if (!_isLoading) {
+                                        _handleLogin();
+                                      }
+                                    },
                                     obscureText: _obscurePassword,
                                     inputFormatters: [
                                       FilteringTextInputFormatter.digitsOnly,
@@ -590,10 +606,17 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                                     _buildModernInputField(
                                       context: context,
                                       controller: emailController,
+                                      focusNode: emailFocusNode,
                                       label: 'Имэйл хаяг',
                                       hint: 'example@mail.com',
                                       icon: Icons.email_outlined,
                                       keyboardType: TextInputType.emailAddress,
+                                      textInputAction: TextInputAction.done,
+                                      onFieldSubmitted: (_) {
+                                        if (!_isLoading) {
+                                          _handleLogin();
+                                        }
+                                      },
                                       isDark: isDark,
                                     ),
                                   ],
@@ -777,11 +800,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   Widget _buildModernInputField({
     required BuildContext context,
     required TextEditingController controller,
+    FocusNode? focusNode,
     required String label,
     required String hint,
     required IconData icon,
     required bool isDark,
     TextInputType keyboardType = TextInputType.text,
+    TextInputAction? textInputAction,
+    void Function(String)? onFieldSubmitted,
     bool obscureText = false,
     List<TextInputFormatter>? inputFormatters,
     Widget? suffixIcon,
@@ -815,7 +841,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           ),
           child: TextFormField(
             controller: controller,
+            focusNode: focusNode,
             keyboardType: keyboardType,
+            textInputAction: textInputAction,
+            onFieldSubmitted: onFieldSubmitted,
             obscureText: obscureText,
             autofocus: false,
             style: TextStyle(

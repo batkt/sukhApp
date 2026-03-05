@@ -15,7 +15,7 @@ import 'package:go_router/go_router.dart';
 class ApiService {
   static const String baseUrl = 'https://amarhome.mn/api';
   static const String deleteBaseUrl = 'https://amarhome.mn';
-  static const String walletApiBaseUrl = 'https://dev-api.bpay.mn/v1';
+  static const String walletApiBaseUrl = 'https://api.bpay.mn/v1';
 
   // Helper method to wrap HTTP calls with better error handling
 
@@ -575,8 +575,7 @@ class ApiService {
     } catch (e) {
       print('❌ [FIND-BILLING] Exception caught: $e');
       print('❌ [FIND-BILLING] Exception type: ${e.runtimeType}');
-      if (response != null) {
-      }
+      if (response != null) {}
       if (e.toString().contains('is not a subtype') ||
           e.toString().contains('List<dynamic>') ||
           e.toString().contains('Map<String, dynamic>')) {
@@ -1575,7 +1574,7 @@ class ApiService {
     }
   }
 
- // Get Consumer Info by Identity (registration number or login name)
+  // Get Consumer Info by Identity (registration number or login name)
   static Future<Map<String, dynamic>> getConsumerInfo({
     required String identity,
   }) async {
@@ -2086,6 +2085,83 @@ class ApiService {
     }
   }
 
+  /// Update orshinSuugch address directly (for users without baiguullagiinId)
+  static Future<Map<String, dynamic>> updateOrshinSuugchAddress({
+    required Map<String, dynamic> addressData,
+  }) async {
+    try {
+      print('📝 [API] updateOrshinSuugchAddress called');
+      print('📝 [API] updateOrshinSuugchAddress data: $addressData');
+
+      final userId = await StorageService.getUserId();
+      if (userId == null) {
+        print('❌ [API] updateOrshinSuugchAddress - Missing userId');
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      final requestBody = {'_id': userId, ...addressData};
+
+      // Include baiguullagiinId if available, but don't require it
+      if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+        requestBody['baiguullagiinId'] = baiguullagiinId;
+      }
+
+      print('📝 [API] updateOrshinSuugchAddress - userId: $userId');
+      print('📝 [API] updateOrshinSuugchAddress - Request body: $requestBody');
+      print(
+        '📝 [API] updateOrshinSuugchAddress - Endpoint: $baseUrl/orshinSuugch/$userId',
+      );
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/orshinSuugch/$userId'),
+        headers: headers,
+        body: json.encode(requestBody),
+      );
+
+      print(
+        '📝 [API] updateOrshinSuugchAddress - Response status: ${response.statusCode}',
+      );
+      print(
+        '📝 [API] updateOrshinSuugchAddress - Response body: ${response.body}',
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        try {
+          final responseData = json.decode(response.body);
+          return {
+            'success': true,
+            'message': 'Хаяг амжилттай шинэчлэгдлээ',
+            'data': responseData,
+          };
+        } catch (e) {
+          return {'success': true, 'message': 'Хаяг амжилттай шинэчлэгдлээ'};
+        }
+      } else {
+        String errorMessage =
+            'Хаяг шинэчлэхэд алдаа гарлаа: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage =
+              errorData['message']?.toString() ??
+              errorData['aldaa']?.toString() ??
+              errorMessage;
+        } catch (_) {
+          // If response is not JSON, use default message
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      print('Error updating orshinSuugch address: $e');
+      throw Exception('Хаяг шинэчлэхэд алдаа гарлаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> fetchGeree(String orshinSuugchId) async {
     try {
       final authHeaders = await getAuthHeaders();
@@ -2379,11 +2455,18 @@ class ApiService {
     required Map<String, dynamic> data,
   }) async {
     try {
+      print('📝 [API] updateConsumerInfo called with identity: $identity');
+      print('📝 [API] updateConsumerInfo data: $data');
+
       final headers = await getAuthHeaders();
       final userId = await StorageService.getUserId();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
 
+      print('📝 [API] updateConsumerInfo - userId: $userId');
+      print('📝 [API] updateConsumerInfo - baiguullagiinId: $baiguullagiinId');
+
       if (userId == null || baiguullagiinId == null) {
+        print('❌ [API] updateConsumerInfo - Missing userId or baiguullagiinId');
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
@@ -2394,11 +2477,21 @@ class ApiService {
         ...data,
       };
 
+      print('📝 [API] updateConsumerInfo - Request body: $requestBody');
+      print(
+        '📝 [API] updateConsumerInfo - Endpoint: $baseUrl/easy-register/consumer',
+      );
+
       final response = await http.put(
         Uri.parse('$baseUrl/easy-register/consumer'),
         headers: headers,
         body: json.encode(requestBody),
       );
+
+      print(
+        '📝 [API] updateConsumerInfo - Response status: ${response.statusCode}',
+      );
+      print('📝 [API] updateConsumerInfo - Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
@@ -2720,7 +2813,6 @@ class ApiService {
         headers: headers,
         body: json.encode(requestBody),
       );
-
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         print(
@@ -3175,7 +3267,6 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data;
@@ -3363,10 +3454,15 @@ class ApiService {
         }
       }
 
+      // If user doesn't have baiguullagiinId, return empty notifications
+      // This can happen for users without organization (e.g., Wallet API only users)
       if (baiguullagiinId == null ||
           tukhainBaaziinKholbolt == null ||
           tukhainBaaziinKholbolt.isEmpty) {
-        throw Exception('Холболтын мэдээлэл олдсонгүй. Та дахин нэвтэрнэ үү.');
+        print(
+          '⚠️ [API] fetchMedegdel: Missing baiguullagiinId or tukhainBaaziinKholbolt, returning empty notifications',
+        );
+        return {'success': true, 'data': <dynamic>[], 'count': 0};
       }
 
       final headers = await getAuthHeaders();
@@ -3624,7 +3720,6 @@ class ApiService {
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
-
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = response.body.trim();
