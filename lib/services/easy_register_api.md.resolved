@@ -1,0 +1,334 @@
+# Easy Register — Frontend API Reference
+
+## Base URL
+All routes are relative to your backend server (e.g. `http://localhost:3000`).
+All requests require authentication token in headers.
+
+---
+
+## 1. Search & Save User (Unified)
+
+### `POST /easyRegister/user/search`
+
+> The **main endpoint**. Looks up consumer/foreigner from ITC eBarimt system and auto-saves to local DB.
+
+#### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `identity` | string | ❌ | Регистрийн дугаар, civilId, passport, or F-register number |
+| `phoneNum` | string | ❌ | Утасны дугаар (8 digit) |
+| `customerNo` | string | ❌ | eBarimt хэрэглэгчийн код (8-9 digit) |
+| `turul` | string | ❌ | `"consumer"` (default) or `"foreigner"` |
+| `passportNo` | string | ❌ | Гадаад паспорт (used with `email` to register foreigner) |
+| `email` | string | ❌ | Email (required when registering foreigner with `passportNo`) |
+| `gereeniiId` | string | ❌ | Associated contract ID (saved to local DB) |
+| `gereeniiDugaar` | string | ❌ | Associated contract number |
+| `talbainDugaar` | string | ❌ | Unit/space number |
+| `barilgiinId` | string | ❌ | Building ID |
+
+> [!IMPORTANT]
+> At least ONE of these must be provided: `identity`, `phoneNum`, `customerNo`, or `passportNo`+`email`
+
+#### Usage Examples
+
+````carousel
+**Consumer by register number:**
+```json
+POST /easyRegister/user/search
+{
+  "identity": "АА01234567"
+}
+```
+**Response:**
+```json
+{
+  "regNo": "АА01234567",
+  "loginName": "11223344",
+  "givenName": "Очир",
+  "familyName": "Даваа"
+}
+```
+<!-- slide -->
+**Consumer by phone:**
+```json
+POST /easyRegister/user/search
+{
+  "phoneNum": "99119911"
+}
+```
+**Response:**
+```json
+{
+  "msg": "Амжилттай.",
+  "code": "success",
+  "status": 200,
+  "loginName": "11***475",
+  "email": "munguu****@yahoo.com"
+}
+```
+<!-- slide -->
+**Consumer by customerNo:**
+```json
+POST /easyRegister/user/search
+{
+  "customerNo": "10038071"
+}
+```
+<!-- slide -->
+**Foreigner lookup by passport:**
+```json
+POST /easyRegister/user/search
+{
+  "identity": "M709R8406",
+  "turul": "foreigner"
+}
+```
+**Response:**
+```json
+{
+  "regNo": "******",
+  "loginName": "14154565",
+  "givenName": "O*********EG",
+  "familyName": "G*******KH",
+  "refund": "false",
+  "country": "KAZ",
+  "passportNo": "N****8907",
+  "fNumber": "******"
+}
+```
+<!-- slide -->
+**Register foreigner in ITC:**
+```json
+POST /easyRegister/user/search
+{
+  "passportNo": "EK2658447",
+  "email": "tourist@email.com",
+  "turul": "foreigner"
+}
+```
+<!-- slide -->
+**With contract info (saved to local DB):**
+```json
+POST /easyRegister/user/search
+{
+  "identity": "АА01234567",
+  "gereeniiId": "65a1b2c3d4e5f6",
+  "gereeniiDugaar": "G-001",
+  "barilgiinId": "65b1c2d3e4f5a6"
+}
+```
+````
+
+#### Error Responses
+
+| Status | Code | Message |
+|--------|------|---------|
+| 400 | `emptyField` | Талбар хоосон байна |
+| 409 | `userNotFound` | Хэрэглэгч олдсонгүй |
+| 409 | `userDuplicate` | Хэрэглэгчийн бүртгэл давхардсан |
+| 409 | `userChild` | Хэрэглэгч 14 наснаас доош |
+| 409 | `emailNotFound` | Имэйл олдсонгүй |
+| 401 | — | Unauthorized (token expired, auto-retries once) |
+
+---
+
+## 2. List Saved Users
+
+### `GET /easyRegister/user/list`
+
+> Lists all Easy Register users saved in local DB for the organization. Supports pagination.
+
+#### Query Parameters
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `query` | JSON string | MongoDB query filter |
+| `order` | JSON string | Sort order, e.g. `{"createdAt": -1}` |
+| `khuudasniiDugaar` | number | Page number (1-based) |
+| `khuudasniiKhemjee` | number | Page size |
+| `search` | string | Search text |
+
+#### Example
+
+```
+GET /easyRegister/user/list?khuudasniiDugaar=1&khuudasniiKhemjee=20&order={"createdAt":-1}
+```
+
+#### Response
+
+```json
+{
+  "jagsaalt": [
+    {
+      "_id": "65f1a2b3c4d5e6f7",
+      "regNo": "АА01234567",
+      "loginName": "11223344",
+      "givenName": "Очир",
+      "familyName": "Даваа",
+      "turul": "consumer",
+      "phoneNum": "99119911",
+      "baiguullagiinId": "65a1b2c3d4e5f6",
+      "createdAt": "2026-03-09T10:00:00Z"
+    }
+  ],
+  "niitMur": 1,
+  "khuudasniiDugaar": 1,
+  "khuudasniiKhemjee": 20
+}
+```
+
+---
+
+## 3. Get Single User
+
+### `GET /easyRegister/user/:id`
+
+#### Example
+
+```
+GET /easyRegister/user/65f1a2b3c4d5e6f7
+```
+
+#### Response
+
+```json
+{
+  "_id": "65f1a2b3c4d5e6f7",
+  "regNo": "АА01234567",
+  "loginName": "11223344",
+  "givenName": "Очир",
+  "familyName": "Даваа",
+  "turul": "consumer",
+  "phoneNum": "99119911",
+  "email": "",
+  "passportNo": "",
+  "gereeniiId": "",
+  "gereeniiDugaar": "",
+  "baiguullagiinId": "65a1b2c3d4e5f6"
+}
+```
+
+---
+
+## 4. Delete User (Soft)
+
+### `POST /easyRegister/user/delete`
+
+> Sets `ustgasan: true` — user won't appear in list but stays in DB.
+
+#### Request Body
+
+```json
+{
+  "userId": "65f1a2b3c4d5e6f7"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Хэрэглэгч амжилттай устгагдлаа"
+}
+```
+
+---
+
+## 5. Delete User (Permanent)
+
+### `POST /easyRegister/user/hardDelete`
+
+> Permanently removes from DB.
+
+#### Request Body
+
+```json
+{
+  "userId": "65f1a2b3c4d5e6f7"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Хэрэглэгч бүрмөсөн устгагдлаа"
+}
+```
+
+---
+
+## 6. Approve QR
+
+### `POST /easyRegister/approveQr`
+
+> Баримтыг шууд баталгаажуулж бүртгүүлэх. Иргэний iBarimt-д баталгаажсан төлөвтэйгээр бүртгэгдэнэ.
+
+#### Request Body
+
+```json
+{
+  "customerNo": "10038071",
+  "qrData": "138431709438294994***********42989187861711452070 67124287171260511392558330701380"
+}
+```
+
+#### Response
+
+```json
+{
+  "msg": "Амжилттай.",
+  "code": "SUCCESS",
+  "status": 200
+}
+```
+
+---
+
+## 7. Return Receipt
+
+### `POST /easyRegister/setReturnReceipt`
+
+> Хялбар бүртгэлээр бүртгэгдсэн баримтын буцаалтыг баталгаажуулах. Requires `X-API-KEY` (auto-added by backend).
+
+#### Request Body
+
+```json
+{
+  "posRno": "0000061********230518000112012889"
+}
+```
+or
+```json
+{
+  "lotteryNumber": "AA11111111"
+}
+```
+
+#### Response
+
+```json
+{
+  "msg": "Амжилттай",
+  "status": 200,
+  "code": null,
+  "data": null
+}
+```
+
+---
+
+## Quick Reference
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `POST` | `/easyRegister/user/search` | **Хайх + хадгалах** (ITC API → DB) |
+| `GET` | `/easyRegister/user/list` | Хадгалсан хэрэглэгчдийг жагсаах |
+| `GET` | `/easyRegister/user/:id` | Нэг хэрэглэгч авах |
+| `POST` | `/easyRegister/user/delete` | Устгах (soft) |
+| `POST` | `/easyRegister/user/hardDelete` | Бүрмөсөн устгах |
+| `POST` | `/easyRegister/approveQr` | QR баталгаажуулах |
+| `POST` | `/easyRegister/setReturnReceipt` | Баримт буцаах |

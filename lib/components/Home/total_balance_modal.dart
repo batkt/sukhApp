@@ -514,8 +514,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                                 billIds: billIds,
                                               );
 
-                                          // api_service already normalizes Wallet-QPay
-                                          // response into a flat map (see wallet.md adapter).
+                                          // New endpoint returns normalized response
                                           final success =
                                               qpayResponse['success'] == true;
                                           if (!success) {
@@ -535,40 +534,29 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                             return;
                                           }
 
-                                          final paymentId =
-                                              qpayResponse['paymentId']
+                                          final walletPaymentId =
+                                              qpayResponse['walletPaymentId']
                                                   ?.toString();
                                           final paymentAmount =
                                               (qpayResponse['paymentAmount']
                                                       as num?)
                                                   ?.toDouble() ??
                                               0.0;
-                                          final receiverBankCode =
-                                              qpayResponse['receiverBankCode']
-                                                  ?.toString();
-                                          final receiverAccountNo =
-                                              qpayResponse['receiverAccountNo']
-                                                  ?.toString();
-                                          final receiverAccountName =
-                                              qpayResponse['receiverAccountName']
-                                                  ?.toString();
-                                          final transactionDescription =
-                                              qpayResponse['transactionDescrion']
-                                                  ?.toString() ??
-                                              qpayResponse['transactionDescription']
-                                                  ?.toString();
-                                          final qrText = qpayResponse['qrText']
+                                          // qr_text from the QPay data object
+                                          final qrText = qpayResponse['qr_text']
                                               ?.toString();
+                                          // qr_image (base64) from the QPay data object
+                                          final qrImage = qpayResponse['qr_image']
+                                              ?.toString();
+                                          final urls = qpayResponse['urls'] as List<dynamic>?;
 
                                           if (!mounted) return;
 
                                           // Close total balance modal before showing QR
                                           Navigator.of(context).pop();
 
-                                          if (qrText == null ||
-                                              qrText.isEmpty ||
-                                              paymentId == null ||
-                                              paymentId.isEmpty) {
+                                          if ((qrText == null || qrText.isEmpty) &&
+                                              (qrImage == null || qrImage.isEmpty)) {
                                             if (mounted) {
                                               showGlassSnackBar(
                                                 context,
@@ -590,40 +578,32 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                             context: context,
                                             builder: (context) => QPayQRModal(
                                               qrText: qrText,
+                                              qrImageWallet: qrImage,
+                                              urls: urls,
                                               amount: paymentAmount,
-                                              bankCode: receiverBankCode,
-                                              accountNo: receiverAccountNo,
-                                              accountName: receiverAccountName,
-                                              description:
-                                                  transactionDescription,
                                               closeOnSuccess: true,
                                               onCheckPaymentAsync: () async {
+                                                if (walletPaymentId == null ||
+                                                    walletPaymentId.isEmpty) {
+                                                  return null;
+                                                }
                                                 try {
                                                   final status =
-                                                      await ApiService.getWalletPaymentStatus(
-                                                        paymentId: paymentId,
+                                                      await ApiService.walletQpayCheckStatus(
+                                                        walletPaymentId: walletPaymentId,
                                                       );
-                                                  final statusData =
-                                                      status['data']
-                                                          as Map<
-                                                            String,
-                                                            dynamic
-                                                          >? ??
-                                                      {};
                                                   final state =
-                                                      statusData['state']
+                                                      status['status']
                                                           ?.toString()
                                                           .toUpperCase();
 
-                                                  if (state == 'PAID' ||
-                                                      state == 'SUCCESS') {
+                                                  if (state == 'PAID') {
                                                     return true;
                                                   }
-                                                  if (state == 'CANCELLED' ||
-                                                      state == 'FAILED') {
-                                                    return false;
+                                                  if (state == 'PENDING') {
+                                                    return null;
                                                   }
-                                                  return null;
+                                                  return false;
                                                 } catch (_) {
                                                   return null;
                                                 }
@@ -634,8 +614,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                           if (mounted) {
                                             showGlassSnackBar(
                                               context,
-                                              message:
-                                                  'QPay үүсгэхэд алдаа гарлаа: $e',
+                                              message: e.toString().replaceFirst('Exception: ', ''),
                                               icon: Icons.error_outline,
                                               iconColor: Colors.red,
                                               textColor:

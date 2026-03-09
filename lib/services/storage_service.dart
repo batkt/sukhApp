@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// StorageService - Handles persistent storage for authentication tokens and user data
@@ -47,6 +48,38 @@ class StorageService {
   static const String _phoneVerifiedKey = 'phone_verified';
   static const String _deviceIdKey = 'device_id';
   static const String _lastVerifiedDeviceIdKey = 'last_verified_device_id';
+  static const String _ebarimtInfoKey = 'ebarimt_info';
+
+  static Future<bool> saveEbarimtInfo(Map<String, dynamic> info) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_ebarimtInfoKey, json.encode(info));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getEbarimtInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final infoStr = prefs.getString(_ebarimtInfoKey);
+      if (infoStr != null) {
+        return json.decode(infoStr) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<bool> clearEbarimtInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.remove(_ebarimtInfoKey);
+    } catch (e) {
+      return false;
+    }
+  }
 
   static Future<bool> saveToken(String token) async {
     try {

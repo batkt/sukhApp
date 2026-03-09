@@ -1,0 +1,359 @@
+# Wallet QPay — Frontend Integration Guide
+
+## Overview
+
+Wallet QPay is a **separate** payment flow that uses QPay to settle bills from the **Wallet API** (Toki/eBill). The QPay process is the same as the original — the frontend gets a QR code, the user scans and pays, and the system handles the rest.
+
+The only difference from the original `/qpayGargaya` is:
+- The **source** of the bill comes from the Wallet API (billing → invoice → payment)
+- After QPay payment, the backend automatically calls Wallet API `paidByQpay` to settle the bill
+
+---
+
+## API Endpoints
+
+### 1. Create Wallet QPay Payment
+
+```
+POST /api/walletQpay/create
+```
+
+**Headers:**
+| Key | Value | Required |
+|-----|-------|----------|
+| `Authorization` | `Bearer <token>` | ✅ |
+| `Content-Type` | `application/json` | ✅ |
+
+**Request Body:**
+```json
+{
+  "baiguullagiinId": "6115f350b35689cdbf1b9da3",
+  "barilgiinId": "64a1b2c3d4e5f6a7b8c9d0e1",
+  "billingId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "billIds": [
+    "f483f383-36de-40df-a69c-c3abb871762b",
+    "d9e8f7a6-b5c4-3d2e-1f0a-9b8c7d6e5f4a"
+  ],
+  "vatReceiveType": "CITIZEN",
+  "dun": "61726.87",
+  "dansniiDugaar": "5069538136"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `baiguullagiinId` | string | ✅ | Organization ID |
+| `barilgiinId` | string | ❌ | Building/branch ID (for bank account lookup) |
+| `billingId` | string | ✅* | Wallet billing ID (from `/api/billing/list`) |
+| `billIds` | string[] | ✅* | Array of Wallet bill IDs (from `/api/billing/bills/:billingId`) |
+| `invoiceId` | string | ❌ | If Wallet invoice already created, pass it directly |
+| `vatReceiveType` | string | ❌ | `"CITIZEN"` (default) or `"COMPANY"` |
+| `vatCompanyReg` | string | ❌ | Company register number (if vatReceiveType = COMPANY) |
+| `dun` | string | ❌ | Override amount (if not provided, uses Wallet invoice total) |
+| `dansniiDugaar` | string | ❌ | Bank account number (auto-detected if not provided) |
+
+> [!NOTE]
+> Either provide `billingId` + `billIds[]` (system creates Wallet invoice automatically) **OR** provide a pre-created `invoiceId`.
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "source": "WALLET_QPAY",
+  "data": {
+    "invoice_id": "abc123",
+    "qr_text": "...",
+    "qr_image": "data:image/png;base64,...",
+    "qPay_shortUrl": "https://qpay.mn/...",
+    "urls": [
+      {
+        "name": "Khan bank",
+        "description": "Хаан банк",
+        "logo": "https://...",
+        "link": "https://..."
+      }
+    ]
+  },
+  "walletPaymentId": "d3edebf1-68c8-458f-839c-a9ccdf57cc96",
+  "walletInvoiceId": "aa3b0544-fd41-4ef9-8b5a-f9d7d2e21b0c",
+  "paymentAmount": 61726.87
+}
+```
+
+> [!IMPORTANT]
+> The `data` object has the **same shape** as the original `/qpayGargaya` response. You can reuse your existing QR display component.
+
+**Error Response:**
+```json
+{
+  "message": "Wallet нэхэмжлэх үүсгэхэд алдаа: ..."
+}
+```
+
+---
+
+### 2. Check Payment Status (Polling)
+
+```
+GET /api/walletQpay/check/:baiguullagiinId/:walletPaymentId
+```
+
+**Headers:**
+| Key | Value | Required |
+|-----|-------|----------|
+| `Authorization` | `Bearer <token>` | ✅ |
+
+**Response — Pending:**
+```json
+{
+  "success": true,
+  "status": "PENDING",
+  "walletPaymentId": "d3edebf1-68c8-458f-839c-a9ccdf57cc96"
+}
+```
+
+**Response — Paid:**
+```json
+{
+  "success": true,
+  "status": "PAID",
+  "walletPaymentId": "d3edebf1-68c8-458f-839c-a9ccdf57cc96",
+  "qpayPaymentId": "12345"
+}
+```
+
+---
+
+### 3. QPay Callback (Backend Only)
+
+```
+GET /api/walletQpay/callback/:baiguullagiinId/:walletPaymentId
+```
+
+> [!CAUTION]
+> This endpoint is called by the **QPay server** — not by the frontend. It is listed here for completeness only.
+
+---
+
+## Socket.IO Events
+
+Listen for real-time payment confirmation instead of polling:
+
+```javascript
+// Connect to socket
+const socket = io("https://your-server.mn");
+
+// Listen for wallet QPay payment completion
+socket.on(`walletQpay/${baiguullagiinId}/${walletPaymentId}`, (data) => {
+  // data = { status: "PAID", qpayPaymentId: "12345" }
+  if (data.status === "PAID") {
+    // Payment confirmed! Show success screen
+    showPaymentSuccess();
+  }
+});
+```
+
+---
+
+## Frontend Flow (Step by Step)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant WalletAPI
+    participant QPay
+
+    User->>Frontend: Select bills to pay
+    Frontend->>Backend: POST /api/walletQpay/create
+    Backend->>WalletAPI: POST /api/invoice (create invoice)
+    WalletAPI-->>Backend: { invoiceId }
+    Backend->>WalletAPI: POST /api/payment (create payment)
+    WalletAPI-->>Backend: { paymentId, paymentAmount }
+    Backend->>QPay: Create QPay invoice (qpayGargaya)
+    QPay-->>Backend: { qr_text, qr_image, urls }
+    Backend-->>Frontend: QR data + walletPaymentId
+    Frontend->>User: Show QR code
+
+    User->>QPay: Scan QR & Pay
+    QPay->>Backend: GET /api/walletQpay/callback/...
+    Backend->>Backend: Mark QuickQpayObject paid
+    Backend->>WalletAPI: PUT /api/payment/qpay/:paymentId (paidByQpay)
+    Backend->>Frontend: Socket emit walletQpay/...
+    Frontend->>User: Show success
+```
+
+---
+
+## Code Example (React)
+
+```javascript
+import axios from "axios";
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
+
+const API_BASE = "https://amarhome.mn/api";
+
+function WalletQpayPayment({ baiguullagiinId, billingId, billIds, token }) {
+  const [qpayData, setQpayData] = useState(null);
+  const [walletPaymentId, setWalletPaymentId] = useState(null);
+  const [status, setStatus] = useState("idle"); // idle | loading | qr | paid | error
+  const [error, setError] = useState(null);
+
+  // 1. Create payment
+  const handlePay = async () => {
+    setStatus("loading");
+    setError(null);
+
+    try {
+      const res = await axios.post(
+        `${API_BASE}/walletQpay/create`,
+        {
+          baiguullagiinId,
+          billingId,
+          billIds,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setQpayData(res.data.data);
+      setWalletPaymentId(res.data.walletPaymentId);
+      setStatus("qr");
+    } catch (err) {
+      setError(err.response?.data?.message || err.message);
+      setStatus("error");
+    }
+  };
+
+  // 2. Listen for payment via Socket.IO
+  useEffect(() => {
+    if (!walletPaymentId || status !== "qr") return;
+
+    const socket = io(API_BASE.replace("/api", ""));
+
+    socket.on(
+      `walletQpay/${baiguullagiinId}/${walletPaymentId}`,
+      (data) => {
+        if (data.status === "PAID") {
+          setStatus("paid");
+        }
+      }
+    );
+
+    // 3. Fallback: poll every 5 seconds
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(
+          `${API_BASE}/walletQpay/check/${baiguullagiinId}/${walletPaymentId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.data.status === "PAID") {
+          setStatus("paid");
+          clearInterval(interval);
+        }
+      } catch {
+        // ignore
+      }
+    }, 5000);
+
+    return () => {
+      socket.disconnect();
+      clearInterval(interval);
+    };
+  }, [walletPaymentId, status]);
+
+  // 4. Render
+  if (status === "idle") {
+    return <button onClick={handlePay}>QPay-ээр төлөх</button>;
+  }
+
+  if (status === "loading") {
+    return <div className="spinner">Төлбөр үүсгэж байна...</div>;
+  }
+
+  if (status === "error") {
+    return (
+      <div className="error">
+        <p>Алдаа: {error}</p>
+        <button onClick={handlePay}>Дахин оролдох</button>
+      </div>
+    );
+  }
+
+  if (status === "paid") {
+    return (
+      <div className="success">
+        <h2>✅ Төлбөр амжилттай!</h2>
+      </div>
+    );
+  }
+
+  // status === "qr"
+  return (
+    <div className="qpay-qr">
+      <h3>QPay QR код</h3>
+
+      {/* QR Image */}
+      {qpayData.qr_image && (
+        <img
+          src={`data:image/png;base64,${qpayData.qr_image}`}
+          alt="QPay QR"
+          style={{ width: 250, height: 250 }}
+        />
+      )}
+
+      {/* Bank app deep links */}
+      {qpayData.urls && (
+        <div className="bank-links">
+          {qpayData.urls.map((bank, i) => (
+            <a key={i} href={bank.link} className="bank-link">
+              <img src={bank.logo} alt={bank.name} width={40} />
+              <span>{bank.description}</span>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Short URL fallback */}
+      {qpayData.qPay_shortUrl && (
+        <a href={qpayData.qPay_shortUrl} target="_blank" rel="noreferrer">
+          QPay апп-аар нээх
+        </a>
+      )}
+
+      <p className="hint">
+        Дүн: {new Intl.NumberFormat("mn-MN").format(qpayData.amount || 0)}₮
+      </p>
+    </div>
+  );
+}
+
+export default WalletQpayPayment;
+```
+
+---
+
+## Comparison: Original QPay vs Wallet QPay
+
+| Feature | Original (`/qpayGargaya`) | Wallet QPay (`/api/walletQpay/create`) |
+|---------|---------------------------|----------------------------------------|
+| **Input** | `baiguullagiinId`, `dun`, `gereeniiId` or `nekhemjlekhiinId` | `baiguullagiinId`, `billingId`, `billIds[]` |
+| **QR Response** | `qr_text`, `qr_image`, `urls` | **Same** `qr_text`, `qr_image`, `urls` |
+| **Socket event** | `qpay/:orgId/:orderNo` | `walletQpay/:orgId/:walletPaymentId` |
+| **Payment check** | `qpayObjectAvya?invoice_id=...` | `/api/walletQpay/check/:orgId/:paymentId` |
+| **Settlement** | Updates [nekhemjlekh](file:///c:/Users/user/Desktop/sukh/amarSukh/amarSukhBack/routes/ebarimtRoute.js#34-117) (local invoice) | Calls Wallet API `paidByQpay` |
+| **Source tag** | — | `WALLET_QPAY` |
+
+---
+
+## Data Flow Prerequisites
+
+Before calling `/api/walletQpay/create`, the frontend needs:
+
+1. **`billingId`** — from `GET /wallet/billing/list`
+2. **`billIds[]`** — from `GET /wallet/billing/bills/:billingId`
+
+These are the same endpoints already used in the Wallet billing UI.

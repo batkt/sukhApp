@@ -1778,6 +1778,154 @@ class ApiService {
   }
 
   // Get Foreigner Info by Login Name (customer number)
+  static Future<Map<String, dynamic>> easyRegisterUserSearch({
+    String? identity,
+    String? phoneNum,
+    String? customerNo,
+    String? turul,
+    String? passportNo,
+    String? email,
+    String? gereeniiId,
+    String? gereeniiDugaar,
+    String? talbainDugaar,
+    String? barilgiinId,
+    String? orshinSuugchiinId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      // If default value, try to fetch from user profile
+      if (tukhainBaaziinKholbolt == 'amarSukh' ||
+          tukhainBaaziinKholbolt == null) {
+        try {
+          final userProfile = await getUserProfile();
+          if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
+            tukhainBaaziinKholbolt =
+                userProfile['result']['tukhainBaaziinKholbolt'].toString();
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(
+              'tukhain_baaziin_kholbolt',
+              tukhainBaaziinKholbolt,
+            );
+          }
+        } catch (e) {
+          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+        }
+      }
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй. Та дахин нэвтэрнэ үү.');
+      }
+
+      final body = {
+        if (identity != null) 'identity': identity,
+        if (phoneNum != null) 'phoneNum': phoneNum,
+        if (customerNo != null) 'customerNo': customerNo,
+        if (turul != null) 'turul': turul,
+        if (passportNo != null) 'passportNo': passportNo,
+        if (email != null) 'email': email,
+        if (gereeniiId != null) 'gereeniiId': gereeniiId,
+        if (gereeniiDugaar != null) 'gereeniiDugaar': gereeniiDugaar,
+        if (talbainDugaar != null) 'talbainDugaar': talbainDugaar,
+        if (barilgiinId != null) 'barilgiinId': barilgiinId,
+        if (orshinSuugchiinId != null) 'orshinSuugchiinId': orshinSuugchiinId,
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+      };
+
+      final uri = Uri.parse('$baseUrl/easyRegister/user/search');
+
+      print('🔍 [API] easyRegisterUserSearch - URL: $uri');
+      print('🔍 [API] easyRegisterUserSearch - Body: $body');
+
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      print('🔍 [API] easyRegisterUserSearch - Status: ${response.statusCode}');
+      print('🔍 [API] easyRegisterUserSearch - Response: ${response.body}');
+
+      if (response.body.isEmpty) {
+        throw Exception('Сервер хоосон хариу өглөө');
+      }
+
+      dynamic data;
+      try {
+        data = json.decode(response.body);
+      } catch (e) {
+        throw Exception('Хариуг уншихад алдаа гарлаа (Invalid JSON)');
+      }
+
+      if (response.statusCode == 200) {
+        if (data is Map && data['success'] == false) {
+          throw Exception(data['aldaa'] ?? data['message'] ?? data['msg'] ?? 'Мэдээлэл олдсонгүй');
+        }
+        return data is Map<String, dynamic> ? data : {'result': data};
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        String errorMessage = 'Мэдээлэл авахад алдаа гарлаа (${response.statusCode})';
+        if (data is Map) {
+          errorMessage = data['aldaa'] ?? data['message'] ?? data['msg'] ?? errorMessage;
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      print('❌ [API] easyRegisterUserSearch - Exception: $e');
+      if (e is Exception) rethrow;
+      throw Exception('Системийн алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> easyRegisterGetSavedUsers({
+    int khuudasniiDugaar = 1,
+    int khuudasniiKhemjee = 100,
+    String? search,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй');
+      }
+
+      final queryParams = {
+        'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'khuudasniiDugaar': khuudasniiDugaar.toString(),
+        'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+        if (search != null) 'search': search,
+      };
+
+      final uri = Uri.parse('$baseUrl/easyRegister/user/list').replace(
+        queryParameters: queryParams,
+      );
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception('Жагсаалт авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Get Foreigner Info by Login Name (customer number)
   static Future<Map<String, dynamic>> getForeignerInfoByLoginName({
     required String loginName,
   }) async {
@@ -2769,46 +2917,46 @@ class ApiService {
   }
 
   /// Create QPay payment for Wallet API
-  /// Endpoint: POST /qpay/qpayGargaya
-  /// Only for WALLET_API source
+  /// Endpoint: POST /api/walletQpay/create
+  /// Uses the dedicated Wallet QPay flow (separate from OWN_ORG /qpayGargaya)
   static Future<Map<String, dynamic>> createWalletQPayPayment({
     required String billingId,
     required List<String> billIds,
-    String? invoiceId, // Optional: use existing invoice
-    String vatReceiveType = 'CITIZEN', // 'CITIZEN' or 'COMPANY'
-    String? vatCompanyReg, // Optional, only if COMPANY
+    String? invoiceId,
+    String vatReceiveType = 'CITIZEN',
+    String? vatCompanyReg,
+    String? dun,
+    String? dansniiDugaar,
   }) async {
     try {
       final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
 
-      // Build request body
-      final Map<String, dynamic> requestBody;
+      final Map<String, dynamic> requestBody = {
+        'baiguullagiinId': baiguullagiinId,
+        if (barilgiinId != null) 'barilgiinId': barilgiinId,
+      };
 
       if (invoiceId != null && invoiceId.isNotEmpty) {
-        // Option B: Use existing invoice
-        requestBody = {'invoiceId': invoiceId};
+        requestBody['invoiceId'] = invoiceId;
       } else {
-        // Option A: Auto-create invoice (recommended)
-        requestBody = {
-          'billingId': billingId,
-          'billIds': billIds,
-          // Force Wallet-QPay path on backend as per wallet.md
-          'addressSource': 'WALLET_API',
-          'vatReceiveType': vatReceiveType,
-        };
-
-        if (vatReceiveType == 'COMPANY' &&
-            vatCompanyReg != null &&
-            vatCompanyReg.isNotEmpty) {
-          requestBody['vatCompanyReg'] = vatCompanyReg;
-        }
+        requestBody['billingId'] = billingId;
+        requestBody['billIds'] = billIds;
       }
 
-      final endpoint = '$baseUrl/qpayGargaya';
-      print('💳 [WALLET QPAY] Creating payment with billingId: $billingId');
-      print('💳 [WALLET QPAY] Bill IDs: $billIds');
-      print('💳 [WALLET QPAY] Calling Wallet QPay endpoint: $endpoint');
-      print('💳 [WALLET QPAY] Request body: ${json.encode(requestBody)}');
+      requestBody['vatReceiveType'] = vatReceiveType;
+      if (vatReceiveType == 'COMPANY' &&
+          vatCompanyReg != null &&
+          vatCompanyReg.isNotEmpty) {
+        requestBody['vatCompanyReg'] = vatCompanyReg;
+      }
+      if (dun != null) requestBody['dun'] = dun;
+      if (dansniiDugaar != null) requestBody['dansniiDugaar'] = dansniiDugaar;
+
+      final endpoint = '$baseUrl/walletQpay/create';
+      print('💳 [WALLET QPAY] Creating payment: $endpoint');
+      print('💳 [WALLET QPAY] Body: ${json.encode(requestBody)}');
 
       final response = await http.post(
         Uri.parse(endpoint),
@@ -2816,377 +2964,111 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        print(
-          '❌ [WALLET QPAY] Error response: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
-        );
-      } else {
-        print('✅ [WALLET QPAY] Success response received');
-        // Log first 500 chars of response for debugging
-        final responsePreview = response.body.length > 500
-            ? '${response.body.substring(0, 500)}...'
-            : response.body;
-        print('💳 [WALLET QPAY] Response preview: $responsePreview');
-      }
+      print('💳 [WALLET QPAY] Status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        Map<String, dynamic> responseData;
-        try {
-          responseData = json.decode(response.body) as Map<String, dynamic>;
-          print('✅ [WALLET QPAY] Response: $responseData');
-        } catch (e) {
-          print('❌ [WALLET QPAY] Failed to parse response: $e');
-          print(
-            '❌ [WALLET QPAY] Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
-          );
-          throw Exception('Серверийн хариуг уншихад алдаа гарлаа: $e');
-        }
+        final responseData = json.decode(response.body) as Map<String, dynamic>;
+        print('✅ [WALLET QPAY] Response received');
 
-        // Handle success response format - check both 'success' and 'responseCode'
-        final isSuccess =
-            responseData['success'] == true ||
-            responseData['responseCode'] == true;
-
-        if (isSuccess) {
-          final data = responseData['data'] as Map<String, dynamic>?;
-
-          if (data != null) {
-            // Primary QR and bank info from data
-            final rawQrText = data['qrText']?.toString();
-            final paymentId = data['paymentId']?.toString();
-            final paymentAmount = data['paymentAmount'];
-            String? receiverBankCode = data['receiverBankCode']?.toString();
-            String? receiverAccountNo = data['receiverAccountNo']?.toString();
-            String? receiverAccountName = data['receiverAccountName']
-                ?.toString();
-            final transactionDescrion = data['transactionDescrion']?.toString();
-
-            // New Wallet-QPay fields from backend (see wallet.md)
-            final walletBankQr =
-                responseData['walletBankQr'] as Map<String, dynamic>?;
-            final walletBankQrText = responseData['walletBankQrText']
-                ?.toString();
-
-            if (walletBankQr != null) {
-              receiverBankCode ??= walletBankQr['receiverBankCode']?.toString();
-              receiverAccountNo ??= walletBankQr['receiverAccountNo']
-                  ?.toString();
-              receiverAccountName ??= walletBankQr['receiverAccountName']
-                  ?.toString();
-            }
-
-            print('✅ [WALLET QPAY] Payment created!');
-            print('📱 [WALLET QPAY] Payment ID: $paymentId');
-            print('💰 [WALLET QPAY] Amount: $paymentAmount');
-            print('🏦 [WALLET QPAY] Bank Code: $receiverBankCode');
-            print('🏦 [WALLET QPAY] Account No: $receiverAccountNo');
-            print('🏦 [WALLET QPAY] Account Name: $receiverAccountName');
-
-            // If bank details are empty, fetch payment status to get full details
-            if ((receiverBankCode == null || receiverBankCode.isEmpty) ||
-                (receiverAccountNo == null || receiverAccountNo.isEmpty)) {
-              print(
-                '⚠️ [WALLET QPAY] Bank details empty, fetching payment status...',
-              );
-
-              if (paymentId != null) {
-                try {
-                  // Wait a moment for payment to be processed
-                  await Future.delayed(const Duration(milliseconds: 500));
-
-                  final paymentStatus = await getWalletPaymentStatus(
-                    paymentId: paymentId,
-                  );
-                  final statusData =
-                      paymentStatus['data'] as Map<String, dynamic>?;
-
-                  if (statusData != null) {
-                    // Try root level first
-                    receiverBankCode ??= statusData['receiverBankCode']
-                        ?.toString();
-                    receiverAccountNo ??= statusData['receiverAccountNo']
-                        ?.toString();
-                    receiverAccountName ??= statusData['receiverAccountName']
-                        ?.toString();
-
-                    // If still empty, try to get from lines
-                    if (receiverAccountNo == null ||
-                        receiverAccountNo.isEmpty) {
-                      final lines = statusData['lines'] as List<dynamic>?;
-                      if (lines != null && lines.isNotEmpty) {
-                        for (var line in lines) {
-                          final billTransactions =
-                              line['billTransactions'] as List<dynamic>?;
-                          if (billTransactions != null &&
-                              billTransactions.isNotEmpty) {
-                            final transaction =
-                                billTransactions.first as Map<String, dynamic>;
-                            receiverBankCode ??= transaction['receiverBankCode']
-                                ?.toString();
-                            receiverAccountNo ??=
-                                transaction['receiverAccountNo']?.toString();
-                            receiverAccountName ??=
-                                transaction['receiverAccountName']?.toString();
-                            if (receiverAccountNo != null &&
-                                receiverAccountNo.isNotEmpty) {
-                              break;
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    print(
-                      '🏦 [WALLET QPAY] After fetch - Bank Code: $receiverBankCode',
-                    );
-                    print(
-                      '🏦 [WALLET QPAY] After fetch - Account No: $receiverAccountNo',
-                    );
-                    print(
-                      '🏦 [WALLET QPAY] After fetch - Account Name: $receiverAccountName',
-                    );
-                  }
-                } catch (e) {
-                  print('⚠️ [WALLET QPAY] Error fetching payment status: $e');
-                }
-              }
-            }
-
-            // Generate QR code text if not provided
-            // Priority:
-            // 1) walletBankQrText (backend-generated safe payload)
-            // 2) data.qrText (if backend provided one)
-            // 3) Generated from bank/payment details
-            String? finalQrText = walletBankQrText ?? rawQrText;
-            if (finalQrText == null || finalQrText.isEmpty) {
-              // Generate QPay QR code from payment details
-              // Format: QPay QR code format with payment details
-              if (receiverAccountNo != null &&
-                  receiverAccountNo.isNotEmpty &&
-                  paymentAmount != null) {
-                // QPay QR format: bank code, account, amount, description
-                finalQrText = _generateQPayQRText(
-                  bankCode: receiverBankCode ?? '',
-                  accountNo: receiverAccountNo,
-                  amount: paymentAmount,
-                  description: transactionDescrion ?? '',
-                );
-                print(
-                  '📱 [WALLET QPAY] Generated QR code from payment details',
-                );
-              } else {
-                print(
-                  '⚠️ [WALLET QPAY] Cannot generate QR: missing accountNo or amount',
-                );
-              }
-            }
-
-            if (finalQrText != null) {
-              print(
-                '📱 [WALLET QPAY] QR Code: ${finalQrText.substring(0, finalQrText.length > 100 ? 100 : finalQrText.length)}...',
-              );
-            }
-
-            return {
-              'success': true,
-              'message':
-                  responseData['responseMessage']?.toString() ??
-                  responseData['message']?.toString() ??
-                  'QPay төлбөр амжилттай үүсгэлээ',
-              'source': responseData['source']?.toString() ?? 'WALLET_API',
-              'paymentId': paymentId,
-              'paymentAmount': paymentAmount,
-              'receiverBankCode': receiverBankCode,
-              'receiverAccountName': receiverAccountName,
-              'receiverAccountNo': receiverAccountNo,
-              'transactionDescrion': transactionDescrion,
-              'qrText': finalQrText, // Generated or from response
-              'qrImage': data['qrImage']?.toString(), // Optional: QR image URL
-              'invoiceId': responseData['invoiceId']
-                  ?.toString(), // Returned invoice ID
-            };
+        if (responseData['success'] != true) {
+          String errorMsg = responseData['aldaa']?.toString() ?? 
+                            responseData['message']?.toString() ?? 
+                            'Wallet QPay үүсгэхэд алдаа гарлаа';
+          
+          // Strip redundant prefix if backend returns it
+          if (errorMsg.contains('Wallet нэхэмжлэх үүсгэхэд алдаа: ')) {
+            errorMsg = errorMsg.replaceFirst('Wallet нэхэмжлэх үүсгэхэд алдаа: ', '');
           }
+          throw Exception(errorMsg);
         }
 
-        // Fallback: return raw response
-        final errorMsg =
-            responseData['responseMessage']?.toString() ??
-            responseData['message']?.toString() ??
-            'Unknown error';
-        print('⚠️ [WALLET QPAY] Response success flag is false: $errorMsg');
-        throw Exception(errorMsg);
+        // Handle case where 'data' might be a string error message despite success: true
+        final dynamic rawData = responseData['data'];
+        if (rawData is String && rawData.isNotEmpty) {
+          throw Exception(rawData);
+        }
+
+        final data = rawData is Map<String, dynamic> ? rawData : <String, dynamic>{};
+        final walletPaymentId = responseData['walletPaymentId']?.toString();
+        final walletInvoiceId = responseData['walletInvoiceId']?.toString();
+        final paymentAmount =
+            (responseData['paymentAmount'] as num?)?.toDouble() ?? 0.0;
+
+        return {
+          'success': true,
+          'source': responseData['source'] ?? 'WALLET_QPAY',
+          'qr_text': data['qr_text']?.toString(),
+          'qr_image': data['qr_image']?.toString(),
+          'qPay_shortUrl': data['qPay_shortUrl']?.toString(),
+          'urls': data['urls'],
+          'invoice_id': data['invoice_id']?.toString(),
+          'walletPaymentId': walletPaymentId,
+          'walletInvoiceId': walletInvoiceId,
+          'paymentAmount': paymentAmount,
+        };
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        // Try to parse error response
-        Map<String, dynamic>? errorBody;
+        String errorMessage = 'Wallet QPay үүсгэхэд алдаа гарлаа';
         try {
-          errorBody = json.decode(response.body) as Map<String, dynamic>?;
-        } catch (e) {
-          // If error response is not JSON, use status code
-        }
-
-        final errorMessage =
-            errorBody?['message']?.toString() ??
-            errorBody?['responseMsg']?.toString() ??
-            'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}';
-        final errorCode = errorBody?['error']?.toString();
-
-        // Handle "Bill already in invoice" error - check for existing payments
-        if (response.statusCode == 400 &&
-            (errorCode == 'BILL_ALREADY_IN_INVOICE' ||
-                errorMessage.contains(
-                  'өөр нэхэмжлэлээр төлөлт хийгдэж байна',
-                ))) {
-          print(
-            '⚠️ [WALLET QPAY] Bill already in invoice, checking for existing payments...',
-          );
-
-          try {
-            // Check for existing payments for this billing
-            final existingPayments = await getWalletBillingPayments(
-              billingId: billingId,
-            );
-
-            if (existingPayments.isNotEmpty) {
-              // Find payment that contains the selected billIds
-              for (var payment in existingPayments) {
-                final paymentBillIds = payment['billIds'] as List<dynamic>?;
-                if (paymentBillIds != null) {
-                  // Check if any of the selected billIds are in this payment
-                  final hasMatchingBills = billIds.any(
-                    (billId) =>
-                        paymentBillIds.any((pid) => pid.toString() == billId),
-                  );
-
-                  if (hasMatchingBills) {
-                    final paymentId = payment['paymentId']?.toString();
-                    if (paymentId != null) {
-                      print(
-                        '✅ [WALLET QPAY] Found existing payment: $paymentId',
-                      );
-
-                      // Get payment status to get bank details
-                      try {
-                        final paymentStatus = await getWalletPaymentStatus(
-                          paymentId: paymentId,
-                        );
-                        final paymentData =
-                            paymentStatus['data'] as Map<String, dynamic>?;
-
-                        if (paymentData != null) {
-                          // Extract bank details from payment status
-                          // First try root level (if payment is ready)
-                          String? receiverBankCode =
-                              paymentData['receiverBankCode']?.toString();
-                          String? receiverAccountNo =
-                              paymentData['receiverAccountNo']?.toString();
-                          String? receiverAccountName =
-                              paymentData['receiverAccountName']?.toString();
-                          final paymentAmount =
-                              paymentData['totalAmount'] ??
-                              paymentData['amount'] ??
-                              paymentData['paymentAmount'];
-
-                          // If not found at root, try to get from lines
-                          if (receiverAccountNo == null) {
-                            final lines =
-                                paymentData['lines'] as List<dynamic>?;
-                            if (lines != null && lines.isNotEmpty) {
-                              for (var line in lines) {
-                                final billTransactions =
-                                    line['billTransactions'] as List<dynamic>?;
-                                if (billTransactions != null &&
-                                    billTransactions.isNotEmpty) {
-                                  final transaction =
-                                      billTransactions.first
-                                          as Map<String, dynamic>;
-                                  receiverBankCode ??=
-                                      transaction['receiverBankCode']
-                                          ?.toString();
-                                  receiverAccountNo ??=
-                                      transaction['receiverAccountNo']
-                                          ?.toString();
-                                  receiverAccountName ??=
-                                      transaction['receiverAccountName']
-                                          ?.toString();
-                                  if (receiverAccountNo != null) break;
-                                }
-                              }
-                            }
-                          }
-
-                          // Generate QR code from payment details
-                          String? finalQrText;
-                          if (receiverAccountNo != null &&
-                              paymentAmount != null) {
-                            finalQrText = _generateQPayQRText(
-                              bankCode: receiverBankCode ?? '',
-                              accountNo: receiverAccountNo,
-                              amount: paymentAmount,
-                              description:
-                                  paymentData['transactionDescrion']
-                                      ?.toString() ??
-                                  paymentData['transactionDescription']
-                                      ?.toString() ??
-                                  '',
-                            );
-                            print(
-                              '📱 [WALLET QPAY] Generated QR code from existing payment',
-                            );
-                          } else {
-                            print(
-                              '⚠️ [WALLET QPAY] Cannot generate QR: missing accountNo or amount',
-                            );
-                          }
-
-                          return {
-                            'success': true,
-                            'message': 'Одоо байгаа төлбөрийн мэдээлэл',
-                            'source': 'WALLET_API',
-                            'paymentId': paymentId,
-                            'paymentAmount': paymentAmount,
-                            'receiverBankCode': receiverBankCode,
-                            'receiverAccountName': receiverAccountName,
-                            'receiverAccountNo': receiverAccountNo,
-                            'transactionDescrion':
-                                paymentData['transactionDescrion']
-                                    ?.toString() ??
-                                paymentData['transactionDescription']
-                                    ?.toString(),
-                            'qrText': finalQrText,
-                            'qrImage': null,
-                            'invoiceId': paymentData['invoiceId']?.toString(),
-                          };
-                        }
-                      } catch (e) {
-                        print(
-                          '⚠️ [WALLET QPAY] Error getting payment status: $e',
-                        );
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            print('⚠️ [WALLET QPAY] Error checking existing payments: $e');
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['aldaa']?.toString() ?? 
+                         errorData['message']?.toString() ?? 
+                         errorMessage;
+          
+          if (errorMessage.contains('Wallet нэхэмжлэх үүсгэхэд алдаа: ')) {
+            errorMessage = errorMessage.replaceFirst('Wallet нэхэмжлэх үүсгэхэд алдаа: ', '');
+          } else if (errorMessage.contains('Wallet нэхэмжлэх үүсгэхэд алдаа')) {
+             errorMessage = errorMessage.replaceFirst('Wallet нэхэмжлэх үүсгэхэд алдаа', '').trim();
           }
-
-          // If no existing payment found, throw the original error
-          throw Exception(
-            '$errorMessage\n\nЭнэ биллийг өөр нэхэмжлэлээр төлөлт хийгдэж байна. Төлбөрийн түүхийг шалгана уу.',
-          );
-        }
-
+        } catch (_) {}
         throw Exception(errorMessage);
       }
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
+      print('❌ [WALLET QPAY] Exception: $e');
+      if (e is Exception) rethrow;
       throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
     }
   }
 
+  /// Check Wallet QPay payment status (polling)
+  /// Endpoint: GET /api/walletQpay/check/:baiguullagiinId/:walletPaymentId
+  static Future<Map<String, dynamic>> walletQpayCheckStatus({
+    required String walletPaymentId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      if (baiguullagiinId == null) {
+        throw Exception('Байгууллагын мэдээлэл олдсонгүй');
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/walletQpay/check/$baiguullagiinId/$walletPaymentId',
+      );
+      print('🔍 [WALLET QPAY] Checking status: $uri');
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        print('🔍 [WALLET QPAY] Status: ${data['status']}');
+        return data;
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          'Төлбөрийн статус шалгахад алдаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Төлбөрийн статус шалгахад алдаа: $e');
+    }
+  }
   /// Generate QPay QR code text from payment details
   /// Format: QPay QR code string with bank code, account, amount, description
   /// QPay QR format in Mongolia typically uses a structured string

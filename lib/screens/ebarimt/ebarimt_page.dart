@@ -27,10 +27,48 @@ class _EbarimtPageState extends State<EbarimtPage> {
   Map<String, dynamic>? _foreignerInfo;
   String? _infoType; // 'consumer' or 'foreigner'
 
+  bool _isInfoCardExpanded = true;
+  List<dynamic> _savedUsers = [];
+  bool _isLoadingSavedUsers = false;
+
   @override
   void initState() {
     super.initState();
     _loadEbarimtReceipts();
+    _loadSavedUsers();
+    _loadStoredEbarimtInfo();
+  }
+
+  Future<void> _loadStoredEbarimtInfo() async {
+    final storedInfo = await StorageService.getEbarimtInfo();
+    if (storedInfo != null && mounted) {
+      setState(() {
+        _infoType = storedInfo['turul'] ?? 'consumer';
+        if (_infoType == 'consumer') {
+          _consumerInfo = storedInfo;
+        } else {
+          _foreignerInfo = storedInfo;
+        }
+        // Collapse by default to keep UI clean
+        _isInfoCardExpanded = false;
+      });
+      print('📦 [EBARIMT] Loaded stored user info: ${storedInfo['name']}');
+    }
+  }
+
+  Future<void> _loadSavedUsers() async {
+    setState(() => _isLoadingSavedUsers = true);
+    try {
+      final response = await ApiService.easyRegisterGetSavedUsers();
+      if (mounted) {
+        setState(() {
+          _savedUsers = response['jagsaalt'] ?? [];
+          _isLoadingSavedUsers = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingSavedUsers = false);
+    }
   }
 
   Future<void> _loadEbarimtReceipts() async {
@@ -139,98 +177,46 @@ class _EbarimtPageState extends State<EbarimtPage> {
       final identity = _citizenCodeController.text.trim();
       print('🔍 [EBARIMT] Starting search for identity: $identity');
 
-      // Try consumer first
-      try {
-        print('🔍 [EBARIMT] Attempting consumer lookup...');
-        final consumerData = await ApiService.getConsumerInfo(
-          identity: identity,
-        );
-        print('✅ [EBARIMT] Consumer data received: $consumerData');
-        print('🔍 [EBARIMT] Consumer data keys: ${consumerData.keys.toList()}');
-        print('🔍 [EBARIMT] Consumer data isEmpty: ${consumerData.isEmpty}');
+      // Fetch current user ID to link with ITC profile
+      final userId = await StorageService.getUserId();
 
-        if (mounted) {
-          setState(() {
-            _consumerInfo = consumerData;
-            _foreignerInfo = null;
+      // Use unified Easy Register search
+      final data = await ApiService.easyRegisterUserSearch(
+        identity: identity,
+        orshinSuugchiinId: userId,
+      );
+      print('✅ [EBARIMT] Easy Register data received: $data');
+
+      if (mounted) {
+        setState(() {
+          // The backend returns infoType or turul
+          final turul = data['turul']?.toString().toLowerCase();
+          
+          // Map backend fields to UI fields if necessary
+          final mappedInfo = {
+            ...data,
+            'name': data['givenName'] ?? data['name'],
+            'surname': data['familyName'] ?? data['surname'],
+            'register': data['regNo'] ?? data['register'] ?? data['identity'],
+            'phone': data['phoneNum'] ?? data['phone'],
+          };
+
+          if (turul == 'foreigner') {
+            _foreignerInfo = mappedInfo;
+            _infoType = 'foreigner';
+          } else {
+            _consumerInfo = mappedInfo;
             _infoType = 'consumer';
-            _isSearching = false;
-          });
-          print(
-            '✅ [EBARIMT] Consumer info set in state. _consumerInfo: $_consumerInfo',
-          );
-        }
-        return;
-      } catch (e) {
-        print('❌ [EBARIMT] Consumer lookup failed: $e');
-        // If consumer not found, try foreigner
-        if (e.toString().contains('олдсонгүй') ||
-            e.toString().contains('404')) {
-          print('🔍 [EBARIMT] Consumer not found, trying foreigner lookup...');
-          try {
-            final foreignerData = await ApiService.getForeignerInfo(
-              identity: identity,
-            );
-            print('✅ [EBARIMT] Foreigner data received: $foreignerData');
-            print(
-              '🔍 [EBARIMT] Foreigner data keys: ${foreignerData.keys.toList()}',
-            );
-            print(
-              '🔍 [EBARIMT] Foreigner data isEmpty: ${foreignerData.isEmpty}',
-            );
-
-            if (mounted) {
-              setState(() {
-                _foreignerInfo = foreignerData;
-                _consumerInfo = null;
-                _infoType = 'foreigner';
-                _isSearching = false;
-              });
-              print(
-                '✅ [EBARIMT] Foreigner info set in state. _foreignerInfo: $_foreignerInfo',
-              );
-            }
-            return;
-          } catch (e2) {
-            print('❌ [EBARIMT] Foreigner lookup failed: $e2');
-            // If foreigner also not found, try by login name
-            try {
-              print('🔍 [EBARIMT] Trying foreigner lookup by login name...');
-              final foreignerData =
-                  await ApiService.getForeignerInfoByLoginName(
-                    loginName: identity,
-                  );
-              print(
-                '✅ [EBARIMT] Foreigner data by login name received: $foreignerData',
-              );
-              print(
-                '🔍 [EBARIMT] Foreigner data keys: ${foreignerData.keys.toList()}',
-              );
-              print(
-                '🔍 [EBARIMT] Foreigner data isEmpty: ${foreignerData.isEmpty}',
-              );
-
-              if (mounted) {
-                setState(() {
-                  _foreignerInfo = foreignerData;
-                  _consumerInfo = null;
-                  _infoType = 'foreigner';
-                  _isSearching = false;
-                });
-                print(
-                  '✅ [EBARIMT] Foreigner info (by login) set in state. _foreignerInfo: $_foreignerInfo',
-                );
-              }
-              return;
-            } catch (e3) {
-              print('❌ [EBARIMT] All lookup methods failed. Last error: $e3');
-              // Both failed
-              throw e;
-            }
           }
-        } else {
-          rethrow;
-        }
+          _isSearching = false;
+          
+          // Persist this connection for the next time page opens
+          StorageService.saveEbarimtInfo({
+            ...mappedInfo,
+            'turul': _infoType,
+          });
+        });
+        print('✅ [EBARIMT] Search result set. _infoType: $_infoType');
       }
     } catch (e) {
       print('❌ [EBARIMT] Final error in search: $e');
@@ -241,18 +227,16 @@ class _EbarimtPageState extends State<EbarimtPage> {
           _foreignerInfo = null;
           _infoType = null;
         });
-        print(
-          '🔍 [EBARIMT] State cleared. _consumerInfo: $_consumerInfo, _foreignerInfo: $_foreignerInfo',
-        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll("", "")),
+            content: Text(e.toString().replaceAll("Exception: ", "")),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -351,6 +335,71 @@ class _EbarimtPageState extends State<EbarimtPage> {
                           color: context.textSecondaryColor,
                           size: 22.sp,
                         ),
+                        suffixIcon: _savedUsers.isEmpty
+                            ? null
+                            : PopupMenuButton<dynamic>(
+                                icon: Icon(
+                                  Icons.arrow_drop_down_circle_outlined,
+                                  color: AppColors.deepGreen,
+                                  size: 24.sp,
+                                ),
+                                onSelected: (user) {
+                                  setState(() {
+                                    final identity =
+                                        (user['regNo']?.toString().isNotEmpty == true
+                                                ? user['regNo']
+                                                : user['loginName']) ??
+                                            '';
+                                    _citizenCodeController.text = identity.toString();
+                                    
+                                    // Auto-trigger search with selection
+                                    _searchConsumerInfo();
+                                  });
+                                },
+                                itemBuilder: (context) => _savedUsers
+                                    .map((user) => PopupMenuItem<dynamic>(
+                                          value: user,
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                user['turul'] == 'foreigner'
+                                                    ? Icons.public_rounded
+                                                    : Icons.person_rounded,
+                                                size: 18.sp,
+                                                color: AppColors.deepGreen,
+                                              ),
+                                              SizedBox(width: 12.w),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      '${user['givenName']} ${user['familyName']}',
+                                                      style: TextStyle(
+                                                        fontSize: 14.sp,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      user['regNo'] ??
+                                                          user['loginName'] ??
+                                                          '',
+                                                      style: TextStyle(
+                                                        fontSize: 12.sp,
+                                                        color: context
+                                                            .textSecondaryColor,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
                         filled: true,
                         fillColor: isDark
                             ? Colors.white.withOpacity(0.05)
@@ -685,69 +734,99 @@ class _EbarimtPageState extends State<EbarimtPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(6.w),
-                decoration: BoxDecoration(
-                  color: AppColors.deepGreen,
-                  borderRadius: BorderRadius.circular(8.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.deepGreen.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+          InkWell(
+            onTap: () => setState(() => _isInfoCardExpanded = !_isInfoCardExpanded),
+            borderRadius: BorderRadius.circular(8.r),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen,
+                    borderRadius: BorderRadius.circular(8.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.deepGreen.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _infoType == 'consumer'
+                        ? Icons.person_rounded
+                        : Icons.public_rounded,
+                    color: Colors.white,
+                    size: 16.sp,
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    _infoType == 'consumer'
+                        ? 'Иргэний мэдээлэл'
+                        : 'Гадаадын иргэний мэдээлэл',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
+                  ),
                 ),
-                child: Icon(
-                  _infoType == 'consumer'
-                      ? Icons.person_rounded
-                      : Icons.public_rounded,
-                  color: Colors.white,
-                  size: 16.sp,
+                IconButton(
+                  icon: Icon(
+                    Icons.logout_rounded,
+                    color: Colors.red.withOpacity(0.7),
+                    size: 18.sp,
+                  ),
+                  onPressed: () {
+                    StorageService.clearEbarimtInfo();
+                    setState(() {
+                      _consumerInfo = null;
+                      _foreignerInfo = null;
+                      _infoType = null;
+                      _citizenCodeController.clear();
+                    });
+                  },
+                  tooltip: 'Салгах',
                 ),
-              ),
-              SizedBox(width: 10.w),
-              Text(
-                _infoType == 'consumer'
-                    ? 'Иргэний мэдээлэл'
-                    : 'Гадаадын иргэний мэдээлэл',
-                style: TextStyle(
-                  color: context.textPrimaryColor,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
+                Icon(
+                  _isInfoCardExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  color: context.textSecondaryColor,
+                  size: 20.sp,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          SizedBox(height: 16.h),
-          if (_infoType == 'consumer') ...[
-            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
-            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
-            _buildInfoRow(
-              'Регистр',
-              info['register']?.toString() ??
-                  info['customerNo']?.toString() ??
-                  '-',
-            ),
-            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
-            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
-            _buildInfoRow('Төлөв', info['status']?.toString() ?? '-'),
-          ] else ...[
-            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
-            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
-            _buildInfoRow(
-              'Паспорт',
-              info['passportNo']?.toString() ?? '-',
-            ),
-            _buildInfoRow(
-              'Харилцагч №',
-              info['customerNo']?.toString() ?? '-',
-            ),
-            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
-            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
-            _buildInfoRow('Төлөв', info['status']?.toString() ?? '-'),
+          if (_isInfoCardExpanded) ...[
+            SizedBox(height: 16.h),
+            if (_infoType == 'consumer') ...[
+              _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
+              _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
+              _buildInfoRow(
+                'Регистр',
+                info['register']?.toString() ??
+                    info['customerNo']?.toString() ??
+                    '-',
+              ),
+              _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
+              _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
+            ] else ...[
+              _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
+              _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
+              _buildInfoRow(
+                'Паспорт',
+                info['passportNo']?.toString() ?? '-',
+              ),
+              _buildInfoRow(
+                'Харилцагч №',
+                info['customerNo']?.toString() ?? '-',
+              ),
+              _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
+              _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
+            ],
           ],
         ],
       ),
