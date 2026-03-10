@@ -598,44 +598,6 @@ class InvoiceCard extends StatelessWidget {
             tablet: 16,
             veryNarrow: 8,
           )),
-          // Ekhnii үлдэгдэл from guilgeenuud (floating/merged items NOT in zardluud)
-          if (invoice.medeelel?.guilgeenuud != null) ...[
-            ...invoice.medeelel!.guilgeenuud!
-                .where((guilgee) => guilgee.ekhniiUldegdelEsekh && !guilgee.isLinked)
-                .map((guilgee) {
-                  final amt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0) -
-                      (guilgee.tulsunDun ?? 0.0);
-                  if (amt == 0) return const SizedBox.shrink();
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: context.responsiveSpacing(
-                        small: 6,
-                        medium: 8,
-                        large: 10,
-                        tablet: 12,
-                        veryNarrow: 4,
-                      )),
-                      _buildPriceRow(
-                        context,
-                        'Эхний үлдэгдэл',
-                        '${formatNumber(amt, 2)}₮',
-                      ),
-                    ],
-                  );
-                }),
-          ],
-          // Support dedicated ekhniiUldegdel field ONLY if not found in zardluud/guilgeenuud
-          if (invoice.ekhniiUldegdel != null &&
-              invoice.ekhniiUldegdel! != 0 &&
-              !(invoice.medeelel?.zardluud.any((z) => z.isEkhniiUldegdel) ?? false) &&
-              !(invoice.medeelel?.guilgeenuud?.any((g) => g.ekhniiUldegdelEsekh) ?? false)) ...[
-            _buildPriceRow(
-              context,
-              'Эхний үлдэгдэл',
-              '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮',
-            ),
-          ],
           // Avlaga items from guilgeenuud (exclude ekhniiUldegdel - shown above)
           // Match both "avlaga" and "Авлага" (API may return either)
           if (invoice.medeelel != null &&
