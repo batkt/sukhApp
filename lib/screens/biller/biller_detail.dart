@@ -113,7 +113,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
             throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
           }
 
-          // Check if billing already exists in list (use customerId or customerCode if billingId doesn't exist)
+          // Check if billing already exists in list
           final identifier =
               billingData['billingId'] ??
               billingData['customerId'] ??
@@ -125,40 +125,63 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
           );
 
           if (existingIndex == -1) {
+            // Save billing to wallet
+            try {
+              // If backend already returned a billingId, it means it was auto-saved
+              if (billingData['billingId'] != null && billingData['billingId'].toString().isNotEmpty) {
+                 showGlassSnackBar(
+                  context,
+                  message: 'Биллинг амжилттай нэмэгдлээ',
+                  icon: Icons.check_circle,
+                  iconColor: Colors.green,
+                );
+              } else if (billingData['customerId'] != null) {
+                // Otherwise manually save it, but don't send billingId if it's new
+                await ApiService.saveWalletBilling(
+                  billingName: billingData['billingName'] ?? billingData['customerName'] ?? 'Шинэ биллинг',
+                  customerId: billingData['customerId'],
+                  customerCode: billingData['customerCode'],
+                );
+                showGlassSnackBar(
+                  context,
+                  message: 'Биллинг амжилттай нэмэгдлээ',
+                  icon: Icons.check_circle,
+                  iconColor: Colors.green,
+                );
+              }
+            } catch (e) {
+               showGlassSnackBar(
+                context,
+                message: 'Биллинг хадгалахад алдаа гарлаа: $e',
+                icon: Icons.error,
+                iconColor: Colors.red,
+              );
+              // Fallback to updating UI anyway, but show warning
+            }
+
             setState(() {
               _billings.add(billingData);
               _selectedBilling = billingData;
               _isLoadingBillings = false;
-              _isBillingFound = true; // Mark that billing was found
             });
-
-            // Save billing only if billingId exists (might need to find billing first)
-            if (billingData['billingId'] != null) {
-              try {
-                await ApiService.saveWalletBilling(
-                  billingId: billingData['billingId'],
-                  billingName:
-                      billingData['billingName'] ?? billingData['customerName'],
-                  customerId: billingData['customerId'],
-                  customerCode: billingData['customerCode'],
-                );
-              } catch (e) {
-                // Error saving billing
-              }
-            }
+            
           } else {
             setState(() {
-              _selectedBilling = billingData;
+              _selectedBilling = _billings[existingIndex];
               _isLoadingBillings = false;
-              _isBillingFound = true; // Mark that billing was found
             });
+            showGlassSnackBar(
+              context,
+              message: 'Биллинг аль хэдийн нэмэгдсэн байна',
+              icon: Icons.info,
+              iconColor: Colors.blue,
+            );
           }
 
           _customerCodeController.clear();
         } else {
           setState(() {
             _isLoadingBillings = false;
-            _isBillingFound = false; // Reset when billing not found
           });
           showGlassSnackBar(
             context,
@@ -172,11 +195,85 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
       if (mounted) {
         setState(() {
           _isLoadingBillings = false;
-          _isBillingFound = false; // Reset on error
         });
         showGlassSnackBar(
           context,
-          message: e.toString().replaceAll("", ""),
+          message: e.toString().replaceAll("Exception: ", ""),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteBilling(Map<String, dynamic> billing) async {
+    final billingId = billing['billingId'];
+    if (billingId == null) {
+      showGlassSnackBar(
+        context,
+        message: 'Биллингийн ID байхгүй байна',
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+
+    // Show confirmation dialog before deleting
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Биллинг устгах', 
+          style: TextStyle(color: context.textPrimaryColor)),
+        content: Text('Та энэ биллингийг устгахдаа итгэлтэй байна уу?',
+          style: TextStyle(color: context.textSecondaryColor)),
+        backgroundColor: context.backgroundColor,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Үгүй', style: TextStyle(color: AppColors.deepGreen)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Тийм', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      _isLoadingBillings = true;
+    });
+
+    try {
+      await ApiService.removeWalletBilling(billingId: billingId);
+      
+      // Update local state without fetching all billings again
+      if (mounted) {
+        setState(() {
+          _billings.removeWhere((b) => b['billingId'] == billingId);
+          if (_selectedBilling?['billingId'] == billingId) {
+            _selectedBilling = null;
+          }
+          _isLoadingBillings = false;
+        });
+
+        showGlassSnackBar(
+          context,
+          message: 'Биллинг амжилттай устгагдлаа',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingBillings = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: e.toString().replaceAll("Exception: ", ""),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -328,14 +425,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 ),
                 TextField(
                   controller: _customerCodeController,
-                  onChanged: (value) {
-                    // Reset billing found state when user types
-                    if (_isBillingFound) {
-                      setState(() {
-                        _isBillingFound = false;
-                      });
-                    }
-                  },
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: context.responsiveFontSize(
@@ -459,7 +548,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       ),
                     ),
                     child: Text(
-                      _isBillingFound ? 'Нэмэх' : 'Хайх',
+                      'Хайж нэмэх',
                       style: TextStyle(
                         fontSize: context.responsiveFontSize(
                           small: 14,
@@ -660,6 +749,13 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                           veryNarrow: 14,
                         ),
                       ),
+                    SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                      onPressed: () => _deleteBilling(billing),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   ],
                 ),
                 if (billing['customerName'] != null) ...[

@@ -428,6 +428,69 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
+  Future<void> _deleteBilling(Map<String, dynamic> billing) async {
+    final billingId = billing['billingId']?.toString() ??
+        billing['walletBillingId']?.toString();
+
+    if (billingId == null) {
+      if (billing['isLocalData'] == true) {
+        showGlassSnackBar(
+          context,
+          message: 'Энэ биллинг API-тай холбогдоогүй байна.',
+          icon: Icons.info_outline,
+          iconColor: Colors.orange,
+        );
+      }
+      return;
+    }
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Биллинг устгах',
+            style: TextStyle(color: context.textPrimaryColor)),
+        content: Text('Та энэ биллингийг устгахдаа итгэлтэй байна уу?',
+            style: TextStyle(color: context.textSecondaryColor)),
+        backgroundColor: context.backgroundColor,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Үгүй', style: TextStyle(color: AppColors.deepGreen)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Тийм', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await ApiService.removeWalletBilling(billingId: billingId);
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Биллинг амжилттай устгагдлаа',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+        _loadBillingList();
+        _loadAllBillingPayments();
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: e.toString().replaceAll("Exception: ", ""),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
   Future<void> _loadGereeData() async {
     setState(() {
       _isLoadingGeree = true;
@@ -1235,6 +1298,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     userBillingData: _userBillingData,
                     onBillingTap: _showBillingDetailModal,
                     expandAddressAbbreviations: _expandAddressAbbreviations,
+                    onDeleteTap: _deleteBilling,
                   ),
 
                   SizedBox(height: 16.h),

@@ -4,6 +4,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class BillingDetailModal extends StatefulWidget {
   final Map<String, dynamic> billing;
@@ -107,6 +108,77 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
         _errorMessage = 'Биллингийн мэдээлэл авахад алдаа гарлаа: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _deleteBill(String? billId) async {
+    final billingId = widget.billing['billingId']?.toString();
+    
+    if (billId == null || billingId == null) {
+      showGlassSnackBar(
+        context,
+        message: 'Билл устгах мэдээлэл дутуу байна',
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+
+    // Show confirmation dialog before deleting
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Билл устгах', 
+          style: TextStyle(color: context.textPrimaryColor)),
+        content: Text('Та энэ билл картыг устгахдаа итгэлтэй байна уу?',
+          style: TextStyle(color: context.textSecondaryColor)),
+        backgroundColor: context.backgroundColor,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Үгүй', style: TextStyle(color: AppColors.deepGreen)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Тийм', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await ApiService.removeWalletBill(billingId: billingId, billId: billId);
+
+      if (mounted) {
+        setState(() {
+          _bills.removeWhere((bill) => bill['billId']?.toString() == billId);
+          _isLoading = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: 'Билл амжилттай устгагдлаа',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: e.toString().replaceAll("Exception: ", ""),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
     }
   }
 
@@ -821,6 +893,7 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                         ),
                         if (isNew)
                           Container(
+                            margin: EdgeInsets.only(right: 8.w),
                             padding: EdgeInsets.symmetric(
                               horizontal: 6.w,
                               vertical: 2.h,
@@ -843,6 +916,12 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline, color: Colors.redAccent, size: 20.sp),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _deleteBill(bill['billId']?.toString()),
                           ),
                       ],
                     ),

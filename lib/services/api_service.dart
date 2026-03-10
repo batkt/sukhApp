@@ -816,15 +816,18 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> saveWalletBilling({
-    required String billingId,
+    String? billingId,
     String? billingName,
     String? customerId,
     String? customerCode,
   }) async {
     try {
       final headers = await getWalletApiHeaders();
-      final requestBody = <String, dynamic>{'billingId': billingId};
+      final requestBody = <String, dynamic>{};
 
+      if (billingId != null && billingId.isNotEmpty) {
+        requestBody['billingId'] = billingId;
+      }
       if (billingName != null && billingName.isNotEmpty) {
         requestBody['billingName'] = billingName;
       }
@@ -847,14 +850,14 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Биллинг хадгалахад алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Биллинг хадгалахад алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
+          data['aldaa'] ?? data['message'] ??
               'Биллинг хадгалахад алдаа гарлаа: ${response.statusCode}',
         );
       }
@@ -879,14 +882,14 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Биллинг устгахад алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Биллинг устгахад алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
+          data['aldaa'] ?? data['message'] ??
               'Биллинг устгахад алдаа гарлаа: ${response.statusCode}',
         );
       }
@@ -912,14 +915,14 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Билл устгахад алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Билл устгахад алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
+          data['aldaa'] ?? data['message'] ??
               'Билл устгахад алдаа гарлаа: ${response.statusCode}',
         );
       }
@@ -927,6 +930,7 @@ class ApiService {
       throw Exception('Билл устгахад алдаа гарлаа: $e');
     }
   }
+
 
   static Future<Map<String, dynamic>> recoverWalletBill({
     required String billingId,

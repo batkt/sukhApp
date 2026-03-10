@@ -11,6 +11,7 @@ class BillingListSection extends StatefulWidget {
   final Function(Map<String, dynamic>) onBillingTap;
   final String Function(String) expandAddressAbbreviations;
   final VoidCallback? onShowEmptyMessage;
+  final Function(Map<String, dynamic>)? onDeleteTap;
 
   const BillingListSection({
     super.key,
@@ -20,6 +21,7 @@ class BillingListSection extends StatefulWidget {
     required this.onBillingTap,
     required this.expandAddressAbbreviations,
     this.onShowEmptyMessage,
+    this.onDeleteTap,
   });
 
   @override
@@ -136,6 +138,9 @@ class BillingListSectionState extends State<BillingListSection> {
               billing: widget.userBillingData!,
               onTap: () => widget.onBillingTap(widget.userBillingData!),
               expandAddressAbbreviations: widget.expandAddressAbbreviations,
+              onDeleteTap: widget.onDeleteTap != null 
+                  ? () => widget.onDeleteTap!(widget.userBillingData!)
+                  : null,
             ),
           // Show connected billings from Wallet API
           ...widget.billingList.map(
@@ -143,6 +148,9 @@ class BillingListSectionState extends State<BillingListSection> {
               billing: billing,
               onTap: () => widget.onBillingTap(billing),
               expandAddressAbbreviations: widget.expandAddressAbbreviations,
+              onDeleteTap: widget.onDeleteTap != null
+                  ? () => widget.onDeleteTap!(billing)
+                  : null,
             ),
           ),
         ],

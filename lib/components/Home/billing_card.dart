@@ -7,12 +7,14 @@ class BillingCard extends StatelessWidget {
   final Map<String, dynamic> billing;
   final VoidCallback onTap;
   final String Function(String) expandAddressAbbreviations;
+  final VoidCallback? onDeleteTap;
 
   const BillingCard({
     super.key,
     required this.billing,
     required this.onTap,
     required this.expandAddressAbbreviations,
+    this.onDeleteTap,
   });
 
   @override
@@ -298,12 +300,18 @@ class BillingCard extends StatelessWidget {
               ),
             ),
             
-            // Arrow
-            Icon(
-              Icons.chevron_right_rounded,
-              color: context.textSecondaryColor,
-              size: 24.sp,
-            ),
+            // Actions
+            if (onDeleteTap != null)
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: Colors.redAccent, size: 24.sp),
+                onPressed: onDeleteTap,
+              )
+            else
+              Icon(
+                Icons.chevron_right_rounded,
+                color: context.textSecondaryColor,
+                size: 24.sp,
+              ),
           ],
         ),
       ),
