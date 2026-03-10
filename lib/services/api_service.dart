@@ -1863,16 +1863,23 @@ class ApiService {
 
       if (response.statusCode == 200) {
         if (data is Map && data['success'] == false) {
-          throw Exception(data['aldaa'] ?? data['message'] ?? data['msg'] ?? 'Мэдээлэл олдсонгүй');
+          throw Exception(
+            data['aldaa'] ??
+                data['message'] ??
+                data['msg'] ??
+                'Мэдээлэл олдсонгүй',
+          );
         }
         return data is Map<String, dynamic> ? data : {'result': data};
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        String errorMessage = 'Мэдээлэл авахад алдаа гарлаа (${response.statusCode})';
+        String errorMessage =
+            'Мэдээлэл авахад алдаа гарлаа (${response.statusCode})';
         if (data is Map) {
-          errorMessage = data['aldaa'] ?? data['message'] ?? data['msg'] ?? errorMessage;
+          errorMessage =
+              data['aldaa'] ?? data['message'] ?? data['msg'] ?? errorMessage;
         }
         throw Exception(errorMessage);
       }
@@ -1906,9 +1913,9 @@ class ApiService {
         if (search != null) 'search': search,
       };
 
-      final uri = Uri.parse('$baseUrl/easyRegister/user/list').replace(
-        queryParameters: queryParams,
-      );
+      final uri = Uri.parse(
+        '$baseUrl/easyRegister/user/list',
+      ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
 
@@ -2981,13 +2988,17 @@ class ApiService {
         print('✅ [WALLET QPAY] Response received');
 
         if (responseData['success'] != true) {
-          String errorMsg = responseData['aldaa']?.toString() ?? 
-                            responseData['message']?.toString() ?? 
-                            'Wallet QPay үүсгэхэд алдаа гарлаа';
-          
+          String errorMsg =
+              responseData['aldaa']?.toString() ??
+              responseData['message']?.toString() ??
+              'Wallet QPay үүсгэхэд алдаа гарлаа';
+
           // Strip redundant prefix if backend returns it
           if (errorMsg.contains('Wallet нэхэмжлэх үүсгэхэд алдаа: ')) {
-            errorMsg = errorMsg.replaceFirst('Wallet нэхэмжлэх үүсгэхэд алдаа: ', '');
+            errorMsg = errorMsg.replaceFirst(
+              'Wallet нэхэмжлэх үүсгэхэд алдаа: ',
+              '',
+            );
           }
           throw Exception(errorMsg);
         }
@@ -2998,7 +3009,9 @@ class ApiService {
           throw Exception(rawData);
         }
 
-        final data = rawData is Map<String, dynamic> ? rawData : <String, dynamic>{};
+        final data = rawData is Map<String, dynamic>
+            ? rawData
+            : <String, dynamic>{};
         final walletPaymentId = responseData['walletPaymentId']?.toString();
         final walletInvoiceId = responseData['walletInvoiceId']?.toString();
         final paymentAmount =
@@ -3023,14 +3036,20 @@ class ApiService {
         String errorMessage = 'Wallet QPay үүсгэхэд алдаа гарлаа';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['aldaa']?.toString() ?? 
-                         errorData['message']?.toString() ?? 
-                         errorMessage;
-          
+          errorMessage =
+              errorData['aldaa']?.toString() ??
+              errorData['message']?.toString() ??
+              errorMessage;
+
           if (errorMessage.contains('Wallet нэхэмжлэх үүсгэхэд алдаа: ')) {
-            errorMessage = errorMessage.replaceFirst('Wallet нэхэмжлэх үүсгэхэд алдаа: ', '');
+            errorMessage = errorMessage.replaceFirst(
+              'Wallet нэхэмжлэх үүсгэхэд алдаа: ',
+              '',
+            );
           } else if (errorMessage.contains('Wallet нэхэмжлэх үүсгэхэд алдаа')) {
-             errorMessage = errorMessage.replaceFirst('Wallet нэхэмжлэх үүсгэхэд алдаа', '').trim();
+            errorMessage = errorMessage
+                .replaceFirst('Wallet нэхэмжлэх үүсгэхэд алдаа', '')
+                .trim();
           }
         } catch (_) {}
         throw Exception(errorMessage);
@@ -3086,7 +3105,7 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/walletQpay/payment/$walletPaymentId');
-      
+
       print('🔍 [WALLET QPAY] Getting payment: $uri');
       final response = await http.get(uri, headers: headers);
 
@@ -3108,6 +3127,7 @@ class ApiService {
       throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
     }
   }
+
   static String _generateQPayQRText({
     required String bankCode,
     required String accountNo,

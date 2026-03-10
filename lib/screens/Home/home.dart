@@ -628,15 +628,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                       userId,
                     );
 
-                    for (final item in mergedInvoices) {
-                      final inv = NekhemjlekhItem.fromJson(
-                        item is Map<String, dynamic>
-                            ? item
-                            : Map<String, dynamic>.from(item as Map),
-                      );
-                      if (inv.tuluv == 'Төлөөгүй') {
-                        total += inv.effectiveNiitTulbur;
-                      }
+                    // Sum uldegdel from the contract directly as requested by the user
+                    // because it is the absolute source of truth for OWN_ORG.
+                    final contractUldegdel = contract['uldegdel'] ?? contract['globalUldegdel'];
+                    if (contractUldegdel != null) {
+                      final amt = (contractUldegdel is num)
+                          ? contractUldegdel.toDouble()
+                          : (double.tryParse(contractUldegdel.toString()) ?? 0.0);
+                      if (amt > 0) total += amt;
                     }
                   }
                 } catch (_) {
@@ -657,6 +656,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           // Error loading OWN_ORG payments
         }
       }
+      double internalTotal = total;
 
       // Load WALLET_API payments
       try {
@@ -704,9 +704,13 @@ class _BookingScreenState extends State<NuurKhuudas>
                 billingTotal += billTotalAmount;
               }
 
-              if (billingTotal > 0) {
-                total += billingTotal;
-              }
+                // Deduplication: Avoid adding property fees from Wallet API if we already have them from OWN_ORG
+                final billingName = billing['billingName']?.toString() ?? '';
+                if (internalTotal > 0 && (billingName.contains('Орон сууцны') || billingName.contains('Property'))) {
+                   // Skip this billing item to avoid double counting
+                } else if (billingTotal > 0) {
+                   total += billingTotal;
+                }
             } catch (e) {
               // Error loading billing
             }

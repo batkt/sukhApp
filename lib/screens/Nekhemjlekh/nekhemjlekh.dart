@@ -503,15 +503,21 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   int get selectedCount =>
       invoices.where((invoice) => invoice.isSelected).length;
 
-  /// Effective total: prefer sum of unpaid merged invoices (includes avlaga) when
-  /// backend contract.uldegdel may be stale (e.g. after manualSend avlaga).
+  /// Effective total: Always prioritize the absolute contract uldegdel for OWN_ORG
+  /// as requested – this is the source of truth for the organization.
   double get _effectiveTotalAmount {
+    // If we have an authoritative contract balance, use it.
+    if (_contractUldegdel != null && _contractUldegdel! > 0) {
+      return _contractUldegdel!;
+    }
+
+    // Otherwise fallback to summing items (though uldegdel should usually exist)
     final unpaid = invoices.where((i) => i.tuluv == 'Төлөөгүй').toList();
     if (unpaid.isNotEmpty) {
       final sum = unpaid.fold<double>(0, (s, i) => s + i.effectiveNiitTulbur);
       return sum;
     }
-    return _contractUldegdel ?? 0;
+    return 0;
   }
 
   String get totalSelectedAmount {

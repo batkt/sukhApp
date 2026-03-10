@@ -142,23 +142,12 @@ class NekhemjlekhItem {
     }
   }
 
-  /// Total including ekhniiUldegdel and avlaga when backend niitTulbur may not include them (matches web)
+  /// The effective total for an invoice item is now strictly trusts the backend's
+  /// 'niitTulbur' value. We no longer add 'ekhniiUldegdel' here because for this
+  /// organization, the backend already includes the balance in the total.
+  /// Adding it again causes double-counting (e.g., 153 + 150 = 303).
   double get effectiveNiitTulbur {
-    double total = niitTulbur;
-    // Add avlaga from guilgeenuud (merged floating receivables from gereeniiTulukhAvlaga)
-    if (medeelel?.guilgeenuud != null) {
-      for (final g in medeelel!.guilgeenuud!) {
-        final t = g.turul?.toLowerCase() ?? '';
-        if ((t == 'avlaga' || t == 'авлага') &&
-            !g.ekhniiUldegdelEsekh &&
-            !g.isLinked) {
-          final amt =
-              (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
-          if (amt > 0) total += amt;
-        }
-      }
-    }
-    return total;
+    return niitTulbur;
   }
 
   String get formattedAmount {

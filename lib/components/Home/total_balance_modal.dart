@@ -57,15 +57,16 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       final isWalletOnlyOrg =
           currentBaiguullagiinId == '698e7fd3b6dd386b6c56a808';
 
+      final List<Map<String, dynamic>> ownOrgContracts = [];
       if (!isWalletOnlyOrg) {
-        // OWN_ORG contracts total (simple approximation using geree uldegdel)
+        // OWN_ORG contracts total
         try {
           final userId = await StorageService.getUserId();
           if (userId != null) {
             final gereeResponse = await ApiService.fetchGeree(userId);
             if (gereeResponse['jagsaalt'] is List) {
               for (final c in gereeResponse['jagsaalt']) {
-                final contract = c as Map<String, dynamic>;
+                final contract = Map<String, dynamic>.from(c as Map);
                 final contractUldegdel =
                     contract['uldegdel'] ?? contract['globalUldegdel'];
                 if (contractUldegdel != null) {
@@ -73,7 +74,14 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                       ? contractUldegdel.toDouble()
                       : double.tryParse(contractUldegdel.toString()) ?? 0.0;
                   if (amt > 0) {
-                    total += amt;
+                    ownOrgContracts.add({
+                      'isOwnOrg': true,
+                      'billingName': contract['bairNer'] ?? 'Орон сууцны төлбөр',
+                      'customerName': contract['gereeniiDugaar'] ?? '',
+                      'calculatedTotal': amt,
+                      'contract': contract,
+                      'billingId': 'OWN_ORG_${contract['_id']}',
+                    });
                   }
                 }
               }
@@ -81,6 +89,10 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           }
         } catch (_) {}
       }
+
+      // Add OWN_ORG contracts to the list first
+      walletBillings.addAll(ownOrgContracts);
+      final double ownOrgSum = ownOrgContracts.fold(0.0, (sum, item) => sum + (item['calculatedTotal'] as double));
 
       // WALLET_API billings total (sum of billTotalAmount for each billing),
       // using the same structure handling as _loadAllBillingPayments in home.dart
@@ -129,11 +141,21 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                   (bill['billTotalAmount'] as num?)?.toDouble() ?? 0.0;
               billingTotal += billTotalAmount;
             }
-          } catch (_) {
+            } catch (_) {
             // ignore per-billing errors to avoid blocking the whole modal
           }
 
-          walletBillings.add({...billing, 'calculatedTotal': billingTotal});
+          // deduplication: if we have OWN_ORG balance and this billing has same name, skip it to avoid double-display
+          final name = billing['billingName']?.toString() ?? '';
+          bool isDuplicate = false;
+          if (ownOrgSum > 0 && (name.contains('Орон сууцны') || name.contains('Property'))) {
+             // Basic heuristic: if names are very similar, assume it's the same
+             isDuplicate = true;
+          }
+
+          if (!isDuplicate) {
+            walletBillings.add({...billing, 'calculatedTotal': billingTotal});
+          }
         }
       } catch (_) {}
 
