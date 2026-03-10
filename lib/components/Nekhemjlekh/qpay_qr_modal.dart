@@ -7,33 +7,29 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class QPayQRModal extends StatefulWidget {
   final String? qrImageOwnOrg;
   final String? qrImageWallet;
-  final String? qrText; // For Wallet API - QR code text to generate QR from
-  final List<dynamic>? urls; // For jump to bank apps
+  final String? qrText;
+  final List<dynamic>? urls;
 
-  /// Optional bank transfer details (useful for Wallet QPay flows)
   final double? amount;
   final String? bankCode;
   final String? accountNo;
   final String? accountName;
   final String? description;
 
-  /// Async payment check (preferred). Return:
-  /// - true: paid
-  /// - false: not paid yet
-  /// - null: unknown/error
   final Future<bool?> Function()? onCheckPaymentAsync;
 
-  /// Legacy callback (kept for compatibility). If provided, the modal will
-  /// show a generic "checked" message but can't know paid/unpaid.
   final VoidCallback? onCheckPayment;
 
-  /// If true, modal auto-closes after a successful payment check (paid=true).
   final bool closeOnSuccess;
+
+  final String? walletPaymentId;
+  final String? invoiceNumber;
 
   const QPayQRModal({
     super.key,
@@ -49,6 +45,8 @@ class QPayQRModal extends StatefulWidget {
     this.onCheckPaymentAsync,
     this.onCheckPayment,
     this.closeOnSuccess = false,
+    this.walletPaymentId,
+    this.invoiceNumber,
   });
 
   @override
@@ -59,6 +57,41 @@ class _QPayQRModalState extends State<QPayQRModal> {
   bool _isChecking = false;
   bool? _paidResult;
   String? _resultMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _startSocketListener();
+  }
+
+  void _startSocketListener() {
+    if (widget.walletPaymentId != null) {
+      SocketService.instance.listenForWalletQPayUpdates(widget.walletPaymentId!,
+          (data) {
+        if (data['status'] == 'PAID' && mounted) {
+          _handlePaidViaSocket();
+        }
+      });
+    } else if (widget.invoiceNumber != null) {
+      SocketService.instance.listenForQPayUpdates(widget.invoiceNumber!, (data) {
+        if (data['status'] == 'PAID' && mounted) {
+          _handlePaidViaSocket();
+        }
+      });
+    }
+  }
+
+  void _handlePaidViaSocket() {
+    setState(() {
+      _paidResult = true;
+      _resultMessage = 'Төлбөр амжилттай төлөгдлөө';
+    });
+    if (widget.closeOnSuccess) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) Navigator.of(context).pop(true);
+      });
+    }
+  }
 
   Future<void> _handleCheckPayment() async {
     if (_isChecking) return;
@@ -98,7 +131,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
 
     if (result == true && widget.closeOnSuccess) {
       await Future.delayed(const Duration(milliseconds: 600));
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop(true);
     }
   }
 

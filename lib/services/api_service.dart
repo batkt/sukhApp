@@ -2781,6 +2781,8 @@ class ApiService {
     String? nekhemjlekhiinId, // Single invoice ID (for Custom QPay)
     String? dansniiDugaar, // Account number (for Custom QPay)
     String? burtgeliinDugaar, // Registration number (for Custom QPay)
+    String? customerNo, // B2C phone
+    String? customerTin, // B2B registration number
   }) async {
     try {
       final headers = await getAuthHeaders();
@@ -2813,6 +2815,14 @@ class ApiService {
 
         if (zakhialgiinDugaar != null && zakhialgiinDugaar.isNotEmpty) {
           requestBody['zakhialgiinDugaar'] = zakhialgiinDugaar;
+        }
+
+        if (customerNo != null && customerNo.isNotEmpty) {
+          requestBody['customerNo'] = customerNo;
+        }
+
+        if (customerTin != null && customerTin.isNotEmpty) {
+          requestBody['customerTin'] = customerTin;
         }
       }
       // Wallet QPay - DEPRECATED: Use createWalletQPayPayment() instead
@@ -3069,24 +3079,46 @@ class ApiService {
       throw Exception('Төлбөрийн статус шалгахад алдаа: $e');
     }
   }
-  /// Generate QPay QR code text from payment details
-  /// Format: QPay QR code string with bank code, account, amount, description
-  /// QPay QR format in Mongolia typically uses a structured string
+
+  static Future<Map<String, dynamic>> walletQpayGetPayment({
+    required String walletPaymentId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final uri = Uri.parse('$baseUrl/walletQpay/payment/$walletPaymentId');
+      
+      print('🔍 [WALLET QPAY] Getting payment: $uri');
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        if (data['success'] == true) {
+          return data['data'] as Map<String, dynamic>;
+        } else {
+          throw Exception(data['message'] ?? 'Мэдээлэл авахад алдаа гарлаа');
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception('Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+    }
+  }
   static String _generateQPayQRText({
     required String bankCode,
     required String accountNo,
     required dynamic amount,
     required String description,
   }) {
-    // QPay QR code format for Mongolia
-    // Common format: JSON string with payment details
-    // Format: {"bankCode":"XXX","account":"XXX","amount":XXX,"description":"XXX"}
     final amountValue = amount is num
         ? amount.toDouble()
         : double.tryParse(amount.toString()) ?? 0.0;
     final amountStr = amountValue.toStringAsFixed(2);
 
-    // Create JSON structure for QPay QR code
     final qrData = {
       'bankCode': bankCode,
       'account': accountNo,
@@ -3094,12 +3126,9 @@ class ApiService {
       'description': description,
     };
 
-    // Return as JSON string (QPay can parse this)
     return json.encode(qrData);
   }
 
-  /// Check Wallet payment status
-  /// Endpoint: GET /orshinSuugch/walletPayment/:paymentId
   static Future<Map<String, dynamic>> getWalletPaymentStatus({
     required String paymentId,
   }) async {
@@ -3163,7 +3192,6 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      // Backend expects GET request with barilgiinId as query parameter
       final uri = Uri.parse(
         '$baseUrl/nekhemjlekhCron',
       ).replace(queryParameters: {'barilgiinId': barilgiinId});
@@ -3204,8 +3232,6 @@ class ApiService {
 
       final data = json.decode(response.body);
 
-      // Return the response data regardless of status code
-      // The UI will check the 'success' field
       return data;
     } catch (e) {
       print('Error changing password: $e');

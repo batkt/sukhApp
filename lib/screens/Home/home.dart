@@ -1426,7 +1426,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     final baiguullagiinId = await StorageService.getBaiguullagiinId();
     final isWalletOnlyOrg = baiguullagiinId == '698e7fd3b6dd386b6c56a808';
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -1438,6 +1438,10 @@ class _BookingScreenState extends State<NuurKhuudas>
             : _showPaymentModal,
       ),
     );
+    
+    if (mounted) {
+      _loadAllBillingPayments();
+    }
   }
 
   // _buildPaymentDetails and _buildDetailRow moved to TotalBalanceModal component

@@ -38,6 +38,9 @@ class _PaymentModalState extends State<PaymentModal> {
   List<QPayBank> _qpayBanks = [];
   List<String> _selectedInvoiceIdsForCheck = [];
   String? _gereeniiDugaarForCheck;
+  String? _senderInvoiceNoForSocket;
+  String _vatReceiveType = 'CITIZEN';
+  final TextEditingController _vatTinController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +206,8 @@ class _PaymentModalState extends State<PaymentModal> {
                   ),
                 ),
                 SizedBox(height: 14.h),
+                _buildVATSelector(context),
+                SizedBox(height: 14.h),
                 // Payment button
                 SizedBox(
                   width: double.infinity,
@@ -260,6 +265,19 @@ class _PaymentModalState extends State<PaymentModal> {
     });
 
     try {
+      if (_vatReceiveType == 'COMPANY' && _vatTinController.text.isEmpty) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Байгууллагын РД оруулна уу',
+            icon: Icons.info_outline,
+            iconColor: AppColors.deepGreenAccent,
+          );
+        }
+        setState(() => _isLoadingQPay = false);
+        return;
+      }
+
       String? turul;
       List<String> selectedInvoiceIds = [];
 
@@ -326,15 +344,16 @@ class _PaymentModalState extends State<PaymentModal> {
             nekhemjlekhiinId: firstInvoiceId,
             dansniiDugaar: dansniiDugaar,
             burtgeliinDugaar: burtgeliinDugaar,
+            customerTin: _vatReceiveType == 'COMPANY' ? _vatTinController.text : null,
           );
 
           if (ownOrgResponse['qr_image'] != null) {
             setState(() {
               _qrImageOwnOrg = ownOrgResponse['qr_image']?.toString();
+              _senderInvoiceNoForSocket = ownOrgResponse['sender_invoice_no']?.toString();
             });
           }
 
-          // Try to load bank list from OWN_ORG response
           if (ownOrgResponse['urls'] != null &&
               ownOrgResponse['urls'] is List) {
             final banks = (ownOrgResponse['urls'] as List)
@@ -349,10 +368,6 @@ class _PaymentModalState extends State<PaymentModal> {
         }
       }
 
-      // Note: Wallet API QPay requires billingId + billIds, not dun + walletUserId
-      // This modal is for OWN_ORG invoices, so we don't create Wallet QPay here
-      // Wallet QPay should only be created from billing flow (total_balance_modal.dart)
-
       if (_qrImageOwnOrg == null && _qrImageWallet == null) {
         if (mounted) {
           showGlassSnackBar(
@@ -365,8 +380,6 @@ class _PaymentModalState extends State<PaymentModal> {
         return;
       }
 
-      // Ensure we always show bank list BEFORE QR
-      // If backend didn't return bank urls, at least show qPay wallet as an option.
       final hasQPayWalletTile = _qpayBanks.any(
         (b) =>
             b.description.contains('qPay хэтэвч') ||
@@ -419,6 +432,7 @@ class _PaymentModalState extends State<PaymentModal> {
               builder: (context) => QPayQRModal(
                 qrImageOwnOrg: _qrImageOwnOrg,
                 qrImageWallet: _qrImageWallet,
+                invoiceNumber: _senderInvoiceNoForSocket,
                 onCheckPaymentAsync: () async {
                   // Refresh invoice list first (caller handles it)
                   await widget.onPaymentTap();
@@ -479,5 +493,135 @@ class _PaymentModalState extends State<PaymentModal> {
         });
       }
     }
+  }
+
+  Widget _buildVATSelector(BuildContext context) {
+    final isDark = context.isDarkMode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: 8.h),
+          child: Text(
+            'И-баримт хүлээн авах',
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+              color: context.textPrimaryColor.withOpacity(0.8),
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildVatOption(
+                context,
+                title: 'Хувь хүн',
+                isSelected: _vatReceiveType == 'CITIZEN',
+                onTap: () {
+                  setState(() {
+                    _vatReceiveType = 'CITIZEN';
+                  });
+                },
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: _buildVatOption(
+                context,
+                title: 'Байгууллага',
+                isSelected: _vatReceiveType == 'COMPANY',
+                onTap: () {
+                  setState(() {
+                    _vatReceiveType = 'COMPANY';
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        if (_vatReceiveType == 'COMPANY') ...[
+          SizedBox(height: 10.h),
+          TextField(
+            controller: _vatTinController,
+            keyboardType: TextInputType.number,
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: context.textPrimaryColor,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Байгууллагын РД оруулна уу',
+              hintStyle: TextStyle(
+                fontSize: 11.sp,
+                color: context.textSecondaryColor.withOpacity(0.5),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 10.w,
+                vertical: 8.h,
+              ),
+              filled: true,
+              fillColor: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.03),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(
+                  color: context.borderColor.withOpacity(0.5),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: BorderSide(
+                  color: context.borderColor.withOpacity(0.3),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+                borderSide: const BorderSide(
+                  color: AppColors.deepGreen,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildVatOption(
+    BuildContext context, {
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final isDark = context.isDarkMode;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.deepGreen.withOpacity(0.1)
+              : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.deepGreen
+                : context.borderColor.withOpacity(0.3),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

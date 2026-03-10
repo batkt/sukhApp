@@ -6,7 +6,10 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/components/Nekhemjlekh/qpay_qr_modal.dart';
+import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
+import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/services/socket_service.dart';
 
 /// Lightweight rebuild of the old total balance modal.
 /// Shows total unpaid balance (OWN_ORG + WALLET wallet) and lists billings,
@@ -30,6 +33,8 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
   double _totalAmount = 0.0;
   List<Map<String, dynamic>> _walletBillings = [];
   final Set<String> _selectedBillingIds = {};
+  String _vatReceiveType = 'CITIZEN';
+  final TextEditingController _vatCompanyRegController = TextEditingController();
 
   @override
   void initState() {
@@ -354,6 +359,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                   }),
                                   SizedBox(height: 12.h),
                                 ],
+                                _buildVATSelector(context),
                                 SizedBox(height: 8.h),
                                 SizedBox(
                                   width: double.infinity,
@@ -507,11 +513,26 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                             return;
                                           }
 
+                                          if (_vatReceiveType == 'COMPANY' &&
+                                              _vatCompanyRegController.text.isEmpty) {
+                                            if (mounted) {
+                                              showGlassSnackBar(
+                                                context,
+                                                message: 'Байгууллагын РД оруулна уу',
+                                                icon: Icons.info_outline,
+                                                iconColor: AppColors.deepGreenAccent,
+                                              );
+                                            }
+                                            return;
+                                          }
+
                                           // Create Wallet QPay payment
                                           final qpayResponse =
                                               await ApiService.createWalletQPayPayment(
                                                 billingId: selectedBillingId,
                                                 billIds: billIds,
+                                                vatReceiveType: _vatReceiveType,
+                                                vatCompanyReg: _vatReceiveType == 'COMPANY' ? _vatCompanyRegController.text : null,
                                               );
 
                                           // New endpoint returns normalized response
@@ -574,13 +595,14 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                           if (!mounted) return;
 
                                           // Show QR modal for Wallet QPay
-                                          showDialog(
+                                          final paid = await showDialog<bool>(
                                             context: context,
                                             builder: (context) => QPayQRModal(
                                               qrText: qrText,
                                               qrImageWallet: qrImage,
                                               urls: urls,
                                               amount: paymentAmount,
+                                              walletPaymentId: walletPaymentId,
                                               closeOnSuccess: true,
                                               onCheckPaymentAsync: () async {
                                                 if (walletPaymentId == null ||
@@ -610,6 +632,28 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                               },
                                             ),
                                           );
+
+                                          // If paid successfully, show receipt
+                                          if (paid == true && mounted && walletPaymentId != null) {
+                                             try {
+                                               final paymentData = await ApiService.walletQpayGetPayment(
+                                                 walletPaymentId: walletPaymentId,
+                                               );
+                                               
+                                                if (mounted && paymentData.containsKey('vatInformation')) {
+                                                  final receipt = VATReceipt.fromWalletPayment(paymentData);
+                                                  await showModalBottomSheet(
+                                                    context: context,
+                                                    isScrollControlled: true,
+                                                    backgroundColor: Colors.transparent,
+                                                    builder: (context) => VATReceiptModal(receipt: receipt),
+                                                  );
+                                                  if (mounted) Navigator.of(context).pop();
+                                                }
+                                             } catch (e) {
+                                               print('Error fetching final payment details: $e');
+                                             }
+                                          }
                                         } catch (e) {
                                           if (mounted) {
                                             showGlassSnackBar(
@@ -685,6 +729,136 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       }
     }
     return sum;
+  }
+
+  Widget _buildVATSelector(BuildContext context) {
+    final isDark = context.isDarkMode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          child: Text(
+            'И-баримт хүлээн авах',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: context.textPrimaryColor.withOpacity(0.8),
+            ),
+          ),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildVatOption(
+                context,
+                title: 'Хувь хүн',
+                isSelected: _vatReceiveType == 'CITIZEN',
+                onTap: () {
+                  setState(() {
+                    _vatReceiveType = 'CITIZEN';
+                  });
+                },
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _buildVatOption(
+                context,
+                title: 'Байгууллага',
+                isSelected: _vatReceiveType == 'COMPANY',
+                onTap: () {
+                  setState(() {
+                    _vatReceiveType = 'COMPANY';
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        if (_vatReceiveType == 'COMPANY') ...[
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _vatCompanyRegController,
+            keyboardType: TextInputType.number,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: context.textPrimaryColor,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Байгууллагын РД оруулна уу',
+              hintStyle: TextStyle(
+                fontSize: 12.sp,
+                color: context.textSecondaryColor.withOpacity(0.5),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12.w,
+                vertical: 10.h,
+              ),
+              filled: true,
+              fillColor: isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.03),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: BorderSide(
+                  color: context.borderColor.withOpacity(0.5),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: BorderSide(
+                  color: context.borderColor.withOpacity(0.3),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: const BorderSide(
+                  color: AppColors.deepGreen,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildVatOption(
+    BuildContext context, {
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final isDark = context.isDarkMode;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.deepGreen.withOpacity(0.1)
+              : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.deepGreen
+                : context.borderColor.withOpacity(0.3),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildWalletBillingItem(

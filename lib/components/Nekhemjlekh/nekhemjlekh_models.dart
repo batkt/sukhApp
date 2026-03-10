@@ -482,6 +482,31 @@ class VATReceipt {
     );
   }
 
+  factory VATReceipt.fromWalletPayment(Map<String, dynamic> json) {
+    final vat = json['vatInformation'] as Map<String, dynamic>?;
+
+    return VATReceipt(
+      id: vat?['vatDdtd'] ?? '',
+      qrData: vat?['vatQrData'] ?? '',
+      lottery: vat?['vatLotteryNo'],
+      totalAmount: (json['totalAmount'] ?? json['amount'] ?? 0).toDouble(),
+      totalVAT: double.tryParse(vat?['vatAmount']?.toString() ?? '0') ?? 0.0,
+      totalCityTax: 0,
+      districtCode: '',
+      merchantTin: '',
+      branchNo: '001',
+      posNo: '0001',
+      type: 'B2C_RECEIPT',
+      date: DateTime.now().toIso8601String(),
+      receipts: [],
+      payments: [],
+      nekhemjlekhiinId: json['paymentId'] ?? '',
+      gereeniiDugaar: json['invoiceNo'] ?? '',
+      utas: 0,
+      receiptId: vat?['vatDdtd'] ?? '',
+    );
+  }
+
   String get formattedAmount {
     return '${formatNumber(totalAmount, 2)}₮';
   }

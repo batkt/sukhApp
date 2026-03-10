@@ -143,7 +143,7 @@ class SocketService {
     });
   }
 
-  /// Listen for QPay payment updates
+  /// Listen for QPay payment updates (Own Organization)
   void listenForQPayUpdates(
     String invoiceNumber,
     Function(Map<String, dynamic>) callback,
@@ -151,6 +151,21 @@ class SocketService {
     if (_baiguullagiinId == null || socket == null) return;
 
     final eventName = 'qpay/$_baiguullagiinId/$invoiceNumber';
+
+    socket!.off(eventName);
+    socket!.on(eventName, (data) {
+      callback(data);
+    });
+  }
+
+  /// Listen for Wallet QPay payment updates
+  void listenForWalletQPayUpdates(
+    String walletPaymentId,
+    Function(Map<String, dynamic>) callback,
+  ) {
+    if (_baiguullagiinId == null || socket == null) return;
+
+    final eventName = 'walletQpay/$_baiguullagiinId/$walletPaymentId';
 
     socket!.off(eventName);
     socket!.on(eventName, (data) {
