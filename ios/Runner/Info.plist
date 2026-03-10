@@ -121,5 +121,53 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>CFBundleIcons~ipad</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon</string>
+			</array>
+			<key>UIPrerenderedIcon</key>
+			<false/>
+		</dict>
+		<key>CFBundleAlternateIcons</key>
+		<dict>
+			<key>black</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>black</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>black</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>blue</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>blue</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>blue</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+			<key>green</key>
+			<dict>
+				<key>CFBundleIconFiles</key>
+				<array>
+					<string>green</string>
+				</array>
+				<key>CFBundleIconName</key>
+				<string>green</string>
+				<key>UIPrerenderedIcon</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>
