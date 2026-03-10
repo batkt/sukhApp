@@ -44,13 +44,18 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   bool _isLoadingBuildings = false;
   bool _isSaving = false;
   bool _isValidatingToot = false;
-  String? _tootValidationError;
-  List<String>? _availableToonuud;
+  String? _tootValidationError = null;
+  List<String>? _availableToonuud = null;
   bool _isTootValid = false;
   bool _hasBaiguullagiinId = false;
   bool _hasExistingAddress = false;
   bool _isCheckingAddress = true;
   String? _currentAddressDisplay;
+
+  // Wallet customer selection
+  List<Map<String, dynamic>> _walletCustomers = [];
+  bool _isLoadingWalletCustomers = false;
+  Map<String, dynamic>? _selectedWalletCustomer;
 
   @override
   void initState() {
@@ -68,12 +73,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             _validateToot(_doorNoController.text);
           }
         });
-      } else {
-        // Reset validation state for non-OWN_ORG bair
-        setState(() {
-          _isTootValid = true;
-          _tootValidationError = null;
-          _availableToonuud = null;
+      } else if (source == 'WALLET_API' && _doorNoController.text.isNotEmpty) {
+        // Debounce wallet customer fetch
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted && _doorNoController.text == _doorNoController.text) {
+            _fetchWalletCustomers(_doorNoController.text);
+          }
         });
       }
     });
@@ -611,6 +616,259 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     }
   }
 
+  Future<void> _fetchWalletCustomers(String toot) async {
+    if (_selectedBuilding == null || toot.trim().isEmpty) {
+      if (mounted) {
+        setState(() {
+          _walletCustomers = [];
+          _selectedWalletCustomer = null;
+        });
+      }
+      return;
+    }
+
+    final bairId = _selectedBuilding!['id']?.toString() ??
+        _selectedBuilding!['_id']?.toString();
+    print('🔍 [FETCH WALLET] bairId=$bairId, toot=${toot.trim()}, building keys: ${_selectedBuilding!.keys.toList()}');
+    if (bairId == null) return;
+
+    if (mounted) {
+      setState(() {
+        _isLoadingWalletCustomers = true;
+        _walletCustomers = [];
+        _selectedWalletCustomer = null;
+      });
+    }
+
+    try {
+      final customers = await ApiService.getWalletCustomersByAddress(
+        bairId: bairId,
+        doorNo: toot.trim(),
+      );
+
+      if (mounted) {
+        setState(() {
+          _walletCustomers = customers;
+          _isLoadingWalletCustomers = false;
+        });
+
+        if (customers.isEmpty) {
+          showGlassSnackBar(
+            context,
+            message: 'Хаяг олдсонгүй.',
+            icon: Icons.error_outline,
+            iconColor: Colors.orange,
+          );
+        } else if (customers.length == 1) {
+          _showSingleAccountConfirmation(customers[0]);
+        } else {
+          _showMultiAccountSelection(customers);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingWalletCustomers = false;
+          _walletCustomers = [];
+        });
+      }
+    }
+  }
+
+  void _showSingleAccountConfirmation(Map<String, dynamic> customer) {
+    final address = customer['customerAddress']?.toString() ?? 'Хаяг байхгүй';
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.isDarkMode ? const Color(0xFF1A1F26) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        title: Text(
+          'Хаяг баталгаажуулах',
+          style: TextStyle(color: context.textPrimaryColor),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Таны хаяг мөн үү?',
+              style: TextStyle(color: context.textPrimaryColor.withOpacity(0.8)),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.deepGreen.withOpacity(0.3)),
+              ),
+              child: Text(
+                address,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.deepGreen,
+                  fontSize: 15.sp,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Үгүй', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.deepGreen,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              setState(() {
+                _selectedWalletCustomer = customer;
+                _isTootValid = true;
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Тийм', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMultiAccountSelection(List<Map<String, dynamic>> customers) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: context.isDarkMode ? const Color(0xFF1A1F26) : Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        ),
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              'Таны бүртгэл алинаас нь вэ?',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: context.textPrimaryColor,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'Нэг хаяг дээр олон хэрэглэгчийн бүртгэл олдлоо.',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: context.textPrimaryColor.withOpacity(0.6),
+              ),
+            ),
+            SizedBox(height: 20.h),
+            Expanded(
+              child: ListView.separated(
+                itemCount: customers.length,
+                separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                itemBuilder: (context, index) {
+                  final customer = customers[index];
+                  final name = customer['customerName']?.toString() ?? 'Нэр байхгүй';
+                  final code = customer['customerCode']?.toString() ?? 'Код байхгүй';
+                  final addr = customer['customerAddress']?.toString() ?? 'Хаяг байхгүй';
+
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedWalletCustomer = customer;
+                        _isTootValid = true;
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: context.isDarkMode 
+                            ? Colors.white.withOpacity(0.05) 
+                            : Colors.grey.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: _selectedWalletCustomer?['customerId'] == customer['customerId']
+                              ? AppColors.deepGreen
+                              : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16.sp,
+                                    color: context.textPrimaryColor,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  code,
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: AppColors.deepGreen,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            addr,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: context.textPrimaryColor.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: 20.h),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveAddress() async {
     // During registration/login flow (not from menu), if user already has address on server
     // or has baiguullagiinId, they don't need to fill address fields – just save success.
@@ -716,7 +974,19 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         }
       }
 
-      // Save address to storage (with OWN_ORG fields if applicable)
+      // For WALLET_API, enforce that a customer was selected/verified
+      if (source == 'WALLET_API' && _selectedWalletCustomer == null) {
+        showGlassSnackBar(
+          context,
+          message: 'Хаягаа баталгаажуулж, хэрэглэгчээ сонгоно уу',
+          icon: Icons.warning_amber_rounded,
+          iconColor: Colors.orange,
+        );
+        setState(() => _isSaving = false);
+        return;
+      }
+
+      // Save address to storage (with OWN_ORG fields or Wallet Customer fields if applicable)
       await StorageService.saveWalletAddress(
         bairId: bairId,
         doorNo: doorNo,
@@ -724,6 +994,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         source: source,
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,
+        customerId: _selectedWalletCustomer?['customerId']?.toString(),
+        customerName: _selectedWalletCustomer?['customerName']?.toString(),
       );
 
       // If this is OWN_ORG bair and user is logged in, update user profile with OWN_ORG IDs
@@ -793,6 +1065,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           'bairId': bairId,
           'doorNo': doorNo,
         };
+
+        // If a Wallet customer was verified/selected, include their ID
+        if (_selectedWalletCustomer != null &&
+            _selectedWalletCustomer!['customerId'] != null) {
+          addressData['customerId'] =
+              _selectedWalletCustomer!['customerId'].toString();
+        }
 
         // Add optional fields if available
         if (duureg != null && duureg.isNotEmpty) {
@@ -873,6 +1152,22 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       // The /walletBillingHavakh endpoint automatically connects billing
       // Include OWN_ORG IDs if this is an OWN_ORG bair
       try {
+        String? selectedCustomerId = _selectedWalletCustomer?['customerId']?.toString();
+        String? selectedCustomerCode = _selectedWalletCustomer?['customerCode']?.toString();
+
+        if (!isOwnOrg && _walletCustomers.isNotEmpty && _selectedWalletCustomer == null) {
+           showGlassSnackBar(
+            context,
+            message: 'Хэрэглэгчээ сонгоно уу',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+          setState(() {
+            _isSaving = false;
+          });
+          return;
+        }
+
         final billingResponse = await ApiService.fetchWalletBilling(
           bairId: bairId,
           doorNo: doorNo,
@@ -885,6 +1180,8 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           soh: _selectedKhoroo?['soh']?.toString(),
           baiguullagiinId: isOwnOrg ? baiguullagiinId : null,
           barilgiinId: isOwnOrg ? barilgiinId : null,
+          customerId: selectedCustomerId,
+          customerCode: selectedCustomerCode,
         );
 
         // Save billingId if available (for Wallet API)
@@ -1908,11 +2205,14 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             onChanged: (value) {
                               // Validation is handled by the listener in initState
                               // But we can trigger it immediately for better UX
-                              final source = _selectedBuilding?['source']
+                               final source = _selectedBuilding?['source']
                                   ?.toString();
                               if (source == 'OWN_ORG' &&
                                   value.trim().isNotEmpty) {
                                 _validateToot(value);
+                              } else if (source == 'WALLET_API' &&
+                                  value.trim().isNotEmpty) {
+                                _fetchWalletCustomers(value);
                               }
                             },
                             style: TextStyle(
@@ -2081,6 +2381,108 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             ),
                           ),
                         ),
+                        if (_selectedWalletCustomer != null) ...[
+                          SizedBox(height: 16.h),
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(16.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.deepGreen.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(
+                                color: AppColors.deepGreen.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(8.w),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.deepGreen.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.person_outline,
+                                        color: AppColors.deepGreen,
+                                        size: 20.sp,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _selectedWalletCustomer!['customerName'] ?? 'Нэр байхгүй',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.sp,
+                                              color: context.textPrimaryColor,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Бүртгэлтэй хаяг баталгаажсан',
+                                            style: TextStyle(
+                                              fontSize: 12.sp,
+                                              color: AppColors.deepGreen,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_selectedWalletCustomer!['customerCode'] != null) ...[
+                                  SizedBox(height: 12.h),
+                                  Divider(height: 1, color: AppColors.deepGreen.withOpacity(0.1)),
+                                  SizedBox(height: 12.h),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Хэрэглэгчийн код:',
+                                        style: TextStyle(
+                                          fontSize: 13.sp,
+                                          color: context.textPrimaryColor.withOpacity(0.6),
+                                        ),
+                                      ),
+                                      Text(
+                                        _selectedWalletCustomer!['customerCode']!,
+                                        style: TextStyle(
+                                          fontSize: 13.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: context.textPrimaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                SizedBox(height: 8.h),
+                                TextButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedWalletCustomer = null;
+                                      _isTootValid = false;
+                                    });
+                                  },
+                                  icon: Icon(Icons.refresh, size: 16.sp),
+                                  label: Text('Өөрчлөх'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.deepGreen,
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                       if (_selectedBuilding != null &&
                           _tootValidationError != null &&

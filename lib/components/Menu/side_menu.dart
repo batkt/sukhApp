@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/services/storage_service.dart';
@@ -571,13 +572,27 @@ class _SideMenuState extends State<SideMenu> {
                       bottom: isTablet ? 16 : 8,
                       top: isTablet ? 12 : 8,
                     ),
-                    child: Text(
-                      '© 2026 Powered by Zevtabs LLC',
-                      style: TextStyle(
-                        fontSize: isTablet ? 12 : 10,
-                        color: context.textSecondaryColor,
-                      ),
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '© 2026 Powered by Zevtabs LLC',
+                          style: TextStyle(
+                            fontSize: isTablet ? 12 : 10,
+                            color: context.textSecondaryColor,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          'v2.0.3+32',
+                          style: TextStyle(
+                            fontSize: isTablet ? 11 : 9,
+                            color: context.textSecondaryColor.withOpacity(0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),

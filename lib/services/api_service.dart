@@ -744,6 +744,46 @@ class ApiService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> getWalletCustomersByAddress({
+    required String bairId,
+    required String doorNo,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final url = '$baseUrl/walletAddress/details/$bairId/$doorNo';
+      print('🔍 [WALLET ADDRESS] Fetching: $url');
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+
+      print('🔍 [WALLET ADDRESS] Status: ${response.statusCode}');
+      print('🔍 [WALLET ADDRESS] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] is List) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        } else if (data['responseCode'] == true && data['data'] is List) {
+          // Support for the specific format user provided: "responseCode": true
+          return List<Map<String, dynamic>>.from(data['data']);
+        } else {
+          // If singular success result, wrap in list if possible
+          if (data['data'] != null && data['data'] is Map) {
+            return [Map<String, dynamic>.from(data['data'])];
+          }
+          return [];
+        }
+      } else {
+        print('⚠️ [WALLET ADDRESS] Non-200 status: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('❌ [WALLET ADDRESS] Error fetching wallet customers: $e');
+      return [];
+    }
+  }
+
   static Future<Map<String, dynamic>> findBillingByAddress({
     required String bairId,
     required String doorNo,
@@ -751,7 +791,7 @@ class ApiService {
     try {
       final headers = await getWalletApiHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/wallet/billing/address/$bairId/$doorNo'),
+        Uri.parse('$walletApiBaseUrl/api/billing/address/$bairId/$doorNo'),
         headers: headers,
       );
 
@@ -1203,9 +1243,14 @@ class ApiService {
     String? orts,
     String? baiguullagiinId,
     String? barilgiinId,
+    String? customerId,
+    String? customerCode,
   }) async {
     try {
       final requestBody = <String, dynamic>{'bairId': bairId, 'doorNo': doorNo};
+
+      if (customerId != null) requestBody['customerId'] = customerId;
+      if (customerCode != null) requestBody['customerCode'] = customerCode;
 
       if (duureg != null && duureg.isNotEmpty) {
         requestBody['duureg'] = duureg;
@@ -1283,9 +1328,14 @@ class ApiService {
     String? bairId,
     String? doorNo,
     String? bairName,
+    String? customerId,
   }) async {
     try {
       final requestBody = <String, dynamic>{'utas': utas, 'mail': mail};
+
+      if (customerId != null && customerId.isNotEmpty) {
+        requestBody['customerId'] = customerId;
+      }
 
       // Add address fields if provided (for Wallet API addresses)
       if (bairId != null && bairId.isNotEmpty) {

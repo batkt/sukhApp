@@ -70,6 +70,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
         final savedDoorNo = await StorageService.getWalletDoorNo();
         final savedBairName = await StorageService.getWalletBairName();
         final savedSource = await StorageService.getWalletBairSource();
+        final savedCustomerId = await StorageService.getWalletCustomerId();
 
         await ApiService.registerWalletUser(
           utas: _phoneController.text.trim(),
@@ -77,6 +78,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
           bairId: savedSource == 'WALLET_API' ? savedBairId : null,
           doorNo: savedSource == 'WALLET_API' ? savedDoorNo : null,
           bairName: savedSource == 'WALLET_API' ? savedBairName : null,
+          customerId: savedSource == 'WALLET_API' ? savedCustomerId : null,
         );
 
         if (mounted) {

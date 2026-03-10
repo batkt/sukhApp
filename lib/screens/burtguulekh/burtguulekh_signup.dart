@@ -247,6 +247,12 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         'mail': _emailController.text.trim(),
       };
 
+      // Include customerId if it was verified in the address selection step
+      final savedCustomerId = await StorageService.getWalletCustomerId();
+      if (savedCustomerId != null && savedCustomerId.isNotEmpty) {
+        registrationData['customerId'] = savedCustomerId;
+      }
+
       // ORG signup: must include baiguullagiinId
       final id = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim();
       if (id.isNotEmpty && id.toLowerCase() != 'null') {

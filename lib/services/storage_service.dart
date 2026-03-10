@@ -48,6 +48,8 @@ class StorageService {
   static const String _phoneVerifiedKey = 'phone_verified';
   static const String _deviceIdKey = 'device_id';
   static const String _lastVerifiedDeviceIdKey = 'last_verified_device_id';
+  static const String _walletCustomerIdKey = 'wallet_customer_id';
+  static const String _walletCustomerNameKey = 'wallet_customer_name';
   static const String _ebarimtInfoKey = 'ebarimt_info';
 
   static Future<bool> saveEbarimtInfo(Map<String, dynamic> info) async {
@@ -445,6 +447,8 @@ class StorageService {
     String? source, // 'WALLET_API' or 'OWN_ORG'
     String? baiguullagiinId, // Required for OWN_ORG
     String? barilgiinId, // Required for OWN_ORG (same as bairId for OWN_ORG)
+    String? customerId, // Profile ID from Wallet API verification
+    String? customerName, // Name from Wallet API verification
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -465,6 +469,12 @@ class StorageService {
       }
       if (barilgiinId != null && barilgiinId.isNotEmpty) {
         await prefs.setString(_walletBairBarilgiinIdKey, barilgiinId);
+      }
+      if (customerId != null && customerId.isNotEmpty) {
+        await prefs.setString(_walletCustomerIdKey, customerId);
+      }
+      if (customerName != null && customerName.isNotEmpty) {
+        await prefs.setString(_walletCustomerNameKey, customerName);
       }
 
       return true;
@@ -533,6 +543,26 @@ class StorageService {
     }
   }
 
+  /// Get saved Wallet API customerId
+  static Future<String?> getWalletCustomerId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletCustomerIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get saved Wallet API customerName
+  static Future<String?> getWalletCustomerName() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_walletCustomerNameKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Save Wallet API billingId
   static Future<bool> saveWalletBillingId(String billingId) async {
     try {
@@ -574,6 +604,8 @@ class StorageService {
       await prefs.remove(_walletBairBaiguullagiinIdKey);
       await prefs.remove(_walletBairBarilgiinIdKey);
       await prefs.remove(_walletBillingIdKey);
+      await prefs.remove(_walletCustomerIdKey);
+      await prefs.remove(_walletCustomerNameKey);
       return true;
     } catch (e) {
       return false;
