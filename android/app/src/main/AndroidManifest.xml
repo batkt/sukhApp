@@ -43,7 +43,7 @@
         <!-- Alternate app icons for black, blue, green -->
         <activity-alias
             android:label="Amarhome"
-            android:icon="@mipmap/ic_launcher_1"
+            android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher_1"
             android:name=".icon_1"
             android:exported="true"
@@ -59,7 +59,7 @@
         </activity-alias>
         <activity-alias
             android:label="Amarhome"
-            android:icon="@mipmap/ic_launcher_2"
+            android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher_2"
             android:name=".icon_2"
             android:exported="true"
@@ -75,7 +75,7 @@
         </activity-alias>
         <activity-alias
             android:label="Amarhome"
-            android:icon="@mipmap/ic_launcher_3"
+            android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher_3"
             android:name=".icon_3"
             android:exported="true"
