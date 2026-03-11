@@ -186,8 +186,10 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
         final isTablet = constraints.maxWidth > 600;
         final modalWidth = isTablet ? 500.0 : constraints.maxWidth;
 
@@ -483,6 +485,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           ),
         );
       },
+      ),
     );
   }
 
