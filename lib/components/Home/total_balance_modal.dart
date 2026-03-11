@@ -428,17 +428,21 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                                   b['billingId']?.toString()))
                                           .toList();
 
-                                      // Close TotalBalanceModal first
-                                      Navigator.of(context).pop();
-
                                       // Process OWN_ORG billings first
+                                      bool anyPaid = false;
                                       if (selectedOwnOrg.isNotEmpty) {
-                                        await _processOwnOrgPayment(selectedOwnOrg);
+                                        final paid = await _processOwnOrgPayment(selectedOwnOrg);
+                                        if (paid == true) anyPaid = true;
                                       }
 
                                       // Then process WALLET billings
                                       if (selectedWallet.isNotEmpty && mounted) {
-                                        await _processWalletPayment(selectedWallet);
+                                        final paid = await _processWalletPayment(selectedWallet);
+                                        if (paid == true) anyPaid = true;
+                                      }
+
+                                      if (anyPaid && mounted) {
+                                        Navigator.of(context).pop();
                                       }
                                     },
                                     style: ElevatedButton.styleFrom(
@@ -496,7 +500,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
   }
 
   /// Process OWN_ORG QPay payment (uses qpayGargaya API)
-  Future<void> _processOwnOrgPayment(
+  Future<bool> _processOwnOrgPayment(
       List<Map<String, dynamic>> selectedOwnOrg) async {
     try {
       final selectedBilling = selectedOwnOrg.first;
@@ -544,7 +548,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       final invoiceId = ownOrgResponse['invoice_id']?.toString();
       final urls = ownOrgResponse['urls'] as List<dynamic>?;
 
-      if (!mounted) return;
+      if (!mounted) return false;
 
       if ((qrImage == null || qrImage.isEmpty) &&
           (urls == null || urls.isEmpty)) {
@@ -556,7 +560,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
             iconColor: Colors.red,
           );
         }
-        return;
+        return false;
       }
 
       // Show QR modal for OWN_ORG QPay
@@ -597,7 +601,9 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           icon: Icons.check_circle,
           iconColor: Colors.green,
         );
+        return true;
       }
+      return false;
     } catch (e) {
       if (mounted) {
         showGlassSnackBar(
@@ -607,11 +613,12 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           iconColor: Colors.red,
         );
       }
+      return false;
     }
   }
 
   /// Process WALLET QPay payment (uses createWalletQPayPayment API)
-  Future<void> _processWalletPayment(
+  Future<bool> _processWalletPayment(
       List<Map<String, dynamic>> selectedWallet) async {
     try {
       // For now, support paying one wallet billing at a time
@@ -678,7 +685,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
             iconColor: AppColors.deepGreenAccent,
           );
         }
-        return;
+        return false;
       }
 
       // Create Wallet QPay payment
@@ -705,7 +712,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       final qrImage = qpayResponse['qr_image']?.toString();
       final urls = qpayResponse['urls'] as List<dynamic>?;
 
-      if (!mounted) return;
+      if (!mounted) return false;
 
       if ((qrText == null || qrText.isEmpty) &&
           (qrImage == null || qrImage.isEmpty)) {
@@ -717,7 +724,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
             iconColor: Colors.red,
           );
         }
-        return;
+        return false;
       }
 
       // Show QR modal for Wallet QPay
@@ -773,7 +780,9 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
         } catch (e) {
           print('Error fetching final payment details: $e');
         }
+        return true;
       }
+      return false;
     } catch (e) {
       if (mounted) {
         showGlassSnackBar(
@@ -784,6 +793,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           iconColor: Colors.red,
         );
       }
+      return false;
     }
   }
 

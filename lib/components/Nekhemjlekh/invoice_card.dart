@@ -33,6 +33,7 @@ class InvoiceCard extends StatelessWidget {
       case 'Төлсөн':
         return AppColors.success;
       case 'Төлөөгүй':
+      case 'Хэсэгчлэн':
         return AppColors.warning;
       default:
         return AppColors.neutralGray;
@@ -45,6 +46,8 @@ class InvoiceCard extends StatelessWidget {
         return 'Төлөгдсөн';
       case 'Төлөөгүй':
         return 'Хүлээгдэж байгаа';
+      case 'Хэсэгчлэн':
+        return 'Хэсэгчлэн төлсөн';
       default:
         return status;
     }

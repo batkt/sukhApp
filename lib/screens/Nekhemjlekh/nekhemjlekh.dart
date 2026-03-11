@@ -443,9 +443,39 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
               .toSet();
 
           setState(() {
-            invoices = mergedInvoices
-                .map((item) => NekhemjlekhItem.fromJson(item))
-                .toList();
+            final List<NekhemjlekhItem> finalInvoices = [];
+            for (var item in mergedInvoices) {
+              final parsed = NekhemjlekhItem.fromJson(item);
+              
+              if (parsed.tuluv == 'Төлсөн' && parsed.uldegdel > 0) {
+                // It is marked as paid but still has remaining balance (uldegdel).
+                // Let's split it into a "Paid" part (for history) and an "Unpaid" part.
+                final paidAmount = parsed.niitTulburOriginal - parsed.uldegdel;
+                
+                if (paidAmount > 0) {
+                  // The paid part (appears in the "Paid" tab)
+                  final paidInfo = Map<String, dynamic>.from(item);
+                  paidInfo['niitTulbur'] = paidAmount;
+                  paidInfo['niitTulburOriginal'] = paidAmount;
+                  paidInfo['uldegdel'] = 0;
+                  paidInfo['_id'] = '${parsed.id}_paid';
+                  finalInvoices.add(NekhemjlekhItem.fromJson(paidInfo));
+                }
+                
+                // The remaining unpaid part (appears in the "Unpaid" tab so it can be paid)
+                final unpaidInfo = Map<String, dynamic>.from(item);
+                unpaidInfo['tuluv'] = 'Хэсэгчлэн';
+                unpaidInfo['niitTulbur'] = parsed.uldegdel;
+                unpaidInfo['niitTulburOriginal'] = parsed.uldegdel;
+                unpaidInfo['uldegdel'] = parsed.uldegdel;
+                // keep the original ID so payment APIs use the correct invoice ID
+                finalInvoices.add(NekhemjlekhItem.fromJson(unpaidInfo));
+              } else {
+                finalInvoices.add(parsed);
+              }
+            }
+
+            invoices = finalInvoices;
 
             for (var invoice in invoices) {
               if (previouslySelectedIds.contains(invoice.id)) {
