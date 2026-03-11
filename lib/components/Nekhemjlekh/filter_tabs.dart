@@ -15,18 +15,16 @@ class FilterTabs extends StatelessWidget {
     required this.getFilterCount,
   });
 
-  @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 40.h,
-      margin: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _buildFilterTab(context, 'All', 'Төлөх'),
-          _buildFilterTab(context, 'Paid', 'Төлөгдсөн'),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildFilterTab(context, 'All', 'Бүгд'),
+        SizedBox(width: 6.w),
+        _buildFilterTab(context, 'Unpaid', 'Төлөх'),
+        SizedBox(width: 6.w),
+        _buildFilterTab(context, 'Paid', 'Төлөгдсөн'),
+      ],
     );
   }
 
@@ -34,85 +32,47 @@ class FilterTabs extends StatelessWidget {
     final isSelected = selectedFilter == filterKey;
     final count = getFilterCount(filterKey);
 
-    return Container(
-      margin: EdgeInsets.only(right: 6.w),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => onFilterChanged(filterKey),
-          borderRadius: BorderRadius.circular(12.r),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: 10.w,
-              vertical: 6.h,
-            ),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.deepGreen
-                  : (context.isDarkMode
-                      ? const Color(0xFF1A1A1A)
-                      : Colors.white),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.deepGreen
-                    : (context.isDarkMode
-                        ? AppColors.deepGreen.withOpacity(0.2)
-                        : AppColors.deepGreen.withOpacity(0.15)),
-                width: 1,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onFilterChanged(filterKey),
+        borderRadius: BorderRadius.circular(10.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.deepGreen : (context.isDarkMode ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03)),
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : context.textPrimaryColor,
+                  fontSize: 11.sp,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
               ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.deepGreen.withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected
-                        ? Colors.white
-                        : context.textPrimaryColor,
-                    fontSize: 13.sp,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.w500,
+              if (count > 0) ...[
+                SizedBox(width: 4.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white.withOpacity(0.15) : AppColors.deepGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    count.toString(),
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.deepGreen,
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                if (count > 0) ...[
-                  SizedBox(width: 5.w),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 5.w,
-                      vertical: 2.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.white.withOpacity(0.2)
-                          : AppColors.deepGreen.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Text(
-                      count.toString(),
-                      style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.deepGreen,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
         ),
       ),

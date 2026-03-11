@@ -14,6 +14,8 @@ class NekhemjlekhItem {
   final String gereeniiDugaar;
   final String nekhemjlekhiinOgnoo;
   final double niitTulbur;
+  final double niitTulburOriginal;
+  final double uldegdel;
   final List<String> utas;
   final String dansniiDugaar;
   final String tuluv;
@@ -35,6 +37,8 @@ class NekhemjlekhItem {
     required this.gereeniiDugaar,
     required this.nekhemjlekhiinOgnoo,
     required this.niitTulbur,
+    this.niitTulburOriginal = 0.0,
+    this.uldegdel = 0.0,
     required this.utas,
     required this.dansniiDugaar,
     required this.tuluv,
@@ -123,6 +127,8 @@ class NekhemjlekhItem {
           json['ognoo']?.toString() ??
           '',
       niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),
+      niitTulburOriginal: (json['niitTulburOriginal'] ?? 0).toDouble(),
+      uldegdel: (json['uldegdel'] ?? 0).toDouble(),
       utas: json['utas'] != null
           ? (json['utas'] as List).map((e) => e.toString()).toList()
           : [],
@@ -142,11 +148,14 @@ class NekhemjlekhItem {
     }
   }
 
-  /// The effective total for an invoice item is now strictly trusts the backend's
-  /// 'niitTulbur' value. We no longer add 'ekhniiUldegdel' here because for this
-  /// organization, the backend already includes the balance in the total.
-  /// Adding it again causes double-counting (e.g., 153 + 150 = 303).
+  /// Use niitTulbur by default, but fallback to niitTulburOriginal or uldegdel if it's 0.
+  /// Often the backend returns niitTulbur: 0 for paid invoices, making it look like 0₮ 
+  /// in the history view.
   double get effectiveNiitTulbur {
+    if (niitTulbur == 0) {
+      if (niitTulburOriginal > 0) return niitTulburOriginal;
+      if (uldegdel > 0) return uldegdel;
+    }
     return niitTulbur;
   }
 

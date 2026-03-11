@@ -195,7 +195,7 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
           alignment: Alignment.bottomCenter,
           child: Container(
             width: modalWidth,
-            height: constraints.maxHeight * 0.7,
+            height: constraints.maxHeight * 0.85,
             decoration: BoxDecoration(
               color: context.isDarkMode
                   ? const Color(0xFF1A1A1A)
@@ -387,316 +387,58 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
                                   width: double.infinity,
                                   child: ElevatedButton(
                                     onPressed: () async {
-                                      final baiguullagiinId =
-                                          await StorageService.getBaiguullagiinId();
-                                      final isWalletOnlyOrg =
-                                          baiguullagiinId ==
-                                          '698e7fd3b6dd386b6c56a808';
-
-                                      // Wallet-only org: start Wallet QPay flow
-                                      if (isWalletOnlyOrg) {
-                                        if (_selectedBillingIds.isEmpty) {
-                                          if (mounted) {
-                                            showGlassSnackBar(
-                                              context,
-                                              message:
-                                                  'Төлөх биллингээ сонгоно уу',
-                                              icon: Icons.info_outline,
-                                              iconColor:
-                                                  AppColors.deepGreenAccent,
-                                              textColor:
-                                                  context.textPrimaryColor,
-                                            );
-                                          }
-                                          return;
-                                        }
-
-                                        // For now, support paying one billing at a time
-                                        final selectedBillingId =
-                                            _selectedBillingIds.first;
-
-                                        // Find selected billing in list
-                                        final selectedBilling = _walletBillings
-                                            .firstWhere(
-                                              (b) =>
-                                                  b['billingId']?.toString() ==
-                                                  selectedBillingId,
-                                              orElse: () => {},
-                                            );
-
-                                        if (selectedBilling.isEmpty) {
-                                          if (mounted) {
-                                            showGlassSnackBar(
-                                              context,
-                                              message:
-                                                  'Сонгосон биллинг олдсонгүй',
-                                              icon: Icons.error_outline,
-                                              iconColor: Colors.red,
-                                              textColor:
-                                                  context.textPrimaryColor,
-                                            );
-                                          }
-                                          return;
-                                        }
-
-                                        try {
-                                          // Fetch bills for this billingId to get billIds
-                                          final billingData =
-                                              await ApiService.getWalletBillingBills(
-                                                billingId: selectedBillingId,
-                                              );
-
-                                          // Extract bills (same structure handling as above)
-                                          List<Map<String, dynamic>> bills = [];
-                                          if (billingData['newBills'] != null &&
-                                              billingData['newBills'] is List) {
-                                            final newBillsList =
-                                                billingData['newBills'] as List;
-                                            if (newBillsList.isNotEmpty) {
-                                              final firstItem =
-                                                  newBillsList[0]
-                                                      as Map<String, dynamic>;
-                                              if (firstItem.containsKey(
-                                                'billId',
-                                              )) {
-                                                bills = List.from(
-                                                  newBillsList
-                                                      .cast<
-                                                        Map<String, dynamic>
-                                                      >(),
-                                                );
-                                              } else if (firstItem.containsKey(
-                                                    'billingId',
-                                                  ) &&
-                                                  firstItem['newBills'] !=
-                                                      null) {
-                                                if (firstItem['newBills']
-                                                    is List) {
-                                                  bills = List.from(
-                                                    (firstItem['newBills']
-                                                            as List)
-                                                        .cast<
-                                                          Map<String, dynamic>
-                                                        >(),
-                                                  );
-                                                }
-                                              }
-                                            }
-                                          } else if (billingData.containsKey(
-                                                'billingId',
-                                              ) &&
-                                              billingData['newBills'] != null) {
-                                            if (billingData['newBills']
-                                                is List) {
-                                              bills = List.from(
-                                                (billingData['newBills']
-                                                        as List)
-                                                    .cast<
-                                                      Map<String, dynamic>
-                                                    >(),
-                                              );
-                                            }
-                                          }
-
-                                          // --- Build billIds list with frontend filtering rules ---
-                                          // 1) Work only with newBills from Wallet API (already in `bills`)
-                                          // 2) Filter by billtypeGeneral if needed (e.g. only HOUSE_OWNER_ASSOCIATION)
-                                          // 3) Enforce max 5 bills per payment
-                                          final filteredBills = bills
-                                              .where(
-                                                (b) =>
-                                                    b['billtypeGeneral']
-                                                        ?.toString() ==
-                                                    'HOUSE_OWNER_ASSOCIATION',
-                                              )
-                                              .take(5)
-                                              .toList();
-
-                                          final billIds = filteredBills
-                                              .map(
-                                                (b) => b['billId']?.toString(),
-                                              )
-                                              .whereType<String>()
-                                              .toList();
-
-                                          if (billIds.isEmpty) {
-                                            if (mounted) {
-                                              showGlassSnackBar(
-                                                context,
-                                                message:
-                                                    'Төлөх боломжтой төлбөр олдсонгүй. Та дахин шалгана уу.',
-                                                icon: Icons.info_outline,
-                                                iconColor:
-                                                    AppColors.deepGreenAccent,
-                                                textColor:
-                                                    context.textPrimaryColor,
-                                              );
-                                            }
-                                            return;
-                                          }
-
-                                          if (_vatReceiveType == 'COMPANY' &&
-                                              _vatCompanyRegController.text.isEmpty) {
-                                            if (mounted) {
-                                              showGlassSnackBar(
-                                                context,
-                                                message: 'Байгууллагын РД оруулна уу',
-                                                icon: Icons.info_outline,
-                                                iconColor: AppColors.deepGreenAccent,
-                                              );
-                                            }
-                                            return;
-                                          }
-
-                                          // Create Wallet QPay payment
-                                          final qpayResponse =
-                                              await ApiService.createWalletQPayPayment(
-                                                billingId: selectedBillingId,
-                                                billIds: billIds,
-                                                vatReceiveType: _vatReceiveType,
-                                                vatCompanyReg: _vatReceiveType == 'COMPANY' ? _vatCompanyRegController.text : null,
-                                              );
-
-                                          // New endpoint returns normalized response
-                                          final success =
-                                              qpayResponse['success'] == true;
-                                          if (!success) {
-                                            if (mounted) {
-                                              showGlassSnackBar(
-                                                context,
-                                                message:
-                                                    qpayResponse['message']
-                                                        ?.toString() ??
-                                                    'Төлбөрийн мэдээлэл олдсонгүй. Та дахин оролдоно уу.',
-                                                icon: Icons.error_outline,
-                                                iconColor: Colors.red,
-                                                textColor:
-                                                    context.textPrimaryColor,
-                                              );
-                                            }
-                                            return;
-                                          }
-
-                                          final walletPaymentId =
-                                              qpayResponse['walletPaymentId']
-                                                  ?.toString();
-                                          final paymentAmount =
-                                              (qpayResponse['paymentAmount']
-                                                      as num?)
-                                                  ?.toDouble() ??
-                                              0.0;
-                                          // qr_text from the QPay data object
-                                          final qrText = qpayResponse['qr_text']
-                                              ?.toString();
-                                          // qr_image (base64) from the QPay data object
-                                          final qrImage = qpayResponse['qr_image']
-                                              ?.toString();
-                                          final urls = qpayResponse['urls'] as List<dynamic>?;
-
-                                          if (!mounted) return;
-
-                                          // Close total balance modal before showing QR
-                                          Navigator.of(context).pop();
-
-                                          if ((qrText == null || qrText.isEmpty) &&
-                                              (qrImage == null || qrImage.isEmpty)) {
-                                            if (mounted) {
-                                              showGlassSnackBar(
-                                                context,
-                                                message:
-                                                    'QPay QR мэдээлэл олдсонгүй',
-                                                icon: Icons.error_outline,
-                                                iconColor: Colors.red,
-                                                textColor:
-                                                    context.textPrimaryColor,
-                                              );
-                                            }
-                                            return;
-                                          }
-
-                                          if (!mounted) return;
-
-                                          // Show QR modal for Wallet QPay
-                                          final paid = await showDialog<bool>(
-                                            context: context,
-                                            builder: (context) => QPayQRModal(
-                                              qrText: qrText,
-                                              qrImageWallet: qrImage,
-                                              urls: urls,
-                                              amount: paymentAmount,
-                                              walletPaymentId: walletPaymentId,
-                                              closeOnSuccess: true,
-                                              onCheckPaymentAsync: () async {
-                                                if (walletPaymentId == null ||
-                                                    walletPaymentId.isEmpty) {
-                                                  return null;
-                                                }
-                                                try {
-                                                  final status =
-                                                      await ApiService.walletQpayCheckStatus(
-                                                        walletPaymentId: walletPaymentId,
-                                                      );
-                                                  final state =
-                                                      status['status']
-                                                          ?.toString()
-                                                          .toUpperCase();
-
-                                                  if (state == 'PAID') {
-                                                    return true;
-                                                  }
-                                                  if (state == 'PENDING') {
-                                                    return null;
-                                                  }
-                                                  return false;
-                                                } catch (_) {
-                                                  return null;
-                                                }
-                                              },
-                                            ),
+                                      if (_selectedBillingIds.isEmpty) {
+                                        if (mounted) {
+                                          showGlassSnackBar(
+                                            context,
+                                            message: 'Төлөх биллингээ сонгоно уу',
+                                            icon: Icons.info_outline,
+                                            iconColor: AppColors.deepGreenAccent,
+                                            textColor: context.textPrimaryColor,
                                           );
-
-                                          // If paid successfully, show receipt
-                                          if (paid == true && mounted && walletPaymentId != null) {
-                                             try {
-                                               final paymentData = await ApiService.walletQpayGetPayment(
-                                                 walletPaymentId: walletPaymentId,
-                                               );
-                                               
-                                                if (mounted && paymentData.containsKey('vatInformation')) {
-                                                  final receipt = VATReceipt.fromWalletPayment(paymentData);
-                                                  await showModalBottomSheet(
-                                                    context: context,
-                                                    isScrollControlled: true,
-                                                    backgroundColor: Colors.transparent,
-                                                    builder: (context) => VATReceiptModal(receipt: receipt),
-                                                  );
-                                                  if (mounted) Navigator.of(context).pop();
-                                                }
-                                             } catch (e) {
-                                               print('Error fetching final payment details: $e');
-                                             }
-                                          }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            showGlassSnackBar(
-                                              context,
-                                              message: e.toString().replaceFirst('Exception: ', ''),
-                                              icon: Icons.error_outline,
-                                              iconColor: Colors.red,
-                                              textColor:
-                                                  context.textPrimaryColor,
-                                            );
-                                          }
                                         }
-                                      } else {
-                                        // Non-wallet org: existing flow - close modal then open payment modal (Нэхэмжлэх based)
-                                        Navigator.of(context).pop();
-                                        Future.delayed(
-                                          const Duration(milliseconds: 100),
-                                          () {
-                                            widget.onPaymentTap();
-                                          },
-                                        );
+                                        return;
+                                      }
+
+                                      if (_vatReceiveType == 'COMPANY' &&
+                                          _vatCompanyRegController.text.isEmpty) {
+                                        if (mounted) {
+                                          showGlassSnackBar(
+                                            context,
+                                            message: 'Байгууллагын РД оруулна уу',
+                                            icon: Icons.info_outline,
+                                            iconColor: AppColors.deepGreenAccent,
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      // Split selected billings into OWN_ORG and WALLET groups
+                                      final selectedOwnOrg = _walletBillings
+                                          .where((b) =>
+                                              b['isOwnOrg'] == true &&
+                                              _selectedBillingIds.contains(
+                                                  b['billingId']?.toString()))
+                                          .toList();
+
+                                      final selectedWallet = _walletBillings
+                                          .where((b) =>
+                                              b['isOwnOrg'] != true &&
+                                              _selectedBillingIds.contains(
+                                                  b['billingId']?.toString()))
+                                          .toList();
+
+                                      // Close TotalBalanceModal first
+                                      Navigator.of(context).pop();
+
+                                      // Process OWN_ORG billings first
+                                      if (selectedOwnOrg.isNotEmpty) {
+                                        await _processOwnOrgPayment(selectedOwnOrg);
+                                      }
+
+                                      // Then process WALLET billings
+                                      if (selectedWallet.isNotEmpty && mounted) {
+                                        await _processWalletPayment(selectedWallet);
                                       }
                                     },
                                     style: ElevatedButton.styleFrom(
@@ -751,6 +493,298 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
       }
     }
     return sum;
+  }
+
+  /// Process OWN_ORG QPay payment (uses qpayGargaya API)
+  Future<void> _processOwnOrgPayment(
+      List<Map<String, dynamic>> selectedOwnOrg) async {
+    try {
+      final selectedBilling = selectedOwnOrg.first;
+      final contract =
+          selectedBilling['contract'] as Map<String, dynamic>?;
+
+      if (contract == null) {
+        throw Exception('Гэрээний мэдээлэл олдсонгүй');
+      }
+
+      final ownOrgBaiguullagiinId =
+          await StorageService.getBaiguullagiinId();
+      final ownOrgBarilgiinId =
+          await StorageService.getBarilgiinId();
+
+      if (ownOrgBaiguullagiinId == null || ownOrgBarilgiinId == null) {
+        throw Exception('Байгууллагын мэдээлэл олдсонгүй');
+      }
+
+      // Calculate total from all selected OWN_ORG
+      double totalAmount = 0;
+      for (final b in selectedOwnOrg) {
+        totalAmount +=
+            (b['calculatedTotal'] as num?)?.toDouble() ?? 0;
+      }
+
+      final turul =
+          contract['gereeniiDugaar']?.toString() ?? '';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final orderNumber = 'TB-$timestamp';
+
+      // Create OWN_ORG QPay invoice
+      final ownOrgResponse = await ApiService.qpayGargaya(
+        baiguullagiinId: ownOrgBaiguullagiinId,
+        barilgiinId: ownOrgBarilgiinId,
+        dun: totalAmount,
+        turul: turul,
+        zakhialgiinDugaar: '$orderNumber-OWN_ORG',
+        customerTin: _vatReceiveType == 'COMPANY'
+            ? _vatCompanyRegController.text
+            : null,
+      );
+
+      final qrImage = ownOrgResponse['qr_image']?.toString();
+      final invoiceId = ownOrgResponse['invoice_id']?.toString();
+      final urls = ownOrgResponse['urls'] as List<dynamic>?;
+
+      if (!mounted) return;
+
+      if ((qrImage == null || qrImage.isEmpty) &&
+          (urls == null || urls.isEmpty)) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'QPay мэдээлэл олдсонгүй',
+            icon: Icons.error_outline,
+            iconColor: Colors.red,
+          );
+        }
+        return;
+      }
+
+      // Show QR modal for OWN_ORG QPay
+      final paid = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => QPayQRModal(
+          qrImageOwnOrg: qrImage,
+          urls: urls,
+          amount: totalAmount,
+          invoiceNumber: invoiceId,
+          closeOnSuccess: true,
+          onCheckPaymentAsync: () async {
+            if (invoiceId == null || invoiceId.isEmpty) return null;
+            try {
+              final status = await ApiService.checkPaymentStatus(
+                invoiceId: invoiceId,
+              );
+              final rows = status['rows'] as List?;
+              if (rows != null && rows.isNotEmpty) {
+                final invoiceStatus = rows[0]['invoice_status']
+                    ?.toString()
+                    .toUpperCase();
+                if (invoiceStatus == 'PAID') return true;
+                if (invoiceStatus == 'OPEN') return false;
+              }
+              return null;
+            } catch (_) {
+              return null;
+            }
+          },
+        ),
+      );
+
+      if (paid == true && mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Орон сууцны төлбөр амжилттай төлөгдлөө',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: e.toString().replaceFirst('Exception: ', ''),
+          icon: Icons.error_outline,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
+  /// Process WALLET QPay payment (uses createWalletQPayPayment API)
+  Future<void> _processWalletPayment(
+      List<Map<String, dynamic>> selectedWallet) async {
+    try {
+      // For now, support paying one wallet billing at a time
+      final walletBilling = selectedWallet.first;
+      final selectedBillingId =
+          walletBilling['billingId']?.toString() ?? '';
+
+      if (selectedBillingId.isEmpty) {
+        throw Exception('Биллингийн мэдээлэл олдсонгүй');
+      }
+
+      // Fetch bills for this billingId to get billIds
+      final billingData = await ApiService.getWalletBillingBills(
+        billingId: selectedBillingId,
+      );
+
+      // Extract bills (handles nested structures)
+      List<Map<String, dynamic>> bills = [];
+      if (billingData['newBills'] != null &&
+          billingData['newBills'] is List) {
+        final newBillsList = billingData['newBills'] as List;
+        if (newBillsList.isNotEmpty) {
+          final firstItem =
+              newBillsList[0] as Map<String, dynamic>;
+          if (firstItem.containsKey('billId')) {
+            bills = List.from(
+                newBillsList.cast<Map<String, dynamic>>());
+          } else if (firstItem.containsKey('billingId') &&
+              firstItem['newBills'] != null) {
+            if (firstItem['newBills'] is List) {
+              bills = List.from(
+                  (firstItem['newBills'] as List)
+                      .cast<Map<String, dynamic>>());
+            }
+          }
+        }
+      } else if (billingData.containsKey('billingId') &&
+          billingData['newBills'] != null) {
+        if (billingData['newBills'] is List) {
+          bills = List.from((billingData['newBills'] as List)
+              .cast<Map<String, dynamic>>());
+        }
+      }
+
+      // Filter and get billIds
+      final filteredBills = bills
+          .where((b) =>
+              b['billtypeGeneral']?.toString() ==
+              'HOUSE_OWNER_ASSOCIATION')
+          .take(5)
+          .toList();
+
+      final billIds = filteredBills
+          .map((b) => b['billId']?.toString())
+          .whereType<String>()
+          .toList();
+
+      if (billIds.isEmpty) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Төлөх боломжтой төлбөр олдсонгүй',
+            icon: Icons.info_outline,
+            iconColor: AppColors.deepGreenAccent,
+          );
+        }
+        return;
+      }
+
+      // Create Wallet QPay payment
+      final qpayResponse = await ApiService.createWalletQPayPayment(
+        billingId: selectedBillingId,
+        billIds: billIds,
+        vatReceiveType: _vatReceiveType,
+        vatCompanyReg: _vatReceiveType == 'COMPANY'
+            ? _vatCompanyRegController.text
+            : null,
+      );
+
+      final success = qpayResponse['success'] == true;
+      if (!success) {
+        throw Exception(qpayResponse['message']?.toString() ??
+            'Төлбөрийн мэдээлэл олдсонгүй');
+      }
+
+      final walletPaymentId =
+          qpayResponse['walletPaymentId']?.toString();
+      final paymentAmount =
+          (qpayResponse['paymentAmount'] as num?)?.toDouble() ?? 0.0;
+      final qrText = qpayResponse['qr_text']?.toString();
+      final qrImage = qpayResponse['qr_image']?.toString();
+      final urls = qpayResponse['urls'] as List<dynamic>?;
+
+      if (!mounted) return;
+
+      if ((qrText == null || qrText.isEmpty) &&
+          (qrImage == null || qrImage.isEmpty)) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'QPay QR мэдээлэл олдсонгүй',
+            icon: Icons.error_outline,
+            iconColor: Colors.red,
+          );
+        }
+        return;
+      }
+
+      // Show QR modal for Wallet QPay
+      final paid = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => QPayQRModal(
+          qrText: qrText,
+          qrImageWallet: qrImage,
+          urls: urls,
+          amount: paymentAmount,
+          walletPaymentId: walletPaymentId,
+          closeOnSuccess: true,
+          onCheckPaymentAsync: () async {
+            if (walletPaymentId == null || walletPaymentId.isEmpty) {
+              return null;
+            }
+            try {
+              final status =
+                  await ApiService.walletQpayCheckStatus(
+                walletPaymentId: walletPaymentId,
+              );
+              final state =
+                  status['status']?.toString().toUpperCase();
+              if (state == 'PAID') return true;
+              if (state == 'PENDING') return null;
+              return false;
+            } catch (_) {
+              return null;
+            }
+          },
+        ),
+      );
+
+      // If paid successfully, show receipt
+      if (paid == true && mounted && walletPaymentId != null) {
+        try {
+          final paymentData =
+              await ApiService.walletQpayGetPayment(
+            walletPaymentId: walletPaymentId,
+          );
+          if (mounted &&
+              paymentData.containsKey('vatInformation')) {
+            final receipt =
+                VATReceipt.fromWalletPayment(paymentData);
+            await showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) =>
+                  VATReceiptModal(receipt: receipt),
+            );
+          }
+        } catch (e) {
+          print('Error fetching final payment details: $e');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message:
+              e.toString().replaceFirst('Exception: ', ''),
+          icon: Icons.error_outline,
+          iconColor: Colors.red,
+        );
+      }
+    }
   }
 
   Widget _buildVATSelector(BuildContext context) {

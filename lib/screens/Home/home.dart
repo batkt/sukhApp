@@ -1501,9 +1501,8 @@ class _BookingScreenState extends State<NuurKhuudas>
       builder: (context) => TotalBalanceModal(
         formatNumberWithComma: _formatNumberWithComma,
         onPaymentTap: isWalletOnlyOrg
-            // For pure wallet org, don't jump to nekhemjlekh, just do nothing (modal already closed)
             ? () {}
-            : _showPaymentModal,
+            : () => context.push('/nekhemjlekh'),
       ),
     );
     

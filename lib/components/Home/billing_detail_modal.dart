@@ -219,7 +219,7 @@ class _BillingDetailModalState extends State<BillingDetailModal> {
           alignment: Alignment.bottomCenter,
           child: Container(
             width: modalWidth,
-            height: constraints.maxHeight * 0.7,
+            height: constraints.maxHeight * 0.85,
             decoration: BoxDecoration(
               color: context.isDarkMode
                   ? const Color(0xFF1A1A1A)

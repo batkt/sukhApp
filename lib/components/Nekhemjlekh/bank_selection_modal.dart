@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
@@ -30,7 +31,7 @@ class BankSelectionModal extends StatelessWidget {
     return Center(
       child: Container(
         width: modalWidth,
-        height: MediaQuery.of(context).size.height * 0.65,
+        height: MediaQuery.of(context).size.height * 1,
         decoration: BoxDecoration(
           color: context.isDarkMode
               ? const Color(0xFF1A1A1A)
@@ -61,18 +62,18 @@ class BankSelectionModal extends StatelessWidget {
         children: [
             // Handle bar
             Container(
-              margin: EdgeInsets.only(top: 10.h),
+              margin: EdgeInsets.only(top: 10.h), 
               width: 36.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: context.isDarkMode
-                    ? Colors.white.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2.r),
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: context.isDarkMode
+                      ? Colors.white.withOpacity(0.3)
+                      : Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
               ),
-            ),
-            // Header
-            Padding(
+              // Header
+            Padding(                                                                    
               padding: EdgeInsets.all(16.w),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -183,7 +184,7 @@ class BankSelectionModal extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8.r),
                 child: Image.network(
-                  bank.logo,
+                  _getLogoUrl(bank.logo),
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Icon(
@@ -216,5 +217,12 @@ class BankSelectionModal extends StatelessWidget {
       ),
     );
   }
-}
 
+  /// Helper to handle CORS issues for bank logos on Web
+  static String _getLogoUrl(String url) {
+    if (kIsWeb && url.isNotEmpty && url.startsWith('http')) {
+      return 'https://images.weserv.nl/?url=${Uri.encodeComponent(url)}';
+    }
+    return url;
+  }
+}

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
@@ -556,12 +557,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       filtered = filtered
           .where((invoice) => invoice.tuluv == 'Төлсөн')
           .toList();
-    } else {
-      // 'All' shows all unpaid invoices
+    } else if (selectedFilter == 'Unpaid') {
       filtered = filtered
           .where((invoice) => invoice.tuluv != 'Төлсөн')
           .toList();
     }
+    // 'All' shows everything (no additional filter)
+
 
     return filtered;
   }
@@ -577,6 +579,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
     switch (filterKey) {
       case 'All':
+        return monthFiltered.length;
+      case 'Unpaid':
         return monthFiltered.where((invoice) => invoice.tuluv != 'Төлсөн').length;
       case 'Paid':
         return monthFiltered.where((invoice) => invoice.tuluv == 'Төлсөн').length;
@@ -599,47 +603,83 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
     // Sort months descending
     final sortedMonths = months.toList()..sort((a, b) => b.compareTo(a));
+    final selectedLabel = selectedMonth == null
+        ? 'Бүх'
+        : "${selectedMonth!.year}.${selectedMonth!.month.toString().padLeft(2, '0')}";
 
-    return Container(
-      height: 40.h,
-      margin: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: sortedMonths.length + 1, // +1 for "All"
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            final isSelected = selectedMonth == null;
-            return _buildMonthTab('Бүгд', isSelected, () {
-              setState(() => selectedMonth = null);
-            });
-          }
-          final monthDate = sortedMonths[index - 1];
-          final isSelected = selectedMonth?.year == monthDate.year &&
-              selectedMonth?.month == monthDate.month;
-          final label = "${monthDate.year}-${monthDate.month.toString().padLeft(2, '0')}";
-          return _buildMonthTab(label, isSelected, () {
-            setState(() => selectedMonth = monthDate);
+    return Theme(
+      data: Theme.of(context).copyWith(
+        hoverColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      child: PopupMenuButton<DateTime?>(
+        offset: const Offset(0, 40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        color: context.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+          decoration: BoxDecoration(
+            color: context.isDarkMode ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                selectedLabel,
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(width: 2.w),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 14.sp,
+                color: context.textSecondaryColor,
+              ),
+            ],
+          ),
+        ),
+        onSelected: (date) {
+          setState(() {
+            selectedMonth = date;
           });
         },
+        itemBuilder: (context) => [
+          PopupMenuItem<DateTime?>(
+            value: null,
+            child: Text('Бүх', style: TextStyle(fontSize: 13.sp, color: context.textPrimaryColor)),
+          ),
+          ...sortedMonths.map((month) => PopupMenuItem<DateTime?>(
+                value: month,
+                child: Text(
+                  "${month.year}.${month.month.toString().padLeft(2, '0')}",
+                  style: TextStyle(fontSize: 13.sp, color: context.textPrimaryColor),
+                ),
+              )),
+        ],
       ),
     );
   }
 
   Widget _buildMonthTab(String label, bool isSelected, VoidCallback onTap) {
     return Container(
-      margin: EdgeInsets.only(right: 8.w),
+      margin: EdgeInsets.only(right: 6.w),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(8.r),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.deepGreen : (context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.white),
-              borderRadius: BorderRadius.circular(10.r),
+              color: isSelected ? AppColors.deepGreen : Colors.transparent,
+              borderRadius: BorderRadius.circular(8.r),
               border: Border.all(
-                color: isSelected ? AppColors.deepGreen : context.borderColor.withOpacity(0.3),
+                color: isSelected ? AppColors.deepGreen : context.borderColor.withOpacity(0.2),
                 width: 1,
               ),
               boxShadow: isSelected ? [
@@ -1503,7 +1543,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                               ),
                             ),
                             child: Image.network(
-                              bank.logo,
+                              _getLogoUrl(bank.logo),
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Icon(
@@ -2240,7 +2280,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                           tablet: 19,
                           veryNarrow: 14,
                         ),
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -2531,8 +2571,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   availableContracts.length > 1)
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 6.h,
+                    horizontal: 8.w,
+                    vertical: 4.h,
                   ),
                   child: GestureDetector(
                     onTap: _showContractSelectionModal,
@@ -2664,17 +2704,29 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                       )
                     : Column(
                         children: [
-                          // Month Selector
-                          _buildMonthSelector(),
-                          // Filter Tabs
-                          FilterTabs(
-                            selectedFilter: selectedFilter,
-                            onFilterChanged: (filterKey) {
-                              setState(() {
-                                selectedFilter = filterKey;
-                              });
-                            },
-                            getFilterCount: _getFilterCount,
+                          // Date and Status Row
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 4.h),
+                            child: Row(
+                              children: [
+                                _buildMonthSelector(),
+                                SizedBox(width: 8.w),
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: FilterTabs(
+                                      selectedFilter: selectedFilter,
+                                      onFilterChanged: (filterKey) {
+                                        setState(() {
+                                          selectedFilter = filterKey;
+                                        });
+                                      },
+                                      getFilterCount: _getFilterCount,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           // Sticky payment section at top (hidden in history mode)
                           if (selectedFilter != 'Paid')
@@ -2986,4 +3038,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
   // _buildInvoiceCard moved to components/Nekhemjlekh/invoice_card.dart
   // Removed old implementation - using InvoiceCard component instead
+
+  /// Helper to handle CORS issues for bank logos on Web
+  String _getLogoUrl(String url) {
+    if (kIsWeb && url.isNotEmpty && url.startsWith('http')) {
+      return 'https://images.weserv.nl/?url=${Uri.encodeComponent(url)}';
+    }
+    return url;
+  }
 }
