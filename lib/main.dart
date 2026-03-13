@@ -60,15 +60,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<void> _checkForUpdate() async {
     try {
-      final hasUpdate = await UpdateService.checkForUpdate();
-      if (hasUpdate && navigatorKey.currentContext != null) {
+      final versionInfo = await UpdateService.checkForUpdate();
+      if (versionInfo != null && navigatorKey.currentContext != null) {
         // Wait a bit for the app to fully load
         await Future.delayed(const Duration(seconds: 2));
         if (navigatorKey.currentContext != null && mounted) {
           showDialog(
             context: navigatorKey.currentContext!,
-            barrierDismissible: false,
-            builder: (context) => const UpdateModal(),
+            barrierDismissible: !versionInfo.isForceUpdate,
+            builder: (context) => UpdateModal(versionInfo: versionInfo),
           );
         }
       }

@@ -174,7 +174,6 @@ final GoRouter appRouter = GoRouter(
             forceNoOrg: extra?['forceNoOrg'] == true,
             baiguullagiinId: extra?['baiguullagiinId']?.toString(),
             prefillPhone: extra?['utas']?.toString(),
-            prefillEmail: extra?['mail']?.toString(),
           ),
         );
       },
@@ -320,14 +319,6 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: const ContactPage(),
-          ),
-    ),
-    GoRoute(
-      path: '/nuuts-ug-sergeekh',
-      pageBuilder: (context, state) =>
-          PageTransitions.buildFadeThroughTransition(
-            key: state.pageKey,
-            child: const NuutsUgSergeekh(),
           ),
     ),
   ],

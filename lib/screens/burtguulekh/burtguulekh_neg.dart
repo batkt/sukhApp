@@ -2,18 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:ui';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
-import 'package:sukh_app/widgets/app_logo.dart';
-import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 
+/// Modern minimal background with subtle gradient
 class AppBackground extends StatelessWidget {
   final Widget child;
-
   const AppBackground({super.key, required this.child});
 
   @override
@@ -23,14 +21,58 @@ class AppBackground extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: AppColors.getGradientColors(isDark),
-          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-        ),
+        color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFB),
       ),
-      child: child,
+      child: Stack(
+        children: [
+          // Subtle decorative circles for visual interest
+          Positioned(
+            top: -100.h,
+            right: -80.w,
+            child: Container(
+              width: 280.w,
+              height: 280.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: isDark
+                      ? [
+                          AppColors.deepGreen.withOpacity(0.15),
+                          AppColors.deepGreen.withOpacity(0.0),
+                        ]
+                      : [
+                          AppColors.deepGreen.withOpacity(0.08),
+                          AppColors.deepGreen.withOpacity(0.0),
+                        ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -120.h,
+            left: -100.w,
+            child: Container(
+              width: 320.w,
+              height: 320.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: isDark
+                      ? [
+                          AppColors.deepGreenAccent.withOpacity(0.1),
+                          AppColors.deepGreenAccent.withOpacity(0.0),
+                        ]
+                      : [
+                          AppColors.deepGreenAccent.withOpacity(0.06),
+                          AppColors.deepGreenAccent.withOpacity(0.0),
+                        ],
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -44,10 +86,7 @@ class Burtguulekh_Neg extends StatefulWidget {
 
 class _BurtguulekhState extends State<Burtguulekh_Neg> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-
   bool _isLoading = false;
   bool _isRegistered = false;
 
@@ -55,7 +94,12 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   void initState() {
     super.initState();
     _phoneController.addListener(() => setState(() {}));
-    _emailController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _registerWalletUser() async {
@@ -65,7 +109,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
       });
 
       try {
-        // Get saved address info if available (for Wallet API addresses)
         final savedBairId = await StorageService.getWalletBairId();
         final savedDoorNo = await StorageService.getWalletDoorNo();
         final savedBairName = await StorageService.getWalletBairName();
@@ -74,7 +117,6 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
 
         await ApiService.registerWalletUser(
           utas: _phoneController.text.trim(),
-          mail: _emailController.text.trim(),
           bairId: savedSource == 'WALLET_API' ? savedBairId : null,
           doorNo: savedSource == 'WALLET_API' ? savedDoorNo : null,
           bairName: savedSource == 'WALLET_API' ? savedBairName : null,
@@ -117,527 +159,365 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
   }
 
   @override
-  void dispose() {
-    _phoneController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    bool isTablet = ScreenUtil().screenWidth > 700;
+    final isDark = context.isDarkMode;
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: context.isDarkMode 
-            ? const Color(0xFF000000) 
-            : const Color(0xFFFFFFFF),
+        backgroundColor: isDark
+            ? const Color(0xFF0A0E14)
+            : const Color(0xFFF8FAFB),
         resizeToAvoidBottomInset: true,
         body: AppBackground(
-          child: Stack(
-            children: [
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Padding(
-                            padding: context
-                                .responsiveHorizontalPadding(
-                                  small: 28,
-                                  medium: 32,
-                                  large: 36,
-                                  tablet: 40,
-                                )
-                                .copyWith(
-                                  top: context.responsiveSpacing(
-                                    small: 24,
-                                    medium: 28,
-                                    large: 32,
-                                    tablet: 36,
-                                  ),
-                                  bottom: context.responsiveSpacing(
-                                    small: 24,
-                                    medium: 28,
-                                    large: 32,
-                                    tablet: 36,
-                                  ),
-                                ),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const AppLogo(),
-                                  SizedBox(
-                                    height: context.responsiveSpacing(
-                                      small: 20,
-                                      medium: 24,
-                                      large: 28,
-                                      tablet: 32,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Бүртгэл',
-                                    style: context.largeTitleStyle(
-                                      color: AppColors.grayColor,
-                                    ),
-                                    maxLines: 1,
-                                    softWrap: false,
-                                  ),
-                                  SizedBox(
-                                    height: context.responsiveSpacing(
-                                      small: 24,
-                                      medium: 28,
-                                      large: 32,
-                                      tablet: 36,
-                                    ),
-                                  ),
-                                  if (_isRegistered) ...[
-                                    Container(
-                                      padding: context.responsivePadding(
-                                        small: 20,
-                                        medium: 22,
-                                        large: 24,
-                                        tablet: 26,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.success.withOpacity(
-                                          0.15,
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          context.responsiveBorderRadius(
-                                            small: 16,
-                                            medium: 18,
-                                            large: 20,
-                                            tablet: 22,
-                                          ),
-                                        ),
-                                        border: Border.all(
-                                          color: AppColors.success.withOpacity(
-                                            0.3,
-                                          ),
-                                          width: 1.5,
-                                        ),
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            Icons.check_circle,
-                                            color: AppColors.success,
-                                            size: context.responsiveIconSize(
-                                              small: 48,
-                                              medium: 52,
-                                              large: 56,
-                                              tablet: 60,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            height: context.responsiveSpacing(
-                                              small: 16,
-                                              medium: 18,
-                                              large: 20,
-                                              tablet: 22,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Амжилттай бүртгүүллээ!',
-                                            textAlign: TextAlign.center,
-                                            style: context.titleStyle(
-                                              color: AppColors.success,
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            height: context.responsiveSpacing(
-                                              small: 12,
-                                              medium: 14,
-                                              large: 16,
-                                              tablet: 18,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Одоо утасны дугаараараа нэвтэрч болно.',
-                                            textAlign: TextAlign.center,
-                                            style: context.descriptionStyle(
-                                              color: AppColors.grayColor
-                                                  .withOpacity(0.8),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: context.responsiveSpacing(
-                                        small: 24,
-                                        medium: 28,
-                                        large: 32,
-                                        tablet: 36,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        context.pop();
-                                      },
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: context.responsiveSpacing(
-                                            small: 14,
-                                            medium: 16,
-                                            large: 18,
-                                            tablet: 20,
-                                          ),
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFCAD2DB),
-                                          borderRadius: BorderRadius.circular(
-                                            context.responsiveBorderRadius(
-                                              small: 12,
-                                              medium: 14,
-                                              large: 16,
-                                              tablet: 18,
-                                            ),
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.2,
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isTablet ? 420.w : double.infinity,
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
+                              ),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(height: 16.h),
+                                    
+                                    // Logo matched with login screen
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          width: 130.w,
+                                          height: 130.w,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.black,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.3),
+                                                blurRadius: 20,
+                                                spreadRadius: 2,
                                               ),
-                                              offset: const Offset(0, 4),
-                                              blurRadius: 8,
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 100.w,
+                                          height: 100.w,
+                                          child: const SelectableLogoImage(
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 16.h),
+
+                                    // Title matched with login screen
+                                    Text(
+                                      'Бүртгэл',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.lightTextPrimary,
+                                        fontSize: 28.sp,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      'Бүртгүүлэх утсаа оруулна уу',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.5)
+                                            : AppColors.lightTextSecondary
+                                                  .withOpacity(0.7),
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+
+                                    SizedBox(height: 24.h),
+                                    
+                                    if (_isRegistered) ...[
+                                      Container(
+                                        padding: EdgeInsets.all(24.r),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.success.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(24.r),
+                                          border: Border.all(
+                                            color: AppColors.success.withOpacity(0.2),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle_rounded,
+                                              color: AppColors.success,
+                                              size: 48.sp,
+                                            ),
+                                            SizedBox(height: 16.h),
+                                            Text(
+                                              'Амжилттай!',
+                                              style: TextStyle(
+                                                color: AppColors.success,
+                                                fontSize: 20.sp,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8.h),
+                                            Text(
+                                              'Таны бүртгэл үүсгэгдлээ. Одоо нэвтэрнэ үү.',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: isDark ? Colors.white70 : Colors.black54,
+                                                fontSize: 14.sp,
+                                              ),
                                             ),
                                           ],
                                         ),
-                                        child: Text(
-                                          'Нэвтрэх',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: context.responsiveFontSize(
-                                              small: 15,
-                                              medium: 16,
-                                              large: 17,
-                                              tablet: 18,
-                                            ),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
                                       ),
-                                    ),
-                                  ] else ...[
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(
-                                          16.r,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.15,
-                                            ),
-                                            offset: const Offset(0, 4),
-                                            blurRadius: 12,
-                                            spreadRadius: 0,
-                                          ),
-                                        ],
+                                      SizedBox(height: 32.h),
+                                      _buildButton(
+                                        onTap: () => context.go('/newtrekh'),
+                                        label: 'Нэвтрэх',
+                                        isDark: isDark,
                                       ),
-                                      child: TextFormField(
+                                    ] else ...[
+                                      _buildInputField(
+                                        label: 'Утасны дугаар',
+                                        hint: '8888****',
                                         controller: _phoneController,
-                                        keyboardType: TextInputType.phone,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w500,
-                                          letterSpacing: 0.5,
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: 'Утасны дугаар',
-                                          hintStyle: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                              0.5,
-                                            ),
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.w400,
-                                          ),
-                                          filled: true,
-                                          fillColor: AppColors.inputGrayColor
-                                              .withOpacity(0.3),
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 20.w,
-                                            vertical: 16.h,
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              16.r,
-                                            ),
-                                            borderSide: BorderSide(
-                                              color: Colors.white.withOpacity(
-                                                0.1,
-                                              ),
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              16.r,
-                                            ),
-                                            borderSide: BorderSide(
-                                              color: AppColors.grayColor
-                                                  .withOpacity(0.8),
-                                              width: 2,
-                                            ),
-                                          ),
-                                          suffixIcon:
-                                              _phoneController.text.isNotEmpty
-                                              ? IconButton(
-                                                  icon: Icon(
-                                                    Icons.clear_rounded,
-                                                    color: Colors.white
-                                                        .withOpacity(0.7),
-                                                    size: 20.sp,
-                                                  ),
-                                                  onPressed: () =>
-                                                      _phoneController.clear(),
-                                                )
-                                              : null,
-                                        ),
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter
-                                              .digitsOnly,
-                                          LengthLimitingTextInputFormatter(8),
-                                        ],
+                                        icon: Icons.phone_iphone_rounded,
+                                        isDark: isDark,
                                         validator: (value) {
-                                          if (value == null ||
-                                              value.trim().isEmpty) {
+                                          if (value == null || value.trim().isEmpty) {
                                             return 'Утасны дугаар оруулна уу';
                                           }
                                           if (value.length != 8) {
                                             return 'Утасны дугаар 8 оронтой байх ёстой';
                                           }
-                                          if (!RegExp(
-                                            r'^\d+$',
-                                          ).hasMatch(value)) {
-                                            return 'Зөвхөн тоо оруулна уу';
-                                          }
                                           return null;
                                         },
                                       ),
-                                    ),
-                                    SizedBox(
-                                      height: context.responsiveSpacing(
-                                        small: 16,
-                                        medium: 18,
-                                        large: 20,
-                                        tablet: 22,
-                                        veryNarrow: 12,
+                                      SizedBox(height: 32.h),
+                                      _buildButton(
+                                        onTap: _isLoading ? null : _registerWalletUser,
+                                        label: 'Бүртгүүлэх',
+                                        isLoading: _isLoading,
+                                        isDark: isDark,
                                       ),
-                                    ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(
-                                          16.r,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.15,
-                                            ),
-                                            offset: const Offset(0, 4),
-                                            blurRadius: 12,
-                                            spreadRadius: 0,
-                                          ),
-                                        ],
+                                      SizedBox(height: 16.h),
+                                      _buildTransparentButton(
+                                        onTap: () => context.pop(),
+                                        label: 'Буцах',
+                                        isDark: isDark,
                                       ),
-                                      child: TextFormField(
-                                        controller: _emailController,
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w500,
-                                          letterSpacing: 0.2,
-                                        ),
-                                        decoration: InputDecoration(
-                                          hintText: 'Имэйл хаяг',
-                                          hintStyle: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                              0.5,
-                                            ),
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.w400,
-                                          ),
-                                          filled: true,
-                                          fillColor: AppColors.inputGrayColor
-                                              .withOpacity(0.3),
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 20.w,
-                                            vertical: 16.h,
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              16.r,
-                                            ),
-                                            borderSide: BorderSide(
-                                              color: Colors.white.withOpacity(
-                                                0.1,
-                                              ),
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              16.r,
-                                            ),
-                                            borderSide: BorderSide(
-                                              color: AppColors.grayColor
-                                                  .withOpacity(0.8),
-                                              width: 2,
-                                            ),
-                                          ),
-                                          suffixIcon:
-                                              _emailController.text.isNotEmpty
-                                              ? IconButton(
-                                                  icon: Icon(
-                                                    Icons.clear_rounded,
-                                                    color: Colors.white
-                                                        .withOpacity(0.7),
-                                                    size: 20.sp,
-                                                  ),
-                                                  onPressed: () =>
-                                                      _emailController.clear(),
-                                                )
-                                              : null,
-                                        ),
-                                        validator: (value) {
-                                          if (value == null ||
-                                              value.trim().isEmpty) {
-                                            return 'Имэйл хаяг оруулна уу';
-                                          }
-                                          if (!RegExp(
-                                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                          ).hasMatch(value.trim())) {
-                                            return 'Зөв имэйл хаяг оруулна уу';
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: context.responsiveSpacing(
-                                        small: 24,
-                                        medium: 28,
-                                        large: 32,
-                                        tablet: 36,
-                                        veryNarrow: 18,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: _isLoading
-                                          ? null
-                                          : _registerWalletUser,
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 14.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFCAD2DB),
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.2,
-                                              ),
-                                              offset: const Offset(0, 4),
-                                              blurRadius: 8,
-                                            ),
-                                          ],
-                                        ),
-                                        child: _isLoading
-                                            ? Center(
-                                                child: SizedBox(
-                                                  height: 20.h,
-                                                  width: 20.w,
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2.5,
-                                                    valueColor:
-                                                        const AlwaysStoppedAnimation<
-                                                          Color
-                                                        >(Colors.black),
-                                                  ),
-                                                ),
-                                              )
-                                            : Text(
-                                                'Бүртгүүлэх',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 15.sp,
-                                                  fontWeight: FontWeight.w600,
-                                                  letterSpacing: 0.5,
-                                                ),
-                                              ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: context.responsiveSpacing(
-                                        small: 12,
-                                        medium: 14,
-                                        large: 16,
-                                        tablet: 18,
-                                        veryNarrow: 10,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        context.pop();
-                                      },
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 11.5.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.transparent,
-                                          border: Border.all(
-                                            color: AppColors.grayColor
-                                                .withOpacity(0.5),
-                                            width: 2,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Буцах',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: AppColors.grayColor,
-                                            fontSize: 15.sp,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                    // Footer matched with login screen
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 16.h),
+                      child: Column(
+                        children: [
+                          Text(
+                            '© 2026 Powered by Zevtabs LLC',
+                            style: TextStyle(
+                              fontSize: 10.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.25)
+                                  : Colors.black.withOpacity(0.3),
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'Version 2.0.1',
+                            style: TextStyle(
+                              fontSize: 9.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.2)
+                                  : Colors.black.withOpacity(0.25),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    required IconData icon,
+    required bool isDark,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: isDark
+                ? Colors.white.withOpacity(0.7)
+                : AppColors.lightTextSecondary,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.phone,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(8),
+            ],
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+              border: InputBorder.none,
+              prefixIcon: Icon(
+                icon,
+                size: 20.sp,
+                color: AppColors.deepGreen,
+              ),
+            ),
+            validator: validator,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildButton({
+    required VoidCallback? onTap,
+    required String label,
+    bool isLoading = false,
+    required bool isDark,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 18.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: (onTap == null || isLoading)
+                ? [Colors.grey.withOpacity(0.5), Colors.grey.withOpacity(0.5)]
+                : [AppColors.deepGreen, AppColors.deepGreen.withOpacity(0.8)],
+          ),
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            if (onTap != null && !isLoading)
+              BoxShadow(
+                color: AppColors.deepGreen.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+          ],
+        ),
+        child: isLoading
+            ? Center(
+                child: SizedBox(
+                  height: 20.r,
+                  width: 20.r,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              )
+            : Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
-            ],
+      ),
+    );
+  }
+
+  Widget _buildTransparentButton({
+    required VoidCallback onTap,
+    required String label,
+    required bool isDark,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black54,
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

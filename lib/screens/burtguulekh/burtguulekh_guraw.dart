@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sukh_app/widgets/optimized_glass.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
-import 'package:go_router/go_router.dart';
-import 'package:sukh_app/widgets/app_logo.dart';
-import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 
+/// Modern minimal background with subtle gradient
 class AppBackground extends StatelessWidget {
   final Widget child;
   const AppBackground({super.key, required this.child});
@@ -21,14 +21,58 @@ class AppBackground extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: AppColors.getGradientColors(isDark),
-          stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
-        ),
+        color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFB),
       ),
-      child: child,
+      child: Stack(
+        children: [
+          // Subtle decorative circles for visual interest
+          Positioned(
+            top: -100.h,
+            right: -80.w,
+            child: Container(
+              width: 280.w,
+              height: 280.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: isDark
+                      ? [
+                          AppColors.deepGreen.withOpacity(0.15),
+                          AppColors.deepGreen.withOpacity(0.0),
+                        ]
+                      : [
+                          AppColors.deepGreen.withOpacity(0.08),
+                          AppColors.deepGreen.withOpacity(0.0),
+                        ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -120.h,
+            left: -100.w,
+            child: Container(
+              width: 320.w,
+              height: 320.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: isDark
+                      ? [
+                          AppColors.deepGreenAccent.withOpacity(0.1),
+                          AppColors.deepGreenAccent.withOpacity(0.0),
+                        ]
+                      : [
+                          AppColors.deepGreenAccent.withOpacity(0.06),
+                          AppColors.deepGreenAccent.withOpacity(0.0),
+                        ],
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -39,10 +83,10 @@ class Burtguulekh_Guraw extends StatefulWidget {
   const Burtguulekh_Guraw({super.key, this.registrationData});
 
   @override
-  State<Burtguulekh_Guraw> createState() => _BurtguulekhDorowState();
+  State<Burtguulekh_Guraw> createState() => _BurtguulekhGurawState();
 }
 
-class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
+class _BurtguulekhGurawState extends State<Burtguulekh_Guraw> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -83,7 +127,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
       });
 
       try {
-        // Get baiguullagiinId from registrationData passed from previous screen
         final baiguullagiinId = widget.registrationData?['baiguullagiinId'];
 
         if (baiguullagiinId == null) {
@@ -101,7 +144,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
           return;
         }
 
-        // Check if user has saved OWN_ORG address in storage
         final savedSource = await StorageService.getWalletBairSource();
         final savedBaiguullagiinId =
             await StorageService.getWalletBairBaiguullagiinId();
@@ -111,11 +153,9 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
         final savedDoorNo = await StorageService.getWalletDoorNo();
         final savedBairName = await StorageService.getWalletBairName();
 
-        // Determine if this is OWN_ORG bair (from storage or registrationData)
         final source = widget.registrationData?['source'] ?? savedSource;
         final isOwnOrg = source == 'OWN_ORG';
 
-        // Use OWN_ORG IDs from storage if available, otherwise from registrationData
         final finalBaiguullagiinId = isOwnOrg && savedBaiguullagiinId != null
             ? savedBaiguullagiinId
             : baiguullagiinId;
@@ -132,8 +172,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
           'bairniiNer': widget.registrationData?['bairniiNer'] ?? '',
           'davkhar': widget.registrationData?['davkhar'] ?? '',
           'toot': widget.registrationData?['toot'] ?? '',
-          'ovog': widget.registrationData?['ovog'] ?? '',
-          'ner': widget.registrationData?['ner'] ?? '',
           'baiguullagiinId': finalBaiguullagiinId,
           'duureg': widget.registrationData?['duureg'] ?? '',
           'horoo': widget.registrationData?['horoo'] ?? '',
@@ -141,13 +179,11 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
           'register': widget.registrationData?['register'] ?? '',
         };
 
-        // Add OWN_ORG specific fields if this is OWN_ORG bair
         if (isOwnOrg && finalBairId != null && finalBarilgiinId != null) {
           registrationPayload['bairId'] = finalBairId;
           registrationPayload['barilgiinId'] = finalBarilgiinId;
           registrationPayload['baiguullagiinId'] = finalBaiguullagiinId;
 
-          // Optional but recommended for validation
           if (widget.registrationData?['davkhar'] != null) {
             registrationPayload['davkhar'] =
                 widget.registrationData?['davkhar'];
@@ -156,7 +192,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
             registrationPayload['orts'] = widget.registrationData?['orts'];
           }
         } else if (finalBairId != null) {
-          // Wallet API bair - include bairId and bairName
           registrationPayload['bairId'] = finalBairId;
           if (finalBairName != null && finalBairName.isNotEmpty) {
             registrationPayload['bairName'] = finalBairName;
@@ -174,7 +209,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
             _isLoading = false;
           });
 
-          // Check if registration failed
           if (response['success'] == false && response['aldaa'] != null) {
             _showErrorModal(response['aldaa']);
             return;
@@ -187,7 +221,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
             iconColor: Colors.green,
           );
 
-          // Navigate to login page
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
               context.go("/newtrekh");
@@ -200,7 +233,6 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
             _isLoading = false;
           });
 
-          // Extract error message from Exception
           String errorMessage = e.toString();
           if (errorMessage.startsWith('Exception: ')) {
             errorMessage = errorMessage.substring(11);
@@ -223,43 +255,40 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
       barrierDismissible: true,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1a1a2e),
+          backgroundColor: context.isDarkMode ? const Color(0xFF1A1A2E) : Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24.r),
           ),
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Анхааруулга',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
+                  color: context.isDarkMode ? Colors.white : Colors.black,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                icon: Icon(Icons.close, color: context.isDarkMode ? Colors.white : Colors.black),
+                onPressed: () => Navigator.of(dialogContext).pop(),
               ),
             ],
           ),
           content: Text(
             errorMessage,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
+            style: TextStyle(
+              color: context.isDarkMode ? Colors.white70 : Colors.black87,
+              fontSize: 16.sp,
+            ),
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
                 'Хаах',
-                style: TextStyle(color: Color(0xFFCAD2DB), fontSize: 16),
+                style: TextStyle(color: AppColors.deepGreen, fontSize: 16.sp, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -270,301 +299,412 @@ class _BurtguulekhDorowState extends State<Burtguulekh_Guraw> {
 
   @override
   Widget build(BuildContext context) {
+    bool isTablet = ScreenUtil().screenWidth > 700;
+    final isDark = context.isDarkMode;
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: context.isDarkMode 
-            ? const Color(0xFF000000) 
-            : const Color(0xFFFFFFFF),
+        backgroundColor: isDark
+            ? const Color(0xFF0A0E14)
+            : const Color(0xFFF8FAFB),
         resizeToAvoidBottomInset: true,
         body: AppBackground(
-          child: Stack(
-            children: [
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final keyboardHeight = MediaQuery.of(
-                      context,
-                    ).viewInsets.bottom;
-                    return SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          left: 50,
-                          right: 50,
-                          top: 40,
-                          bottom: keyboardHeight > 0 ? keyboardHeight + 20 : 40,
-                        ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const AppLogo(),
-                              const SizedBox(height: 30),
-                              const Text(
-                                'Бүртгэл',
-                                style: TextStyle(
-                                  color: AppColors.grayColor,
-                                  fontSize: 36,
-                                ),
-                                maxLines: 1,
-                                softWrap: false,
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isTablet ? 420.w : double.infinity,
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
                               ),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(height: 16.h),
+                                    
+                                    // Logo matched with login screen
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          width: 130.w,
+                                          height: 130.w,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.black,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.3),
+                                                blurRadius: 20,
+                                                spreadRadius: 2,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 100.w,
+                                          height: 100.w,
+                                          child: const SelectableLogoImage(
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 16.h),
 
-                              const SizedBox(height: 20),
-                              _buildPasswordField(),
-                              const SizedBox(height: 16),
-                              _buildConfirmPasswordField(),
-                              const SizedBox(height: 16),
-                              if (_passwordController.text.isNotEmpty &&
-                                  _confirmPasswordController.text.isNotEmpty)
-                                _buildContinueButton(),
-                            ],
+                                    // Title matched with login screen
+                                    Text(
+                                      'Нууц код тохируулах',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.lightTextPrimary,
+                                        fontSize: 28.sp,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      'Аппликейшнд нэвтрэх 4 оронтой нууц кодоо оруулна уу.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.5)
+                                            : AppColors.lightTextSecondary
+                                                  .withOpacity(0.7),
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+
+                                    SizedBox(height: 40.h),
+                                    
+                                    _buildPasswordField(isDark),
+                                    SizedBox(height: 20.h),
+                                    _buildConfirmPasswordField(isDark),
+                                    
+                                    SizedBox(height: 48.h),
+                                    _buildButton(
+                                      onTap: (_passwordController.text.length == 4 &&
+                                              _confirmPasswordController.text == _passwordController.text &&
+                                              !_isLoading)
+                                          ? _validateAndSubmit
+                                          : null,
+                                      label: 'Бүртгүүлэх',
+                                      isLoading: _isLoading,
+                                      isDark: isDark,
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    _buildTransparentButton(
+                                      onTap: () => context.pop(),
+                                      label: 'Буцах',
+                                      isDark: isDark,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 16,
-                left: 16,
-                child: SafeArea(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: OptimizedGlass(
-                      borderRadius: BorderRadius.circular(16),
-                      opacity: 0.12,
-                      child: IconButton(
-                        padding: const EdgeInsets.only(left: 7),
-                        constraints: const BoxConstraints(),
-                        icon: const Icon(
-                          Icons.arrow_back_ios,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 16.h),
+                      child: Column(
+                        children: [
+                          Text(
+                            '© 2026 Powered by Zevtabs LLC',
+                            style: TextStyle(
+                              fontSize: 10.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.25)
+                                  : Colors.black.withOpacity(0.3),
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'Version 2.0.1',
+                            style: TextStyle(
+                              fontSize: 9.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.2)
+                                  : Colors.black.withOpacity(0.25),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ),
-              ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Нууц код (4 оронтой)',
+          style: TextStyle(
+            color: isDark
+                ? Colors.white.withOpacity(0.7)
+                : AppColors.lightTextSecondary,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: TextFormField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField() {
-    return Container(
-      decoration: _boxShadowDecoration(),
-      child: TextFormField(
-        controller: _passwordController,
-        obscureText: _obscurePassword,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: context.responsiveFontSize(
-            small: 16,
-            medium: 17,
-            large: 18,
-            tablet: 19,
-          ),
-        ),
-        keyboardType: TextInputType.number,
-        maxLength: 4,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(4),
-        ],
-        decoration: _inputDecoration(
-          "Нууц код",
-          _passwordController,
-          counterText: '',
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscurePassword ? Icons.visibility_off : Icons.visibility,
-              color: Colors.white70,
-            ),
-            onPressed: () {
-              setState(() {
-                _obscurePassword = !_obscurePassword;
-              });
-            },
-          ),
-        ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Нууц код оруулна уу';
-          }
-          if (value.length != 4) {
-            return 'Нууц код 4 оронтой байх ёстой';
-          }
-          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-            return 'Зөвхөн тоо оруулна уу';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-
-  Widget _buildConfirmPasswordField() {
-    return Container(
-      decoration: _boxShadowDecoration(),
-      child: TextFormField(
-        controller: _confirmPasswordController,
-        obscureText: _obscureConfirmPassword,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: context.responsiveFontSize(
-            small: 16,
-            medium: 17,
-            large: 18,
-            tablet: 19,
-          ),
-        ),
-        keyboardType: TextInputType.number,
-        maxLength: 4,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(4),
-        ],
-        decoration: _inputDecoration(
-          "Нууц код давтах",
-          _confirmPasswordController,
-          counterText: '',
-          suffixIcon: IconButton(
-            icon: Icon(
-              _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-              color: Colors.white70,
-            ),
-            onPressed: () {
-              setState(() {
-                _obscureConfirmPassword = !_obscureConfirmPassword;
-              });
-            },
-          ),
-        ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return 'Нууц код давтан оруулна уу';
-          }
-          if (value.length != 4) {
-            return 'Нууц код 4 оронтой байх ёстой';
-          }
-          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-            return 'Зөвхөн тоо оруулна уу';
-          }
-          if (value != _passwordController.text) {
-            return 'Нууц код таарахгүй байна';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-
-  Widget _buildContinueButton() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            offset: const Offset(0, 10),
-            blurRadius: 8,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _validateAndSubmit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFCAD2DB),
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100),
-            ),
-            shadowColor: Colors.black.withOpacity(0.3),
-            elevation: 8,
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                  ),
-                )
-              : Text(
-                  'Бүртгүүлэх',
-                  style: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                    ),
-                  ),
+            decoration: InputDecoration(
+              hintText: '****',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+              border: InputBorder.none,
+              counterText: '',
+              prefixIcon: Icon(
+                Icons.lock_rounded,
+                size: 20.sp,
+                color: AppColors.deepGreen,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  color: AppColors.deepGreen.withOpacity(0.6),
+                  size: 20.sp,
                 ),
-        ),
-      ),
-    );
-  }
-
-  BoxDecoration _boxShadowDecoration() {
-    return BoxDecoration(
-      borderRadius: BorderRadius.circular(100),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.3),
-          offset: const Offset(0, 10),
-          blurRadius: 8,
+                onPressed: () {
+                  setState(() {
+                    _obscurePassword = !_obscurePassword;
+                  });
+                },
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Нууц код оруулна уу';
+              }
+              if (value.length != 4) {
+                return 'Нууц код 4 оронтой байх ёстой';
+              }
+              return null;
+            },
+          ),
         ),
       ],
     );
   }
 
-  InputDecoration _inputDecoration(
-    String hint,
-    TextEditingController controller, {
-    Widget? suffixIcon,
-    String? counterText,
+  Widget _buildConfirmPasswordField(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Нууц код давтах',
+          style: TextStyle(
+            color: isDark
+                ? Colors.white.withOpacity(0.7)
+                : AppColors.lightTextSecondary,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: TextFormField(
+            controller: _confirmPasswordController,
+            obscureText: _obscureConfirmPassword,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4),
+            ],
+            decoration: InputDecoration(
+              hintText: '****',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+              border: InputBorder.none,
+              counterText: '',
+              prefixIcon: Icon(
+                Icons.lock_rounded,
+                size: 20.sp,
+                color: AppColors.deepGreen,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  color: AppColors.deepGreen.withOpacity(0.6),
+                  size: 20.sp,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                  });
+                },
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Нууц код давтан оруулна уу';
+              }
+              if (value != _passwordController.text) {
+                return 'Нууц код таарахгүй байна';
+              }
+              return null;
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildButton({
+    required VoidCallback? onTap,
+    required String label,
+    bool isLoading = false,
+    required bool isDark,
   }) {
-    return InputDecoration(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 16),
-      filled: true,
-      fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white70),
-      suffixIcon: suffixIcon,
-      counterText: counterText,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: BorderSide.none,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 18.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: (onTap == null || isLoading)
+                ? [Colors.grey.withOpacity(0.5), Colors.grey.withOpacity(0.5)]
+                : [AppColors.deepGreen, AppColors.deepGreen.withOpacity(0.8)],
+          ),
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            if (onTap != null && !isLoading)
+              BoxShadow(
+                color: AppColors.deepGreen.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+          ],
+        ),
+        child: isLoading
+            ? Center(
+                child: SizedBox(
+                  height: 20.r,
+                  width: 20.r,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              )
+            : Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: AppColors.grayColor, width: 1.5),
+    );
+  }
+
+  Widget _buildTransparentButton({
+    required VoidCallback onTap,
+    required String label,
+    required bool isDark,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black54,
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(100),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
-      ),
-      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 14),
     );
   }
 }

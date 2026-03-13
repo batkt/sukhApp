@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:top_snackbar_flutter/top_snack_bar.dart';
-import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:sukh_app/widgets/app_toast.dart';
+import 'package:sukh_app/constants/constants.dart';
 
 void showGlassSnackBar(
   BuildContext context, {
@@ -14,37 +14,23 @@ void showGlassSnackBar(
 }) {
   final cleanMessage = message.replaceAll("Exception: ", "");
 
-  final isError = iconColor == Colors.red;
-  final isSuccess = iconColor == Colors.green;
-
-  Widget snackBarWidget;
-
-  if (isError) {
-    snackBarWidget = CustomSnackBar.error(
-      message: cleanMessage,
-      icon: Icon(icon, color: const Color(0x15000000), size: 120),
-      backgroundColor: Colors.redAccent,
-      textStyle: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 16),
-    );
-  } else if (isSuccess) {
-    snackBarWidget = CustomSnackBar.success(
-      message: cleanMessage,
-      icon: Icon(icon, color: const Color(0x15000000), size: 120),
-      backgroundColor: Colors.green,
-      textStyle: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 16),
-    );
-  } else {
-    snackBarWidget = CustomSnackBar.info(
-      message: cleanMessage,
-      icon: Icon(icon, color: const Color(0x15000000), size: 120),
-      backgroundColor: Colors.black87,
-      textStyle: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 16),
-    );
+  // Determine the best icon color if it's default white
+  Color? finalColor = iconColor;
+  if (iconColor == Colors.white) {
+    if (icon == Icons.error || icon == Icons.error_outline) {
+      finalColor = AppColors.error;
+    } else if (icon == Icons.check_circle || icon == Icons.check) {
+      finalColor = AppColors.success;
+    } else {
+      finalColor = AppColors.deepGreen;
+    }
   }
 
-  showTopSnackBar(
-    Overlay.of(context),
-    snackBarWidget,
-    displayDuration: duration,
+  AppToast.show(
+    context,
+    cleanMessage,
+    icon: icon,
+    color: finalColor,
+    duration: duration,
   );
 }

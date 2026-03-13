@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:sukh_app/widgets/optimized_glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,20 +6,74 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/screens/burtguulekh/burtguulekh_guraw.dart';
-import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
-import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
 
+/// Modern minimal background with subtle gradient
 class AppBackground extends StatelessWidget {
   final Widget child;
   const AppBackground({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final isDark = context.isDarkMode;
+    return Container(
       width: double.infinity,
       height: double.infinity,
-      child: child,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFB),
+      ),
+      child: Stack(
+        children: [
+          // Subtle decorative circles for visual interest
+          Positioned(
+            top: -100.h,
+            right: -80.w,
+            child: Container(
+              width: 280.w,
+              height: 280.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: isDark
+                      ? [
+                          AppColors.deepGreen.withOpacity(0.15),
+                          AppColors.deepGreen.withOpacity(0.0),
+                        ]
+                      : [
+                          AppColors.deepGreen.withOpacity(0.08),
+                          AppColors.deepGreen.withOpacity(0.0),
+                        ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -120.h,
+            left: -100.w,
+            child: Container(
+              width: 320.w,
+              height: 320.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: isDark
+                      ? [
+                          AppColors.deepGreenAccent.withOpacity(0.1),
+                          AppColors.deepGreenAccent.withOpacity(0.0),
+                        ]
+                      : [
+                          AppColors.deepGreenAccent.withOpacity(0.06),
+                          AppColors.deepGreenAccent.withOpacity(0.0),
+                        ],
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -41,16 +94,12 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   bool _isPhoneSubmitted = false;
   bool _isLoading = false;
 
-  final TextEditingController ovogController = TextEditingController();
-  final TextEditingController nerController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final List<TextEditingController> _pinControllers = List.generate(
     4,
     (index) => TextEditingController(),
   );
 
-  final FocusNode ovogFocus = FocusNode();
-  final FocusNode nerFocus = FocusNode();
   final FocusNode phoneFocus = FocusNode();
   final List<FocusNode> _pinFocusNodes = List.generate(
     4,
@@ -64,22 +113,16 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   @override
   void initState() {
     super.initState();
-    ovogController.addListener(() => setState(() {}));
-    nerController.addListener(() => setState(() {}));
     _phoneController.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    ovogController.dispose();
-    nerController.dispose();
     _phoneController.dispose();
     for (var controller in _pinControllers) {
       controller.dispose();
     }
-    ovogFocus.dispose();
-    nerFocus.dispose();
     phoneFocus.dispose();
     for (var node in _pinFocusNodes) {
       node.dispose();
@@ -181,7 +224,6 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
         });
 
         try {
-          // Get baiguullagiinId from locationData passed from previous screen
           final baiguullagiinId = widget.locationData?['baiguullagiinId'];
 
           if (baiguullagiinId == null) {
@@ -245,7 +287,6 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           }
         }
       } else {
-        // Verify PIN code
         String pin = _pinControllers.map((c) => c.text).join();
         if (pin.length == 4) {
           setState(() {
@@ -288,18 +329,15 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 iconColor: Colors.green,
               );
 
-              // Navigate to next page with all registration data
               Navigator.push(
                 context,
                 PageTransitions.createRoute(
-                  Burtguulekh_Guraw(
-                    registrationData: {
-                      ...?widget.locationData,
-                      'ovog': ovogController.text,
-                      'ner': nerController.text,
-                      'utas': _phoneController.text,
-                    },
-                  ),
+                    Burtguulekh_Guraw(
+                      registrationData: {
+                        ...?widget.locationData,
+                        'utas': _phoneController.text,
+                      },
+                    ),
                 ),
               );
             }
@@ -328,334 +366,261 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
 
   @override
   Widget build(BuildContext context) {
+    bool isTablet = ScreenUtil().screenWidth > 700;
+    final isDark = context.isDarkMode;
+
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
+        backgroundColor: isDark
+            ? const Color(0xFF0A0E14)
+            : const Color(0xFFF8FAFB),
         resizeToAvoidBottomInset: true,
         body: AppBackground(
-          child: Stack(
-            children: [
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final screenHeight = MediaQuery.of(context).size.height;
-                    final isSmallScreen = screenHeight < 700;
-                    final keyboardHeight = MediaQuery.of(
-                      context,
-                    ).viewInsets.bottom;
-                    return SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: Padding(
-                        padding: context
-                            .responsiveHorizontalPadding(
-                              small: 28,
-                              medium: 32,
-                              large: 36,
-                              tablet: 40,
-                            )
-                            .copyWith(
-                              top: context.responsiveSpacing(
-                                small: 24,
-                                medium: 28,
-                                large: 32,
-                                tablet: 36,
-                                veryNarrow: 18,
-                              ),
-                              bottom: keyboardHeight > 0
-                                  ? keyboardHeight +
-                                      context.responsiveSpacing(
-                                        small: 20,
-                                        medium: 22,
-                                        large: 24,
-                                        tablet: 26,
-                                        veryNarrow: 16,
-                                      )
-                                  : context.responsiveSpacing(
-                                      small: 24,
-                                      medium: 28,
-                                      large: 32,
-                                      tablet: 36,
-                                      veryNarrow: 18,
-                                    ),
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: isTablet ? 420.w : double.infinity,
                             ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const AppLogo(),
-                              SizedBox(
-                                height: context.responsiveSpacing(
-                                  small: 12,
-                                  medium: 16,
-                                  large: 20,
-                                  tablet: 24,
-                                  veryNarrow: 10,
-                                ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
                               ),
-                              Text(
-                                'Бүртгэл',
-                                style: TextStyle(
-                                  color: AppColors.grayColor,
-                                  fontSize: context.responsiveFontSize(
-                                    small: 22,
-                                    medium: 25,
-                                    large: 28,
-                                    tablet: 30,
-                                    veryNarrow: 18,
-                                  ),
-                                ),
-                                maxLines: 1,
-                                softWrap: false,
-                              ),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(height: 16.h),
+                                    
+                                    // Logo matched with login screen
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          width: 130.w,
+                                          height: 130.w,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.black,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.3),
+                                                blurRadius: 20,
+                                                spreadRadius: 2,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 100.w,
+                                          height: 100.w,
+                                          child: const SelectableLogoImage(
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 16.h),
 
-                              SizedBox(
-                                height: context.responsiveSpacing(
-                                  small: 14,
-                                  medium: 16,
-                                  large: 18,
-                                  tablet: 20,
-                                  veryNarrow: 12,
+                                    // Title matched with login screen
+                                    Text(
+                                      'Баталгаажуулах',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.lightTextPrimary,
+                                        fontSize: 28.sp,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      _isPhoneSubmitted
+                                          ? 'Танд илгээсэн 4 оронтой кодыг оруулна уу'
+                                          : 'Утасны дугаараа оруулаад баталгаажуулна уу',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white.withOpacity(0.5)
+                                            : AppColors.lightTextSecondary
+                                                  .withOpacity(0.7),
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+
+                                    SizedBox(height: 40.h),
+                                    
+                                    _buildPhoneNumberField(isDark),
+                                    if (_isPhoneSubmitted) ...[
+                                      SizedBox(height: 32.h),
+                                      _buildSecretCodeField(isDark),
+                                    ],
+                                    
+                                    SizedBox(height: 48.h),
+                                    _buildButton(
+                                      onTap: _isLoading ? null : _validateAndSubmit,
+                                      label: _isPhoneSubmitted ? 'Үргэлжлүүлэх' : 'Код авах',
+                                      isLoading: _isLoading,
+                                      canContinue: !_isPhoneSubmitted
+                                          ? _phoneController.text.length == 8
+                                          : _pinControllers.every((c) => c.text.isNotEmpty),
+                                      isDark: isDark,
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    _buildTransparentButton(
+                                      onTap: () => Navigator.pop(context),
+                                      label: 'Буцах',
+                                      isDark: isDark,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              // Овог input
-                              _buildOvogField(isSmallScreen),
-                              SizedBox(
-                                height: context.responsiveSpacing(
-                                  small: 14,
-                                  medium: 16,
-                                  large: 18,
-                                  tablet: 20,
-                                  veryNarrow: 12,
-                                ),
-                              ),
-                              // Нэр input
-                              _buildNerField(isSmallScreen),
-                              SizedBox(
-                                height: context.responsiveSpacing(
-                                  small: 14,
-                                  medium: 16,
-                                  large: 18,
-                                  tablet: 20,
-                                  veryNarrow: 12,
-                                ),
-                              ),
-                              // Phone number input
-                              _buildPhoneNumberField(isSmallScreen),
-                              // Secret code field (appears below phone after submission)
-                              if (_isPhoneSubmitted) ...[
-                                SizedBox(
-                                  height: context.responsiveSpacing(
-                                    small: 14,
-                                    medium: 16,
-                                    large: 18,
-                                    tablet: 20,
-                                  ),
-                                ),
-                                _buildSecretCodeField(isSmallScreen),
-                              ],
-                              SizedBox(
-                                height: context.responsiveSpacing(
-                                  small: 12,
-                                  medium: 14,
-                                  large: 16,
-                                  tablet: 18,
-                                  veryNarrow: 10,
-                                ),
-                              ),
-                              if (ovogController.text.isNotEmpty &&
-                                  nerController.text.isNotEmpty &&
-                                  _phoneController.text.length == 8 &&
-                                  !_isPhoneSubmitted)
-                                _buildContinueButton(isSmallScreen),
-                              if (_isPhoneSubmitted &&
-                                  _pinControllers.every(
-                                    (c) => c.text.isNotEmpty,
-                                  ))
-                                _buildContinueButton(isSmallScreen),
-                            ],
+                            ),
                           ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: context.responsiveSpacing(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-                left: context.responsiveSpacing(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-                child: SafeArea(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      context.responsiveBorderRadius(
-                        small: 100,
-                        medium: 100,
-                        large: 100,
-                        tablet: 100,
-                        veryNarrow: 80,
-                      ),
                     ),
-                    child: OptimizedGlass(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 16,
-                          medium: 18,
-                          large: 20,
-                          tablet: 22,
-                          veryNarrow: 12,
-                        ),
-                      ),
-                      opacity: 0.12,
-                      child: IconButton(
-                        padding: EdgeInsets.only(
-                          left: context.responsiveSpacing(
-                            small: 7,
-                            medium: 8,
-                            large: 9,
-                            tablet: 10,
-                            veryNarrow: 5,
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 16.h),
+                      child: Column(
+                        children: [
+                          Text(
+                            '© 2026 Powered by Zevtabs LLC',
+                            style: TextStyle(
+                              fontSize: 10.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.25)
+                                  : Colors.black.withOpacity(0.3),
+                            ),
                           ),
-                        ),
-                        constraints: const BoxConstraints(),
-                        icon: Icon(
-                          Icons.arrow_back_ios,
-                          color: Colors.white,
-                          size: 20.sp,
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                          SizedBox(height: 2.h),
+                          Text(
+                            'Version 2.0.1',
+                            style: TextStyle(
+                              fontSize: 9.sp,
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.2)
+                                  : Colors.black.withOpacity(0.25),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ],
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildOvogField(bool isSmallScreen) {
-    return Container(
-      decoration: _boxShadowDecoration(),
-      child: TextFormField(
-        controller: ovogController,
-        focusNode: ovogFocus,
-        textInputAction: TextInputAction.next,
-        onFieldSubmitted: (_) {
-          FocusScope.of(context).requestFocus(nerFocus);
-        },
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 15.sp,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: _inputDecoration("Овог", ovogController, isSmallScreen),
-        validator: (value) =>
-            value == null || value.trim().isEmpty ? 'Овог оруулна уу' : null,
-      ),
-    );
-  }
-
-  Widget _buildNerField(bool isSmallScreen) {
-    return Container(
-      decoration: _boxShadowDecoration(),
-      child: TextFormField(
-        controller: nerController,
-        focusNode: nerFocus,
-        textInputAction: TextInputAction.next,
-        onFieldSubmitted: (_) {
-          FocusScope.of(context).requestFocus(phoneFocus);
-        },
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 15.sp,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: _inputDecoration("Нэр", nerController, isSmallScreen),
-        validator: (value) =>
-            value == null || value.trim().isEmpty ? 'Нэр оруулна уу' : null,
-      ),
-    );
-  }
-
-  Widget _buildPhoneNumberField(bool isSmallScreen) {
-    return Center(
-      child: Container(
-        decoration: _boxShadowDecoration(),
-        child: TextFormField(
-          controller: _phoneController,
-          focusNode: phoneFocus,
+  Widget _buildPhoneNumberField(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Утасны дугаар',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 15.sp,
+            color: isDark
+                ? Colors.white.withOpacity(0.7)
+                : AppColors.lightTextSecondary,
+            fontSize: 13.sp,
             fontWeight: FontWeight.w500,
           ),
-          decoration: _inputDecoration(
-            "Утасны дугаар",
-            _phoneController,
-            isSmallScreen,
-          ),
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(8),
-          ],
-          validator: (value) => value == null || value.trim().isEmpty
-              ? 'Утасны дугаар оруулна уу'
-              : null,
-          onChanged: (value) {
-            // If phone number changes after submission, reset submission state
-            if (_isPhoneSubmitted && value.length != 8) {
-              setState(() {
-                _isPhoneSubmitted = false;
-                _timer?.cancel();
-                for (var controller in _pinControllers) {
-                  controller.clear();
-                }
-              });
-            }
-          },
         ),
-      ),
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: TextFormField(
+            controller: _phoneController,
+            focusNode: phoneFocus,
+            enabled: !_isPhoneSubmitted,
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+            ),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(8),
+            ],
+            decoration: InputDecoration(
+              hintText: '8888****',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white24 : Colors.black26,
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
+              border: InputBorder.none,
+              prefixIcon: Icon(
+                Icons.phone_iphone_rounded,
+                size: 20.sp,
+                color: AppColors.deepGreen,
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Утасны дугаар оруулна уу';
+              }
+              if (value.length != 8) {
+                return 'Утасны дугаар 8 оронтой байх ёстой';
+              }
+              return null;
+            },
+            onChanged: (value) {
+              if (_isPhoneSubmitted && value.length != 8) {
+                setState(() {
+                  _isPhoneSubmitted = false;
+                  _timer?.cancel();
+                  for (var controller in _pinControllers) {
+                    controller.clear();
+                  }
+                });
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildSecretCodeField(bool isSmallScreen) {
+  Widget _buildSecretCodeField(bool isDark) {
     return Column(
       children: [
-        // PIN Input boxes
         AutofillGroup(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: List.generate(4, (index) {
-              return _buildPinBox(index, isSmallScreen);
+              return _buildPinBox(index, isDark);
             }),
           ),
         ),
-        SizedBox(
-          height: context.responsiveSpacing(
-            small: 10,
-            medium: 12,
-            large: 14,
-            tablet: 16,
-            veryNarrow: 8,
-          ),
-        ),
+        SizedBox(height: 16.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -664,14 +629,9 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
               child: Text(
                 _canResend ? 'Дахин илгээх' : 'Дахин илгээх ($_resendSeconds)',
                 style: TextStyle(
-                  color: _canResend ? Colors.blue : Colors.grey,
-                  fontSize: context.responsiveFontSize(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 17,
-                    veryNarrow: 12,
-                  ),
+                  color: _canResend ? AppColors.deepGreen : Colors.grey,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -681,61 +641,30 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
     );
   }
 
-  Widget _buildPinBox(int index, bool isSmallScreen) {
+  Widget _buildPinBox(int index, bool isDark) {
     return Container(
-      width: context.responsiveSpacing(
-        small: 52,
-        medium: 56,
-        large: 60,
-        tablet: 64,
-        veryNarrow: 44,
-      ),
-      height: context.responsiveSpacing(
-        small: 60,
-        medium: 65,
-        large: 70,
-        tablet: 75,
-        veryNarrow: 50,
-      ),
+      width: 60.w,
+      height: 70.h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 100,
-            medium: 100,
-            large: 100,
-            tablet: 100,
-          ),
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: _pinFocusNodes[index].hasFocus
+              ? AppColors.deepGreen
+              : (isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05)),
+          width: 1.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            offset: Offset(
-              0,
-              context.responsiveSpacing(
-                small: 10,
-                medium: 12,
-                large: 14,
-                tablet: 16,
-              ),
-            ),
-            blurRadius: context.responsiveSpacing(
-              small: 8,
-              medium: 10,
-              large: 12,
-              tablet: 14,
-              veryNarrow: 6,
-            ),
-          ),
-        ],
       ),
       child: KeyboardListener(
         focusNode: FocusNode(),
         onKeyEvent: (KeyEvent event) {
           if (event is KeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.backspace) {
-            // If current field is empty and backspace is pressed
             if (_pinControllers[index].text.isEmpty && index > 0) {
-              // Clear previous field and move focus there
               _pinControllers[index - 1].clear();
               _pinFocusNodes[index - 1].requestFocus();
               setState(() {});
@@ -747,48 +676,16 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           focusNode: _pinFocusNodes[index],
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.white,
-            fontSize: context.responsiveFontSize(
-              small: 20,
-              medium: 22,
-              large: 24,
-              tablet: 26,
-              veryNarrow: 18,
-            ),
+            color: isDark ? Colors.white : Colors.black,
+            fontSize: 24.sp,
             fontWeight: FontWeight.bold,
           ),
           keyboardType: TextInputType.number,
           autofillHints: const [AutofillHints.oneTimeCode],
           enableInteractiveSelection: false,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 100,
-                  medium: 100,
-                  large: 100,
-                  tablet: 100,
-                ),
-              ),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 100,
-                  medium: 100,
-                  large: 100,
-                  tablet: 100,
-                ),
-              ),
-              borderSide: BorderSide(
-                color: AppColors.grayColor,
-                width: 1.5,
-              ),
-            ),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
           ),
           onChanged: (value) {
@@ -796,43 +693,20 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
               setState(() {});
               return;
             }
-
-            // Handle autofill - when multiple digits are pasted
             if (value.length > 1) {
-              // Split the autofilled code into individual digits
-              final digits = value.replaceAll(
-                RegExp(r'\D'),
-                '',
-              ); // Remove non-digits
-
-              // Clear all boxes first
+              final digits = value.replaceAll(RegExp(r'\D'), '');
               for (var controller in _pinControllers) {
                 controller.clear();
               }
-
-              // Fill each box with a digit
               for (int i = 0; i < digits.length && i < 4; i++) {
                 _pinControllers[i].text = digits[i];
               }
-
-              // Move focus to the last filled box
               final lastIndex = (digits.length - 1).clamp(0, 3);
               _pinFocusNodes[lastIndex].requestFocus();
-
               setState(() {});
               return;
             }
-
-            // Normal single digit input - keep only the last character
-            if (value.length > 1) {
-              _pinControllers[index].text = value.substring(value.length - 1);
-              _pinControllers[index].selection = TextSelection.fromPosition(
-                TextPosition(offset: _pinControllers[index].text.length),
-              );
-            }
-
-            // Move to next box if there's a value
-            if (_pinControllers[index].text.isNotEmpty && index < 3) {
+            if (index < 3) {
               _pinFocusNodes[index + 1].requestFocus();
             }
             setState(() {});
@@ -842,248 +716,86 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
     );
   }
 
-  Widget _buildContinueButton(bool isSmallScreen) {
-    bool isValid = !_isPhoneSubmitted
-        ? _phoneController.text.length == 8
-        : _pinControllers.every((c) => c.text.isNotEmpty);
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 100,
-            medium: 100,
-            large: 100,
-            tablet: 100,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            offset: Offset(
-              0,
-              context.responsiveSpacing(
-                small: 10,
-                medium: 12,
-                large: 14,
-                tablet: 16,
-              ),
-            ),
-            blurRadius: context.responsiveSpacing(
-              small: 8,
-              medium: 10,
-              large: 12,
-              tablet: 14,
-              veryNarrow: 6,
-            ),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: SizedBox(
+  Widget _buildButton({
+    required VoidCallback? onTap,
+    required String label,
+    bool isLoading = false,
+    bool canContinue = true,
+    required bool isDark,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
         width: double.infinity,
-        child: ElevatedButton(
-          onPressed: (isValid && !_isLoading) ? _validateAndSubmit : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFCAD2DB),
-            foregroundColor: Colors.black,
-            padding: EdgeInsets.symmetric(
-              vertical: context.responsiveSpacing(
-                small: 11,
-                medium: 13,
-                large: 15,
-                tablet: 17,
-                veryNarrow: 9,
-              ),
-              horizontal: context.responsiveSpacing(
-                small: 16,
-                medium: 18,
-                large: 20,
-                tablet: 22,
-                veryNarrow: 12,
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 100,
-                  medium: 100,
-                  large: 100,
-                  tablet: 100,
-                ),
-              ),
-            ),
-            shadowColor: Colors.black.withOpacity(0.3),
-            elevation: 8,
+        padding: EdgeInsets.symmetric(vertical: 18.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: (onTap == null || isLoading || !canContinue)
+                ? [Colors.grey.withOpacity(0.5), Colors.grey.withOpacity(0.5)]
+                : [AppColors.deepGreen, AppColors.deepGreen.withOpacity(0.8)],
           ),
-          child: _isLoading
-              ? SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 18,
-                    medium: 20,
-                    large: 22,
-                    tablet: 24,
-                    veryNarrow: 16,
-                  ),
-                  width: context.responsiveSpacing(
-                    small: 18,
-                    medium: 20,
-                    large: 22,
-                    tablet: 24,
-                    veryNarrow: 16,
-                  ),
-                  child: CircularProgressIndicator(
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            if (onTap != null && !isLoading && canContinue)
+              BoxShadow(
+                color: AppColors.deepGreen.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+          ],
+        ),
+        child: isLoading
+            ? Center(
+                child: SizedBox(
+                  height: 20.r,
+                  width: 20.r,
+                  child: const CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.black,
-                    ),
-                  ),
-                )
-              : Text(
-                  'Үргэлжлүүлэх',
-                  style: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      small: 16,
-                      medium: 17,
-                      large: 18,
-                      tablet: 19,
-                      veryNarrow: 14,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
-        ),
+              )
+            : Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
       ),
     );
   }
 
-  BoxDecoration _boxShadowDecoration() {
-    return BoxDecoration(
-      borderRadius: BorderRadius.circular(
-        context.responsiveBorderRadius(
-          small: 100,
-          medium: 100,
-          large: 100,
-          tablet: 100,
-        ),
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.3),
-          offset: Offset(
-            0,
-            context.responsiveSpacing(
-              small: 10,
-              medium: 12,
-              large: 14,
-              tablet: 16,
-            ),
-          ),
-          blurRadius: context.responsiveSpacing(
-            small: 8,
-            medium: 10,
-            large: 12,
-            tablet: 14,
+  Widget _buildTransparentButton({
+    required VoidCallback onTap,
+    required String label,
+    required bool isDark,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
           ),
         ),
-      ],
-    );
-  }
-
-  InputDecoration _inputDecoration(
-    String hint,
-    TextEditingController controller,
-    bool isSmallScreen,
-  ) {
-    return InputDecoration(
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: context.responsiveSpacing(
-          small: 16,
-          medium: 18,
-          large: 20,
-          tablet: 22,
-          veryNarrow: 12,
-        ),
-        vertical: context.responsiveSpacing(
-          small: 11,
-          medium: 13,
-          large: 15,
-          tablet: 17,
-          veryNarrow: 9,
-        ),
-      ),
-      filled: true,
-      fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-      hintText: hint,
-      hintStyle: TextStyle(
-        color: Colors.white70,
-        fontSize: context.responsiveFontSize(
-          small: 15,
-          medium: 16,
-          large: 17,
-          tablet: 18,
-          veryNarrow: 13,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 100,
-            medium: 100,
-            large: 100,
-            tablet: 100,
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black54,
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w600,
           ),
-        ),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 100,
-            medium: 100,
-            large: 100,
-            tablet: 100,
-          ),
-        ),
-        borderSide: BorderSide(
-          color: AppColors.grayColor,
-          width: 1.5,
-        ),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 100,
-            medium: 100,
-            large: 100,
-            tablet: 100,
-          ),
-        ),
-        borderSide: BorderSide(
-          color: Colors.redAccent,
-          width: 1.5,
-        ),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 100,
-            medium: 100,
-            large: 100,
-            tablet: 100,
-          ),
-        ),
-        borderSide: BorderSide(
-          color: Colors.redAccent,
-          width: 1.5,
-        ),
-      ),
-      errorStyle: TextStyle(
-        color: Colors.redAccent,
-        fontSize: context.responsiveFontSize(
-          small: 11,
-          medium: 12,
-          large: 13,
-          tablet: 14,
         ),
       ),
     );

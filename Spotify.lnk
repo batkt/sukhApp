@@ -1,0 +1,87 @@
+# Login Screen: Full Technical & Visual Specification
+
+This document provides a comprehensive breakdown of the [LoginScreen](file:///c:/Users/user/Desktop/fsmapp/lib/screens/login_screen.dart#73-79) component ([lib/screens/login_screen.dart](file:///c:/Users/user/Desktop/fsmapp/lib/screens/login_screen.dart)). It covers the visual design, interactive states, and the complex multi-step "Forgot Password" modal.
+
+## 1. Architectural Overview
+
+The screen is built as a `StatefulWidget` using a layered **Stack** architecture. It is designed to be highly responsive, adapting its layout for phones, tablets, and landscape orientations.
+
+### Primary Layers:
+1.  **Custom Background:** A `CustomPaint` layer using [_BgPainter](file:///c:/Users/user/Desktop/fsmapp/lib/screens/login_screen.dart#779-845) to render complex gradients and decorative shapes.
+2.  **Branding Section:** Animated logo and application titles.
+3.  **Auth Card:** The main container holding input fields and primary actions.
+4.  **Footer:** Copyright and versioning information.
+
+---
+
+## 2. Visual Design & Custom Painting
+
+### [_BgPainter](file:///c:/Users/user/Desktop/fsmapp/lib/screens/login_screen.dart#779-845) Logic
+The background is not a simple image; it's procedurally rendered for performance and sharpness:
+-   **Gradients:** A linear gradient transitioning from `brandGreen` (top) to `loginBackground` (bottom), with specific stops at 35% and 45% to create a clean horizon.
+-   **Decorative Circles:** Translucent white circles are drawn at specific offsets to create depth.
+-   **Wave Separator:** A `Path` using `quadraticBezierTo` creates a smooth, fluid wave that visually separates the green header from the form area.
+
+### Glassmorphism & Gloom
+-   The logo container uses `Colors.white.withOpacity(0.15)` and a custom `BoxShadow` with a large `spreadRadius` of `brandGreen` to simulate a soft glow.
+
+---
+
+## 3. Interactive Components
+
+### Authentication Features
+-   **Validated Login:** Handles username/PIN validation with custom formatters.
+-   **Biometric Integration:** Support for **Face ID** and **Fingerprint**. The app proactively asks users to enable biometrics after their first successful manual login.
+-   **Input Formatters:** 
+    -   [PinCodeFormatter](file:///c:/Users/user/Desktop/fsmapp/lib/screens/login_screen.dart#13-36): Ensures exactly 4 digits.
+    -   [OTPCodeFormatter](file:///c:/Users/user/Desktop/fsmapp/lib/screens/login_screen.dart#38-72): Handles pasting of 6-digit codes and auto-distributes them across fields.
+
+### Transitions
+The screen uses an `AnimationController` to play an 800ms entrance sequence:
+-   **Fade Transition:** Applied to the branding and form card.
+-   **Slide Transition:** The form card slides up from `0.15` offset on the Y-axis.
+
+---
+
+## 4. The "Forgot Password" Modal
+
+When a user taps "Нууц код мартсан?", a multi-step [_ForgotPasswordModal](file:///c:/Users/user/Desktop/fsmapp/lib/screens/login_screen.dart#849-854) is presented. This is a complex `StatefulWidget` nested within the file.
+
+### Step-by-Step Flow:
+
+| Step | Title | Action | UI Details |
+| :--- | :--- | :--- | :--- |
+| **0** | **Phone Input** | User enters their 8-digit mobile number. | Auto-continues when 8 digits are reached. |
+| **1** | **OTP Verification** | User enters a 6-digit code received via SMS. | 6 individual text boxes with auto-focus and paste support. |
+| **2** | **New PIN** | User sets and confirms a new 4-digit numeric PIN. | Features visibility toggles and match-validation icons. |
+| **3** | **Success** | Confirmation of the change. | Large checkmark animation and a return-to-login button. |
+
+### Modal Aesthetics
+-   **Handle:** A top center handle indicates the bottom sheet is draggable.
+-   **Step Indicator:** A horizontal bar at the top represents progress through the 3 phases.
+-   **AnimatedSwitcher:** Smooth cross-fade transitions between each step of the recovery process.
+
+---
+
+## 5. Responsive Configuration
+
+The UI uses `MediaQuery` and `LayoutBuilder` to apply different constraints:
+-   **Mobile Portrait:** Centered vertical stack with optimized margins for short devices.
+-   **Tablet/Landscape:** Side-by-side configuration (Brand 40%, Form 60%).
+-   **Tablet Form Width:** Caps at `480px`.
+-   **Mobile Form Width:** Caps at `380px`.
+
+---
+
+## 6. Theme Integration
+
+The screen relies heavily on [AppColorScheme](file:///c:/Users/user/Desktop/fsmapp/lib/theme/app_theme.dart#4-177) from [theme/app_theme.dart](file:///c:/Users/user/Desktop/fsmapp/lib/theme/app_theme.dart):
+-   `cardBackground`: Used for the form container and modals.
+-   `inputBorder`: Subtle borders for text fields.
+-   `brandGreen`: The primary accent used for buttons, active borders, and loaders.
+-   `destructive`: Error states and "cancel" icons.
+
+---
+
+> [!TIP]
+> The modal uses `MediaQuery.of(context).viewInsets.bottom` to ensure it pushes up correctly when the virtual keyboard appears, preventing input fields from being obscured.

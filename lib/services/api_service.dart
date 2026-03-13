@@ -1328,14 +1328,15 @@ class ApiService {
 
   static Future<Map<String, dynamic>> registerWalletUser({
     required String utas,
-    required String mail,
+    String? mail,
     String? bairId,
     String? doorNo,
     String? bairName,
     String? customerId,
   }) async {
     try {
-      final requestBody = <String, dynamic>{'utas': utas, 'mail': mail};
+      final requestBody = <String, dynamic>{'utas': utas};
+      if (mail != null) requestBody['mail'] = mail;
 
       if (customerId != null && customerId.isNotEmpty) {
         requestBody['customerId'] = customerId;
