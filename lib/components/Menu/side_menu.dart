@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/screens/contact/contact_bottom_sheet.dart';
 
 class SideMenu extends StatefulWidget {
@@ -21,12 +19,23 @@ class SideMenu extends StatefulWidget {
 class _SideMenuState extends State<SideMenu> {
   String? _baiguullagiinId;
   bool _canInviteGuests = false;
+  String _userName = 'Ашиглагч';
 
   @override
   void initState() {
     super.initState();
     _loadOrganizationInfo();
     _checkGuestInvitePermission();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final name = await StorageService.getUserName();
+    if (mounted && name != null) {
+      setState(() {
+        _userName = name;
+      });
+    }
   }
 
   Future<void> _loadOrganizationInfo() async {
@@ -40,15 +49,7 @@ class _SideMenuState extends State<SideMenu> {
   Future<void> _checkGuestInvitePermission() async {
     try {
       final response = await ApiService.fetchZochinSettings();
-      print('🔍 [SideMenu] zochinSettings response: $response');
-
       if (mounted && response != null) {
-        // Try to handle various response structures
-        // 1. { data: { orshinSuugchMashin: { ... } } }
-        // 2. { result: { orshinSuugchMashin: { ... } } }
-        // 3. { orshinSuugchMashin: { ... } }
-        // 4. { zochinUrikhEsekh: true } (Direct object)
-
         dynamic data = response;
         if (response.containsKey('data')) {
           data = response['data'];
@@ -56,258 +57,287 @@ class _SideMenuState extends State<SideMenu> {
           data = response['result'];
         }
 
-        print('🔍 [SideMenu] Parsed data context: $data');
-
         bool canInvite = false;
-
         if (data is Map) {
-          // Check for nested orshinSuugchMashin first
-          if (data.containsKey('orshinSuugchMashin') &&
-              data['orshinSuugchMashin'] != null) {
+          if (data.containsKey('orshinSuugchMashin') && data['orshinSuugchMashin'] != null) {
             final osm = data['orshinSuugchMashin'];
-            print('🔍 [SideMenu] Found orshinSuugchMashin: $osm');
             canInvite = osm['zochinUrikhEsekh'] == true;
-          }
-          // Check if the permission is at the root of the data object
-          else if (data.containsKey('zochinUrikhEsekh')) {
-            print('🔍 [SideMenu] Found zochinUrikhEsekh at root');
+          } else if (data.containsKey('zochinUrikhEsekh')) {
             canInvite = data['zochinUrikhEsekh'] == true;
           }
         }
-
-        print('🔍 [SideMenu] _canInviteGuests set to: $canInvite');
-
         setState(() {
           _canInviteGuests = canInvite;
         });
       }
     } catch (e) {
-      // Permission denied or error, default to false
-      print('❌ [SideMenu] Error checking guest invite permission: $e');
+      debugPrint('❌ [SideMenu] Error checking guest invite permission: $e');
     }
-  }
-
-  void _showDevelopmentModal(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: context.responsivePadding(
-              small: 24,
-              medium: 26,
-              large: 28,
-              tablet: 30,
-              veryNarrow: 16,
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [context.surfaceColor, context.surfaceElevatedColor],
-              ),
-              border: Border.all(color: AppColors.deepGreen, width: 2),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 24,
-                  medium: 26,
-                  large: 28,
-                  tablet: 30,
-                  veryNarrow: 18,
-                ),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.deepGreen.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _BouncingRocket(),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 24,
-                    medium: 28,
-                    large: 32,
-                    tablet: 36,
-                  ),
-                ),
-
-                Text(
-                  'Хөгжүүлэлт явагдаж байна',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 18,
-                      veryNarrow: 12,
-                    ),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 16,
-                    medium: 18,
-                    large: 20,
-                    tablet: 22,
-                    veryNarrow: 12,
-                  ),
-                ),
-
-                // Description
-                Text(
-                  'Энэ хуудас хөгжүүлэлт хийгдэж байгаа тул одоогоор ашиглах боломжгүй байна. Удахгүй ашиглах боломжтой болно.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: context.textSecondaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 11,
-                      medium: 12,
-                      large: 13,
-                      tablet: 14,
-                      veryNarrow: 10,
-                    ),
-                    height: 1.5,
-                  ),
-                ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 24,
-                    medium: 28,
-                    large: 32,
-                    tablet: 36,
-                    veryNarrow: 16,
-                  ),
-                ),
-
-                // Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepGreen,
-                      foregroundColor: context.textPrimaryColor,
-                      padding: EdgeInsets.symmetric(
-                        vertical: context.responsiveSpacing(
-                          small: 14,
-                          medium: 16,
-                          large: 18,
-                          tablet: 20,
-                          veryNarrow: 12,
-                        ),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
-                          ),
-                        ),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Ойлголоо',
-                      style: TextStyle(
-                        fontSize: context.responsiveFontSize(
-                          small: 12,
-                          medium: 13,
-                          large: 14,
-                          tablet: 15,
-                          veryNarrow: 11,
-                        ),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    final isLargeScreen = screenWidth > 800;
-    final isLargePhone =
-        screenWidth > 400 && screenWidth <= 600; // Pro Max, Plus models
-
-    // Standard drawer width: 304 on phones, larger on tablets
-    double drawerWidth;
-    if (isLargeScreen) {
-      drawerWidth = 380; // Large tablets/iPads
-    } else if (isTablet) {
-      drawerWidth = 340; // Small tablets/iPad mini
-    } else if (isLargePhone) {
-      drawerWidth = 320; // iPhone Max/Plus models - slightly wider
-    } else {
-      drawerWidth = screenWidth * 0.82; // Smaller phones
-    }
+    double drawerWidth = isTablet ? 260 : screenWidth * 0.65;
 
     return Drawer(
-      backgroundColor: context.backgroundColor,
+      backgroundColor: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
       width: drawerWidth,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+      ),
       child: Column(
         children: [
-          // AppBar-like header with deep green background
-          Container(
-            color: AppColors.getDeepGreen(context.isDarkMode),
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top,
-              bottom: isTablet ? 20 : 16,
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: isTablet ? 24 : 20),
-                child: Row(
-                  children: [
-                    // Green circle background for logo
-                    Container(
-                      width: isTablet ? 48 : 40,
-                      height: isTablet ? 48 : 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.15),
-                      ),
-                      child: SelectableLogoImage(
-                        fit: BoxFit.contain,
-                        width: isTablet ? 32 : 26,
-                        height: isTablet ? 32 : 26,
-                      ),
+          _buildProfileHeader(context),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+              children: [
+                _buildMenuSection(
+                  'Үндсэн цэс',
+                  [
+                    _buildNavTile(
+                      context,
+                      icon: Icons.person_outline_rounded,
+                      title: 'Хувийн мэдээлэл',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/tokhirgoo');
+                      },
                     ),
-                    SizedBox(width: isTablet ? 16 : 12),
-                    Expanded(
-                      child: Text(
-                        'Амархоум',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isTablet ? 24 : 20,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
+                    _buildNavTile(
+                      context,
+                      icon: Icons.location_on_outlined,
+                      title: 'Хаяг сонгох',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/address_selection?fromMenu=true');
+                      },
+                    ),
+                  ],
+                ),
+                if (_baiguullagiinId != null &&
+                    _baiguullagiinId!.isNotEmpty &&
+                    _baiguullagiinId != '698e7fd3b6dd386b6c56a808') ...[
+                  SizedBox(height: 24.h),
+                  _buildMenuSection(
+                    'Төлбөр ба Гэрээ',
+                    [
+                      _buildNavTile(
+                        context,
+                        icon: Icons.description_outlined,
+                        title: 'Миний гэрээ',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/geree');
+                        },
+                      ),
+                      _buildNavTile(
+                        context,
+                        icon: Icons.receipt_long_outlined,
+                        title: 'Нэхэмжлэхүүд',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/nekhemjlekh');
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+                SizedBox(height: 24.h),
+                _buildMenuSection(
+                  'Бусад',
+                  [
+                    _buildNavTile(
+                      context,
+                      icon: Icons.cloud_done_outlined,
+                      title: 'И-Баримт',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/ebarimt');
+                      },
+                    ),
+                    if (_canInviteGuests)
+                      _buildNavTile(
+                        context,
+                        icon: Icons.person_add_alt_outlined,
+                        title: 'Зочин урих',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.push('/zochin-urikh');
+                        },
+                      ),
+                    _buildNavTile(
+                      context,
+                      icon: Icons.mail_outline_rounded,
+                      title: 'Санал хүсэлт',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/gomdol-sanal-progress');
+                      },
+                    ),
+                    _buildNavTile(
+                      context,
+                      icon: Icons.support_agent_rounded,
+                      title: 'Тусламж',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _showContactBottomSheet(context);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          _buildLogoutSection(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 16.h),
+      decoration: BoxDecoration(
+        color: AppColors.deepGreen,
+        borderRadius: BorderRadius.only(
+          bottomRight: Radius.circular(32.r),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
+            ),
+            child: const SelectableLogoImage(width: 40, height: 40),
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            'АМАРХОУМ',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.0,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Container(
+            height: 2,
+            width: 30.w,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuSection(String title, List<Widget> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 12.w, bottom: 8.h),
+          child: Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: context.textSecondaryColor.withOpacity(0.5),
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        ...items,
+      ],
+    );
+  }
+
+  Widget _buildNavTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 14.h),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.deepGreen, size: 22.sp),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: context.textSecondaryColor.withOpacity(0.3),
+                size: 18.sp,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutSection(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: context.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.grey[50],
+        border: Border(
+          top: BorderSide(
+            color: context.isDarkMode ? Colors.white10 : Colors.grey[200]!,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _handleLogout(context),
+              borderRadius: BorderRadius.circular(16.r),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.red.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.logout_rounded, color: Colors.red, size: 20.sp),
+                    SizedBox(width: 12.w),
+                    Text(
+                      'Системээс гарах',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
@@ -315,291 +345,44 @@ class _SideMenuState extends State<SideMenu> {
               ),
             ),
           ),
-          // Menu items
-          Expanded(
-            child: SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  SizedBox(height: isTablet ? 16 : 12),
-                  // Wrap menu items in SingleChildScrollView
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _buildMenuItem(
-                            context,
-                            icon: Icons.person_outline,
-                            title: 'Хувийн мэдээлэл',
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push('/tokhirgoo');
-                            },
-                            isTablet: isTablet,
-                            isLargePhone: isLargePhone,
-                          ),
-                          // Always show address selection so user can manage wallet/billing address
-                          _buildMenuItem(
-                            context,
-                            icon: Icons.location_on_outlined,
-                            title: 'Хаяг сонгох',
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push('/address_selection?fromMenu=true');
-                            },
-                            isTablet: isTablet,
-                            isLargePhone: isLargePhone,
-                          ),
-                          // Show contract / invoice only for users
-                          // that are linked to an organization (have baiguullagiinId)
-                          // EXCEPT the pure wallet org (698e7fd3b6dd386b6c56a808)
-                          if (_baiguullagiinId != null &&
-                              _baiguullagiinId!.isNotEmpty &&
-                              _baiguullagiinId !=
-                                  '698e7fd3b6dd386b6c56a808') ...[
-                            _buildMenuItem(
-                              context,
-                              icon: Icons.home_outlined,
-                              title: 'Гэрээ',
-                              onTap: () {
-                                Navigator.pop(context);
-                                context.push('/geree');
-                              },
-                              isTablet: isTablet,
-                              isLargePhone: isLargePhone,
-                            ),
-                            _buildMenuItem(
-                              context,
-                              icon: Icons.receipt_long_outlined,
-                              title: 'Нэхэмжлэх',
-                              onTap: () {
-                                Navigator.pop(context);
-                                context.push('/nekhemjlekh');
-                              },
-                              isTablet: isTablet,
-                              isLargePhone: isLargePhone,
-                            ),
-                          ],
-                          _buildMenuItem(
-                            context,
-                            icon: Icons.feedback_outlined,
-                            title: 'Санал хүсэлт',
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push('/gomdol-sanal-progress');
-                            },
-                            isTablet: isTablet,
-                            isLargePhone: isLargePhone,
-                          ),
-                          // if (_baiguullagiinId != null &&
-                          //     _baiguullagiinId!.isNotEmpty)
-                          //   _buildMenuItem(
-                          //     context,
-                          //     icon: Icons.local_parking_outlined,
-                          //     title: 'Зогсоол',
-                          //     onTap: () {
-                          //       Navigator.pop(context);
-                          //       _showDevelopmentModal(context);
-                          //     },
-                          //     isTablet: isTablet,
-                          //     isLargePhone: isLargePhone,
-                          //   ),
-                          if (_baiguullagiinId != null &&
-                              _baiguullagiinId!.isNotEmpty &&
-                              _canInviteGuests)
-                            _buildMenuItem(
-                              context,
-                              icon: Icons.person_add_alt_outlined,
-                              title: 'Зочин урих',
-                              onTap: () {
-                                Navigator.pop(context);
-                                context.push('/zochin-urikh');
-                              },
-                              isTablet: isTablet,
-                              isLargePhone: isLargePhone,
-                            ),
-                          _buildMenuItem(
-                            context,
-                            icon: Icons.cloud_outlined,
-                            title: 'И-Баримт',
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push('/ebarimt');
-                            },
-                            isTablet: isTablet,
-                            isLargePhone: isLargePhone,
-                          ),
-                          _buildMenuItem(
-                            context,
-                            icon: Icons.phone_outlined,
-                            title: 'Холбоо барих',
-                            onTap: () {
-                              Navigator.pop(context);
-                              _showContactBottomSheet(context);
-                            },
-                            isTablet: isTablet,
-                            isLargePhone: isLargePhone,
-                          ),
-                          _buildMenuItem(
-                            context,
-                            icon: Icons.logout,
-                            title: 'Гарах',
-                            onTap: () async {
-                              final router = GoRouter.of(context);
-
-                              Navigator.pop(context);
-
-                              final shouldLogout = await showDialog<bool>(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (BuildContext dialogContext) {
-                                  return AlertDialog(
-                                    backgroundColor:
-                                        context.cardBackgroundColor,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        context.responsiveBorderRadius(
-                                          small: 16,
-                                          medium: 18,
-                                          large: 20,
-                                          tablet: 22,
-                                          veryNarrow: 14,
-                                        ),
-                                      ),
-                                      side: BorderSide(
-                                        color: context.borderColor,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      'Гарах',
-                                      style: TextStyle(
-                                        color: AppColors.deepGreen,
-                                        fontSize: context.responsiveFontSize(
-                                          small: 14,
-                                          medium: 15,
-                                          large: 16,
-                                          tablet: 18,
-                                          veryNarrow: 12,
-                                        ),
-                                        fontWeight: FontWeight.w500,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                    content: Text(
-                                      'Та системээс гарахдаа итгэлтэй байна уу?',
-                                      style: TextStyle(
-                                        color: context.textSecondaryColor,
-                                        fontSize: context.responsiveFontSize(
-                                          small: 13,
-                                          medium: 14,
-                                          large: 15,
-                                          tablet: 16,
-                                          veryNarrow: 11,
-                                        ),
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(
-                                            dialogContext,
-                                          ).pop(false);
-                                        },
-                                        child: Text(
-                                          'Үгүй',
-                                          style: TextStyle(
-                                            color: context.textSecondaryColor,
-                                            fontSize: context
-                                                .responsiveFontSize(
-                                                  small: 11,
-                                                  medium: 12,
-                                                  large: 13,
-                                                  tablet: 14,
-                                                  veryNarrow: 10,
-                                                ),
-                                          ),
-                                        ),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(dialogContext).pop(true);
-                                        },
-                                        child: Text(
-                                          'Тийм',
-                                          style: TextStyle(
-                                            color: Colors.red,
-                                            fontSize: context
-                                                .responsiveFontSize(
-                                                  small: 11,
-                                                  medium: 12,
-                                                  large: 13,
-                                                  tablet: 14,
-                                                  veryNarrow: 10,
-                                                ),
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-
-                              if (shouldLogout == true) {
-                                // Use central logout service for clean state
-                                await SessionService.logout();
-
-                                // Navigate to login screen using the stored router
-                                router.go('/newtrekh');
-                              }
-                            },
-                            isLogout: true,
-                            isTablet: isTablet,
-                            isLargePhone: isLargePhone,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: isTablet ? 16 : 8),
-                  // Footer stays at the bottom
-                  Padding(
-                    padding: EdgeInsets.only(
-                      bottom: isTablet ? 16 : 8,
-                      top: isTablet ? 12 : 8,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '© 2026 Powered by Zevtabs LLC',
-                          style: TextStyle(
-                            fontSize: isTablet ? 12 : 10,
-                            color: context.textSecondaryColor,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          'v2.0.3+32',
-                          style: TextStyle(
-                            fontSize: isTablet ? 11 : 9,
-                            color: context.textSecondaryColor.withOpacity(0.7),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+          SizedBox(height: 20.h),
+          Text(
+            'Powered by Zevtabs LLC • v2.0.3',
+            style: TextStyle(
+              color: context.textSecondaryColor.withOpacity(0.4),
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final router = GoRouter.of(context);
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Гарах'),
+        content: const Text('Та системээс гарахдаа итгэлтэй байна уу?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Үгүй'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Тийм', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldLogout == true) {
+      await SessionService.logout();
+      router.go('/newtrekh');
+    }
   }
 
   void _showContactBottomSheet(BuildContext context) {
@@ -608,138 +391,6 @@ class _SideMenuState extends State<SideMenu> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const ContactBottomSheet(),
-    );
-  }
-
-  Widget _buildMenuItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    bool isLogout = false,
-    bool isTablet = false,
-    bool isLargePhone = false,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(
-          isTablet ? 12 : (isLargePhone ? 10 : 8),
-        ),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isTablet ? 24 : (isLargePhone ? 22 : 20),
-            vertical: isTablet ? 18 : (isLargePhone ? 16 : 14),
-          ),
-          child: Row(
-            children: [
-              // Clean icon without border
-              Icon(
-                icon,
-                color: isLogout ? Colors.red : AppColors.deepGreen,
-                size: isTablet ? 26 : (isLargePhone ? 24 : 22),
-              ),
-              SizedBox(width: isTablet ? 16 : (isLargePhone ? 15 : 14)),
-              // Title text
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: isLogout ? Colors.red : context.textPrimaryColor,
-                    fontSize: isTablet ? 17 : (isLargePhone ? 16 : 15),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              // Right arrow
-              Icon(
-                Icons.chevron_right,
-                color: isLogout
-                    ? Colors.red.withOpacity(0.5)
-                    : context.textSecondaryColor,
-                size: isTablet ? 24 : (isLargePhone ? 22 : 20),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Bouncing Rocket Animation Widget
-class _BouncingRocket extends StatefulWidget {
-  const _BouncingRocket();
-
-  @override
-  State<_BouncingRocket> createState() => _BouncingRocketState();
-}
-
-class _BouncingRocketState extends State<_BouncingRocket>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _animation = Tween<double>(
-      begin: 0,
-      end: -15,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _controller.repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _animation.value),
-          child: Container(
-            padding: context.responsivePadding(
-              small: 16,
-              medium: 18,
-              large: 20,
-              tablet: 22,
-              veryNarrow: 12,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.deepGreen.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.deepGreen.withOpacity(0.25),
-                width: 1.5,
-              ),
-            ),
-            child: Icon(
-              Icons.rocket_launch,
-              color: AppColors.deepGreen,
-              size: context.responsiveIconSize(
-                small: 48,
-                medium: 52,
-                large: 56,
-                tablet: 60,
-                veryNarrow: 40,
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

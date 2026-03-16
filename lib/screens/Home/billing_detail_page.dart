@@ -298,12 +298,12 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          billingName.toUpperCase(),
+          'ТӨЛБӨРИЙН ДЭЛГЭРЭНГҮЙ',
           style: TextStyle(
-            color: textPrimary.withOpacity(0.9),
-            fontSize: 13.sp,
-            letterSpacing: 1.5,
-            fontWeight: FontWeight.w300,
+            color: textPrimary,
+            fontSize: 14.sp,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),

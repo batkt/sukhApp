@@ -1,4 +1,5 @@
 import 'dart:io' show File, Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -132,7 +133,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     if (!mounted) return;
     final fullUrl = '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(url)}';
     // iOS AVPlayer does not support WebM; stay on page and show message (no external link)
-    if (Platform.isIOS && url.toLowerCase().contains('.webm')) {
+    if (!kIsWeb && Platform.isIOS && url.toLowerCase().contains('.webm')) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Энэ дууны формат (WebM) төхөөрөмж дээр тоглуулагдахгүй. M4A/MP3 илгээнэ үү.')),

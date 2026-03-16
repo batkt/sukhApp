@@ -103,7 +103,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       }
       showGlassSnackBar(
         context,
-        message: 'Биометрийн мэдээлэл олдсонгүй. Тохиргооноос биометрийн нэвтрэлтийг идэвхжүүлнэ үү',
+        message: 'Биометрийн мэдээлэл олдсонгүй. Тохиргооноос биометрийн нэвтрэлтийг идэвхжүүлэх үү',
         icon: Icons.error,
         iconColor: Colors.orange,
       );
@@ -165,7 +165,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           debugPrint('EasyRegister pre-check error: $e');
         }
 
-        // Truly a new user
         setState(() => _isCheckingPhone = false);
         _showRegistrationModal();
       }

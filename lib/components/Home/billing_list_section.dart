@@ -13,6 +13,8 @@ class BillingListSection extends StatefulWidget {
   final VoidCallback? onShowEmptyMessage;
   final Function(Map<String, dynamic>)? onDeleteTap;
 
+  final double totalBalance;
+
   const BillingListSection({
     super.key,
     required this.isLoading,
@@ -22,6 +24,7 @@ class BillingListSection extends StatefulWidget {
     required this.expandAddressAbbreviations,
     this.onShowEmptyMessage,
     this.onDeleteTap,
+    required this.totalBalance,
   });
 
   @override
@@ -50,14 +53,28 @@ class BillingListSectionState extends State<BillingListSection> {
         // Section title
         if (hasData || widget.isLoading)
           Padding(
-            padding: EdgeInsets.only(left: 4.w, bottom: 12.h),
-            child: Text(
-              'Миний биллинг',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w700,
-                color: context.textPrimaryColor,
-              ),
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+            child: Row(
+              children: [
+                Container(
+                  width: 4.w,
+                  height: 18.h,
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Text(
+                  'Миний биллинг',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: context.textPrimaryColor,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
             ),
           ),
         
@@ -85,45 +102,49 @@ class BillingListSectionState extends State<BillingListSection> {
         else if (widget.billingList.isEmpty && widget.userBillingData == null)
           _hasUserClicked
               ? Container(
-                  padding: EdgeInsets.all(16.w),
+                  padding: EdgeInsets.all(18.w),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF1A1F26) : Colors.white,
-                    borderRadius: BorderRadius.circular(16.r),
+                    borderRadius: BorderRadius.circular(24.r),
                     border: Border.all(
                       color: isDark 
                           ? Colors.white.withOpacity(0.08) 
-                          : Colors.grey.withOpacity(0.2),
+                          : AppColors.deepGreen.withOpacity(0.06),
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: isDark 
+                            ? Colors.black.withOpacity(0.3) 
+                            : Colors.black.withOpacity(0.04),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(10.w),
+                        padding: EdgeInsets.all(12.w),
                         decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10.r),
+                          color: AppColors.deepGreen.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(14.r),
                         ),
                         child: Icon(
-                          Icons.info_outline,
-                          color: context.textSecondaryColor,
-                          size: 20.sp,
+                          Icons.help_outline_rounded,
+                          color: AppColors.deepGreen.withOpacity(0.6),
+                          size: 22.sp,
                         ),
                       ),
-                      SizedBox(width: 12.w),
+                      SizedBox(width: 14.w),
                       Expanded(
                         child: Text(
-                          'Холбогдсон биллинг байхгүй байна',
+                          'Холбогдсон биллинг одоогоор байхгүй байна',
                           style: TextStyle(
                             color: context.textSecondaryColor,
-                            fontSize: 11.sp,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                            height: 1.3,
                           ),
                         ),
                       ),
@@ -141,6 +162,7 @@ class BillingListSectionState extends State<BillingListSection> {
               onDeleteTap: widget.onDeleteTap != null 
                   ? () => widget.onDeleteTap!(widget.userBillingData!)
                   : null,
+              totalBalance: widget.totalBalance,
             ),
           // Show connected billings from Wallet API
           ...widget.billingList.map(
@@ -151,6 +173,7 @@ class BillingListSectionState extends State<BillingListSection> {
               onDeleteTap: widget.onDeleteTap != null
                   ? () => widget.onDeleteTap!(billing)
                   : null,
+              totalBalance: widget.totalBalance,
             ),
           ),
         ],

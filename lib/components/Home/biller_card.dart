@@ -43,43 +43,75 @@ class BillerCard extends StatelessWidget {
           );
         },
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // Logo container with solid background
+            // Premium Tile Container
             Expanded(
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: isDark 
-                      ? Colors.white.withOpacity(0.08) 
-                      : const Color(0xFFF8FAFB),
-                  borderRadius: BorderRadius.circular(14.r),
+                  color: isDark ? const Color(0xFF1E242C) : Colors.white,
+                  borderRadius: BorderRadius.circular(22.r),
                   border: Border.all(
                     color: isDark 
-                        ? Colors.white.withOpacity(0.1) 
-                        : AppColors.deepGreen.withOpacity(0.12),
-                    width: 1,
+                        ? Colors.white.withOpacity(0.08) 
+                        : AppColors.deepGreen.withOpacity(0.08),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark 
+                          ? Colors.black.withOpacity(0.2) 
+                          : Colors.black.withOpacity(0.04),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                padding: EdgeInsets.all(12.w),
-                child: BillerUtils.buildBillerLogo(
-                  rawBillerName,
-                  transformedName: billerName,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22.r),
+                  child: Stack(
+                    children: [
+                      // Subtle background accent/glow
+                      Positioned(
+                        right: -10,
+                        top: -10,
+                        child: Container(
+                          width: 40.w,
+                          height: 40.w,
+                          decoration: BoxDecoration(
+                            color: AppColors.deepGreen.withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      
+                      // Logo content
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.w),
+                          child: BillerUtils.buildBillerLogo(
+                            rawBillerName,
+                            transformedName: billerName,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            SizedBox(height: 8.h),
-            // Title
+            SizedBox(height: 10.h),
+            // Title with improved typography
             Text(
               billerName,
               style: TextStyle(
                 color: context.textPrimaryColor,
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w600,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w700,
                 height: 1.2,
+                letterSpacing: -0.2,
               ),
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],

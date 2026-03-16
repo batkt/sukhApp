@@ -7,6 +7,7 @@ import 'package:sukh_app/components/Menu/side_menu.dart';
 import 'package:sukh_app/components/Home/billing_connection_section.dart';
 import 'package:sukh_app/components/Home/billing_list_section.dart';
 import 'package:sukh_app/components/Home/billers_grid.dart';
+import 'package:sukh_app/components/Home/blog_slider_section.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
@@ -31,7 +32,6 @@ class AppBackground extends StatelessWidget {
   }
 }
 
-// Custom painter for circular progress indicator
 class _CircularProgressPainter extends CustomPainter {
   final double progress;
   final Color color;
@@ -50,7 +50,6 @@ class _CircularProgressPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
 
-    // Draw background circle
     final backgroundPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.stroke
@@ -59,7 +58,6 @@ class _CircularProgressPainter extends CustomPainter {
 
     canvas.drawCircle(center, radius, backgroundPaint);
 
-    // Draw progress arc
     final progressPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -1192,204 +1190,201 @@ class _BookingScreenState extends State<NuurKhuudas>
     return Scaffold(
       key: _scaffoldKey,
       drawer: const SideMenu(),
-      appBar: AppBar(
-        backgroundColor: AppColors.getDeepGreen(isDark),
-        toolbarHeight: 60.h,
-        leading: IconButton(
-          icon: Icon(Icons.menu, color: Colors.white, size: 22.sp),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-        title: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.account_balance_wallet_rounded,
-                color: Colors.white,
-                size: 18.sp,
-              ),
-              SizedBox(width: 8.w),
-              Flexible(
-                child: Text(
-                  '${_formatNumberWithComma(totalNiitTulbur)}₮',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        actions: [
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                onPressed: () {
-                  context
-                      .push('/medegdel-list')
-                      .then((_) => _loadNotificationCount());
-                },
-              ),
-              if (_unreadNotificationCount > 0)
-                Positioned(
-                  right: 2,
-                  top: 4,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: _unreadNotificationCount > 9 ? 5.w : 4.w,
-                      vertical: 2.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: Colors.white, width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.5),
-                          blurRadius: 4,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    constraints: BoxConstraints(
-                      minWidth: 18.w,
-                      minHeight: 18.h,
-                    ),
-                    child: Center(
-                      child: Text(
-                        _unreadNotificationCount > 99
-                            ? '99+'
-                            : '$_unreadNotificationCount',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10.sp,
-                          height: 1.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
       body: Container(
         color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
-        child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              await Future.wait([
-                _loadBillers(),
-                _loadBillingList(),
-                _loadNotificationCount(),
-                _loadAllBillingPayments(),
-                _loadGereeData(),
-                _loadNekhemjlekhCron(),
-              ]);
-            },
-            color: AppColors.deepGreen,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: 16.h),
-
-                  // Billing Connection Section - only show when NO e-bill is connected
-                  if (_billingList.isEmpty &&
-                      _userBillingData == null &&
-                      !_isLoadingBillingList)
-                    BillingConnectionSection(
-                      isConnecting: _isConnectingBilling,
-                      onConnect: _connectBillingByAddress,
+        child: Column(
+          children: [
+            // Floating Top Header
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
+                child: Container(
+                  height: 56.h,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen,
+                    borderRadius: BorderRadius.circular(24.r),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
                     ),
-
-                  if (_billingList.isEmpty &&
-                      _userBillingData == null &&
-                      !_isLoadingBillingList)
-                    SizedBox(height: 12.h),
-
-                  // Billing List Section
-                  BillingListSection(
-                    key: _billingListSectionKey,
-                    isLoading: _isLoadingBillingList,
-                    billingList: _billingList,
-                    userBillingData: _userBillingData,
-                    onBillingTap: _showBillingDetailModal,
-                    expandAddressAbbreviations: _expandAddressAbbreviations,
-                    onDeleteTap: _deleteBilling,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-
-                  SizedBox(height: 16.h),
-
-                  // Billers Grid
-                  if (_isLoadingBillers)
-                    SizedBox(
-                      height: 200.h,
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.deepGreen,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                        child: Icon(
+                          Icons.menu_rounded,
+                          color: Colors.white,
+                          size: 24.sp,
                         ),
                       ),
-                    )
-                  else if (_billers.isEmpty)
-                    SizedBox(
-                      height: 200.h,
-                      child: Center(
-                        child: Text(
-                          'Биллер олдсонгүй',
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: 16.sp,
+                      
+                      const SizedBox.shrink(), // Removed Wallet Pill as requested
+                      
+                      // Notification Icon
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              context
+                                  .push('/medegdel-list')
+                                  .then((_) => _loadNotificationCount());
+                            },
+                            child: Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 24.sp,
+                            ),
                           ),
-                        ),
+                          if (_unreadNotificationCount > 0)
+                            Positioned(
+                              right: -2,
+                              top: -2,
+                              child: Container(
+                                padding: EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.deepGreen, width: 1.5),
+                                ),
+                                constraints: BoxConstraints(
+                                  minWidth: 14.w,
+                                  minHeight: 14.h,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '$_unreadNotificationCount',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 7.sp,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    )
-                  else
-                    BillersGrid(
-                      billers: _billers,
-                      onDevelopmentTap: () => _showDevelopmentModal(context),
-                      onBillerTap: () {
-                        if (_billingList.isEmpty && _userBillingData == null) {
-                          _billingListSectionKey.currentState
-                              ?.showEmptyMessage();
-                        }
-                      },
-                    ),
-
-                  SizedBox(height: 20.h),
-
-                  // Remaining Days Display
-                  if (_gereeResponse != null &&
-                      _gereeResponse!.jagsaalt.isNotEmpty)
-                    _buildRemainingDaysWidget(_gereeResponse!.jagsaalt.first),
-
-                  SizedBox(height: 24.h),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await Future.wait([
+                    _loadBillers(),
+                    _loadBillingList(),
+                    _loadNotificationCount(),
+                    _loadAllBillingPayments(),
+                    _loadGereeData(),
+                    _loadNekhemjlekhCron(),
+                  ]);
+                },
+                color: AppColors.deepGreen,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 4.h), // Reduced since header has padding
+
+                      // Billing Connection Section - only show when NO e-bill is connected
+                      if (_billingList.isEmpty &&
+                          _userBillingData == null &&
+                          !_isLoadingBillingList)
+                        BillingConnectionSection(
+                          isConnecting: _isConnectingBilling,
+                          onConnect: _connectBillingByAddress,
+                        ),
+
+                      if (_billingList.isEmpty &&
+                          _userBillingData == null &&
+                          !_isLoadingBillingList)
+                        SizedBox(height: 12.h),
+
+                      // Billing List Section
+                      BillingListSection(
+                        key: _billingListSectionKey,
+                        isLoading: _isLoadingBillingList,
+                        billingList: _billingList,
+                        userBillingData: _userBillingData,
+                        onBillingTap: _showBillingDetailModal,
+                        expandAddressAbbreviations: _expandAddressAbbreviations,
+                        onDeleteTap: _deleteBilling,
+                        totalBalance: totalNiitTulbur,
+                      ),
+
+                      SizedBox(height: 12.h),
+
+                      // Billers Grid
+                      if (_isLoadingBillers)
+                        SizedBox(
+                          height: 200.h,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.deepGreen,
+                            ),
+                          ),
+                        )
+                      else if (_billers.isEmpty)
+                        SizedBox(
+                          height: 200.h,
+                          child: Center(
+                            child: Text(
+                              'Биллер олдсонгүй',
+                              style: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: 16.sp,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        BillersGrid(
+                          billers: _billers,
+                          onDevelopmentTap: () => _showDevelopmentModal(context),
+                          onBillerTap: () {
+                            if (_billingList.isEmpty && _userBillingData == null) {
+                              _billingListSectionKey.currentState
+                                  ?.showEmptyMessage();
+                            }
+                          },
+                        ),
+
+                      SizedBox(height: 12.h),
+
+                      // Remaining Days Display
+                      if (_gereeResponse != null &&
+                          _gereeResponse!.jagsaalt.isNotEmpty)
+                        _buildRemainingDaysWidget(_gereeResponse!.jagsaalt.first),
+
+                      SizedBox(height: 12.h),
+                      
+                      // Blog Slider Section
+                      const BlogSliderSection(),
+
+                      SizedBox(height: 24.h), // More bottom spacing
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

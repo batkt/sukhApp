@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 
 class AppVersionInfo {
   final String version;
@@ -55,7 +56,15 @@ class UpdateService {
 
       // Get latest version from API
       try {
-        final platform = Platform.isIOS ? 'ios' : 'android';
+        String platform = 'android'; // Default
+        if (!kIsWeb) {
+          if (Platform.isIOS) platform = 'ios';
+          else if (Platform.isAndroid) platform = 'android';
+          else if (Platform.isWindows) platform = 'windows';
+          else if (Platform.isMacOS) platform = 'macos';
+          else if (Platform.isLinux) platform = 'linux';
+        }
+
         final response = await http.get(
           Uri.parse('$baseUrl/app-version?platform=$platform'),
           headers: {'Content-Type': 'application/json'},
@@ -137,6 +146,10 @@ class UpdateService {
   static String getStoreUrl() {
     if (_latestVersionInfo != null && _latestVersionInfo!.updateUrl.isNotEmpty) {
       return _latestVersionInfo!.updateUrl;
+    }
+
+    if (kIsWeb) {
+      return 'https://amarhome.mn';
     }
 
     if (Platform.isIOS) {

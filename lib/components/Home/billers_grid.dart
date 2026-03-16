@@ -29,58 +29,51 @@ class _BillersGridState extends State<BillersGrid> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section title
+        // Modernized Section Header
         Padding(
-          padding: EdgeInsets.only(left: 4.w, bottom: 12.h),
-          child: Text(
-            'Төлбөрийн үйлчилгээ',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w700,
-              color: context.textPrimaryColor,
-            ),
-          ),
-        ),
-        
-        // Modern card container
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1F26) : Colors.white,
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: isDark 
-                  ? Colors.white.withOpacity(0.08) 
-                  : AppColors.deepGreen.withOpacity(0.1),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark 
-                    ? Colors.black.withOpacity(0.3) 
-                    : Colors.black.withOpacity(0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+          child: Row(
+            children: [
+              Container(
+                width: 4.w,
+                height: 18.h,
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Text(
+                'Төлбөрийн үйлчилгээ',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  color: context.textPrimaryColor,
+                  letterSpacing: -0.5,
+                ),
               ),
             ],
           ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 12.w,
-              mainAxisSpacing: 16.h,
-              childAspectRatio: 0.85,
-            ),
-            itemCount: allBillers.length,
-            itemBuilder: (context, index) {
-              return BillerCard(
-                biller: allBillers[index],
-                onTapCallback: widget.onDevelopmentTap,
-              );
-            },
+        ),
+        
+        // Open Grid of Service Tiles
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 16.w,
+            mainAxisSpacing: 16.h,
+            childAspectRatio: 0.8, // Slightly taller for better text spacing
           ),
+          itemCount: allBillers.length,
+          itemBuilder: (context, index) {
+            return BillerCard(
+              biller: allBillers[index],
+              onTapCallback: widget.onDevelopmentTap,
+            );
+          },
         ),
       ],
     );

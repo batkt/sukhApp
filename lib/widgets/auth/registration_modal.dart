@@ -526,7 +526,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
         SizedBox(height: 32.h),
         _buildPrimaryButton(
           onTap: _isLoading ? null : () => _handleBiometricSetup(true),
-          label: 'Идэвхжүүлэх',
+          label: 'Идэвхижүүлэх',
           isLoading: _isLoading,
         ),
         SizedBox(height: 12.h),

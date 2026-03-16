@@ -127,15 +127,54 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     return sorted;
   }
 
+  static const Map<String, String> _districtFullNames = {
+    'ХУД': 'Хан-Уул дүүрэг',
+    'БГД': 'Баянгол дүүрэг',
+    'БЗД': 'Баянзүрх дүүрэг',
+    'СБД': 'Сүхбаатар дүүрэг',
+    'СХД': 'Сонгинохайрхан дүүрэг',
+    'ЧД': 'Чингэлтэй дүүрэг',
+    'НАЛАЙХ': 'Налайх дүүрэг',
+    'БАГАНУУР': 'Багануур дүүрэг',
+    'БАГАХАНГАЙ': 'Багахангай дүүрэг',
+  };
+
+  String _getDistrictDisplayName(Map<String, dynamic>? district) {
+    if (district == null) return 'Сонгох';
+    final rawName = (district['districtName'] ?? district['name'] ?? '').toString().toUpperCase();
+    return _districtFullNames[rawName] ?? rawName;
+  }
+
   int _numericCompare(String a, String b) {
-    final aMatch = RegExp(r'\d+').firstMatch(a);
-    final bMatch = RegExp(r'\d+').firstMatch(b);
-    if (aMatch != null && bMatch != null) {
-      final aNum = int.tryParse(aMatch.group(0) ?? '') ?? 0;
-      final bNum = int.tryParse(bMatch.group(0) ?? '') ?? 0;
-      if (aNum != bNum) return aNum.compareTo(bNum);
+    final aStr = a.toLowerCase();
+    final bStr = b.toLowerCase();
+    
+    final RegExp regExp = RegExp(r'(\d+|\D+)');
+    final Iterable<Match> aMatches = regExp.allMatches(aStr);
+    final Iterable<Match> bMatches = regExp.allMatches(bStr);
+    
+    final List<String> aParts = aMatches.map((m) => m.group(0)!).toList();
+    final List<String> bParts = bMatches.map((m) => m.group(0)!).toList();
+    
+    final int minLen = aParts.length < bParts.length ? aParts.length : bParts.length;
+    
+    for (int i = 0; i < minLen; i++) {
+      final aPart = aParts[i];
+      final bPart = bParts[i];
+      
+      final bool aIsDigit = RegExp(r'^\d+$').hasMatch(aPart);
+      final bool bIsDigit = RegExp(r'^\d+$').hasMatch(bPart);
+      
+      if (aIsDigit && bIsDigit) {
+        final int aNum = int.parse(aPart);
+        final int bNum = int.parse(bPart);
+        if (aNum != bNum) return aNum.compareTo(bNum);
+      } else {
+        if (aPart != bPart) return aPart.compareTo(bPart);
+      }
     }
-    return a.compareTo(b);
+    
+    return aParts.length.compareTo(bParts.length);
   }
 
   Future<void> _onBuildingSelected(Map<String, dynamic> building) async {
@@ -353,7 +392,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           SizedBox(height: 16.h),
           _buildSelectionField(
             label: 'Дүүрэг / Сум',
-            value: _selectedDistrict?['name'] ?? 'Сонгох',
+            value: _getDistrictDisplayName(_selectedDistrict),
             icon: Icons.map_rounded,
             onTap: _selectedCity == null ? null : () => _showPicker('Дүүрэг сонгох', _districts, (val) => _onDistrictSelected(val)),
             isDark: isDark,
@@ -470,8 +509,16 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     );
   }
 
-  void _showPicker(String title, List<Map<String, dynamic>> items, Function(Map<String, dynamic>) onSelected, {bool showSearch = false}) {
-    List<Map<String, dynamic>> filteredItems = items;
+  void _showPicker(String title, List<Map<String, dynamic>> items, Function(Map<String, dynamic>) onSelected, {bool showSearch = true}) {
+    List<Map<String, dynamic>> filteredItems = List.from(items);
+    
+    // Initial sort
+    filteredItems.sort((a, b) {
+      final nameA = title.contains('Дүүрэг') ? _getDistrictDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString();
+      final nameB = title.contains('Дүүрэг') ? _getDistrictDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString();
+      return _numericCompare(nameA, nameB);
+    });
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -479,55 +526,165 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           final isDark = context.isDarkMode;
+          final primaryColor = AppColors.deepGreen;
+          
           return Container(
-            height: MediaQuery.of(context).size.height * 0.7,
+            height: MediaQuery.of(context).size.height * 0.8,
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+              color: isDark ? const Color(0xFF121212) : Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
             ),
             child: Column(
               children: [
                 SizedBox(height: 12.h),
-                Container(width: 40.w, height: 4.h, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
-                SizedBox(height: 20.h),
-                Text(title, style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                SizedBox(height: 24.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: Row(
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                      ),
+                    ],
+                  ),
+                ),
                 if (showSearch)
                   Padding(
-                    padding: EdgeInsets.all(16.r),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Хайх...',
-                        prefixIcon: const Icon(Icons.search),
-                        filled: true,
-                        fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                    padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 16.h),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                        ),
                       ),
-                      onChanged: (val) {
-                        setModalState(() {
-                          filteredItems = items.where((i) {
-                            final name = (i['name'] ?? i['ner'] ?? '').toString().toLowerCase();
-                            return name.contains(val.toLowerCase());
-                          }).toList();
-                        });
-                      },
+                      child: TextField(
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14.sp),
+                        decoration: InputDecoration(
+                          hintText: 'Хайх...',
+                          hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 14.sp),
+                          prefixIcon: Icon(Icons.search_rounded, color: primaryColor, size: 20.sp),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 15.h),
+                        ),
+                        onChanged: (val) {
+                          setModalState(() {
+                            if (val.isEmpty) {
+                              filteredItems = List.from(items);
+                            } else {
+                              final query = val.toLowerCase();
+                              filteredItems = items.where((i) {
+                                final name = (title.contains('Дүүрэг') 
+                                    ? _getDistrictDisplayName(i)
+                                    : (i['name'] ?? i['ner'] ?? '').toString()).toLowerCase();
+                                return name.contains(query);
+                              }).toList();
+                            }
+                            
+                            filteredItems.sort((a, b) {
+                              final nameA = title.contains('Дүүрэг') ? _getDistrictDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString();
+                              final nameB = title.contains('Дүүрэг') ? _getDistrictDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString();
+                              
+                              if (val.isNotEmpty) {
+                                final lowA = nameA.toLowerCase();
+                                final lowB = nameB.toLowerCase();
+                                final lowQuery = val.toLowerCase();
+                                
+                                bool startsA = lowA.startsWith(lowQuery);
+                                bool startsB = lowB.startsWith(lowQuery);
+                                
+                                if (startsA && !startsB) return -1;
+                                if (!startsA && startsB) return 1;
+                              }
+                              
+                              return _numericCompare(nameA, nameB);
+                            });
+                          });
+                        },
+                      ),
                     ),
                   ),
                 Expanded(
-                  child: ListView.builder(
+                  child: ListView.separated(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                     itemCount: filteredItems.length,
+                    separatorBuilder: (context, index) => SizedBox(height: 4.h),
                     itemBuilder: (context, index) {
                       final item = filteredItems[index];
-                      final name = item['name'] ?? item['ner'] ?? '';
-                      return ListTile(
-                        title: Text(name),
-                        onTap: () {
-                          onSelected(item);
-                          Navigator.pop(context);
-                        },
+                      final name = title.contains('Дүүрэг') 
+                          ? _getDistrictDisplayName(item)
+                          : (item['name'] ?? item['ner'] ?? '');
+                      
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            onSelected(item);
+                            Navigator.pop(context);
+                          },
+                          borderRadius: BorderRadius.circular(16.r),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36.w,
+                                  height: 36.w,
+                                  decoration: BoxDecoration(
+                                    color: primaryColor.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
+                                  child: Icon(
+                                    title.contains('Барилга') ? Icons.apartment_rounded : Icons.location_on_rounded,
+                                    size: 18.sp,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                                SizedBox(width: 16.w),
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: isDark ? Colors.white24 : Colors.black12,
+                                  size: 20.sp,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       );
                     },
                   ),
                 ),
+                SizedBox(height: 24.h),
               ],
             ),
           );

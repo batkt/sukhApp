@@ -22,7 +22,19 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(child: child);
+    final isDark = context.isDarkMode;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBackground : const Color(0xFFF1F5F9),
+        image: DecorationImage(
+          image: const AssetImage('lib/assets/img/main_background.png'),
+          fit: BoxFit.none,
+          scale: 3,
+          opacity: isDark ? 0.3 : 0.05,
+        ),
+      ),
+      child: child,
+    );
   }
 }
 
@@ -173,6 +185,17 @@ class _ProfileSettingsState extends State<ProfileSettings>
         iconColor: value ? Colors.green : Colors.orange,
       );
     }
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    List<String> names = name.split(' ').where((n) => n.isNotEmpty).toList();
+    if (names.isEmpty) return 'U';
+    
+    if (names.length >= 2) {
+      return (names[0][0] + names[1][0]).toUpperCase();
+    }
+    return names[0][0].toUpperCase();
   }
 
   @override
@@ -386,14 +409,20 @@ class _ProfileSettingsState extends State<ProfileSettings>
     }
   }
 
-  Future<void> _handleChangePassword() async {
+  Future<void> _handleChangePassword(void Function(void Function())? setModalState) async {
     if (!_passwordFormKey.currentState!.validate()) {
       return;
     }
 
-    setState(() {
-      _isChangingPassword = true;
-    });
+    if (setModalState != null) {
+      setModalState(() {
+        _isChangingPassword = true;
+      });
+    } else {
+      setState(() {
+        _isChangingPassword = true;
+      });
+    }
 
     try {
       final response = await ApiService.changePassword(
@@ -434,9 +463,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isChangingPassword = false;
-        });
+        if (setModalState != null) {
+          setModalState(() {
+            _isChangingPassword = false;
+          });
+        } else {
+          setState(() {
+            _isChangingPassword = false;
+          });
+        }
       }
     }
   }
@@ -1083,221 +1118,305 @@ class _ProfileSettingsState extends State<ProfileSettings>
       builder: (context) {
         final isDark = context.isDarkMode;
         return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
+          height: MediaQuery.of(context).size.height * 0.75,
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+            color: isDark ? const Color(0xFF161618) : Colors.white,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20.r),
-              topRight: Radius.circular(20.r),
-            ),
-            border: Border.all(
-              color: isDark
-                  ? AppColors.deepGreen.withOpacity(0.3)
-                  : AppColors.deepGreen.withOpacity(0.2),
-              width: 1,
+              topLeft: Radius.circular(28.r),
+              topRight: Radius.circular(28.r),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 40,
+                spreadRadius: 10,
                 offset: const Offset(0, -5),
               ),
             ],
           ),
-        child: Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: EdgeInsets.only(top: 12.h),
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: context.borderColor,
-                borderRadius: BorderRadius.circular(2.r),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: EdgeInsets.only(top: 14.h),
+                width: 36.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white12 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
               ),
-            ),
-            // Header
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Хувийн мэдээлэл',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
+              // Header
+              Padding(
+                padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 16.h),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Icon(
+                        Icons.account_circle_rounded,
+                        color: AppColors.deepGreen,
+                        size: 20.sp,
                       ),
                     ),
+                    SizedBox(width: 14.w),
+                    Expanded(
+                      child: Text(
+                        'Хувийн мэдээлэл',
+                        style: TextStyle(
+                          color: context.textPrimaryColor,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: EdgeInsets.all(6.w),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white : Colors.black,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: context.textSecondaryColor,
+                          size: 18.sp,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Section 1: Basic Info
+                      _buildSubSectionTitle('Үндсэн мэдээлэл'),
+                      SizedBox(height: 12.h),
+                      _buildModernTextField(
+                        controller: _nameController,
+                        label: 'Нэр',
+                        icon: Icons.person_outline_rounded,
+                        enabled: false,
+                        hint: 'Нэр хоосон байна',
+                      ),
+                      SizedBox(height: 16.h),
+                      _buildModernTextField(
+                        controller: _phoneController,
+                        label: 'Утасны дугаар',
+                        icon: Icons.phone_android_rounded,
+                        enabled: false,
+                        hint: 'Утасны дугаар хоосон байна',
+                      ),
+                      
+                      SizedBox(height: 32.h),
+                      
+                      // Section 2: Address & Property
+                      Row(
+                        children: [
+                          _buildSubSectionTitle('Хаягийн мэдээлэл'),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: () => _handleUpdateAddress(),
+                            icon: Icon(Icons.edit_location_alt_rounded, size: 14.sp),
+                            label: Text(
+                              'Солих',
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.deepGreen,
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12.h),
+                      if (_userData != null) 
+                        _buildUserDataGrid()
+                      else
+                        _buildAddressPlaceholder(context),
+                        
+                      SizedBox(height: 32.h),
+                      
+                      // Section 3: Car Info
+                      _buildSubSectionTitle('Тээврийн хэрэгсэл'),
+                      SizedBox(height: 12.h),
+                      _buildModernTextField(
+                        controller: _mashiniiDugaarController,
+                        label: 'Улсын дугаар',
+                        icon: Icons.directions_car_rounded,
+                        hint: 'Машины дугаар тохируулах',
+                        onTap: () {
+                          // Allow editing plate here too if needed
+                        },
+                      ),
+                      
+                      SizedBox(height: 40.h),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: context.textPrimaryColor),
-                    onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSubSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        color: context.textSecondaryColor,
+        fontSize: 12.sp,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
+  Widget _buildAddressPlaceholder(BuildContext context) {
+    final isDark = context.isDarkMode;
+    return GestureDetector(
+      onTap: () => _handleUpdateAddress(),
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: AppColors.deepGreen.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.location_on_rounded,
+                color: AppColors.deepGreen,
+                size: 20.sp,
+              ),
+            ),
+            SizedBox(width: 14.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                     _currentAddress != null && _currentAddress!.isNotEmpty 
+                        ? _currentAddress! 
+                        : 'Хаяг бүртгэгдээгүй байна',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                  if (_currentAddress == null || _currentAddress!.isEmpty)
+                    Text(
+                      'Энд дарж хаягаа сонгоно уу',
+                      style: TextStyle(
+                        color: AppColors.deepGreen,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                 ],
               ),
             ),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTextField(
-                      controller: _nameController,
-                      label: 'Нэр',
-                      icon: Icons.person_outline,
-                      enabled: false,
-                    ),
-                    SizedBox(height: 16.h),
-                    _buildTextField(
-                      controller: _phoneController,
-                      label: 'Утас',
-                      icon: Icons.phone_outlined,
-                      enabled: false,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    SizedBox(height: 24.h),
-                    // Additional User Information in Grid Layout
-                    if (_userData != null) ...[_buildUserDataGrid()],
-                    // Address Section
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_outlined,
-                          color: AppColors.deepGreen,
-                          size: 16.sp,
-                        ),
-                        SizedBox(width: 6.w),
-                        Text(
-                          'Хаяг',
-                          style: TextStyle(
-                            color: context.textPrimaryColor,
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10.h),
-                    if (_isLoadingAddress)
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.h),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 16.w,
-                              height: 16.h,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.deepGreen,
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Text(
-                              'Хаяг ачааллаж байна...',
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: 11.sp,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (_currentAddress != null &&
-                        _currentAddress!.isNotEmpty)
-                      Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: context.surfaceColor,
-                          borderRadius: BorderRadius.circular(10.r),
-                          border: Border.all(
-                            color: context.borderColor,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          _currentAddress!,
-                          style: TextStyle(
-                            color: context.textPrimaryColor,
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: context.surfaceColor,
-                          borderRadius: BorderRadius.circular(10.r),
-                          border: Border.all(
-                            color: context.borderColor,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          'Хаяг тодорхойлогдоогүй',
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: 12.sp,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                    SizedBox(height: 16.h),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          await _handleUpdateAddress();
-                        },
-                        icon: Icon(
-                          Icons.edit_outlined,
-                          color: AppColors.deepGreen,
-                          size: 14.sp,
-                        ),
-                        label: Text(
-                          'Хаяг шинэчлэх',
-                          style: TextStyle(
-                            color: AppColors.deepGreen,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 10.h),
-                          side: BorderSide(
-                            color: AppColors.deepGreen.withOpacity(0.5),
-                            width: 1,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              context.responsiveBorderRadius(
-                                small: 12,
-                                medium: 14,
-                                large: 16,
-                                tablet: 18,
-                                veryNarrow: 10,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 24.h),
-                  ],
-                ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: context.textSecondaryColor,
+              size: 20.sp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool enabled = true,
+    String? hint,
+    VoidCallback? onTap,
+    bool isPassword = false,
+  }) {
+    final isDark = context.isDarkMode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: AppColors.deepGreen, size: 14.sp),
+            SizedBox(width: 8.w),
+            Text(
+              label,
+              style: TextStyle(
+                color: context.textPrimaryColor.withOpacity(0.7),
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
-      );
-      },
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: TextField(
+            controller: controller,
+            enabled: enabled,
+            onTap: onTap,
+            readOnly: !enabled || onTap != null,
+            obscureText: isPassword,
+            style: TextStyle(
+              color: context.textPrimaryColor,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: context.textSecondaryColor.withOpacity(0.5),
+                fontSize: 13.sp,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            ),
+          ),
+        ),
+      ],
     );
   }
+
 
   void _showChangePasswordModal(BuildContext context) {
     showModalBottomSheet(
@@ -1308,161 +1427,158 @@ class _ProfileSettingsState extends State<ProfileSettings>
         builder: (BuildContext context, StateSetter setModalState) {
           final isDark = modalContext.isDarkMode;
           return Container(
-            height: MediaQuery.of(modalContext).size.height * 0.55,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(modalContext).viewInsets.bottom,
+            ),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
+              color: isDark ? const Color(0xFF161618) : Colors.white,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20.r),
-                topRight: Radius.circular(20.r),
-              ),
-              border: Border.all(
-                color: isDark
-                    ? AppColors.deepGreen.withOpacity(0.3)
-                    : AppColors.deepGreen.withOpacity(0.2),
-                width: 1,
+                topLeft: Radius.circular(28.r),
+                topRight: Radius.circular(28.r),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
-                  blurRadius: 20,
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 40,
+                  spreadRadius: 10,
                   offset: const Offset(0, -5),
                 ),
               ],
             ),
-            child: Column(
-              children: [
-                // Handle bar
-                Container(
-                  margin: EdgeInsets.only(top: 12.h),
-                  width: 40.w,
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    color: modalContext.borderColor,
-                    borderRadius: BorderRadius.circular(2.r),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: EdgeInsets.only(top: 14.h),
+                    width: 36.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
                   ),
-                ),
-                // Header
-                Padding(
-                  padding: EdgeInsets.all(20.w),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Нууц үг солих',
-                          style: TextStyle(
-                            color: modalContext.textPrimaryColor,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
+                  // Header
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 8.h),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Icon(
+                            Icons.lock_person_rounded,
+                            color: Colors.amber[700],
+                            size: 20.sp,
                           ),
                         ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.close,
-                          color: modalContext.textPrimaryColor,
+                        SizedBox(width: 14.w),
+                        Expanded(
+                          child: Text(
+                            'Нууц үг солих',
+                            style: TextStyle(
+                              color: modalContext.textPrimaryColor,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
                         ),
-                        onPressed: () => Navigator.pop(modalContext),
-                      ),
-                    ],
+                        GestureDetector(
+                          onTap: () => Navigator.pop(modalContext),
+                          child: Container(
+                            padding: EdgeInsets.all(6.w),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white : Colors.black,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.close_rounded,
+                              color: modalContext.textSecondaryColor,
+                              size: 18.sp,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
                     child: Form(
                       key: _passwordFormKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildPasswordFieldForModal(
+                          _buildModernPasswordField(
                             controller: _currentPasswordController,
-                            label: 'Хуучин нууц үг',
+                            label: 'Одоогийн нууц үг',
+                            hint: '••••',
                             obscureText: _obscureCurrentPassword,
-                            onToggle: () {
-                              setModalState(() {
-                                _obscureCurrentPassword =
-                                    !_obscureCurrentPassword;
-                              });
-                            },
-                            context: context,
+                            onToggle: () => setModalState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
                           ),
-                          SizedBox(height: 8.h),
-                          _buildPasswordFieldForModal(
+                          SizedBox(height: 20.h),
+                          _buildModernPasswordField(
                             controller: _newPasswordController,
                             label: 'Шинэ нууц үг',
+                            hint: '••••',
                             obscureText: _obscureNewPassword,
-                            onToggle: () {
-                              setModalState(() {
-                                _obscureNewPassword = !_obscureNewPassword;
-                              });
-                            },
-                            context: context,
+                            onToggle: () => setModalState(() => _obscureNewPassword = !_obscureNewPassword),
                           ),
-                          SizedBox(height: 16.h),
-                          _buildPasswordFieldForModal(
+                          SizedBox(height: 20.h),
+                          _buildModernPasswordField(
                             controller: _confirmPasswordController,
                             label: 'Шинэ нууц үг давтах',
+                            hint: '••••',
                             obscureText: _obscureConfirmPassword,
-                            onToggle: () {
-                              setModalState(() {
-                                _obscureConfirmPassword =
-                                    !_obscureConfirmPassword;
-                              });
-                            },
-                            context: context,
+                            onToggle: () => setModalState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                           ),
+                          
                           SizedBox(height: 32.h),
+                          
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isChangingPassword
-                                  ? null
-                                  : () async {
-                                      await _handleChangePassword();
-                                      if (mounted &&
-                                          _passwordFormKey.currentState!
-                                              .validate()) {
-                                        Navigator.pop(modalContext);
-                                      }
-                                    },
+                              onPressed: _isChangingPassword ? null : () => _handleChangePassword(setModalState),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.deepGreen,
                                 foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 12.h),
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10.r),
+                                  borderRadius: BorderRadius.circular(16.r),
                                 ),
-                                elevation: 0,
+                                elevation: 8,
+                                shadowColor: AppColors.deepGreen.withOpacity(0.4),
                               ),
                               child: _isChangingPassword
                                   ? SizedBox(
-                                      height: 16.h,
-                                      width: 16.w,
+                                      width: 20.w,
+                                      height: 20.w,
                                       child: const CircularProgressIndicator(
+                                        color: Colors.white,
                                         strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
                                       ),
                                     )
                                   : Text(
-                                      'Хадгалах',
+                                      'Нууц үг шинэчлэх',
                                       style: TextStyle(
-                                        fontSize: 13.sp,
-                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15.sp,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                             ),
                           ),
-                          SizedBox(height: 24.h),
+                          SizedBox(height: 12.h),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -1470,86 +1586,71 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
   }
 
-  Widget _buildPasswordFieldForModal({
+  Widget _buildModernPasswordField({
     required TextEditingController controller,
     required String label,
+    required String hint,
     required bool obscureText,
     required VoidCallback onToggle,
-    required BuildContext context,
   }) {
     final isDark = context.isDarkMode;
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: TextInputType.text,
-      style: TextStyle(
-        color: context.textPrimaryColor,
-        fontSize: 13.sp,
-        fontWeight: FontWeight.w500,
-      ),
-      autovalidateMode: AutovalidateMode.onUserInteraction,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(
-          color: isDark
-              ? Colors.white.withOpacity(0.6)
-              : AppColors.lightTextSecondary,
-          fontSize: 11.sp,
-        ),
-        prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepGreen, size: 18.sp),
-        suffixIcon: IconButton(
-          icon: Icon(
-            obscureText
-                ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined,
-            color: isDark
-                ? Colors.white.withOpacity(0.6)
-                : AppColors.lightTextSecondary,
-            size: 18.sp,
-          ),
-          onPressed: onToggle,
-        ),
-        filled: true,
-        fillColor: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFF8F8F8),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.w),
-          borderSide: BorderSide(
-            color: isDark
-                ? Colors.white.withOpacity(0.15)
-                : AppColors.deepGreen.withOpacity(0.3),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: context.textPrimaryColor.withOpacity(0.7),
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.w),
-          borderSide: BorderSide(color: AppColors.deepGreen, width: 1.5.w),
+        SizedBox(height: 8.h),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: TextFormField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            style: TextStyle(
+              color: context.textPrimaryColor,
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 4,
+            ),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: context.textSecondaryColor.withOpacity(0.3),
+                letterSpacing: 4,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  color: AppColors.deepGreen.withOpacity(0.7),
+                  size: 20.sp,
+                ),
+                onPressed: onToggle,
+              ),
+            ),
+            validator: (val) {
+              if (val == null || val.isEmpty) return 'Нууц үг оруулна уу';
+              if (val.length < 4) return '4 оронтой байх ёстой';
+              return null;
+            },
+          ),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.w),
-          borderSide: const BorderSide(color: Colors.red),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.w),
-          borderSide: BorderSide(color: Colors.red, width: 1.5.w),
-        ),
-      ),
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(4),
       ],
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Энэ талбарыг бөглөнө үү';
-        }
-        if (value.length != 4) {
-          return 'Нууц код 4 оронтой тоо байх ёстой';
-        }
-        if (label == 'Шинэ нууц үг давтах' &&
-            value != _newPasswordController.text) {
-          return 'Нууц код хоорондоо таарахгүй байна';
-        }
-        return null;
-      },
     );
   }
 
@@ -2048,60 +2149,221 @@ class _ProfileSettingsState extends State<ProfileSettings>
   }) {
     final isDark = context.isDarkMode;
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
+      margin: EdgeInsets.only(bottom: 24.h),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
             color: isDark
                 ? Colors.black.withOpacity(0.4)
-                : AppColors.deepGreen.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+                : AppColors.deepGreen.withOpacity(0.06),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : AppColors.deepGreen.withOpacity(0.05),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.deepGreen, AppColors.deepGreenDark],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16.r),
-                topRight: Radius.circular(16.r),
-              ),
-            ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
             child: Row(
               children: [
-                Icon(icon, size: 18.sp, color: Colors.white),
+                Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Icon(icon, size: 16.sp, color: AppColors.deepGreen),
+                ),
                 SizedBox(width: 10.w),
                 Text(
-                  title,
+                  title.toUpperCase(),
                   style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.deepGreen,
+                    letterSpacing: 1.0,
                   ),
                 ),
               ],
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(12.w),
+            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHero() {
+    final isDark = context.isDarkMode;
+    final name = _nameController.text.isNotEmpty ? _nameController.text : 'Хэрэглэгч';
+    final initials = _getInitials(name);
+    
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.deepGreen, AppColors.deepGreenDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(40.r)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.deepGreen.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Avatar
+          Container(
+            width: 80.w,
+            height: 80.w,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+              border: Border.all(color: Colors.white, width: 3.w),
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: TextStyle(
+                  color: AppColors.deepGreen,
+                  fontSize: 28.sp,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            name,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22.sp,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Text(
+              _phoneController.text.isNotEmpty ? _phoneController.text : 'Утас тодорхойгүй',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.95),
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    Widget? trailing,
+    required VoidCallback onTap,
+    Color? iconColor,
+    bool showBorder = true,
+  }) {
+    final isDark = context.isDarkMode;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 16.h),
+          decoration: BoxDecoration(
+            border: showBorder 
+                ? Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)))
+                : null,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: (iconColor ?? AppColors.deepGreen).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor ?? AppColors.deepGreen,
+                  size: 18.sp,
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      SizedBox(height: 2.h),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: isDark ? Colors.white38 : Colors.grey[500],
+                          fontSize: 11.sp,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              trailing ?? Icon(
+                Icons.chevron_right_rounded,
+                color: isDark ? Colors.white24 : Colors.black12,
+                size: 20.sp,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2216,689 +2478,204 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    
     return Scaffold(
-      appBar: buildStandardAppBar(context, title: 'Хувийн мэдээлэл засах'),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          'Тохиргоо',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: AppBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Content
-              Expanded(
-                child: _isLoading
-                    ? _buildLoadingSkeleton()
-                    : FadeTransition(
-                        opacity: _fadeAnimation,
+        child: _isLoading
+            ? _buildLoadingSkeleton()
+            : FadeTransition(
+                opacity: _fadeAnimation,
+                child: Column(
+                  children: [
+                    _buildProfileHero(),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 40.h),
                         child: Column(
                           children: [
-                            // Tab Buttons
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 20.h,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildActionButton(
-                                      context,
-                                      icon: Icons.person_outline,
-                                      label: 'Хувийн мэдээлэл',
-                                      onTap: () =>
-                                          _showPersonalInfoModal(context),
-                                      isActive: true,
+                            // 1. Account Info
+                            _buildSection(
+                              title: 'Бүртгэл',
+                              icon: Icons.person_rounded,
+                              children: [
+                                _buildSettingsTile(
+                                  icon: Icons.account_circle_outlined,
+                                  title: 'Хувийн мэдээлэл',
+                                  subtitle: 'Овог нэр, утас, хаягийн мэдээлэл',
+                                  onTap: () => _showPersonalInfoModal(context),
+                                ),
+                                _buildSettingsTile(
+                                  icon: Icons.directions_car_filled_outlined,
+                                  title: 'Миний машин',
+                                  subtitle: _mashiniiDugaarController.text.isNotEmpty 
+                                      ? _mashiniiDugaarController.text 
+                                      : 'Дугаар тохируулах',
+                                  showBorder: false,
+                                  onTap: () {
+                                    _showPersonalInfoModal(context);
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            // 2. Security
+                            _buildSection(
+                              title: 'Аюулгүй байдал',
+                              icon: Icons.security_rounded,
+                              children: [
+                                _buildSettingsTile(
+                                  icon: Icons.lock_reset_rounded,
+                                  title: 'Нууц код солих',
+                                  subtitle: 'Нэвтрэх 4 оронтой код шинэчлэх',
+                                  onTap: () => _showChangePasswordModal(context),
+                                ),
+                                if (_biometricAvailable)
+                                  _buildSettingsTile(
+                                    icon: Theme.of(context).platform == TargetPlatform.iOS ? Icons.face_rounded : Icons.fingerprint_rounded,
+                                    title: Theme.of(context).platform == TargetPlatform.iOS ? 'Face ID' : 'Хурууны хээ',
+                                    subtitle: _biometricEnabled ? 'Идэвхтэй' : 'Идэвхгүй',
+                                    showBorder: false,
+                                    trailing: Switch(
+                                      value: _biometricEnabled,
+                                      onChanged: (val) => _handleBiometricToggle(val),
+                                      activeColor: AppColors.deepGreen,
+                                    ),
+                                    onTap: () => _handleBiometricToggle(!_biometricEnabled),
+                                  ),
+                              ],
+                            ),
+
+                            // 3. App Settings
+                            _buildSection(
+                              title: 'Апп тохиргоо',
+                              icon: Icons.tune_rounded,
+                              children: [
+                                  _buildSettingsTile(
+                                    icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                                    title: isDark ? 'Dark Mode' : 'Light Mode',
+                                    subtitle: isDark ? 'Харанхуй горим' : 'Гэрэлт горим',
+                                    onTap: () {
+                                      // Toggle handled by switch, but onTap is required
+                                      final themeService = Provider.of<ThemeService>(context, listen: false);
+                                      themeService.toggleTheme();
+                                    },
+                                    trailing: Switch(
+                                      value: isDark,
+                                      onChanged: (val) {
+                                        final themeService = Provider.of<ThemeService>(context, listen: false);
+                                        themeService.toggleTheme();
+                                      },
+                                      activeColor: AppColors.deepGreen,
                                     ),
                                   ),
-                                  SizedBox(width: 16.w),
-                                  Expanded(
-                                    child: _buildActionButton(
-                                      context,
-                                      icon: Icons.lock_outline,
-                                      label: 'Нууц үг солих',
-                                      onTap: () =>
-                                          _showChangePasswordModal(context),
-                                      isActive: false,
-                                    ),
-                                  ),
+                                  SizedBox(height: 12.h),
                                 ],
                               ),
-                            ),
-                            // Rest of settings
-                            Expanded(
-                              child: SingleChildScrollView(
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(height: 20.h),
-
-                                    // Хувийн Мэдээлэл Section with Grid Layout
-                                    if (_userData != null) ...[
-                                      _buildSection(
-                                        title: 'Хувийн Мэдээлэл',
-                                        icon: Icons.person_outline_rounded,
-                                        children: [_buildUserDataGrid()],
-                                      ),
-                                      SizedBox(height: 20.h),
-                                      
-                                      // Миний машин Section - only show if user has baiguullagiinId or barilgiinId
-                                      // Hide for specific baiguullagiinId
-                                      if ((_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty ||
-                                          _barilgiinId != null && _barilgiinId!.isNotEmpty) &&
-                                          _baiguullagiinId != '698e7fd3b6dd386b6c56a808')
-                                        _buildSection(
-                                        title: 'Миний машин',
-                                        icon: Icons.directions_car_filled_outlined,
-                                        children: [
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              color: context.isDarkMode ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F8F8),
-                                              borderRadius: BorderRadius.circular(12.r),
-                                              border: Border.all(
-                                                color: context.isDarkMode ? Colors.white.withOpacity(0.1) : AppColors.deepGreen.withOpacity(0.1),
-                                              ),
-                                            ),
-                                            padding: EdgeInsets.all(16.w),
-                                            child: Column(
-                                              children: [
-                                                _buildTextField(
-                                                  controller: _mashiniiDugaarController,
-                                                  label: 'Машины дугаар',
-                                                  icon: Icons.numbers_rounded,
-                                                  enabled: _isPlateEditMode && _isPlateChangeAllowed(),
-                                                ),
-                                                if (!_isPlateChangeAllowed())
-                                                  Padding(
-                                                    padding: EdgeInsets.only(top: 12.h),
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(Icons.info_outline, size: 14.sp, color: Colors.blue[400]),
-                                                        SizedBox(width: 6.w),
-                                                        Text(
-                                                          'Сард нэг удаа солих боломжтой',
-                                                          style: TextStyle(
-                                                            color: Colors.blue[400],
-                                                            fontSize: 11.sp,
-                                                            fontStyle: FontStyle.italic,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                SizedBox(height: 20.h),
-                                                if (!_isPlateEditMode)
-                                                  _buildActionButton(
-                                                    context,
-                                                    icon: Icons.edit_outlined,
-                                                    label: 'Дугаар засах',
-                                                    onTap: () {
-                                                      if (_isPlateChangeAllowed()) {
-                                                        setState(() {
-                                                          _isPlateEditMode = true;
-                                                        });
-                                                      } else {
-                                                        showGlassSnackBar(
-                                                          context,
-                                                          message: 'Сард 1 удаа солих боломжтой',
-                                                          icon: Icons.lock_clock_outlined,
-                                                          iconColor: Colors.orange,
-                                                        );
-                                                      }
-                                                    },
-                                                    isActive: _isPlateChangeAllowed(),
-                                                  )
-                                                else
-                                                  Row(
-                                                    children: [
-                                                      Expanded(
-                                                        child: OutlinedButton(
-                                                          onPressed: () {
-                                                            setState(() {
-                                                              _isPlateEditMode = false;
-                                                              // Restore original value
-                                                              final plateNumber = _userData?['mashiniiDugaar'] ?? _userData?['dugaar'];
-                                                              if (plateNumber != null) {
-                                                                _mashiniiDugaarController.text = plateNumber.toString();
-                                                              }
-                                                            });
-                                                          },
-                                                          style: OutlinedButton.styleFrom(
-                                                            padding: EdgeInsets.symmetric(vertical: 14.h),
-                                                            side: BorderSide(color: AppColors.deepGreen),
-                                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                                                          ),
-                                                          child: Text('Цуцлах', style: TextStyle(color: AppColors.deepGreen)),
-                                                        ),
-                                                      ),
-                                                      SizedBox(width: 12.w),
-                                                      Expanded(
-                                                        flex: 2,
-                                                        child: GestureDetector(
-                                                          onTap: _isUpdatingPlate 
-                                                            ? null 
-                                                            : _handleUpdatePlateNumber,
-                                                          child: AnimatedContainer(
-                                                            duration: const Duration(milliseconds: 200),
-                                                            padding: EdgeInsets.symmetric(vertical: 14.h),
-                                                            decoration: BoxDecoration(
-                                                              gradient: _isUpdatingPlate
-                                                                ? null
-                                                                : LinearGradient(
-                                                                    colors: [AppColors.deepGreen, AppColors.deepGreenDark],
-                                                                    begin: Alignment.topLeft,
-                                                                    end: Alignment.bottomRight,
-                                                                  ),
-                                                              color: _isUpdatingPlate ? Colors.grey.withOpacity(0.3) : null,
-                                                              borderRadius: BorderRadius.circular(12.r),
-                                                              boxShadow: _isUpdatingPlate
-                                                                ? []
-                                                                : [
-                                                                    BoxShadow(
-                                                                      color: AppColors.deepGreen.withOpacity(0.3),
-                                                                      blurRadius: 8,
-                                                                      offset: const Offset(0, 4),
-                                                                    ),
-                                                                  ],
-                                                            ),
-                                                            child: Center(
-                                                              child: _isUpdatingPlate 
-                                                                ? SizedBox(
-                                                                    width: 18.w, 
-                                                                    height: 18.w, 
-                                                                    child: const CircularProgressIndicator(
-                                                                      strokeWidth: 2, 
-                                                                      color: Colors.white
-                                                                    )
-                                                                  )
-                                                                : Row(
-                                                                    mainAxisSize: MainAxisSize.min,
-                                                                    children: [
-                                                                      Icon(Icons.save_outlined, size: 18.sp, color: Colors.white),
-                                                                      SizedBox(width: 8.w),
-                                                                      Text(
-                                                                        'Хадгалах',
-                                                                        style: TextStyle(
-                                                                          color: Colors.white,
-                                                                          fontSize: 14.sp,
-                                                                          fontWeight: FontWeight.bold,
-                                                                          letterSpacing: 0.2,
-                                                                        ),
-                                                                      ),
-                                                                    ],
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 20.h),
-                                    ],
-                                    // Theme Settings Section
-                                    _buildSubSectionHeader(
-                                      'Theme',
-                                      Icons.brightness_6,
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    _buildSectionCard(
-                                      Consumer<ThemeService>(
-                                        builder: (context, themeService, _) {
-                                          final isDark =
-                                              themeService.isDarkMode;
-                                          final theme = Theme.of(context);
-                                          return Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      isDark
-                                                          ? 'Dark Mode'
-                                                          : 'Light Mode',
-                                                      style: TextStyle(
-                                                        color:
-                                                            theme.brightness ==
-                                                                Brightness.dark
-                                                            ? const Color.fromARGB(
-                                                                255,
-                                                                148,
-                                                                241,
-                                                                156,
-                                                              )
-                                                            : AppColors
-                                                                  .deepGreen,
-                                                        fontSize: 13.sp,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 4.h),
-                                                    Text(
-                                                      isDark
-                                                          ? 'Dark Mode идэвхтэй'
-                                                          : 'Light Mode идэвхтэй',
-                                                      style: TextStyle(
-                                                        color:
-                                                            theme.brightness ==
-                                                                Brightness.dark
-                                                            ? Colors.white
-                                                                  .withOpacity(
-                                                                    0.7,
-                                                                  )
-                                                            : AppColors
-                                                                  .lightTextSecondary,
-                                                        fontSize: 11.sp,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(width: 16.w),
-                                              GestureDetector(
-                                                onTap: () =>
-                                                    themeService.toggleTheme(),
-                                                child: AnimatedContainer(
-                                                  duration: const Duration(
-                                                    milliseconds: 200,
-                                                  ),
-                                                  width: 48.w,
-                                                  height: 28.h,
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          14.r,
-                                                        ),
-                                                    color: isDark
-                                                        ? AppColors.deepGreen
-                                                        : Colors.grey
-                                                              .withOpacity(0.3),
-                                                  ),
-                                                  child: Stack(
-                                                    children: [
-                                                      AnimatedPositioned(
-                                                        duration:
-                                                            const Duration(
-                                                              milliseconds: 200,
-                                                            ),
-                                                        curve: Curves.easeInOut,
-                                                        left: isDark
-                                                            ? 24.w
-                                                            : 4.w,
-                                                        top: 4.h,
-                                                        child: Container(
-                                                          width: 20.w,
-                                                          height: 20.w,
-                                                          decoration: BoxDecoration(
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            color: Colors
-                                                                .white,
-                                                            boxShadow: [
-                                                              BoxShadow(
-                                                                color: Colors
-                                                                    .black
-                                                                    .withOpacity(
-                                                                      0.2,
-                                                                    ),
-                                                                blurRadius: 4,
-                                                                offset:
-                                                                    const Offset(
-                                                                      0,
-                                                                      2,
-                                                                    ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                          child: Icon(
-                                                            isDark
-                                                                ? Icons
-                                                                      .dark_mode
-                                                                : Icons
-                                                                      .light_mode,
-                                                            size: 12.sp,
-                                                            color: isDark
-                                                                ? AppColors
-                                                                      .deepGreen
-                                                                : Colors.orange,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    SizedBox(height: 24.h),
-
-                                    // Biometric Settings Section
-                                    if (_biometricAvailable) ...[
-                                      _buildBiometricSectionHeader(
-                                        'Биометрийн баталгаажуулалт',
-                                      ),
-                                      SizedBox(height: 12.h),
-                                      _buildSectionCard(
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'Биометрийн баталгаажуулалт',
-                                                    style: TextStyle(
-                                                      color: context
-                                                          .textPrimaryColor,
-                                                      fontSize: 13.sp,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                  SizedBox(height: 4.h),
-                                                  Text(
-                                                    Theme.of(context).platform == TargetPlatform.iOS
-                                                        ? 'Face ID ашиглан нэвтрэх'
-                                                        : 'Хурууны хээ ашиглан нэвтрэх',
-                                                    style: TextStyle(
-                                                      color: context
-                                                          .textSecondaryColor,
-                                                      fontSize: 11.sp,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            SizedBox(width: 16.w),
-                                            GestureDetector(
-                                              onTap: () =>
-                                                  _handleBiometricToggle(
-                                                    !_biometricEnabled,
-                                                  ),
-                                              child: AnimatedContainer(
-                                                duration: const Duration(
-                                                  milliseconds: 200,
-                                                ),
-                                                width: 48.w,
-                                                height: 28.h,
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        14.r,
-                                                      ),
-                                                  color: _biometricEnabled
-                                                      ? AppColors.deepGreen
-                                                      : Colors.grey
-                                                            .withOpacity(0.3),
-                                                ),
-                                                child: Stack(
-                                                  children: [
-                                                    AnimatedPositioned(
-                                                      duration: const Duration(
-                                                        milliseconds: 200,
-                                                      ),
-                                                      curve: Curves.easeInOut,
-                                                      left: _biometricEnabled
-                                                          ? 24.w
-                                                          : 4.w,
-                                                      top: 4.h,
-                                                      child: Container(
-                                                        width: 20.w,
-                                                        height: 20.w,
-                                                        decoration: BoxDecoration(
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          color: Colors.white,
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color: Colors
-                                                                  .black
-                                                                  .withOpacity(
-                                                                    0.2,
-                                                                  ),
-                                                              offset:
-                                                                  const Offset(
-                                                                    0,
-                                                                    2,
-                                                                  ),
-                                                              blurRadius: 4,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      SizedBox(height: 24.h),
-                                    ],
-
-                                    // App Icon Selection Section (iOS only)
-                                    if (Theme.of(context).platform == TargetPlatform.iOS) ...[
-                                      _buildSubSectionHeader(
-                                        'Апп дүрс',
-                                        Icons.palette_outlined,
-                                      ),
-                                      SizedBox(height: 12.h),
-                                      _buildSectionCard(
-                                        GestureDetector(
-                                          onTap: () => showAppIconSelectionSheet(context),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                padding: EdgeInsets.all(10.w),
-                                                decoration: BoxDecoration(
-                                                  gradient: const LinearGradient(
-                                                    begin: Alignment.topLeft,
-                                                    end: Alignment.bottomRight,
-                                                    colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(10.r),
-                                                ),
-                                                child: Icon(
-                                                  Icons.home_rounded,
-                                                  color: Colors.white,
-                                                  size: 18.sp,
-                                                ),
-                                              ),
-                                              SizedBox(width: 12.w),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Апп дүрс солих',
-                                                      style: TextStyle(
-                                                        color: context.textPrimaryColor,
-                                                        fontSize: 13.sp,
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 4.h),
-                                                    Text(
-                                                      'Өөрт тохирох өнгө сонгох',
-                                                      style: TextStyle(
-                                                        color: context.textSecondaryColor,
-                                                        fontSize: 11.sp,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Icon(
-                                                Icons.chevron_right_rounded,
-                                                color: context.textSecondaryColor,
-                                                size: 20.sp,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: 24.h),
-                                    ],
-
-                                    // Delete Account Section
-                                    _buildSubSectionHeader(
-                                      'Бүртгэл устгах',
-                                      Icons.warning_amber_rounded,
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    _buildSectionCard(
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Бүртгэлээ устгаснаар бүх мэдээлэл устах бөгөөд энэ үйлдлийг буцаах боломжгүй.',
-                                            style: TextStyle(
-                                              color: context.textSecondaryColor,
-                                              fontSize: 11.sp,
-                                              height: 1.5,
-                                            ),
-                                          ),
-                                          SizedBox(height: 12.h),
-                                          SizedBox(
-                                            width: double.infinity,
-                                            child: TextButton(
-                                              onPressed: _isDeletingAccount
-                                                  ? null
-                                                  : _handleDeleteAccount,
-                                              style: TextButton.styleFrom(
-                                                padding: EdgeInsets.symmetric(
-                                                  vertical: 12.h,
-                                                ),
-                                                foregroundColor:
-                                                    Colors.redAccent,
-                                                side: BorderSide(
-                                                  color: Colors.redAccent
-                                                      .withOpacity(0.5),
-                                                  width: 1,
-                                                ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        12.w,
-                                                      ),
-                                                ),
-                                              ),
-                                              child: _isDeletingAccount
-                                                  ? Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        SizedBox(
-                                                          height: 16.h,
-                                                          width: 16.h,
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                                strokeWidth: 2,
-                                                                color: Colors
-                                                                    .redAccent,
-                                                              ),
-                                                        ),
-                                                        SizedBox(width: 8.w),
-                                                        Text(
-                                                          'Устгаж байна...',
-                                                          style: TextStyle(
-                                                            fontSize: 12.sp,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    )
-                                                  : Text(
-                                                      'Бүртгэл устгах',
-                                                      style: TextStyle(
-                                                        fontSize: 12.sp,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: 12.h),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: TextButton.icon(
-                                        onPressed: () async {
-                                          final confirmed = await showDialog<bool>(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              backgroundColor: context.surfaceColor,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-                                              title: Text('Гарах', style: TextStyle(color: context.textPrimaryColor)),
-                                              content: Text('Та системээс гарахдаа итгэлтэй байна уу?', style: TextStyle(color: context.textSecondaryColor)),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context, false),
-                                                  child: Text('Үгүй', style: TextStyle(color: context.textSecondaryColor)),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context, true),
-                                                  child: const Text('Тийм', style: TextStyle(color: Colors.redAccent)),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-
-                                          if (confirmed == true && mounted) {
-                                            await SessionService.logout();
-                                            if (mounted) {
-                                              context.go('/newtrekh');
-                                            }
-                                          }
-                                        },
-                                        icon: Icon(Icons.logout_rounded, size: 20.sp),
-                                        label: Text(
-                                          'Системээс гарах',
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                                          foregroundColor: Colors.redAccent,
-                                          backgroundColor: Colors.redAccent.withOpacity(0.1),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12.r),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 32.h),
-                                  ],
+                            // 4. Logout & Delete
+                            _buildSection(
+                              title: 'Устгах & Гарах',
+                              icon: Icons.logout_rounded,
+                              children: [
+                                _buildSettingsTile(
+                                  icon: Icons.delete_forever_rounded,
+                                  title: 'Бүртгэл устгах',
+                                  subtitle: 'Бүртгэл болон бүх мэдээллийг устгах',
+                                  iconColor: Colors.redAccent,
+                                  onTap: _handleDeleteAccount,
                                 ),
-                              ),
+                                _buildSettingsTile(
+                                  icon: Icons.logout_rounded,
+                                  title: 'Системээс гарах',
+                                  subtitle: 'Одоогийн сессийг дуусгах',
+                                  iconColor: Colors.redAccent,
+                                  showBorder: false,
+                                  onTap: () async {
+                                    final confirmed = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        backgroundColor: context.surfaceColor,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16.r),
+                                        ),
+                                        title: Text(
+                                          'Гарах',
+                                          style: TextStyle(
+                                            color: context.textPrimaryColor,
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        content: Text(
+                                          'Та системээс гарахдаа итгэлтэй байна уу?',
+                                          style: TextStyle(
+                                            color: context.textSecondaryColor,
+                                            fontSize: 13.sp,
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            child: Text(
+                                              'Үгүй',
+                                              style: TextStyle(
+                                                color: context.textSecondaryColor,
+                                                fontSize: 14.sp,
+                                              ),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, true),
+                                            child: Text(
+                                              'Тийм',
+                                              style: TextStyle(
+                                                color: Colors.redAccent,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14.sp,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (confirmed == true && mounted) {
+                                      await SessionService.logout();
+                                      if (mounted) {
+                                        context.go('/newtrekh');
+                                      }
+                                    }
+                                  },
+                                ),
+                              ],
                             ),
+                            SizedBox(height: 32.h),
                           ],
                         ),
                       ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
