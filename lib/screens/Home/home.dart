@@ -7,8 +7,6 @@ import 'package:sukh_app/components/Menu/side_menu.dart';
 import 'package:sukh_app/components/Home/billing_connection_section.dart';
 import 'package:sukh_app/components/Home/billing_list_section.dart';
 import 'package:sukh_app/components/Home/billers_grid.dart';
-import 'package:sukh_app/components/Home/total_balance_modal.dart';
-import 'package:sukh_app/components/Home/billing_detail_modal.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
@@ -16,6 +14,7 @@ import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
+import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -1200,37 +1199,34 @@ class _BookingScreenState extends State<NuurKhuudas>
           icon: Icon(Icons.menu, color: Colors.white, size: 22.sp),
           onPressed: () => _scaffoldKey.currentState?.openDrawer(),
         ),
-        title: GestureDetector(
-          onTap: _showTotalBalanceModal,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.account_balance_wallet_rounded,
-                  color: Colors.white,
-                  size: 18.sp,
-                ),
-                SizedBox(width: 8.w),
-                Flexible(
-                  child: Text(
-                    '${_formatNumberWithComma(totalNiitTulbur)}₮',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        title: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.account_balance_wallet_rounded,
+                color: Colors.white,
+                size: 18.sp,
+              ),
+              SizedBox(width: 8.w),
+              Flexible(
+                child: Text(
+                  '${_formatNumberWithComma(totalNiitTulbur)}₮',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         centerTitle: true,
@@ -1399,161 +1395,6 @@ class _BookingScreenState extends State<NuurKhuudas>
     );
   }
 
-  void _showPaymentModal() {
-    // Check if there's any amount to pay
-    if (totalNiitTulbur <= 0) {
-      showGlassSnackBar(
-        context,
-        message: 'Нэхэмжлэл үүсээгүй байна',
-        icon: Icons.info_outline,
-        iconColor: AppColors.deepGreenAccent,
-        textColor: context.textPrimaryColor,
-      );
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: context.backgroundColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-          ),
-          border: Border.all(color: context.borderColor),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Container(
-              padding: EdgeInsets.all(11.w),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: context.borderColor)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Төлбөр төлөх',
-                    style: TextStyle(
-                      color: context.textPrimaryColor,
-                      fontSize:
-                          20.sp, // Increased from 11 for better readability
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: context.textPrimaryColor,
-                      size: 22.sp,
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
-            // Content
-            Padding(
-              padding: EdgeInsets.all(11.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Price information panel
-                  Container(
-                    padding: EdgeInsets.all(14.w),
-                    decoration: BoxDecoration(
-                      color: context.cardBackgroundColor,
-                      borderRadius: BorderRadius.circular(12.w),
-                      border: Border.all(color: context.borderColor),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Төлөх дүн',
-                          style: context.secondaryDescriptionStyle(
-                            color: context.textSecondaryColor,
-                          ),
-                        ),
-                        Text(
-                          '${_formatNumberWithComma(totalNiitTulbur)}₮',
-                          style: context.secondaryDescriptionStyle(
-                            fontWeight: FontWeight.bold,
-                            color: context.textPrimaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 11,
-                      medium: 13,
-                      large: 15,
-                      tablet: 17,
-                      veryNarrow: 8,
-                    ),
-                  ),
-                  // Payment button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        context.push('/nekhemjlekh');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondaryAccent,
-                        foregroundColor: Colors.black,
-                        padding: EdgeInsets.symmetric(vertical: 11.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.w),
-                        ),
-                      ),
-                      child: Text(
-                        'Төлбөр төлөх',
-                        style: context.secondaryDescriptionStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showTotalBalanceModal() async {
-    final baiguullagiinId = await StorageService.getBaiguullagiinId();
-    final isWalletOnlyOrg = baiguullagiinId == '698e7fd3b6dd386b6c56a808';
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => TotalBalanceModal(
-        formatNumberWithComma: _formatNumberWithComma,
-        onPaymentTap: isWalletOnlyOrg
-            ? () {}
-            : () => context.push('/nekhemjlekh'),
-      ),
-    );
-    
-    if (mounted) {
-      _loadAllBillingPayments();
-    }
-  }
 
   // _buildPaymentDetails and _buildDetailRow moved to TotalBalanceModal component
 
@@ -1649,17 +1490,21 @@ class _BookingScreenState extends State<NuurKhuudas>
   Future<void> _showBillingDetailModal(Map<String, dynamic> billing) async {
     if (!mounted) return;
 
-    // Show modal immediately - it will handle loading internally
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => BillingDetailModal(
-        billing: billing,
-        expandAddressAbbreviations: _expandAddressAbbreviations,
-        formatNumberWithComma: _formatNumberWithComma,
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BillingDetailPage(
+          billing: billing,
+          expandAddressAbbreviations: _expandAddressAbbreviations,
+          formatNumberWithComma: _formatNumberWithComma,
+        ),
       ),
     );
+
+    if (result == true && mounted) {
+      _loadAllBillingPayments();
+      _loadBillingList();
+    }
   }
 
   // All modal and helper methods moved to components

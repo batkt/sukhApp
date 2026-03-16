@@ -5,7 +5,7 @@ import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
-import 'package:sukh_app/services/socket_service.dart';
+import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
@@ -547,11 +547,8 @@ class _SideMenuState extends State<SideMenu> {
                               );
 
                               if (shouldLogout == true) {
-                                // Disconnect socket before logout
-                                SocketService.instance.disconnect();
-
-                                // Clear authentication data
-                                await StorageService.clearAuthData();
+                                // Use central logout service for clean state
+                                await SessionService.logout();
 
                                 // Navigate to login screen using the stored router
                                 router.go('/newtrekh');

@@ -320,11 +320,16 @@ class ApiService {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
-          return null; // Available
+          return null; // Available (not exists)
         }
+        return data; // Already exists or error
       }
 
-      return null; // On any other status, allow continuation
+      if (response.statusCode == 409) {
+        return {'exists': true, 'message': 'Conflict'};
+      }
+
+      return null;
     } catch (e) {
       // On error, return null to allow continuation
       return null;
@@ -1500,7 +1505,7 @@ class ApiService {
   }
 
   static Future<void> logoutUser() async {
-    await StorageService.clearAuthData();
+    await SessionService.logout();
   }
 
   static Future<Map<String, String>> getAuthHeaders() async {
@@ -1511,39 +1516,31 @@ class ApiService {
     };
   }
 
-  /// Handle 401 Unauthorized response - automatically logout and redirect to login
   static Future<void> handleUnauthorized() async {
     print('🔒 [API] 401 Unauthorized - Token expired, logging out...');
 
-    // Check if already logged out to avoid duplicate logout
     final isLoggedIn = await StorageService.isLoggedIn();
     if (!isLoggedIn) {
       print('🔒 [API] Already logged out, skipping...');
       return;
     }
 
-    // Show session expired notification
     await NotificationService.showSessionExpiredNotification();
 
-    // Logout user
     await SessionService.logout();
 
-    // Navigate to login page
     final context = navigatorKey.currentContext;
     if (context != null) {
-      // Use post-frame callback to ensure navigation happens after logout
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final navContext = navigatorKey.currentContext;
         if (navContext != null) {
           try {
-            // Clear navigation stack and go to login
             while (navContext.canPop()) {
               navContext.pop();
             }
             navContext.go('/newtrekh');
           } catch (e) {
             print('⚠️ [API] Error navigating to login: $e');
-            // Fallback: try to go directly
             try {
               navContext.go('/newtrekh');
             } catch (e2) {
@@ -1555,19 +1552,15 @@ class ApiService {
     }
   }
 
-  /// Get auth headers for Wallet API calls
-  /// Wallet API requires userId header with phone number (NOT UUID)
   static Future<Map<String, String>> getWalletApiHeaders() async {
     final token = await StorageService.getToken();
 
-    // Get phone number from user profile (most reliable source)
     String? userId;
     try {
       final userProfile = await getUserProfile();
       if (userProfile['result']?['utas'] != null) {
         userId = userProfile['result']['utas'].toString();
       } else if (userProfile['result']?['nevtrekhNer'] != null) {
-        // Fallback to nevtrekhNer if utas is not available
         userId = userProfile['result']['nevtrekhNer'].toString();
       }
     } catch (e) {
@@ -1581,7 +1574,6 @@ class ApiService {
       if (token != null) 'Authorization': 'Bearer $token',
     };
 
-    // Wallet API requires userId header with phone number (NOT UUID)
     if (userId != null && userId.isNotEmpty) {
       headers['userId'] = userId;
     } else {
@@ -1974,6 +1966,44 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception('Жагсаалт авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Delete (permanent) an Easy Register saved user
+  /// POST /easyRegister/user/hardDelete
+  static Future<Map<String, dynamic>> easyRegisterDeleteUser({
+    required String userId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      var tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
+      if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
+        throw Exception('Холболтын мэдээлэл олдсонгүй');
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/easyRegister/user/hardDelete'),
+        headers: headers,
+        body: json.encode({
+          'userId': userId,
+          'baiguullagiinId': baiguullagiinId,
+          'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception('Устгахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
       rethrow;

@@ -5,6 +5,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/screens/settings/app_icon_selection_sheet.dart';
 
@@ -368,7 +369,7 @@ class _TokhirgooState extends State<Tokhirgoo>
       if (mounted) {
         if (response['success'] == true) {
           // Success - logout and navigate to login
-          await StorageService.clearAuthData();
+          await SessionService.logout();
           showGlassSnackBar(
             context,
             message: 'Бүртгэл амжилттай устгагдлаа',

@@ -32,13 +32,22 @@ class _RegistrationModalState extends State<RegistrationModal> {
   int _resendSeconds = 30;
   Timer? _timer;
 
+  bool _enableBiometric = false;
+
   // Step 3: Password
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _obscurePassword = true;
   bool _biometricAvailable = false;
   IconData _biometricIcon = Icons.fingerprint;
-  bool _enableBiometric = false;
+
+  // Step 4: Profile
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _regNoController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  Map<String, dynamic>? _easyRegisterData;
 
   @override
   void dispose() {
@@ -52,6 +61,10 @@ class _RegistrationModalState extends State<RegistrationModal> {
     }
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _regNoController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -102,14 +115,39 @@ class _RegistrationModalState extends State<RegistrationModal> {
         throw Exception('Энэ дугаар аль хэдийн бүртгэгдсэн байна');
       }
 
-      await Future.delayed(const Duration(milliseconds: 500)); // Simulate API check
+      // Try to get Easy Register data to pre-fill profile
+      try {
+        final phone = _phoneController.text.trim();
+        // Use both phoneNum and identity to ensure we find the user regardless of which field is populated
+        final easyData = await ApiService.easyRegisterUserSearch(
+          phoneNum: phone,
+          identity: phone,
+        );
+        if (easyData != null) {
+          // If already linked to a resident, they should login instead of registering
+          if (easyData['orshinSuugchiinId'] != null || easyData['orshinSuugchiid'] != null) {
+            throw Exception('Энэ дугаар бүртгэлтэй байна. Та нэвтэрч орно уу.');
+          }
+          
+          _easyRegisterData = easyData;
+          _firstNameController.text = easyData['givenName'] ?? easyData['name'] ?? '';
+          _lastNameController.text = easyData['familyName'] ?? easyData['surname'] ?? '';
+          _regNoController.text = easyData['regNo'] ?? easyData['register'] ?? '';
+          _emailController.text = easyData['email'] ?? '';
+        }
+      } catch (e) {
+        if (e.toString().contains('нэвтэрч орно уу')) rethrow;
+        print('EasyRegister search failed: $e');
+      }
+
+      await Future.delayed(const Duration(milliseconds: 500)); 
       setState(() {
         _currentStep = RegistrationStep.password;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      showGlassSnackBar(context, message: e.toString(), icon: Icons.error);
+      showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error);
     }
   }
 
@@ -141,21 +179,36 @@ class _RegistrationModalState extends State<RegistrationModal> {
       });
       
       if (mounted) {
-        // Check if biometric is available to show the setup step
-        final isBioAvailable = await BiometricService.isAvailable();
-        final bioIcon = await BiometricService.getBiometricIcon();
-        
         setState(() {
-          _biometricAvailable = isBioAvailable;
-          _biometricIcon = bioIcon;
-          
-          if (_biometricAvailable) {
-            _currentStep = RegistrationStep.biometric;
-          } else {
-            _finishRegistration();
-          }
+          _currentStep = RegistrationStep.profile;
         });
       }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error);
+    }
+  }
+
+  Future<void> _handleProfileSubmit() async {
+    setState(() => _isLoading = true);
+    try {
+      // You could call an API here to update the user's profile info right after registration
+      // For now, we'll just proceed to biometric setup
+      
+      final isBioAvailable = await BiometricService.isAvailable();
+      final bioIcon = await BiometricService.getBiometricIcon();
+      
+      setState(() {
+        _biometricAvailable = isBioAvailable;
+        _biometricIcon = bioIcon;
+        _isLoading = false;
+        
+        if (_biometricAvailable) {
+          _currentStep = RegistrationStep.biometric;
+        } else {
+          _finishRegistration();
+        }
+      });
     } catch (e) {
       setState(() => _isLoading = false);
       showGlassSnackBar(context, message: e.toString(), icon: Icons.error);
@@ -240,8 +293,10 @@ class _RegistrationModalState extends State<RegistrationModal> {
         return _buildPhoneStep(isDark);
       case RegistrationStep.password:
         return _buildPasswordStep(isDark);
+      case RegistrationStep.profile:
+        return _buildProfileStep(isDark);
       case RegistrationStep.otp:
-        return _buildOtpStep(isDark); // Placeholder for now
+        return _buildOtpStep(isDark); 
       case RegistrationStep.biometric:
         return _buildBiometricStep(isDark);
       default:
@@ -373,6 +428,73 @@ class _RegistrationModalState extends State<RegistrationModal> {
     );
   }
 
+  Widget _buildProfileStep(bool isDark) {
+    return Column(
+      key: const ValueKey('profile'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Хувийн мэдээлэл',
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Text(
+          _easyRegisterData != null 
+              ? 'Таны мэдээллийг EasyRegister системээс амжилттай татлаа.'
+              : 'Та өөрийн хувийн мэдээллээ оруулна уу.',
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: isDark ? Colors.white54 : Colors.black54,
+          ),
+        ),
+        SizedBox(height: 24.h),
+        _buildInputField(
+          label: 'Овог',
+          hint: 'Овог',
+          controller: _lastNameController,
+          icon: Icons.person_outline_rounded,
+          isDark: isDark,
+        ),
+        SizedBox(height: 16.h),
+        _buildInputField(
+          label: 'Нэр',
+          hint: 'Нэр',
+          controller: _firstNameController,
+          icon: Icons.person_rounded,
+          isDark: isDark,
+        ),
+        SizedBox(height: 16.h),
+        _buildInputField(
+          label: 'Регистрийн дугаар',
+          hint: 'АА00000000',
+          controller: _regNoController,
+          icon: Icons.badge_outlined,
+          isDark: isDark,
+          textCapitalization: TextCapitalization.characters,
+        ),
+        SizedBox(height: 16.h),
+        _buildInputField(
+          label: 'Имэйл хаяг',
+          hint: 'example@mail.com',
+          controller: _emailController,
+          icon: Icons.email_outlined,
+          isDark: isDark,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        SizedBox(height: 24.h),
+        _buildPrimaryButton(
+          onTap: _isLoading ? null : _handleProfileSubmit,
+          label: 'Үргэлжлүүлэх',
+          isLoading: _isLoading,
+        ),
+      ],
+    );
+  }
+
   Widget _buildBiometricStep(bool isDark) {
     return Column(
       key: const ValueKey('biometric'),
@@ -430,6 +552,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
     Widget? suffixIcon,
+    TextCapitalization textCapitalization = TextCapitalization.none,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,6 +579,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
             obscureText: obscureText,
             keyboardType: keyboardType,
             inputFormatters: inputFormatters,
+            textCapitalization: textCapitalization,
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,

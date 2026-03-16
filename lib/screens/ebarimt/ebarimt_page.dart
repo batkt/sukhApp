@@ -71,6 +71,71 @@ class _EbarimtPageState extends State<EbarimtPage> {
     }
   }
 
+  Future<void> _deleteEasyRegisterUser(dynamic user) async {
+    final userId = user['_id']?.toString();
+    if (userId == null) return;
+
+    final name = '${user['givenName'] ?? ''} ${user['familyName'] ?? ''}'.trim();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Устгах', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+        content: Text('$name хэрэглэгчийг устгах уу?', style: TextStyle(fontSize: 14.sp)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Үгүй')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Тийм', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ApiService.easyRegisterDeleteUser(userId: userId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$name амжилттай устгагдлаа'), backgroundColor: Colors.green),
+        );
+        _loadSavedUsers();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _disconnectCurrentUser() async {
+    // Clear locally stored ebarimt info
+    await StorageService.clearEbarimtInfo();
+    
+    // Also delete from server if we have the user ID
+    final info = _infoType == 'consumer' ? _consumerInfo : _foreignerInfo;
+    if (info != null && info['_id'] != null) {
+      try {
+        await ApiService.easyRegisterDeleteUser(userId: info['_id'].toString());
+      } catch (e) {
+        print('Server delete failed: $e');
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _consumerInfo = null;
+        _foreignerInfo = null;
+        _infoType = null;
+        _citizenCodeController.clear();
+      });
+      _loadSavedUsers(); // Refresh dropdown
+    }
+  }
+
   Future<void> _loadEbarimtReceipts() async {
     setState(() {
       _isLoadingReceipts = true;
@@ -465,6 +530,20 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                                   ],
                                                 ),
                                               ),
+                                              GestureDetector(
+                                                onTap: () {
+                                                  Navigator.pop(context);
+                                                  _deleteEasyRegisterUser(user);
+                                                },
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(4.w),
+                                                  child: Icon(
+                                                    Icons.delete_outline_rounded,
+                                                    size: 18.sp,
+                                                    color: Colors.red.withOpacity(0.7),
+                                                  ),
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ))
@@ -849,15 +928,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     color: Colors.red.withOpacity(0.7),
                     size: 18.sp,
                   ),
-                  onPressed: () {
-                    StorageService.clearEbarimtInfo();
-                    setState(() {
-                      _consumerInfo = null;
-                      _foreignerInfo = null;
-                      _infoType = null;
-                      _citizenCodeController.clear();
-                    });
-                  },
+                  onPressed: () => _disconnectCurrentUser(),
                   tooltip: 'Салгах',
                 ),
                 Icon(

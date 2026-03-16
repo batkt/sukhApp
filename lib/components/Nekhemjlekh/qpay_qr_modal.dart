@@ -9,6 +9,7 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 class QPayQRModal extends StatefulWidget {
   final String? qrImageOwnOrg;
@@ -183,468 +184,66 @@ class _QPayQRModalState extends State<QPayQRModal> {
     final hasWallet =
         widget.qrImageWallet != null && widget.qrImageWallet!.isNotEmpty;
     final hasQrText = widget.qrText != null && widget.qrText!.isNotEmpty;
+    final textPrimary = context.textPrimaryColor;
+    final textSecondary = context.textSecondaryColor;
+    final primaryColor = context.isDarkMode ? AppColors.deepGreenAccent : AppColors.deepGreen;
 
     if (!hasOwnOrg && !hasWallet && !hasQrText) {
-      return Dialog(
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? const Color(0xFF1A1A1A)
-                  : Colors.white,
-              borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(
-                color: context.isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.08),
-                width: 1,
-              ),
-            ),
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'QR код олдсонгүй',
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 12.h),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.deepGreen,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 10.h,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                  ),
-                  child: Text('Хаах', style: TextStyle(fontSize: 11.sp)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 400.w,
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(
-              color: context.isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.08),
-              width: 1,
-            ),
-          ),
+      return Scaffold(
+        backgroundColor: context.backgroundColor,
+        body: SafeArea(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Header fixed at top
               Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-                child: Text(
-                  'QPay хэтэвч QR код',
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+                padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.close_rounded, color: textPrimary, size: 24.sp),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
               ),
-              // Scrollable content
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+              Expanded(
+                child: Center(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(height: 6.h),
-                      // Show 2 QR codes side by side if both exist, otherwise show single
-                      if (hasOwnOrg && (hasWallet || hasQrText))
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // OWN_ORG QR
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Орон сууцны төлбөр',
-                                    style: TextStyle(
-                                      color: context.textSecondaryColor,
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Container(
-                                    padding: EdgeInsets.all(10.w),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                    child: _buildQRCode(
-                                      null,
-                                      widget.qrImageOwnOrg,
-                                      size: 130.w,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            // WALLET QR
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'Хэтэвчний төлбөр',
-                                    style: TextStyle(
-                                      color: context.textSecondaryColor,
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  SizedBox(height: 6.h),
-                                  Container(
-                                    padding: EdgeInsets.all(10.w),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                    child: _buildQRCode(
-                                      widget.qrText,
-                                      widget.qrImageWallet,
-                                      size: 130.w,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        )
-                      else
-                        // Single QR code
-                        Container(
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: _buildQRCode(
-                            widget.qrText,
-                            hasOwnOrg
-                                ? widget.qrImageOwnOrg
-                                : widget.qrImageWallet,
-                            size: 200.w,
-                          ),
+                      Container(
+                        padding: EdgeInsets.all(30.w),
+                        decoration: BoxDecoration(
+                          color: textPrimary.withOpacity(0.02),
+                          shape: BoxShape.circle,
                         ),
-                      if (widget.urls != null && widget.urls!.isNotEmpty) ...[
-                        SizedBox(height: 14.h),
-                        Text(
-                          'Банкны апп-аар нээх',
-                          style: TextStyle(
-                            color: context.textPrimaryColor,
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 10.h),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 10.w,
-                            mainAxisSpacing: 10.h,
-                            childAspectRatio: 1.1,
-                          ),
-                          itemCount: widget.urls!.length,
-                          itemBuilder: (context, index) {
-                            final urlData =
-                                widget.urls![index] as Map<String, dynamic>;
-                            final name = urlData['name']?.toString() ?? '';
-                            final logo = _getLogoUrl(
-                                urlData['logo']?.toString() ?? '');
-                            final link = urlData['link']?.toString() ?? '';
-
-                            return GestureDetector(
-                              onTap: () async {
-                                if (link.isEmpty) return;
-                                final uri = Uri.tryParse(link);
-                                if (uri == null) return;
-                                try {
-                                  await launchUrl(
-                                    uri,
-                                    mode: LaunchMode.externalApplication,
-                                  );
-                                } catch (_) {
-                                  if (mounted) {
-                                    showGlassSnackBar(
-                                      context,
-                                      message: 'Апп-ыг нээхэд алдаа гарлаа',
-                                      icon: Icons.error_outline,
-                                      iconColor: Colors.red,
-                                    );
-                                  }
-                                }
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(8.w),
-                                decoration: BoxDecoration(
-                                  color: context.isDarkMode
-                                      ? Colors.white.withOpacity(0.05)
-                                      : const Color(0xFFF8F8F8),
-                                  borderRadius: BorderRadius.circular(10.r),
-                                  border: Border.all(
-                                    color: context.isDarkMode
-                                        ? Colors.white.withOpacity(0.1)
-                                        : Colors.black.withOpacity(0.08),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 32.w,
-                                      height: 32.w,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius:
-                                            BorderRadius.circular(6.r),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.05),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(6.r),
-                                        child: logo.isNotEmpty
-                                            ? Image.network(
-                                                logo,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) =>
-                                                    Icon(
-                                                  Icons.account_balance_rounded,
-                                                  size: 16.sp,
-                                                  color: Colors.grey,
-                                                ),
-                                              )
-                                            : Icon(
-                                                Icons.account_balance_rounded,
-                                                size: 16.sp,
-                                                color: Colors.grey,
-                                              ),
-                                      ),
-                                    ),
-                                    SizedBox(height: 4.h),
-                                    Text(
-                                      name,
-                                      style: TextStyle(
-                                        color: context.textPrimaryColor,
-                                        fontSize: 8.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                      SizedBox(height: 14.h),
-                      Text(
-                        'QPay апп эсвэл банкны апп-аараа QR кодыг уншуулж, доорх дансны мэдээллээр шилжүүлнэ үү.',
-                        style: TextStyle(
-                          color: context.textSecondaryColor,
-                          fontSize: 10.sp,
-                        ),
-                        textAlign: TextAlign.center,
+                        child: Icon(Icons.qr_code_scanner_rounded, size: 80.sp, color: textSecondary.withOpacity(0.1)),
                       ),
-                      if (widget.bankCode != null ||
-                          widget.accountNo != null ||
-                          widget.accountName != null ||
-                          widget.amount != null ||
-                          widget.description != null) ...[
-                        SizedBox(height: 12.h),
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: context.isDarkMode
-                                ? Colors.white.withOpacity(0.03)
-                                : const Color(0xFFF8F8F8),
-                            borderRadius: BorderRadius.circular(10.r),
-                            border: Border.all(
-                              color: context.isDarkMode
-                                  ? Colors.white.withOpacity(0.08)
-                                  : Colors.black.withOpacity(0.06),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Банкны гүйлгээний мэдээлэл',
-                                style: TextStyle(
-                                  color: context.textPrimaryColor,
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              SizedBox(height: 8.h),
-                              if (widget.amount != null) ...[
-                                _buildBankDetailRow(
-                                  context,
-                                  label: 'Төлөх дүн',
-                                  value:
-                                      '${widget.amount!.toStringAsFixed(2)}₮',
-                                ),
-                              ],
-                              if (widget.bankCode != null &&
-                                  widget.bankCode!.isNotEmpty)
-                                _buildBankDetailRow(
-                                  context,
-                                  label: 'Банкны код',
-                                  value: widget.bankCode!,
-                                ),
-                              if (widget.accountNo != null &&
-                                  widget.accountNo!.isNotEmpty)
-                                _buildBankDetailRow(
-                                  context,
-                                  label: 'Дансны дугаар',
-                                  value: widget.accountNo!,
-                                  isCopyable: true,
-                                ),
-                              if (widget.accountName != null &&
-                                  widget.accountName!.isNotEmpty)
-                                _buildBankDetailRow(
-                                  context,
-                                  label: 'Хүлээн авагч',
-                                  value: widget.accountName!,
-                                ),
-                              if (widget.description != null &&
-                                  widget.description!.isNotEmpty)
-                                _buildBankDetailRow(
-                                  context,
-                                  label: 'Гүйлгээний утга',
-                                  value: widget.description!,
-                                  isCopyable: true,
-                                ),
-                            ],
-                          ),
+                      SizedBox(height: 32.h),
+                      Text(
+                        'Нэхэмжлэх олдсонгүй',
+                        style: TextStyle(
+                          color: textPrimary.withOpacity(0.8),
+                          fontSize: 16.sp,
+                          letterSpacing: 0.5,
                         ),
-                      ],
-                      if (_resultMessage != null) ...[
-                        SizedBox(height: 10.h),
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(10.w),
-                          decoration: BoxDecoration(
-                            color: (_paidResult == true)
-                                ? Colors.green.withOpacity(0.12)
-                                : (_paidResult == false)
-                                    ? Colors.red.withOpacity(0.12)
-                                    : (context.isDarkMode
-                                        ? Colors.white.withOpacity(0.05)
-                                        : const Color(0xFFF8F8F8)),
-                            borderRadius: BorderRadius.circular(10.r),
-                            border: Border.all(
-                              color: (_paidResult == true)
-                                  ? Colors.green.withOpacity(0.35)
-                                  : (_paidResult == false)
-                                      ? Colors.red.withOpacity(0.35)
-                                      : (context.isDarkMode
-                                          ? Colors.white.withOpacity(0.1)
-                                          : Colors.black.withOpacity(0.08)),
-                            ),
-                          ),
-                          child: Text(
-                            _resultMessage!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w600,
-                              color: context.textPrimaryColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (widget.onCheckPaymentAsync != null ||
-                          widget.onCheckPayment != null) ...[
-                        SizedBox(height: 14.h),
-                        SizedBox(
+                      ),
+                      SizedBox(height: 48.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 40.w),
+                        child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _isChecking ? null : _handleCheckPayment,
+                            onPressed: () => Navigator.of(context).pop(),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.deepGreen,
+                              backgroundColor: primaryColor,
                               foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              padding: EdgeInsets.symmetric(vertical: 16.h),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.r),
+                                borderRadius: BorderRadius.circular(16.r),
                               ),
+                              elevation: 0,
                             ),
-                            child: _isChecking
-                                ? SizedBox(
-                                    height: 16.h,
-                                    width: 16.w,
-                                    child: const CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  )
-                                : Text(
-                                    'Төлбөр шалгах',
-                                    style: TextStyle(
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: 10.h),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text(
-                          'Хаах',
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: 11.sp,
+                            child: Text('Буцах', style: TextStyle(fontSize: 15.sp)),
                           ),
                         ),
                       ),
@@ -654,6 +253,384 @@ class _QPayQRModalState extends State<QPayQRModal> {
               ),
             ],
           ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: context.backgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        toolbarHeight: 60.h,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20.sp),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'ТӨЛБӨР ТӨЛӨЛТ',
+          style: TextStyle(
+            color: textPrimary.withOpacity(0.9),
+            fontSize: 13.sp,
+            letterSpacing: 2.0,
+            fontWeight: FontWeight.w300,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 40.h),
+        child: Column(
+          children: [
+            _buildAmountHeader(context, textPrimary, textSecondary, primaryColor),
+            SizedBox(height: 24.h),
+            _buildQRSection(context, hasOwnOrg, hasWallet, hasQrText, textPrimary, textSecondary, primaryColor),
+            SizedBox(height: 32.h),
+            _buildBankAppSection(context, textPrimary, textSecondary, primaryColor),
+            SizedBox(height: 24.h),
+            _buildTransferDetails(context, textPrimary, textSecondary, primaryColor),
+            if (_resultMessage != null) _buildStatusFeedback(context, textPrimary),
+            SizedBox(height: 100.h),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomAction(context, primaryColor),
+    );
+  }
+
+  Widget _buildModernHeader(BuildContext context, Color textPrimary, Color textSecondary) {
+    return Container(
+      height: 60.h,
+      padding: EdgeInsets.symmetric(horizontal: 10.w),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            left: 0,
+            child: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20.sp),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          Text(
+            'ТӨЛБӨР ТӨЛӨЛТ',
+            style: TextStyle(
+              color: textPrimary.withOpacity(0.9),
+              fontSize: 13.sp,
+              letterSpacing: 2.0,
+              fontWeight: FontWeight.w300,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAmountHeader(BuildContext context, Color textPrimary, Color textSecondary, Color primaryColor) {
+    return Column(
+      children: [
+        Text(
+          'ТӨЛӨХ ДҮН',
+          style: TextStyle(
+            color: textSecondary.withOpacity(0.4),
+            fontSize: 10.sp,
+            letterSpacing: 1.5,
+          ),
+        ),
+        SizedBox(height: 10.h),
+        Text(
+          '${widget.amount != null ? NumberFormat('#,###').format(widget.amount) : '0'}₮',
+          style: TextStyle(
+            color: textPrimary,
+            fontSize: 32.sp,
+            fontWeight: FontWeight.w300,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQRSection(BuildContext context, bool hasOwnOrg, bool hasWallet, bool hasQrText, Color textPrimary, Color textSecondary, Color primaryColor) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(30.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(color: textPrimary.withOpacity(0.04)),
+      ),
+      child: Column(
+        children: [
+          if (hasOwnOrg && (hasWallet || hasQrText))
+            Row(
+              children: [
+                Expanded(child: _buildQRCard('Байрны төлбөр', widget.qrImageOwnOrg, null, textSecondary)),
+                SizedBox(width: 16.w),
+                Expanded(child: _buildQRCard('Хэтэвч', widget.qrImageWallet, widget.qrText, textSecondary)),
+              ],
+            )
+          else
+            _buildQRCard(
+              hasOwnOrg ? 'Гүйлгээний QR' : 'QPay QR',
+              hasOwnOrg ? widget.qrImageOwnOrg : widget.qrImageWallet,
+              hasOwnOrg ? null : widget.qrText,
+              textSecondary,
+              isLarge: true,
+            ),
+          SizedBox(height: 20.h),
+          Text(
+            'QR кодыг банкны апп-аар уншуулна уу',
+            style: TextStyle(
+              color: textSecondary.withOpacity(0.5),
+              fontSize: 11.sp,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQRCard(String label, String? image, String? text, Color textSecondary, {bool isLarge = false}) {
+    return Column(
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            color: textSecondary.withOpacity(0.4),
+            fontSize: 9.sp,
+            letterSpacing: 1.0,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.all(12.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: _buildQRCode(text, image, size: isLarge ? 200.w : 130.w),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBankAppSection(BuildContext context, Color textPrimary, Color textSecondary, Color primaryColor) {
+    if (widget.urls == null || widget.urls!.isEmpty) return const SizedBox();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 4.w),
+          child: Text(
+            'БАНКНЫ АПП-ААР НЭЭХ',
+            style: TextStyle(
+              color: textSecondary.withOpacity(0.4),
+              fontSize: 10.sp,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 12.w,
+            mainAxisSpacing: 12.h,
+            childAspectRatio: 0.95,
+          ),
+          itemCount: widget.urls!.length,
+          itemBuilder: (context, index) {
+            final urlData = widget.urls![index] as Map<String, dynamic>;
+            final logo = _getLogoUrl(urlData['logo']?.toString() ?? '');
+            final name = urlData['name']?.toString() ?? '';
+            final link = urlData['link']?.toString() ?? '';
+
+            return _buildBankItem(context, name, logo, link, textPrimary, textSecondary);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBankItem(BuildContext context, String name, String logo, String link, Color textPrimary, Color textSecondary) {
+    return GestureDetector(
+      onTap: () async {
+        if (link.isEmpty) return;
+        final uri = Uri.tryParse(link);
+        if (uri != null) {
+          try {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (_) {
+            if (mounted) showGlassSnackBar(context, message: 'Апп нээхэд алдаа гарлаа');
+          }
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(color: textPrimary.withOpacity(0.03)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 44.w,
+              height: 44.w,
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: logo.isNotEmpty
+                    ? Image.network(logo, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(Icons.account_balance, size: 20.sp, color: Colors.grey))
+                    : Icon(Icons.account_balance, size: 20.sp, color: Colors.grey),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              name,
+              style: TextStyle(
+                color: textPrimary.withOpacity(0.7),
+                fontSize: 10.sp,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransferDetails(BuildContext context, Color textPrimary, Color textSecondary, Color primaryColor) {
+    if (widget.accountNo == null) return const SizedBox();
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: textPrimary.withOpacity(0.01),
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: textPrimary.withOpacity(0.03)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'БАНКНЫ ШИЛЖҮҮЛЭГ',
+            style: TextStyle(color: textSecondary.withOpacity(0.4), fontSize: 9.sp, letterSpacing: 1.0),
+          ),
+          SizedBox(height: 16.h),
+          _buildDetailTile(context, 'Банкны код', widget.bankCode ?? '', false, textPrimary, textSecondary),
+          _buildDetailTile(context, 'Данс', widget.accountNo ?? '', true, textPrimary, textSecondary),
+          _buildDetailTile(context, 'Хүлээн авагч', widget.accountName ?? '', false, textPrimary, textSecondary),
+          _buildDetailTile(context, 'Утга', widget.description ?? '', true, textPrimary, textSecondary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailTile(BuildContext context, String label, String value, bool isCopyable, Color textPrimary, Color textSecondary) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: textSecondary.withOpacity(0.5), fontSize: 11.sp)),
+          Row(
+            children: [
+              Text(value, style: TextStyle(color: textPrimary, fontSize: 12.sp, fontWeight: FontWeight.w400)),
+              if (isCopyable)
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: value));
+                    showGlassSnackBar(context, message: 'Хууллаа');
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 8.w),
+                    child: Icon(Icons.copy_rounded, size: 14.sp, color: textSecondary.withOpacity(0.3)),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusFeedback(BuildContext context, Color textPrimary) {
+    final isSuccess = _paidResult == true;
+    return Padding(
+      padding: EdgeInsets.only(top: 24.h),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: (isSuccess ? Colors.green : Colors.red).withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: (isSuccess ? Colors.green : Colors.red).withOpacity(0.1)),
+        ),
+        child: Text(
+          _resultMessage!,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isSuccess ? Colors.green : Colors.red,
+            fontSize: 13.sp,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomAction(BuildContext context, Color primaryColor) {
+    if (widget.onCheckPaymentAsync == null && widget.onCheckPayment == null) return const SizedBox();
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 34.h),
+      decoration: BoxDecoration(
+        color: context.backgroundColor,
+        border: Border(top: BorderSide(color: context.textPrimaryColor.withOpacity(0.02))),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 56.h,
+        child: ElevatedButton(
+          onPressed: _isChecking ? null : _handleCheckPayment,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+            elevation: 0,
+          ),
+          child: _isChecking
+              ? SizedBox(height: 20.w, width: 20.w, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text('ТӨЛБӨР ШАЛГАХ', style: TextStyle(fontSize: 14.sp, letterSpacing: 1.0, fontWeight: FontWeight.w300)),
         ),
       ),
     );

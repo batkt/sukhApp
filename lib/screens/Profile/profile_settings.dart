@@ -822,7 +822,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
       if (mounted) {
         if (response['success'] == true) {
-          await StorageService.clearAuthData();
+          await SessionService.logout();
           showGlassSnackBar(
             context,
             message: 'Бүртгэл амжилттай устгагдлаа',

@@ -70,7 +70,7 @@ final GoRouter appRouter = GoRouter(
       path: '/',
       pageBuilder: (context, state) =>
           PageTransitions.buildFadeThroughTransition(
-            key: state.pageKey,
+            key: UniqueKey(),
             child: const Newtrekhkhuudas(),
           ),
     ),
@@ -86,7 +86,7 @@ final GoRouter appRouter = GoRouter(
       path: '/newtrekh',
       pageBuilder: (context, state) =>
           PageTransitions.buildFadeThroughTransition(
-            key: state.pageKey,
+            key: UniqueKey(),
             child: const Newtrekhkhuudas(),
           ),
     ),
