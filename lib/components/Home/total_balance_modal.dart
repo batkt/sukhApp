@@ -1204,7 +1204,6 @@ class _TotalBalanceModalState extends State<TotalBalanceModal> {
     // 3. Fallback to name
     if (!isGeneric(name)) return name;
 
-    // 4. Ultimate fallback to the billing/biller name (e.g., ОСНАА ХҮТ-9)
     return fallback;
   }
 }

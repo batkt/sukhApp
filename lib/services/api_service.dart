@@ -675,29 +675,22 @@ class ApiService {
         }
 
         if (data['responseCode'] == true && data['data'] != null) {
-          // Return the full data object which includes billingId, billingName, newBills, etc.
-          final result = Map<String, dynamic>.from(data['data']);
-          print('📄 [API] Extracted data object: $result');
-          if (result['newBills'] != null) {
-            print(
-              '📄 [API] newBills found: ${result['newBills']} (type: ${result['newBills'].runtimeType})',
-            );
-            if (result['newBills'] is List) {
-              print(
-                '📄 [API] newBills is List with ${(result['newBills'] as List).length} items',
-              );
-            }
-          } else {
-            print('📄 [API] newBills is null or missing');
+          final rawData = data['data'];
+          if (rawData is Map) {
+            return Map<String, dynamic>.from(rawData);
+          } else if (rawData is List && rawData.isNotEmpty) {
+            // If it's a list, the first item usually contains the billing info
+            return Map<String, dynamic>.from(rawData[0]);
           }
-          return result;
+          return {};
         } else if (data['success'] == true && data['data'] != null) {
-          // Fallback for different response format
-          if (data['data'] is Map) {
-            return Map<String, dynamic>.from(data['data']);
-          } else if (data['data'] is List) {
-            // If it's a list, wrap it in a map with newBills key
-            return {'newBills': List<Map<String, dynamic>>.from(data['data'])};
+          final rawData = data['data'];
+          if (rawData is Map) {
+            return Map<String, dynamic>.from(rawData);
+          } else if (rawData is List && rawData.isNotEmpty) {
+             // Handle the list format seen in some responses
+             final firstItem = Map<String, dynamic>.from(rawData[0]);
+             return firstItem;
           }
         }
         print('📄 [API] No valid data found, returning empty map');
@@ -3113,6 +3106,36 @@ class ApiService {
       print('❌ [WALLET QPAY] Exception: $e');
       if (e is Exception) rethrow;
       throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  /// Check Wallet QPay payment status (polling)
+  /// Endpoint: GET /api/walletQpay/check/:baiguullagiinId/:walletPaymentId
+  static Future<List<Map<String, dynamic>>> fetchWalletQpayList() async {
+    try {
+      final headers = await getAuthHeaders();
+      final uri = Uri.parse('$baseUrl/walletQpay/list');
+
+      print('🔍 [WALLET QPAY] Fetching history: $uri');
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        } else if (data is Map && data['data'] is List) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+        return [];
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception('Түүх татахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Түүх татахад алдаа гарлаа: $e');
     }
   }
 

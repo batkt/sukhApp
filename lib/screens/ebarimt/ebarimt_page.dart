@@ -85,61 +85,131 @@ class _EbarimtPageState extends State<EbarimtPage> {
         return;
       }
 
-      // Fetch contracts
-      final gereeResponse = await ApiService.fetchGeree(userId);
-      if (gereeResponse['jagsaalt'] == null ||
-          (gereeResponse['jagsaalt'] as List).isEmpty) {
-        setState(() {
-          _isLoadingReceipts = false;
-        });
-        return;
-      }
-
-      final List<dynamic> gereeJagsaalt = gereeResponse['jagsaalt'];
       final List<VATReceipt> allReceipts = [];
 
-      // Fetch invoices for each contract and get ebarimt receipts
-      for (var contractData in gereeJagsaalt) {
-        try {
-          final geree = Geree.fromJson(contractData);
-          final nekhemjlekhResponse = await ApiService.fetchNekhemjlekhiinTuukh(
-            gereeniiDugaar: geree.gereeniiDugaar,
-          );
+      // Fetch contracts
+      try {
+        final gereeResponse = await ApiService.fetchGeree(userId);
+        if (gereeResponse['jagsaalt'] != null &&
+            (gereeResponse['jagsaalt'] as List).isNotEmpty) {
+          final List<dynamic> gereeJagsaalt = gereeResponse['jagsaalt'];
 
-          if (nekhemjlekhResponse['jagsaalt'] != null &&
-              nekhemjlekhResponse['jagsaalt'] is List) {
-            final List<dynamic> nekhemjlekhJagsaalt =
-                nekhemjlekhResponse['jagsaalt'];
+          // Fetch invoices for each contract and get ebarimt receipts
+          for (var contractData in gereeJagsaalt) {
+            try {
+              final geree = Geree.fromJson(contractData);
+              final nekhemjlekhResponse = await ApiService.fetchNekhemjlekhiinTuukh(
+                gereeniiDugaar: geree.gereeniiDugaar,
+              );
 
-            // Get ebarimt for each invoice
-            for (var invoice in nekhemjlekhJagsaalt) {
-              try {
-                final invoiceId = invoice['_id']?.toString() ?? '';
-                if (invoiceId.isEmpty) continue;
+              if (nekhemjlekhResponse['jagsaalt'] != null &&
+                  nekhemjlekhResponse['jagsaalt'] is List) {
+                final List<dynamic> nekhemjlekhJagsaalt =
+                    nekhemjlekhResponse['jagsaalt'];
 
-                final ebarimtResponse =
-                    await ApiService.fetchEbarimtJagsaaltAvya(
-                      nekhemjlekhiinId: invoiceId,
-                    );
+                // Get ebarimt for each invoice
+                for (var invoice in nekhemjlekhJagsaalt) {
+                  try {
+                    final invoiceId = invoice['_id']?.toString() ?? '';
+                    if (invoiceId.isEmpty) continue;
 
-                if (ebarimtResponse['jagsaalt'] != null &&
-                    ebarimtResponse['jagsaalt'] is List) {
-                  for (var item in ebarimtResponse['jagsaalt'] as List) {
-                    if (item['nekhemjlekhiinId'] == invoiceId) {
-                      allReceipts.add(VATReceipt.fromJson(item));
+                    final ebarimtResponse =
+                        await ApiService.fetchEbarimtJagsaaltAvya(
+                          nekhemjlekhiinId: invoiceId,
+                        );
+
+                    if (ebarimtResponse['jagsaalt'] != null &&
+                        ebarimtResponse['jagsaalt'] is List) {
+                      for (var item in ebarimtResponse['jagsaalt'] as List) {
+                        if (item['nekhemjlekhiinId'] == invoiceId) {
+                          allReceipts.add(VATReceipt.fromJson(item));
+                        }
+                      }
                     }
+                  } catch (e) {
+                    // Skip if error fetching ebarimt for this invoice
+                    continue;
                   }
                 }
-              } catch (e) {
-                // Skip if error fetching ebarimt for this invoice
-                continue;
+              }
+            } catch (e) {
+              // Skip if error fetching invoices for this contract
+              continue;
+            }
+          }
+        }
+      } catch (e) {
+        print('Error fetching contracts for receipts: $e');
+      }
+
+      // Load wallet payments history
+      try {
+        final Set<String> processedPaymentIds = {};
+        final List<Map<String, dynamic>> allPotentialPayments = [];
+
+        // 1. Get from global wallet history
+        try {
+          final walletList = await ApiService.fetchWalletQpayList();
+          allPotentialPayments.addAll(walletList);
+        } catch (e) {
+          print('Error fetching global wallet history: $e');
+        }
+
+        // 2. Get from billing-specific payment history
+        try {
+          final billingList = await ApiService.getWalletBillingList();
+          for (var billing in billingList) {
+            final billingId = billing['billingId']?.toString();
+            if (billingId != null) {
+              final billingData = await ApiService.getWalletBillingBills(billingId: billingId);
+              if (billingData['payments'] != null && billingData['payments'] is List) {
+                final List<Map<String, dynamic>> billingPayments = 
+                    List<Map<String, dynamic>>.from(billingData['payments']);
+                allPotentialPayments.addAll(billingPayments);
               }
             }
           }
         } catch (e) {
-          // Skip if error fetching invoices for this contract
-          continue;
+          print('Error fetching billing-specific history: $e');
         }
+
+        // Filter valid PAID payments and deduplicate
+        final uniqueWalletPayments = allPotentialPayments.where((item) {
+          final id = (item['paymentId'] ?? item['walletPaymentId'])?.toString();
+          if (id == null || id.isEmpty || processedPaymentIds.contains(id)) return false;
+          processedPaymentIds.add(id);
+          
+          final status = item['paymentStatus']?.toString().toUpperCase() ?? 
+                         item['status']?.toString().toUpperCase() ?? '';
+          return status == 'PAID' || status == 'SUCCESS';
+        }).toList();
+
+        // Concurrent fetching of VAT info for each unique wallet payment
+        final walletReceiptsList = await Future.wait(uniqueWalletPayments.map((item) async {
+          try {
+            // Optimization: if vatInformation is already in the item, use it
+            if (item['vatInformation'] != null) {
+               return VATReceipt.fromWalletPayment(item);
+            }
+
+            final paymentId = (item['paymentId'] ?? item['walletPaymentId'])?.toString();
+            if (paymentId == null) return null;
+            
+            // Otherwise check status to get vatInformation
+            final checkRes = await ApiService.walletQpayCheckStatus(walletPaymentId: paymentId);
+            
+            if (checkRes['status']?.toString().toUpperCase() == 'PAID' && checkRes['vatInformation'] != null) {
+              return VATReceipt.fromWalletPayment(checkRes);
+            }
+          } catch (e) {
+            print('Error fetching wallet receipt for ${item['paymentId'] ?? item['walletPaymentId']}: $e');
+          }
+          return null;
+        }));
+
+        allReceipts.addAll(walletReceiptsList.whereType<VATReceipt>());
+      } catch (e) {
+        print('Error loading wallet payment history: $e');
       }
 
       if (mounted) {

@@ -161,6 +161,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     _loadGereeData();
     _loadNekhemjlekhCron(); // Load nekhemjlekh cron data for date calculation
     _loadAllBillingPayments(); // Load total balance on init
+    _checkRecentWalletPayments(); // Check latest wallet payment status
 
     // Periodic balance refresh (every 60s) - fallback when socket notification is missed
     _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
@@ -774,6 +775,23 @@ class _BookingScreenState extends State<NuurKhuudas>
                 } else if (billingTotal > 0) {
                    total += billingTotal;
                 }
+
+              // Automatically trigger check for recent PAID payments to sync Ebarimt info
+              if (billingData['payments'] != null && billingData['payments'] is List) {
+                final payments = billingData['payments'] as List;
+                if (payments.isNotEmpty) {
+                  final latestPayment = payments[0];
+                  final paymentId = latestPayment['paymentId']?.toString();
+                  final status = latestPayment['paymentStatus']?.toString().toUpperCase();
+                  if (paymentId != null && status == 'PAID') {
+                    print('🔄 [HOME] Auto-syncing status for recent PAID payment: $paymentId');
+                    // We call it silently without awaiting to not block UI
+                    ApiService.walletQpayCheckStatus(walletPaymentId: paymentId).catchError((e) {
+                      print('❌ [HOME] Auto-sync check failed for $paymentId: $e');
+                    });
+                  }
+                }
+              }
             } catch (e) {
               // Error loading billing
             }
@@ -790,6 +808,32 @@ class _BookingScreenState extends State<NuurKhuudas>
       }
     } catch (e) {
       // Silent fail - total will remain at current value
+    }
+  }
+
+  Future<void> _checkRecentWalletPayments() async {
+    try {
+      // Fetch wallet history instead of using localStorage
+      final history = await ApiService.fetchWalletQpayList();
+      if (history.isNotEmpty) {
+        // Find latest pending or recently paid payment
+        final latest = history.first;
+        final status = latest['status']?.toString().toUpperCase();
+        final walletPaymentId = latest['walletPaymentId']?.toString();
+
+        if (walletPaymentId != null && status == 'PENDING') {
+          print('🔎 [HOME] Checking latest pending wallet payment: $walletPaymentId');
+          final checkRes = await ApiService.walletQpayCheckStatus(
+            walletPaymentId: walletPaymentId,
+          );
+          if (checkRes['status']?.toString().toUpperCase() == 'PAID') {
+            print('✅ [HOME] Latest payment became PAID. Refreshing balance.');
+            _loadAllBillingPayments();
+          }
+        }
+      }
+    } catch (e) {
+      print('Error auto-checking wallet payments: $e');
     }
   }
 

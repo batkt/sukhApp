@@ -482,23 +482,31 @@ class VATReceipt {
 
   factory VATReceipt.fromWalletPayment(Map<String, dynamic> json) {
     final vat = json['vatInformation'] as Map<String, dynamic>?;
+    
+    // Try to get date from various possible fields
+    String dateStr = json['ognoo']?.toString() ?? 
+                     json['date']?.toString() ?? 
+                     DateTime.now().toIso8601String();
+
+    // In this API, vatAmount often represents the total amount of the receipt
+    final totalAmountValue = (json['totalAmount'] ?? json['amount'] ?? vat?['vatAmount'] ?? 0).toDouble();
 
     return VATReceipt(
       id: vat?['vatDdtd'] ?? '',
       qrData: vat?['vatQrData'] ?? '',
       lottery: vat?['vatLotteryNo'],
-      totalAmount: (json['totalAmount'] ?? json['amount'] ?? 0).toDouble(),
-      totalVAT: double.tryParse(vat?['vatAmount']?.toString() ?? '0') ?? 0.0,
+      totalAmount: totalAmountValue,
+      totalVAT: totalAmountValue / 11, // Standard VAT calculation if not provided separately
       totalCityTax: 0,
       districtCode: '',
       merchantTin: '',
       branchNo: '001',
       posNo: '0001',
       type: 'B2C_RECEIPT',
-      date: DateTime.now().toIso8601String(),
+      date: dateStr,
       receipts: [],
       payments: [],
-      nekhemjlekhiinId: json['paymentId'] ?? '',
+      nekhemjlekhiinId: json['paymentId'] ?? json['walletPaymentId'] ?? '',
       gereeniiDugaar: json['invoiceNo'] ?? '',
       utas: 0,
       receiptId: vat?['vatDdtd'] ?? '',
