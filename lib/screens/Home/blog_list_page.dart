@@ -3,38 +3,61 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/screens/Home/blog_detail_page.dart';
+import 'package:sukh_app/services/blog_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/models/blog_model.dart';
+import 'package:intl/intl.dart';
 
-class BlogListPage extends StatelessWidget {
+class BlogListPage extends StatefulWidget {
   const BlogListPage({super.key});
+
+  @override
+  State<BlogListPage> createState() => _BlogListPageState();
+}
+
+class _BlogListPageState extends State<BlogListPage> {
+  List<BlogModel> _blogs = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBlogs();
+  }
+
+  Future<void> _loadBlogs() async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Байгууллагын ID олдсонгүй';
+        });
+        return;
+      }
+
+      final blogs = await BlogService.getBlogs(baiguullagiinId);
+      if (mounted) {
+        setState(() {
+          _blogs = blogs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-
-    // Same mock data as BlogSliderSection
-    final List<Map<String, String>> blogPosts = [
-      {
-        'title': 'Шинэ оны мэнд хүргэе!',
-        'description': 'Айл өрх бүрд аз жаргал, эрүүл энхийг хүсье.',
-        'content': 'Эрхэм хүндэт оршин суугчид аа,\n\nТа бүхэндээ айлан ирж буй шинэ оны гал халуун мэндийг хүргэе! Ирж буй шинэ ондоо аз жаргал, эрүүл энх, амжилт бүтээлээр дүүрэн байхыг хүсэн ерөөе.\n\nБидний хамтын ажиллагаа цаашид улам өргөжин тэлэх болтугай!',
-        'date': '2025.01.01',
-        'image': 'https://images.unsplash.com/photo-1546272989-40c92939c6c2?q=80&w=600&auto=format&fit=crop',
-      },
-      {
-        'title': 'СӨХ-н төлбөр төлөх шинэ боломж',
-        'description': 'Та одоо апп-аараа дамжуулан илүү хурдан төлөлт хийх боломжтой боллоо.',
-        'content': 'Эрхэм оршин суугчид аа,\n\nТа одоо апп-аараа дамжуулан СӨХ-н төлбөр болон бусад төлбөрүүдээ улам хурдан бөгөөд хялбар аргаар төлөх боломжтой боллоо.\n\n- QPay болон банкны апп-аар шууд төлнө.\n- Төлбөр хийгдсэн даруйд баримт үүснэ.\n- Сарын хураамж болон задаргаа тодорхой харагдана.',
-        'date': '2024.11.15',
-        'image': 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=600&auto=format&fit=crop',
-      },
-      {
-        'title': 'Дулааны улирлын бэлтгэл ажил',
-        'description': 'Оршин суугчдын анхааралд, дулааны улирал эхэлж буйтай холбоотой мэдээлэл.',
-        'content': 'Оршин суугчдын анхааралд,\n\nЭнэ амралтын өдрүүдээр гадна пасадны дулааны болон дээврийн засварын ажлууд 2-р ээлжээр эхлэх гэж байна. \nМашины зогсоолын орчимд анхаарал болгоомжтой байхыг хүсье.\n\nБаярлалаа!',
-        'date': '2024.10.23',
-        'image': 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?q=80&w=600&auto=format&fit=crop',
-      },
-    ];
 
     return Scaffold(
       backgroundColor: context.surfaceColor,
@@ -113,120 +136,144 @@ class BlogListPage extends StatelessWidget {
           ),
 
           Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 24.h),
-              itemCount: blogPosts.length,
-              itemBuilder: (context, index) {
-                final post = blogPosts[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BlogDetailPage(post: post),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    margin: EdgeInsets.only(bottom: 16.h),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1A1F26) : Colors.white,
-                      borderRadius: BorderRadius.circular(24.r),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : AppColors.deepGreen.withOpacity(0.05),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        // Left Image
-                        Hero(
-                          tag: 'blog_image_list_${post['title']}',
-                          child: Container(
-                            width: 110.w,
-                            height: 110.h,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(24.r),
-                                bottomLeft: Radius.circular(24.r),
-                              ),
-                              image: DecorationImage(
-                                image: NetworkImage(post['image']!),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Right Content
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.w),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _errorMessage != null
+                    ? Center(child: Text(_errorMessage!))
+                    : RefreshIndicator(
+                        onRefresh: _loadBlogs,
+                        child: ListView.builder(
+                          padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 24.h),
+                          itemCount: _blogs.length,
+                          itemBuilder: (context, index) {
+                            final blog = _blogs[index];
+                            final imageUrl = blog.images.isNotEmpty
+                                ? (blog.images.first.startsWith('http')
+                                    ? blog.images.first
+                                    : '${ApiService.baseUrl}/medegdel/${blog.images.first}')
+                                : '';
+                            
+                            final postMap = {
+                              'title': blog.title,
+                              'description': blog.content.length > 100 
+                                  ? '${blog.content.substring(0, 100)}...' 
+                                  : blog.content,
+                              'content': blog.content,
+                              'date': DateFormat('yyyy.MM.dd').format(blog.createdAt),
+                              'image': imageUrl,
+                            };
+
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BlogDetailPage(blog: blog),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                margin: EdgeInsets.only(bottom: 16.h),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1A1F26) : Colors.white,
+                                  borderRadius: BorderRadius.circular(24.r),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.08)
+                                        : AppColors.deepGreen.withOpacity(0.05),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
                                   children: [
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.deepGreen.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(8.r),
+                                    // Left Image
+                                    Hero(
+                                      tag: 'blog_image_list_${blog.id}',
+                                      child: Container(
+                                        width: 110.w,
+                                        height: 110.h,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(24.r),
+                                            bottomLeft: Radius.circular(24.r),
+                                          ),
+                                          image: DecorationImage(
+                                            image: NetworkImage(imageUrl),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
                                       ),
-                                      child: Text(
-                                        post['date']!,
-                                        style: TextStyle(
-                                          color: AppColors.deepGreen,
-                                          fontSize: 9.sp,
-                                          fontWeight: FontWeight.w700,
+                                    ),
+                                    // Right Content
+                                    Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(16.w),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                                  decoration: BoxDecoration(
+                                                    color: AppColors.deepGreen.withOpacity(0.08),
+                                                    borderRadius: BorderRadius.circular(8.r),
+                                                  ),
+                                                  child: Text(
+                                                    postMap['date']!,
+                                                    style: TextStyle(
+                                                      color: AppColors.deepGreen,
+                                                      fontSize: 9.sp,
+                                                      fontWeight: FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            SizedBox(height: 8.h),
+                                            Text(
+                                              blog.title,
+                                              style: TextStyle(
+                                                fontSize: 14.sp,
+                                                fontWeight: FontWeight.w800,
+                                                color: context.textPrimaryColor,
+                                                height: 1.2,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            SizedBox(height: 4.h),
+                                            Text(
+                                              postMap['description']!,
+                                              style: TextStyle(
+                                                fontSize: 11.sp,
+                                                color: context.textSecondaryColor,
+                                                height: 1.3,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 8.h),
-                                Text(
-                                  post['title']!,
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: context.textPrimaryColor,
-                                    height: 1.2,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  post['description']!,
-                                  style: TextStyle(
-                                    fontSize: 11.sp,
-                                    color: context.textSecondaryColor,
-                                    height: 1.3,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      ),
           ),
         ],
       ),
     );
   }
 }
+

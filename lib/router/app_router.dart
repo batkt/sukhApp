@@ -28,6 +28,7 @@ import 'package:sukh_app/screens/ebarimt/ebarimt_page.dart';
 import 'package:sukh_app/screens/contact/contact_page.dart';
 import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
 import 'package:sukh_app/screens/zochin_urikh/zochin_urikh_page.dart';
+import 'package:sukh_app/screens/blog/blog_screen.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/main.dart';
@@ -319,6 +320,14 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: const ContactPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/blog',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const BlogScreen(),
           ),
     ),
   ],

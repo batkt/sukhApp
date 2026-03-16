@@ -2,36 +2,91 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/models/blog_model.dart';
+import 'package:sukh_app/services/blog_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/socket_service.dart';
+import 'package:intl/intl.dart';
 
 class BlogDetailPage extends StatefulWidget {
-  final Map<String, String> post;
+  final BlogModel blog;
 
-  const BlogDetailPage({super.key, required this.post});
+  const BlogDetailPage({super.key, required this.blog});
 
   @override
   State<BlogDetailPage> createState() => _BlogDetailPageState();
 }
 
 class _BlogDetailPageState extends State<BlogDetailPage> {
-  // Start with empty reactions
-  final Map<String, int> _reactions = {};
-  
-  // Track multiple concurrent user reactions
-  final Set<String> _userReactions = {};
+  late BlogModel _currentBlog;
+  String? _userId;
+  String? _baiguullagiinId;
 
-  void _toggleReaction(String emoji) {
-    setState(() {
-      if (_userReactions.contains(emoji)) {
-        // Remove reaction
-        _userReactions.remove(emoji);
-        _reactions[emoji] = (_reactions[emoji] ?? 1) - 1;
-        if (_reactions[emoji] == 0) _reactions.remove(emoji);
-      } else {
-        // Add reaction
-        _userReactions.add(emoji);
-        _reactions[emoji] = (_reactions[emoji] ?? 0) + 1;
+  @override
+  void initState() {
+    super.initState();
+    _currentBlog = widget.blog;
+    _initializeData();
+    _setupSocketListener();
+  }
+
+  Future<void> _initializeData() async {
+    _userId = await StorageService.getUserId();
+    _baiguullagiinId = await StorageService.getBaiguullagiinId();
+    setState(() {});
+  }
+
+  void _setupSocketListener() {
+    SocketService.instance.setBaiguullagiinMedegdelCallback((payload) {
+      if (!mounted) return;
+      
+      final type = payload['type']?.toString();
+      if (type == 'blogReactionUpdate') {
+        final data = payload['data'];
+        if (data != null && data['blogId']?.toString() == _currentBlog.id) {
+          final reactions = (data['reactions'] as List)
+              .map((e) => ReactionModel.fromJson(e))
+              .toList();
+          
+          setState(() {
+            _currentBlog = _currentBlog.copyWith(reactions: reactions);
+          });
+        }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    SocketService.instance.setBaiguullagiinMedegdelCallback(null);
+    super.dispose();
+  }
+
+  Future<void> _toggleReaction(String emoji) async {
+    if (_userId == null || _baiguullagiinId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Нэвтрэх шаардлагатай')),
+      );
+      return;
+    }
+
+    try {
+      final updatedBlog = await BlogService.toggleReaction(
+        blogId: _currentBlog.id,
+        baiguullagiinId: _baiguullagiinId!,
+        emoji: emoji,
+        orshinSuugchId: _userId!,
+      );
+      
+      setState(() {
+        _currentBlog = updatedBlog;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Алдаа гарлаа: $e')),
+      );
+    }
   }
 
   void _showEmojiPicker() {
@@ -119,7 +174,12 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                           itemCount: emojis.length,
                           itemBuilder: (context, index) {
                             final emoji = emojis[index];
-                            final isSelected = _userReactions.contains(emoji);
+                            final reaction = _currentBlog.reactions.firstWhere(
+                              (r) => r.emoji == emoji,
+                              orElse: () => ReactionModel(emoji: emoji, count: 0, users: []),
+                            );
+                            final isSelected = _userId != null && reaction.users.contains(_userId);
+
                             return GestureDetector(
                               onTap: () {
                                 _toggleReaction(emoji);
@@ -161,6 +221,11 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
+    final imageUrl = _currentBlog.images.isNotEmpty
+        ? (_currentBlog.images.first.startsWith('http')
+            ? _currentBlog.images.first
+            : '${ApiService.baseUrl}/medegdel/${_currentBlog.images.first}')
+        : '';
 
     return Scaffold(
       backgroundColor: context.surfaceColor,
@@ -182,19 +247,28 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                     fit: StackFit.expand,
                     children: [
                       Hero(
-                        tag: 'blog_image_${widget.post['title']}',
-                        child: Image.network(
-                          widget.post['image'] ?? '',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: isDark ? Colors.grey[800] : Colors.grey[200],
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 50.sp,
-                              color: isDark ? Colors.grey[600] : Colors.grey[400],
-                            ),
-                          ),
-                        ),
+                        tag: 'blog_image_${_currentBlog.id}',
+                        child: imageUrl.isNotEmpty
+                            ? Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  color: isDark ? Colors.grey[800] : Colors.grey[200],
+                                  child: Icon(
+                                    Icons.image_outlined,
+                                    size: 50.sp,
+                                    color: isDark ? Colors.grey[600] : Colors.grey[400],
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                color: isDark ? Colors.grey[800] : Colors.grey[200],
+                                child: Icon(
+                                  Icons.image_outlined,
+                                  size: 50.sp,
+                                  color: isDark ? Colors.grey[600] : Colors.grey[400],
+                                ),
+                              ),
                       ),
                       DecoratedBox(
                         decoration: BoxDecoration(
@@ -253,7 +327,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                           ),
                           SizedBox(width: 6.w),
                           Text(
-                            widget.post['date'] ?? '',
+                            DateFormat('yyyy.MM.dd').format(_currentBlog.createdAt),
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: context.textSecondaryColor.withOpacity(0.8),
@@ -267,7 +341,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                       
                       // Title
                       Text(
-                        widget.post['title'] ?? '',
+                        _currentBlog.title,
                         style: TextStyle(
                           fontSize: 24.sp,
                           fontWeight: FontWeight.w900,
@@ -306,7 +380,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                       
                       // Content Text
                       Text(
-                        widget.post['content'] ?? widget.post['description'] ?? '',
+                        _currentBlog.content,
                         style: TextStyle(
                           fontSize: 15.sp,
                           color: context.textPrimaryColor.withOpacity(0.9),
@@ -318,7 +392,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                       SizedBox(height: 40.h),
                       
                       // Reactions Section
-                      if (_reactions.isNotEmpty || _userReactions.isNotEmpty) ...[
+                      if (_currentBlog.reactions.any((r) => r.count > 0)) ...[
                         const Divider(),
                         SizedBox(height: 20.h),
                         Text(
@@ -336,10 +410,10 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                         runSpacing: 12.h,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          ..._reactions.entries.map((entry) {
-                            final isSelected = _userReactions.contains(entry.key);
+                          ..._currentBlog.reactions.where((r) => r.count > 0).map((reaction) {
+                            final isSelected = _userId != null && reaction.users.contains(_userId);
                             return GestureDetector(
-                              onTap: () => _toggleReaction(entry.key),
+                              onTap: () => _toggleReaction(reaction.emoji),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
                                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
@@ -359,12 +433,12 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      entry.key,
+                                      reaction.emoji,
                                       style: TextStyle(fontSize: 16.sp),
                                     ),
                                     SizedBox(width: 8.w),
                                     Text(
-                                      '${entry.value}',
+                                      '${reaction.count}',
                                       style: TextStyle(
                                         color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
                                         fontSize: 13.sp,
@@ -382,12 +456,12 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                             child: Container(
                               padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 10.h),
                               decoration: BoxDecoration(
-                                color: _userReactions.isEmpty && _reactions.isEmpty 
+                                color: _currentBlog.reactions.isEmpty
                                     ? AppColors.deepGreen.withOpacity(0.1)
                                     : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100]),
                                 borderRadius: BorderRadius.circular(16.r),
                                 border: Border.all(
-                                  color: _userReactions.isEmpty && _reactions.isEmpty 
+                                  color: _currentBlog.reactions.isEmpty
                                       ? AppColors.deepGreen.withOpacity(0.3)
                                       : Colors.transparent,
                                 ),
@@ -398,22 +472,21 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                                   Icon(
                                     Icons.add_reaction_outlined,
                                     size: 18.sp,
-                                    color: _userReactions.isEmpty && _reactions.isEmpty 
+                                    color: _currentBlog.reactions.isEmpty
                                         ? AppColors.deepGreen 
                                         : context.textSecondaryColor,
                                   ),
-                                  if (_userReactions.isEmpty && _reactions.isNotEmpty)
-                                    Padding(
-                                      padding: EdgeInsets.only(left: 8.w),
-                                      child: Text(
-                                        'Сэтгэгдэл',
-                                        style: TextStyle(
-                                          fontSize: 12.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: context.textSecondaryColor,
-                                        ),
+                                  Padding(
+                                    padding: EdgeInsets.only(left: 8.w),
+                                    child: Text(
+                                      'Сэтгэгдэл',
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: context.textSecondaryColor,
                                       ),
                                     ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -510,3 +583,4 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
     );
   }
 }
+

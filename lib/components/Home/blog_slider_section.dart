@@ -4,38 +4,72 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/screens/Home/blog_detail_page.dart';
 import 'package:sukh_app/screens/Home/blog_list_page.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/services/blog_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/models/blog_model.dart';
+import 'package:intl/intl.dart';
 
-class BlogSliderSection extends StatelessWidget {
+class BlogSliderSection extends StatefulWidget {
   const BlogSliderSection({super.key});
 
   @override
+  State<BlogSliderSection> createState() => _BlogSliderSectionState();
+}
+
+class _BlogSliderSectionState extends State<BlogSliderSection> {
+  List<BlogModel> _blogs = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBlogs();
+  }
+
+  Future<void> _loadBlogs() async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (baiguullagiinId == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Байгууллагын ID олдсонгүй';
+        });
+        return;
+      }
+
+      final blogs = await BlogService.getBlogs(baiguullagiinId);
+      if (mounted) {
+        setState(() {
+          _blogs = blogs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return SizedBox(
+        height: 175.h,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_blogs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final isDark = context.isDarkMode;
-    
-    // Mock data for blog posts
-    final List<Map<String, String>> blogPosts = [
-      {
-        'title': 'Шинэ оны мэнд хүргэе!',
-        'description': 'Айл өрх бүрд аз жаргал, эрүүл энхийг хүсье.',
-        'content': 'Эрхэм хүндэт оршин суугчид аа,\n\nТа бүхэндээ айлан ирж буй шинэ оны гал халуун мэндийг хүргэе! Ирж буй шинэ ондоо аз жаргал, эрүүл энх, амжилт бүтээлээр дүүрэн байхыг хүсэн ерөөе.\n\nБидний хамтын ажиллагаа цаашид улам өргөжин тэлэх болтугай!',
-        'date': '2025.01.01',
-        'image': 'https://images.unsplash.com/photo-1546272989-40c92939c6c2?q=80&w=600&auto=format&fit=crop',
-      },
-      {
-        'title': 'СӨХ-н төлбөр төлөх шинэ боломж',
-        'description': 'Та одоо апп-аараа дамжуулан илүү хурдан төлөлт хийх боломжтой боллоо.',
-        'content': 'Эрхэм оршин суугчид аа,\n\nТа одоо апп-аараа дамжуулан СӨХ-н төлбөр болон бусад төлбөрүүдээ улам хурдан бөгөөд хялбар аргаар төлөх боломжтой боллоо.\n\n- QPay болон банкны апп-аар шууд төлнө.\n- Төлбөр хийгдсэн даруйд баримт үүснэ.\n- Сарын хураамж болон задаргаа тодорхой харагдана.',
-        'date': '2024.11.15',
-        'image': 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=600&auto=format&fit=crop',
-      },
-      {
-        'title': 'Дулааны улирлын бэлтгэл ажил',
-        'description': 'Оршин суугчдын анхааралд, дулааны улирал эхэлж буйтай холбоотой мэдээлэл.',
-        'content': 'Оршин суугчдын анхааралд,\n\nЭнэ амралтын өдрүүдээр гадна пасадны дулааны болон дээврийн засварын ажлууд 2-р ээлжээр эхлэх гэж байна. \nМашины зогсоолын орчимд анхаарал болгоомжтой байхыг хүсье.\n\nБаярлалаа!',
-        'date': '2024.10.23',
-        'image': 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?q=80&w=600&auto=format&fit=crop',
-      },
-    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,16 +142,33 @@ class BlogSliderSection extends StatelessWidget {
           height: 175.h,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: blogPosts.length,
+            itemCount: _blogs.length > 5 ? 5 : _blogs.length,
             padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 4.w),
             itemBuilder: (context, index) {
-              final post = blogPosts[index];
+              final blog = _blogs[index];
+              final imageUrl = blog.images.isNotEmpty
+                  ? (blog.images.first.startsWith('http')
+                      ? blog.images.first
+                      : '${ApiService.baseUrl}/medegdel/${blog.images.first}')
+                  : '';
+              
+              // Create compatible map for BlogDetailPage (for now)
+              final postMap = {
+                'title': blog.title,
+                'description': blog.content.length > 100 
+                    ? '${blog.content.substring(0, 100)}...' 
+                    : blog.content,
+                'content': blog.content,
+                'date': DateFormat('yyyy.MM.dd').format(blog.createdAt),
+                'image': imageUrl,
+              };
+
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BlogDetailPage(post: post),
+                      builder: (context) => BlogDetailPage(blog: blog),
                     ),
                   );
                 },
@@ -149,30 +200,41 @@ class BlogSliderSection extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Image with gradient and date tag
                         Stack(
                           children: [
                             Hero(
-                              tag: 'blog_image_${post['title']}',
+                              tag: 'blog_image_${blog.id}',
                               child: SizedBox(
                                 height: 95.h,
                                 width: double.infinity,
-                                child: Image.network(
-                                  post['image']!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                    color: isDark
-                                        ? Colors.grey[800]
-                                        : Colors.grey[200],
-                                    child: Icon(
-                                      Icons.image_outlined,
-                                      color: isDark
-                                          ? Colors.grey[600]
-                                          : Colors.grey[400],
-                                    ),
-                                  ),
-                                ),
+                                child: imageUrl.isNotEmpty
+                                    ? Image.network(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            Container(
+                                          color: isDark
+                                              ? Colors.grey[800]
+                                              : Colors.grey[200],
+                                          child: Icon(
+                                            Icons.image_outlined,
+                                            color: isDark
+                                                ? Colors.grey[600]
+                                                : Colors.grey[400],
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        color: isDark
+                                            ? Colors.grey[800]
+                                            : Colors.grey[200],
+                                        child: Icon(
+                                          Icons.image_outlined,
+                                          color: isDark
+                                              ? Colors.grey[600]
+                                              : Colors.grey[400],
+                                        ),
+                                      ),
                               ),
                             ),
                             Positioned(
@@ -192,7 +254,7 @@ class BlogSliderSection extends StatelessWidget {
                                   ),
                                 ),
                                 child: Text(
-                                  post['date']!,
+                                  postMap['date']!,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 8.sp,
@@ -203,7 +265,6 @@ class BlogSliderSection extends StatelessWidget {
                             ),
                           ],
                         ),
-                        
                         Expanded(
                           child: Padding(
                             padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 10.h),
@@ -211,7 +272,7 @@ class BlogSliderSection extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  post['title']!,
+                                  blog.title,
                                   style: TextStyle(
                                     fontSize: 13.sp,
                                     fontWeight: FontWeight.w800,
@@ -223,7 +284,7 @@ class BlogSliderSection extends StatelessWidget {
                                 ),
                                 SizedBox(height: 5.h),
                                 Text(
-                                  post['description']!,
+                                  postMap['description']!,
                                   style: TextStyle(
                                     fontSize: 11.sp,
                                     color: context.textSecondaryColor.withOpacity(0.8),
@@ -248,3 +309,4 @@ class BlogSliderSection extends StatelessWidget {
     );
   }
 }
+

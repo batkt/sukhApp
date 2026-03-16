@@ -222,7 +222,10 @@ class SocketService {
         ? data
         : Map<String, dynamic>.from(data as Map);
     final type = map['type']?.toString();
-    if (type == 'medegdelUserReply' || type == 'medegdelAdminReply') {
+    if (type == 'medegdelUserReply' ||
+        type == 'medegdelAdminReply' ||
+        type == 'blogNew' ||
+        type == 'blogReactionUpdate') {
       _baiguullagiinMedegdelCallback!(map);
     }
   }
