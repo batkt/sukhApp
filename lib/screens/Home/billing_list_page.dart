@@ -13,7 +13,7 @@ class BillingListPage extends StatefulWidget {
   final bool isLoading;
   final double totalBalance;
   final double totalAldangi;
-  final Function(Map<String, dynamic>, BuildContext) onBillingTap;
+  final Function(Map<String, dynamic>) onBillingTap;
   final String Function(String) expandAddressAbbreviations;
   final Function(Map<String, dynamic>)? onDeleteTap;
   final Function(Map<String, dynamic>, [VoidCallback?])? onEditTap;
@@ -49,25 +49,12 @@ class _BillingListPageState extends State<BillingListPage> {
     super.initState();
     final hasData =
         widget.billingList.isNotEmpty || widget.userBillingData != null;
-
     _localIsLoading = widget.isLoading && !hasData;
-
-    if (hasData) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted && _localIsLoading) {
-          setState(() {
-            _localIsLoading = false;
-          });
-        }
-      });
-    }
 
     if (_localIsLoading) {
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && _localIsLoading) {
-          setState(() {
-            _localIsLoading = false;
-          });
+          setState(() => _localIsLoading = false);
         }
       });
     }
@@ -76,11 +63,8 @@ class _BillingListPageState extends State<BillingListPage> {
   @override
   void didUpdateWidget(BillingListPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    // FIX: Use identity/reference comparison instead of just length check,
-    // so a same-length replacement list still triggers an update.
     final dataChanged =
-        oldWidget.billingList != widget.billingList ||
+        oldWidget.billingList.length != widget.billingList.length ||
         oldWidget.userBillingData != widget.userBillingData;
     final loadingChanged = oldWidget.isLoading != widget.isLoading;
 
@@ -89,7 +73,6 @@ class _BillingListPageState extends State<BillingListPage> {
         if (mounted) {
           final hasData =
               widget.billingList.isNotEmpty || widget.userBillingData != null;
-
           setState(() {
             _localIsLoading = widget.isLoading && !hasData;
           });
@@ -98,14 +81,21 @@ class _BillingListPageState extends State<BillingListPage> {
     }
   }
 
+  Future<void> _refresh() async {
+    setState(() => _localIsLoading = true);
+    await widget.onRefresh();
+    if (mounted) setState(() => _localIsLoading = false);
+  }
+
   Future<void> _addNewAddress() async {
     final result = await context.push('/utility-add');
     if (result == true) {
+      setState(() => _localIsLoading = true);
       await widget.onRefresh();
+      // Add a small delay to ensure data is updated
+      await Future.delayed(const Duration(milliseconds: 100));
       if (mounted) {
-        setState(() {
-          _localIsLoading = false;
-        });
+        setState(() => _localIsLoading = false);
       }
     }
   }
@@ -113,6 +103,7 @@ class _BillingListPageState extends State<BillingListPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
+
     final residential = widget.billingList
         .where((b) {
           final name = (b['billingName'] ?? '').toString().toLowerCase();
@@ -186,7 +177,7 @@ class _BillingListPageState extends State<BillingListPage> {
         children: [
           _buildGreenHeader(context, isDark),
           RefreshIndicator(
-            onRefresh: widget.onRefresh,
+            onRefresh: _refresh,
             color: AppColors.deepGreen,
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -208,7 +199,13 @@ class _BillingListPageState extends State<BillingListPage> {
                       residentialBillings: residential,
                       utilityBillings: utility,
                       userBillingData: widget.userBillingData,
-                      onBillingTap: widget.onBillingTap,
+                      onBillingTap: (billing) {
+                        if (billing['isLocalData'] == true) {
+                          context.push('/nekhemjlekh');
+                        } else {
+                          widget.onBillingTap(billing);
+                        }
+                      },
                       expandAddressAbbreviations:
                           widget.expandAddressAbbreviations,
                       onDeleteTap: widget.onDeleteTap,
@@ -229,7 +226,6 @@ class _BillingListPageState extends State<BillingListPage> {
     );
   }
 
-  // FIX: Removed literal \r\n escape sequences that caused a syntax error.
   Widget _buildGreenHeader(BuildContext context, bool isDark) {
     if (isDark) return const SizedBox.shrink();
 
@@ -250,7 +246,4 @@ class _BillingListPageState extends State<BillingListPage> {
       ),
     );
   }
-
-  // FIX: Removed unused _formatNumber method to keep the class clean.
-  // Add it back if needed elsewhere.
 }

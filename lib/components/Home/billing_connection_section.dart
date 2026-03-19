@@ -16,7 +16,7 @@ class BillingConnectionSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    
+
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -28,8 +28,8 @@ class BillingConnectionSection extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark 
-                ? Colors.black.withOpacity(0.4) 
+            color: isDark
+                ? Colors.black.withOpacity(0.4)
                 : AppColors.deepGreen.withOpacity(0.12),
             blurRadius: 20,
             offset: const Offset(0, 8),
@@ -40,48 +40,22 @@ class BillingConnectionSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.deepGreen,
-                      AppColors.deepGreen.withOpacity(0.8),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-                child: Icon(
-                  Icons.home_work_rounded,
-                  color: Colors.white,
-                  size: 24.sp,
+              Text(
+                'Биллинг холбох',
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 14.sp,
                 ),
               ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Биллинг холбох',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      'Орон сууцны төлбөрөө хялбар төлөөрэй',
-                      style: TextStyle(
-                        color: context.textSecondaryColor,
-                        fontSize: 10.sp,
-                      ),
-                    ),
-                  ],
+              SizedBox(height: 2.h),
+              Text(
+                'Орон сууцны төлбөрөө хялбар төлөөрэй',
+                style: TextStyle(
+                  color: context.textSecondaryColor,
+                  fontSize: 10.sp,
                 ),
               ),
             ],
@@ -89,6 +63,7 @@ class BillingConnectionSection extends StatelessWidget {
           SizedBox(height: 16.h),
           SizedBox(
             width: double.infinity,
+            height: 48.h,
             child: ElevatedButton(
               onPressed: isConnecting ? null : onConnect,
               style: ElevatedButton.styleFrom(
@@ -124,19 +99,7 @@ class BillingConnectionSection extends StatelessWidget {
                         ),
                       ],
                     )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.link_rounded, size: 16.sp),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'Одоо холбох',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ],
-                    ),
+                  : Text('Одоо холбох', style: TextStyle(fontSize: 12.sp)),
             ),
           ),
         ],

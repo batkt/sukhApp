@@ -716,7 +716,7 @@ class ApiService {
     try {
       final headers = await getWalletApiHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/wallet/billing/payments/$billingId'),
+        Uri.parse('$baseUrl/wallet/billing/bills/$billingId'),
         headers: headers,
       );
 

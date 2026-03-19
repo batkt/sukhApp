@@ -5,19 +5,20 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:intl/intl.dart';
+import 'package:sukh_app/models/payment_history_model.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
   final String billingId;
   final String billingName;
-  final String Function(String) expandAddressAbbreviations;
-  final String Function(double) formatNumberWithComma;
+  final String customerName;
+  final String customerAddress;
 
   const PaymentHistoryPage({
     super.key,
     required this.billingId,
     required this.billingName,
-    required this.expandAddressAbbreviations,
-    required this.formatNumberWithComma,
+    required this.customerName,
+    required this.customerAddress,
   });
 
   @override
@@ -25,9 +26,8 @@ class PaymentHistoryPage extends StatefulWidget {
 }
 
 class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
-  List<Map<String, dynamic>> _paymentHistory = [];
   bool _isLoading = true;
-  String? _errorMessage;
+  List<PaymentHistory> _paymentHistory = [];
 
   @override
   void initState() {
@@ -37,356 +37,245 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
 
   Future<void> _loadPaymentHistory() async {
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      final payments = await ApiService.getWalletBillingPayments(
+      final historyData = await ApiService.getWalletBillingPayments(
         billingId: widget.billingId,
       );
-
-      if (!mounted) return;
-
-      setState(() {
-        _paymentHistory = List<Map<String, dynamic>>.from(payments);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          if (historyData.isNotEmpty &&
+              historyData.first.containsKey('payments')) {
+            final payments = historyData.first['payments'] as List;
+            _paymentHistory = payments
+                .map((e) => PaymentHistory.fromJson(e))
+                .toList();
+          } else {
+            _paymentHistory = historyData
+                .map((e) => PaymentHistory.fromJson(e))
+                .toList();
+          }
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
         });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
-    }
-  }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null || dateString.isEmpty) return 'Огноо тодорхойгүй';
-
-    try {
-      final dateTime = DateTime.parse(dateString);
-      return DateFormat('yyyy.MM.dd HH:mm').format(dateTime);
-    } catch (e) {
-      return dateString;
-    }
-  }
-
-  String _getPaymentStatus(String? status) {
-    switch (status?.toUpperCase()) {
-      case 'PAID':
-        return 'Төлсөн';
-      case 'PENDING':
-        return 'Төлөгдөөгүй';
-      case 'FAILED':
-        return 'Амжилтгүй';
-      case 'CANCELLED':
-        return 'Цуцлагдсан';
-      default:
-        return status ?? 'Тодорхойгүй';
-    }
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status?.toUpperCase()) {
-      case 'PAID':
-        return AppColors.success;
-      case 'PENDING':
-        return AppColors.warning;
-      case 'FAILED':
-        return AppColors.error;
-      case 'CANCELLED':
-        return AppColors.neutralGray;
-      default:
-        return AppColors.neutralGray;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = context.isDarkMode
-        ? AppColors.deepGreenAccent
-        : AppColors.deepGreen;
-    final backgroundColor = context.backgroundColor;
-    final surfaceColor = context.surfaceColor;
-    final textPrimary = context.textPrimaryColor;
-    final textSecondary = context.textSecondaryColor;
+    final isDark = context.isDarkMode;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: buildStandardAppBar(
-        context,
-        title: 'ТӨЛБӨРИЙН ТҮҮХ',
-        onBackPressed: () => Navigator.of(context).pop(),
-      ),
+      appBar: buildStandardAppBar(context, title: 'Төлбөрийн түүх'),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: primaryColor))
-          : _errorMessage != null
-          ? Center(
-              child: Padding(
-                padding: EdgeInsets.all(40.w),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(24.w),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.error_outline_rounded,
-                        color: primaryColor,
-                        size: 48.sp,
-                      ),
-                    ),
-                    SizedBox(height: 24.h),
-                    Text(
-                      _errorMessage!,
-                      style: TextStyle(color: textPrimary, fontSize: 16.sp),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 32.h),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _loadPaymentHistory,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 16.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'ДАХИН АЧААЛАХ',
-                          style: TextStyle(fontSize: 13.sp, letterSpacing: 1.1),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : _paymentHistory.isEmpty
-          ? Center(
-              child: Padding(
-                padding: EdgeInsets.all(40.w),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(24.w),
-                      decoration: BoxDecoration(
-                        color: textSecondary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.history,
-                        color: textSecondary.withOpacity(0.5),
-                        size: 48.sp,
-                      ),
-                    ),
-                    SizedBox(height: 24.h),
-                    Text(
-                      'Төлбөрийн түүх байхгүй',
-                      style: TextStyle(color: textPrimary, fontSize: 16.sp),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      '${widget.billingName}-д төлсөн төлбөр олдсонгүй',
-                      style: TextStyle(
-                        color: textSecondary.withOpacity(0.6),
-                        fontSize: 12.sp,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadPaymentHistory,
-              color: primaryColor,
               child: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 10.h),
-                      child: Container(
-                        padding: EdgeInsets.all(20.w),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          borderRadius: BorderRadius.circular(24.r),
-                          border: Border.all(
-                            color: textPrimary.withOpacity(0.04),
+                      padding: EdgeInsets.all(16.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.billingName,
+                            style: TextStyle(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
+                          SizedBox(height: 8.h),
+                          Text(
+                            widget.customerName,
+                            style: TextStyle(fontSize: 14.sp),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            widget.customerAddress,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: context.textSecondaryColor,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(10.w),
-                              decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.05),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.receipt_long_outlined,
-                                size: 18.sp,
-                                color: primaryColor,
-                              ),
-                            ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'БИЛЛЕР',
-                                    style: TextStyle(
-                                      color: textSecondary.withOpacity(0.4),
-                                      fontSize: 9.sp,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    widget.billingName,
-                                    style: TextStyle(
-                                      color: textPrimary.withOpacity(0.8),
-                                      fontSize: 13.sp,
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   SliverPadding(
-                    padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final payment = _paymentHistory[index];
-                        final amount =
-                            (payment['amount'] as num?)?.toDouble() ?? 0.0;
-                        final status = payment['status']?.toString() ?? '';
-                        final createdAt = payment['createdAt']?.toString();
-                        final billerName =
-                            payment['billerName']?.toString() ??
-                            widget.billingName;
-                        final billPeriod =
-                            payment['billPeriod']?.toString() ?? '';
+                        final currentMonth = DateFormat(
+                          'yyyy-MM',
+                        ).format(payment.paymentStatusDate);
+                        final paymentDate = DateFormat(
+                          'yyyy-MM-dd',
+                        ).format(payment.paymentStatusDate);
 
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 12.h),
-                          child: Container(
-                            padding: EdgeInsets.all(16.w),
-                            decoration: BoxDecoration(
-                              color: surfaceColor,
-                              borderRadius: BorderRadius.circular(20.r),
-                              border: Border.all(
-                                color: textPrimary.withOpacity(0.03),
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 12.h),
+                          padding: EdgeInsets.all(16.w),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF1C2229)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(16.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 8.w,
-                                        vertical: 4.h,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(
-                                          status,
-                                        ).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(
-                                          8.r,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _getPaymentStatus(status),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentMonth,
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: context.textPrimaryColor,
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        paymentDate,
                                         style: TextStyle(
-                                          color: _getStatusColor(status),
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w400,
+                                          color: context.textSecondaryColor,
                                         ),
                                       ),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      widget.formatNumberWithComma(amount),
-                                      style: TextStyle(
-                                        color: primaryColor,
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w600,
+                                      SizedBox(height: 4.h),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 10.w,
+                                          vertical: 4.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4CAF50),
+                                          borderRadius: BorderRadius.circular(
+                                            8.r,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          "Төлөгдсөн",
+                                          style: TextStyle(
+                                            fontSize: 11.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 12.h),
-                                if (billPeriod.isNotEmpty) ...[
-                                  Text(
-                                    billPeriod,
-                                    style: TextStyle(
-                                      color: textPrimary.withOpacity(0.8),
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    ],
                                   ),
-                                  SizedBox(height: 4.h),
                                 ],
-                                if (billerName.isNotEmpty) ...[
-                                  Text(
-                                    billerName,
-                                    style: TextStyle(
-                                      color: textSecondary.withOpacity(0.4),
-                                      fontSize: 10.sp,
+                              ),
+                              SizedBox(height: 16.h),
+                              ...payment.bills.map((bill) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 12.h),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          bill.billType,
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: context.textPrimaryColor
+                                                .withOpacity(0.8),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 16.w),
+                                      Text(
+                                        '${NumberFormat('#,##0.00').format(bill.billTotalAmount)}₮',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: context.textPrimaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              Divider(
+                                height: 24.h,
+                                thickness: 1,
+                                color: isDark
+                                    ? Colors.white10
+                                    : Colors.black.withOpacity(0.05),
+                              ),
+                              SizedBox(
+                                width: double.infinity,
+                                child: TextButton(
+                                  onPressed: () {
+                                    context.push('/ebarimt');
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 8.h,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.r),
                                     ),
                                   ),
-                                  SizedBox(height: 1.h),
-                                ],
-                                Text(
-                                  _formatDate(createdAt),
-                                  style: TextStyle(
-                                    color: textSecondary.withOpacity(0.4),
-                                    fontSize: 10.sp,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.receipt_long_rounded,
+                                        size: 16.sp,
+                                        color: AppColors.deepGreen,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Баримт харах',
+                                        style: TextStyle(
+                                          fontSize: 13.sp,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.deepGreen,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         );
                       }, childCount: _paymentHistory.length),
                     ),
                   ),
-                  SliverToBoxAdapter(child: SizedBox(height: 100.h)),
+                  SliverToBoxAdapter(child: SizedBox(height: 32.h)),
                 ],
               ),
             ),
     );
   }
+
+  // Grouping method is no longer used for the requested "not unified" design
 }

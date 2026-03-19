@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/screens/Home/payment_history_page.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/components/Nekhemjlekh/qpay_qr_modal.dart';
@@ -323,15 +324,18 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                   'Хэрэглээний төлбөр';
 
               if (billingId.isNotEmpty) {
-                context.push(
-                  '/payment-history',
-                  extra: {
-                    'billingId': billingId,
-                    'billingName': billingName,
-                    'expandAddressAbbreviations':
-                        widget.expandAddressAbbreviations,
-                    'formatNumberWithComma': widget.formatNumberWithComma,
-                  },
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PaymentHistoryPage(
+                      billingId: billingId,
+                      billingName: billingName,
+                      customerName:
+                          widget.billing['customerName']?.toString() ?? '',
+                      customerAddress:
+                          widget.billing['customerAddress']?.toString() ?? '',
+                    ),
+                  ),
                 );
               } else {
                 showGlassSnackBar(
@@ -621,6 +625,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                 0.0;
                             final billPeriod =
                                 bill['billPeriod']?.toString() ?? '';
+                            final billtype = bill['billtype']?.toString() ?? '';
                             final billerName =
                                 bill['billerName']?.toString() ??
                                 bill['parentBillerName']?.toString() ??
@@ -709,7 +714,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              billerName,
+                                              billtype,
                                               style: TextStyle(
                                                 color: textPrimary.withOpacity(
                                                   isSelected ? 0.9 : 0.7,

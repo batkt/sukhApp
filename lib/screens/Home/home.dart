@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:sukh_app/main.dart' show navigatorKey;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -17,6 +18,10 @@ import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 import 'package:sukh_app/screens/Home/billing_list_page.dart';
+import 'package:sukh_app/components/Home/billing_actions.dart';
+import 'package:sukh_app/components/Home/billing_box.dart';
+import 'package:sukh_app/components/Home/billers_section.dart';
+import 'package:sukh_app/components/Home/home_header.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -480,6 +485,9 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   Future<void> _deleteBilling(Map<String, dynamic> billing) async {
+    final activeContext = navigatorKey.currentContext;
+    if (activeContext == null) return;
+
     final billingId =
         billing['billingId']?.toString() ??
         billing['walletBillingId']?.toString();
@@ -487,7 +495,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     if (billingId == null) {
       if (billing['isLocalData'] == true) {
         showGlassSnackBar(
-          context,
+          activeContext,
           message: 'Энэ биллинг API-тай холбогдоогүй байна.',
           icon: Icons.info_outline,
           iconColor: Colors.orange,
@@ -497,24 +505,25 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
 
     final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: activeContext,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
         title: Text(
           'Биллинг устгах',
-          style: TextStyle(color: context.textPrimaryColor),
+          style: TextStyle(color: ctx.textPrimaryColor),
         ),
         content: Text(
           'Та энэ биллингийг устгахдаа итгэлтэй байна уу?',
-          style: TextStyle(color: context.textSecondaryColor),
+          style: TextStyle(color: ctx.textSecondaryColor),
         ),
-        backgroundColor: context.backgroundColor,
+        backgroundColor: ctx.backgroundColor,
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: Text('Үгүй', style: TextStyle(color: AppColors.deepGreen)),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text(
               'Тийм',
               style: TextStyle(color: Colors.redAccent),
@@ -529,8 +538,12 @@ class _BookingScreenState extends State<NuurKhuudas>
     try {
       await ApiService.removeWalletBilling(billingId: billingId);
       if (mounted) {
+        _loadBillingList();
+        _loadAllBillingPayments();
+      }
+      if (navigatorKey.currentContext != null) {
         showGlassSnackBar(
-          context,
+          navigatorKey.currentContext!,
           message: 'Биллинг амжилттай устгагдлаа',
           icon: Icons.check_circle,
           iconColor: Colors.green,
@@ -539,9 +552,9 @@ class _BookingScreenState extends State<NuurKhuudas>
         _loadAllBillingPayments();
       }
     } catch (e) {
-      if (mounted) {
+      if (navigatorKey.currentContext != null) {
         showGlassSnackBar(
-          context,
+          navigatorKey.currentContext!,
           message: e.toString().replaceAll("Exception: ", ""),
           icon: Icons.error,
           iconColor: Colors.red,
@@ -554,199 +567,19 @@ class _BookingScreenState extends State<NuurKhuudas>
     Map<String, dynamic> billing, [
     VoidCallback? onUpdated,
   ]) async {
-    final billingId =
-        billing['billingId']?.toString() ??
-        billing['walletBillingId']?.toString();
+    final activeContext = navigatorKey.currentContext;
+    if (activeContext == null) return;
 
-    if (billingId == null) {
-      showGlassSnackBar(
-        context,
-        message: 'Энэ биллинг засварлах боломжгүй байна.',
-        icon: Icons.info_outline,
-        iconColor: Colors.orange,
-      );
-      return;
-    }
-
-    final currentNickname = billing['nickname']?.toString() ?? '';
-    final controller = TextEditingController(text: currentNickname);
-
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final isDark = context.isDarkMode;
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            margin: EdgeInsets.all(16.w),
-            padding: EdgeInsets.all(24.w),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1C2229) : Colors.white,
-              borderRadius: BorderRadius.circular(24.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(10.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.deepGreen.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Icon(
-                        Icons.edit_outlined,
-                        color: AppColors.deepGreen,
-                        size: 20.sp,
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Text(
-                        'Нэр өгөх',
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(ctx).pop(),
-                      child: Icon(
-                        Icons.close_rounded,
-                        color: isDark ? Colors.white54 : Colors.black38,
-                        size: 22.sp,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  billing['billingName']?.toString() ?? 'Биллинг',
-                  style: TextStyle(
-                    color: isDark ? Colors.white54 : Colors.black45,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black87,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Жишээ: Миний байр',
-                    hintStyle: TextStyle(
-                      color: isDark ? Colors.white30 : Colors.black26,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    filled: true,
-                    fillColor: isDark
-                        ? Colors.white.withOpacity(0.06)
-                        : Colors.grey.withOpacity(0.08),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14.r),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 14.h,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48.h,
-                  child: ElevatedButton(
-                    onPressed: () =>
-                        Navigator.of(ctx).pop(controller.text.trim()),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepGreen,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14.r),
-                      ),
-                    ),
-                    child: Text(
-                      'Хадгалах',
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+    await HomeBillingManager.editBilling(
+      context: activeContext,
+      billing: billing,
+      expandAddressAbbreviations: _expandAddressAbbreviations,
+      billingList: _billingList,
+      onUpdated: () {
+        if (mounted) setState(() {});
+        onUpdated?.call();
       },
     );
-
-    if (result == null) return; // dismissed
-
-    try {
-      await ApiService.setWalletBillingNickname(
-        billingId: billingId,
-        nickname: result,
-      );
-      if (mounted) {
-        // Directly mutate the billing map reference so all holders see the change
-        billing['nickname'] = result.isEmpty ? null : result;
-        // Also update in _billingList for consistency
-        setState(() {
-          for (int i = 0; i < _billingList.length; i++) {
-            final itemBillingId =
-                _billingList[i]['billingId']?.toString() ??
-                _billingList[i]['walletBillingId']?.toString();
-            if (itemBillingId == billingId) {
-              _billingList[i]['nickname'] = result.isEmpty ? null : result;
-              break;
-            }
-          }
-        });
-        // Trigger rebuild on calling page (e.g. BillingListPage)
-        onUpdated?.call();
-        showGlassSnackBar(
-          context,
-          message: result.isEmpty
-              ? 'Хоч нэр устгагдлаа'
-              : 'Хоч нэр хадгалагдлаа',
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: e.toString().replaceAll("Exception: ", ""),
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
-    }
   }
 
   Future<void> _loadGereeData() async {
@@ -1397,139 +1230,21 @@ class _BookingScreenState extends State<NuurKhuudas>
         color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
         child: Column(
           children: [
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.deepGreen,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.deepGreen.withOpacity(0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.menu_rounded,
-                          color: Colors.white,
-                          size: 20.sp,
-                        ),
-                      ),
-                    ),
-
-                    // Actions right side
-                    Row(
-                      children: [
-                        // Theme Toggle Button
-                        GestureDetector(
-                          onTap: () {
-                            final themeService = Provider.of<ThemeService>(
-                              context,
-                              listen: false,
-                            );
-                            themeService.toggleTheme();
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(8.w),
-                            decoration: BoxDecoration(
-                              color: AppColors.deepGreen,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.deepGreen.withOpacity(0.3),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              isDark
-                                  ? Icons.light_mode_rounded
-                                  : Icons.dark_mode_rounded,
-                              color: Colors.white,
-                              size: 20.sp,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                context
-                                    .push('/medegdel-list')
-                                    .then((_) => _loadNotificationCount());
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(8.w),
-                                decoration: BoxDecoration(
-                                  color: AppColors.deepGreen,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.deepGreen.withOpacity(
-                                        0.3,
-                                      ),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  Icons.notifications_outlined,
-                                  color: Colors.white,
-                                  size: 20.sp,
-                                ),
-                              ),
-                            ),
-                            if (_unreadNotificationCount > 0)
-                              Positioned(
-                                right: -2,
-                                top: -2,
-                                child: Container(
-                                  padding: EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  constraints: BoxConstraints(
-                                    minWidth: 16.w,
-                                    minHeight: 16.h,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      '$_unreadNotificationCount',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 8.sp,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            HomeHeader(
+              unreadNotificationCount: _unreadNotificationCount,
+              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+              onThemeToggle: () {
+                final themeService = Provider.of<ThemeService>(
+                  context,
+                  listen: false,
+                );
+                themeService.toggleTheme();
+              },
+              onNotificationTap: () {
+                context
+                    .push('/medegdel-list')
+                    .then((_) => _loadNotificationCount());
+              },
             ),
 
             Expanded(
@@ -1553,7 +1268,11 @@ class _BookingScreenState extends State<NuurKhuudas>
                     children: [
                       SizedBox(height: 4.h), // Reduced since header has padding
                       // "Төлбөр" Box
-                      _buildBillingBox(),
+                      BillingBox(
+                        onTap: _navigateToBillingList,
+                        totalBalance: _formatNumberWithComma(totalNiitTulbur),
+                        totalAldangi: _formatNumberWithComma(totalNiitAldangi),
+                      ),
 
                       SizedBox(height: 16.h),
 
@@ -1642,8 +1361,10 @@ class _BookingScreenState extends State<NuurKhuudas>
           setState(() {
             _isConnectingBilling = false;
           });
+        }
+        if (navigatorKey.currentContext != null) {
           showGlassSnackBar(
-            context,
+            navigatorKey.currentContext!,
             message: 'Хаяг олдсонгүй. Эхлээд хаягаа сонгоно уу.',
             icon: Icons.error,
             iconColor: Colors.red,
@@ -1663,8 +1384,10 @@ class _BookingScreenState extends State<NuurKhuudas>
         setState(() {
           _isConnectingBilling = false;
         });
+      }
+      if (navigatorKey.currentContext != null) {
         showGlassSnackBar(
-          context,
+          navigatorKey.currentContext!,
           message: 'Биллинг амжилттай холбогдлоо',
           icon: Icons.check_circle,
           iconColor: Colors.green,
@@ -1675,11 +1398,13 @@ class _BookingScreenState extends State<NuurKhuudas>
         setState(() {
           _isConnectingBilling = false;
         });
+      }
+      if (navigatorKey.currentContext != null) {
         final errorMessage = e.toString().contains('олдсонгүй')
             ? 'Биллингийн мэдээлэл олдсонгүй'
             : 'Биллинг холбоход алдаа гарлаа: $e';
         showGlassSnackBar(
-          context,
+          navigatorKey.currentContext!,
           message: errorMessage,
           icon: Icons.error,
           iconColor: Colors.red,
@@ -1707,16 +1432,14 @@ class _BookingScreenState extends State<NuurKhuudas>
     Map<String, dynamic> billing, [
     BuildContext? bContext,
   ]) async {
-    if (!mounted) return;
-
-    final navContext = bContext ?? context;
+    final navContext = bContext ?? navigatorKey.currentContext;
+    if (navContext == null) return;
     if (billing['isLocalData'] == true) {
       navContext.push('/nekhemjlekh');
       return;
     }
 
-    final result = await Navigator.push(
-      navContext,
+    final result = await Navigator.of(navContext, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (context) => BillingDetailPage(
           billing: billing,
@@ -1741,7 +1464,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         'isLoading': _isLoadingBillingList,
         'totalBalance': totalNiitTulbur,
         'totalAldangi': totalNiitAldangi,
-        'onBillingTap': (billing, ctx) => _showBillingDetailModal(billing, ctx),
+        'onBillingTap': (billing) => _showBillingDetailModal(billing),
         'expandAddressAbbreviations': _expandAddressAbbreviations,
         'onDeleteTap': _deleteBilling,
         'onEditTap': _editBilling,

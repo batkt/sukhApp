@@ -6,6 +6,9 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/widgets/common/bg_painter.dart';
 
+// FIX: Changed to StatelessWidget -> StatefulWidget is not needed,
+// but we need async onTap handlers that can await push results and
+// forward them back to the caller via context.pop(true).
 class UtilityAddPage extends StatelessWidget {
   const UtilityAddPage({super.key});
 
@@ -17,7 +20,10 @@ class UtilityAddPage extends StatelessWidget {
       extendBodyBehindAppBar: true,
       appBar: buildStandardAppBar(context, title: 'Төлбөр нэмэх'),
       body: CustomPaint(
-        painter: SharedBgPainter(isDark: isDark, brandColor: AppColors.deepGreen),
+        painter: SharedBgPainter(
+          isDark: isDark,
+          brandColor: AppColors.deepGreen,
+        ),
         child: SafeArea(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -30,15 +36,28 @@ class UtilityAddPage extends StatelessWidget {
                   title: 'Хаягаар нэмэх',
                   subtitle: 'Өөрийн оршин суугаа хаягаар биллинг хайж холбох',
                   icon: Icons.location_on_rounded,
-                  onTap: () => context.push('/address_selection?fromMenu=true'),
+                  onTap: () async {
+                    // FIX: Await the sub-page result
+                    final result = await context.push<bool>(
+                      '/address_selection?fromMenu=true',
+                    );
+                    // Removed context.pop(true) - let billing list page handle refresh on its own
+                  },
                 ),
                 SizedBox(height: 20.h),
                 _buildOptionCard(
                   context,
                   title: 'Хэрэглэгчийн кодоор нэмэх',
-                  subtitle: 'Цахилгаан, СӨХ, Түрээс гэх мэт төлбөрийг кодоор хайх',
+                  subtitle:
+                      'Цахилгаан, СӨХ, Түрээс гэх мэт төлбөрийг кодоор хайх',
                   icon: Icons.qr_code_rounded,
-                  onTap: () => _showOnlineBillerSelector(context),
+                  onTap: () async {
+                    // FIX: Same pattern for the code-input sub-page.
+                    final result = await context.push<bool>(
+                      '/utility-code-input',
+                    );
+                    // Removed context.pop(true) - let billing list page handle refresh on its own
+                  },
                 ),
                 const Spacer(),
                 Padding(
@@ -129,9 +148,5 @@ class UtilityAddPage extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _showOnlineBillerSelector(BuildContext context) {
-    context.push('/utility-code-input');
   }
 }

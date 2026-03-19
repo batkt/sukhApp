@@ -360,10 +360,8 @@ final GoRouter appRouter = GoRouter(
           child: PaymentHistoryPage(
             billingId: extra?['billingId'] ?? '',
             billingName: extra?['billingName'] ?? 'Хэрэглээний төлбөр',
-            expandAddressAbbreviations:
-                extra?['expandAddressAbbreviations'] ?? (s) => s,
-            formatNumberWithComma:
-                extra?['formatNumberWithComma'] ?? (n) => n.toString(),
+            customerName: extra?['customerName'] ?? '',
+            customerAddress: extra?['customerAddress'] ?? '',
           ),
         );
       },
@@ -380,7 +378,7 @@ final GoRouter appRouter = GoRouter(
             isLoading: extra?['isLoading'] ?? false,
             totalBalance: extra?['totalBalance'] ?? 0.0,
             totalAldangi: extra?['totalAldangi'] ?? 0.0,
-            onBillingTap: extra?['onBillingTap'] ?? (billing, ctx) {},
+            onBillingTap: extra?['onBillingTap'] ?? (billing) {},
             expandAddressAbbreviations:
                 extra?['expandAddressAbbreviations'] ?? (s) => s,
             onDeleteTap: extra?['onDeleteTap'],
