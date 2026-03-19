@@ -17,12 +17,6 @@ import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 import 'package:sukh_app/screens/Home/billing_list_page.dart';
-import 'package:sukh_app/components/Home/billing_actions.dart';
-import 'package:sukh_app/components/Home/billing_connection_service.dart';
-import 'package:sukh_app/components/Home/gree_section.dart';
-import 'package:sukh_app/components/Home/billing_box.dart';
-import 'package:sukh_app/components/Home/billers_section.dart';
-import 'package:sukh_app/components/Home/home_header.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -1403,21 +1397,139 @@ class _BookingScreenState extends State<NuurKhuudas>
         color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
         child: Column(
           children: [
-            HomeHeader(
-              unreadNotificationCount: _unreadNotificationCount,
-              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
-              onThemeToggle: () {
-                final themeService = Provider.of<ThemeService>(
-                  context,
-                  listen: false,
-                );
-                themeService.toggleTheme();
-              },
-              onNotificationTap: () {
-                context
-                    .push('/medegdel-list')
-                    .then((_) => _loadNotificationCount());
-              },
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                      child: Container(
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepGreen,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.deepGreen.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.menu_rounded,
+                          color: Colors.white,
+                          size: 20.sp,
+                        ),
+                      ),
+                    ),
+
+                    // Actions right side
+                    Row(
+                      children: [
+                        // Theme Toggle Button
+                        GestureDetector(
+                          onTap: () {
+                            final themeService = Provider.of<ThemeService>(
+                              context,
+                              listen: false,
+                            );
+                            themeService.toggleTheme();
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(8.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.deepGreen,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.deepGreen.withOpacity(0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isDark
+                                  ? Icons.light_mode_rounded
+                                  : Icons.dark_mode_rounded,
+                              color: Colors.white,
+                              size: 20.sp,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                context
+                                    .push('/medegdel-list')
+                                    .then((_) => _loadNotificationCount());
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(8.w),
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.deepGreen.withOpacity(
+                                        0.3,
+                                      ),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.notifications_outlined,
+                                  color: Colors.white,
+                                  size: 20.sp,
+                                ),
+                              ),
+                            ),
+                            if (_unreadNotificationCount > 0)
+                              Positioned(
+                                right: -2,
+                                top: -2,
+                                child: Container(
+                                  padding: EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  constraints: BoxConstraints(
+                                    minWidth: 16.w,
+                                    minHeight: 16.h,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '$_unreadNotificationCount',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 8.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
 
             Expanded(
@@ -1441,31 +1553,54 @@ class _BookingScreenState extends State<NuurKhuudas>
                     children: [
                       SizedBox(height: 4.h), // Reduced since header has padding
                       // "Төлбөр" Box
-                      BillingBox(
-                        onTap: _navigateToBillingList,
-                        totalBalance: _formatNumberWithComma(totalNiitTulbur),
-                        totalAldangi: _formatNumberWithComma(totalNiitAldangi),
-                      ),
+                      _buildBillingBox(),
 
                       SizedBox(height: 16.h),
 
                       // Billers Grid
-                      BillersSection(
-                        isLoadingBillers: _isLoadingBillers,
-                        billers: _billers,
-                        onDevelopmentTap: () => _showDevelopmentModal(context),
-                        onBillerTap: () {
-                          if (_billingList.isEmpty &&
-                              _userBillingData == null) {
-                            _navigateToBillingList();
-                          }
-                        },
-                      ),
+                      if (_isLoadingBillers)
+                        SizedBox(
+                          height: 200.h,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.deepGreen,
+                            ),
+                          ),
+                        )
+                      else if (_billers.isEmpty)
+                        SizedBox(
+                          height: 200.h,
+                          child: Center(
+                            child: Text(
+                              'Биллер олдсонгүй',
+                              style: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: 16.sp,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        BillersGrid(
+                          billers: _billers,
+                          onDevelopmentTap: () =>
+                              _showDevelopmentModal(context),
+                          onBillerTap: () {
+                            if (_billingList.isEmpty &&
+                                _userBillingData == null) {
+                              _navigateToBillingList();
+                            }
+                          },
+                        ),
 
                       SizedBox(height: 12.h),
 
                       // Remaining Days Display
-                      GreeSection(greeResponse: _gereeResponse),
+                      if (_gereeResponse != null &&
+                          _gereeResponse!.jagsaalt.isNotEmpty)
+                        _buildRemainingDaysWidget(
+                          _gereeResponse!.jagsaalt.first,
+                        ),
 
                       SizedBox(height: 12.h),
 
@@ -1616,6 +1751,110 @@ class _BookingScreenState extends State<NuurKhuudas>
           await Future.wait([_loadBillingList(), _loadAllBillingPayments()]);
         },
       },
+    );
+  }
+
+  Widget _buildBillingBox() {
+    final isDark = context.isDarkMode;
+
+    return GestureDetector(
+      onTap: _navigateToBillingList,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A1F26) : Colors.white,
+          borderRadius: BorderRadius.circular(24.r),
+          boxShadow: [
+            BoxShadow(
+              color: (isDark ? Colors.black : AppColors.deepGreen).withOpacity(
+                0.06,
+              ),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : AppColors.deepGreen.withOpacity(0.05),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Logo Container with subtle glass effect or gradient
+            Container(
+              height: 56.h,
+              width: 56.h,
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.08),
+                    AppColors.deepGreen.withOpacity(isDark ? 0.1 : 0.03),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16.r),
+              ),
+              child: ValueListenableBuilder<String>(
+                valueListenable: AppLogoNotifier.currentIcon,
+                builder: (context, iconName, _) {
+                  return Image.asset(
+                    AppLogoAssets.getAssetPath(iconName),
+                    fit: BoxFit.contain,
+                  );
+                },
+              ),
+            ),
+            SizedBox(width: 16.w),
+            // Text Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Байрны төлбөр',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      color: context.textPrimaryColor,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'Төлбөрийн дэлгэрэнгүй харах',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: context.textSecondaryColor.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Action Icon
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : const Color(0xFFF5F7FA),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: isDark
+                    ? Colors.white70
+                    : AppColors.deepGreen.withOpacity(0.6),
+                size: 12.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
