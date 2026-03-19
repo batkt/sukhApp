@@ -38,14 +38,21 @@ class BlogService {
         body: json.encode({
           'baiguullagiinId': baiguullagiinId,
           'emoji': emoji,
+          'userId': orshinSuugchId,
           'orshinSuugchId': orshinSuugchId,
+          'orshinSuugchiinId': orshinSuugchId,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          return BlogModel.fromJson(data['data']);
+        if (data['success'] == true || data['responseCode'] == true) {
+          final responseData = data['data'] ?? data['result'] ?? data['blog'];
+          if (responseData != null) {
+            return BlogModel.fromJson(responseData);
+          } else {
+            throw Exception('Өгөгдөл шинэчлэгдсэнгүй');
+          }
         } else {
           throw Exception(data['message'] ?? 'Нөлөөлөл бүртгэхэд алдаа гарлаа');
         }
@@ -53,6 +60,9 @@ class BlogService {
         throw Exception('Нөлөөлөл бүртгэхэд алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
+      if (e.toString().contains('Өгөгдөл шинэчлэгдсэнгүй')) {
+        rethrow;
+      }
       throw Exception('Нөлөөлөл бүртгэхэд алдаа гарлаа: $e');
     }
   }

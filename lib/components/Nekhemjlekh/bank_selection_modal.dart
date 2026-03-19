@@ -83,7 +83,6 @@ class BankSelectionModal extends StatelessWidget {
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   IconButton(
@@ -205,7 +204,6 @@ class BankSelectionModal extends StatelessWidget {
                 style: TextStyle(
                   color: context.textPrimaryColor,
                   fontSize: 9.sp,
-                  fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,

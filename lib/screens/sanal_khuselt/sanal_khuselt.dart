@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/constants/constants.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -10,7 +11,13 @@ class AppBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(child: child);
+    final isDark = context.isDarkMode;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkBackground : const Color(0xFFF1F5F9),
+      ),
+      child: child,
+    );
   }
 }
 
@@ -24,7 +31,7 @@ class SanalKhuseltPage extends StatefulWidget {
 class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
   String selectedCategory = 'Санал хүсэлт';
   final TextEditingController descriptionController = TextEditingController();
-  String selectedFileName = 'No file chosen';
+  String selectedFileName = 'Файл сонгоогүй';
 
   final List<String> categories = ['Санал хүсэлт', 'Гомдол'];
 
@@ -44,106 +51,97 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
         : 'Гомдол илгээх';
   }
 
+  Widget _buildHeader() {
+    final isDark = context.isDarkMode;
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.deepGreen.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: 20.sp,
+                ),
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Text(
+              'Санал хүсэлт',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : context.textPrimaryColor,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.backgroundColor,
-      appBar: buildStandardAppBar(
-        context,
-        title: 'Санал хүсэлт',
-      ),
+      backgroundColor: context.surfaceColor,
       body: AppBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: context.responsivePadding(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 26,
-                    veryNarrow: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: context.responsiveSpacing(
-                          small: 20,
-                          medium: 24,
-                          large: 28,
-                          tablet: 32,
-                          veryNarrow: 16,
-                        ),
-                      ),
-                      _buildCategorySelector(),
-                      SizedBox(
-                        height: context.responsiveSpacing(
-                          small: 20,
-                          medium: 22,
-                          large: 24,
-                          tablet: 26,
-                          veryNarrow: 16,
-                        ),
-                      ),
-                      _buildGlassTextField(),
-                      SizedBox(
-                        height: context.responsiveSpacing(
-                          small: 20,
-                          medium: 22,
-                          large: 24,
-                          tablet: 26,
-                          veryNarrow: 16,
-                        ),
-                      ),
-                      _buildGlassFilePicker(),
-                      SizedBox(
-                        height: context.responsiveSpacing(
-                          small: 28,
-                          medium: 30,
-                          large: 32,
-                          tablet: 36,
-                          veryNarrow: 20,
-                        ),
-                      ),
-                      _buildGlassButton(),
-                    ],
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 40.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildCategorySelector(),
+                    SizedBox(height: 24.h),
+                    _buildDescriptionField(),
+                    SizedBox(height: 24.h),
+                    _buildFilePicker(),
+                    SizedBox(height: 32.h),
+                    _buildSubmitButton(),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildCategorySelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildCategoryOption('Санал хүсэлт')),
-            SizedBox(
-              width: context.responsiveSpacing(
-                small: 12,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 10,
-              ),
-            ),
-            Expanded(child: _buildCategoryOption('Гомдол')),
-          ],
-        ),
+        Expanded(child: _buildCategoryOption('Санал хүсэлт')),
+        SizedBox(width: 12.w),
+        Expanded(child: _buildCategoryOption('Гомдол')),
       ],
     );
   }
 
   Widget _buildCategoryOption(String category) {
     final bool isSelected = selectedCategory == category;
+    final isDark = context.isDarkMode;
 
     return GestureDetector(
       onTap: () {
@@ -152,68 +150,42 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
         });
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: EdgeInsets.symmetric(
-          vertical: context.responsiveSpacing(
-            small: 14,
-            medium: 15,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 12,
-          ),
-        ),
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(vertical: 14.h),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFe6ff00)
-              : context.cardBackgroundColor,
-          borderRadius: BorderRadius.circular(
-            context.responsiveBorderRadius(
-              small: 40,
-              medium: 45,
-              large: 50,
-              tablet: 50,
-              veryNarrow: 35,
-            ),
+              ? AppColors.deepGreen
+              : (isDark ? Colors.white.withOpacity(0.05) : Colors.white),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
           ),
-          border: Border.all(color: context.borderColor),
+          boxShadow: [
+            if (isSelected)
+              BoxShadow(
+                color: AppColors.deepGreen.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: Colors.black,
-                size: context.responsiveFontSize(
-                  small: 18,
-                  medium: 19,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 16,
-                ),
-              ),
-            if (isSelected)
-              SizedBox(
-                width: context.responsiveSpacing(
-                  small: 6,
-                  medium: 7,
-                  large: 8,
-                  tablet: 10,
-                  veryNarrow: 5,
-                ),
-              ),
+            Icon(
+              isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
+              color: isSelected ? Colors.white : AppColors.deepGreen,
+              size: 18.sp,
+            ),
+            SizedBox(width: 8.w),
             Text(
               category,
               style: TextStyle(
-                color: isSelected ? Colors.black : context.textPrimaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 14,
-                  medium: 15,
-                  large: 16,
-                  tablet: 17,
-                  veryNarrow: 12,
-                ),
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? Colors.white : context.textPrimaryColor,
+                fontSize: 14.sp,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
               ),
             ),
           ],
@@ -222,84 +194,53 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
     );
   }
 
-  Widget _buildGlassTextField() {
+  Widget _buildDescriptionField() {
+    final isDark = context.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
+        Padding(
+          padding: EdgeInsets.only(left: 4.w),
           child: Text(
             descriptionLabel,
-            key: ValueKey(descriptionLabel),
             style: TextStyle(
-              color: context.textPrimaryColor,
-              fontSize: context.responsiveFontSize(
-                small: 14,
-                medium: 15,
-                large: 16,
-                tablet: 17,
-                veryNarrow: 13,
-              ),
-              fontWeight: FontWeight.w500,
+              color: context.textPrimaryColor.withOpacity(0.7),
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        SizedBox(
-          height: context.responsiveSpacing(
-            small: 10,
-            medium: 11,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 8,
-          ),
-        ),
+        SizedBox(height: 10.h),
         Container(
           decoration: BoxDecoration(
-            color: context.cardBackgroundColor,
-            borderRadius: BorderRadius.circular(
-              context.responsiveBorderRadius(
-                small: 12,
-                medium: 13,
-                large: 14,
-                tablet: 16,
-                veryNarrow: 10,
-              ),
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
             ),
-            border: Border.all(color: context.borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: TextField(
             controller: descriptionController,
             maxLines: 6,
             style: TextStyle(
               color: context.textPrimaryColor,
-              fontSize: context.responsiveFontSize(
-                small: 14,
-                medium: 15,
-                large: 16,
-                tablet: 17,
-                veryNarrow: 13,
-              ),
+              fontSize: 14.sp,
             ),
             decoration: InputDecoration(
               hintText: descriptionHint,
               hintStyle: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 14,
-                  medium: 15,
-                  large: 16,
-                  tablet: 17,
-                  veryNarrow: 13,
-                ),
+                color: context.textSecondaryColor.withOpacity(0.4),
+                fontSize: 13.sp,
               ),
               border: InputBorder.none,
-              contentPadding: context.responsivePadding(
-                small: 14,
-                medium: 15,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 12,
-              ),
+              contentPadding: EdgeInsets.all(16.w),
             ),
           ),
         ),
@@ -307,130 +248,70 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
     );
   }
 
-  Widget _buildGlassFilePicker() {
+  Widget _buildFilePicker() {
+    final isDark = context.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Зураг хавсаргах:',
-          style: TextStyle(
-            color: context.textPrimaryColor,
-            fontSize: context.responsiveFontSize(
-              small: 14,
-              medium: 15,
-              large: 16,
-              tablet: 17,
-              veryNarrow: 13,
+        Padding(
+          padding: EdgeInsets.only(left: 4.w),
+          child: Text(
+            'Зураг хавсаргах',
+            style: TextStyle(
+              color: context.textPrimaryColor.withOpacity(0.7),
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
             ),
-            fontWeight: FontWeight.w500,
           ),
         ),
-        SizedBox(
-          height: context.responsiveSpacing(
-            small: 10,
-            medium: 11,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 8,
-          ),
-        ),
+        SizedBox(height: 10.h),
         GestureDetector(
           onTap: () {
+            // File picker logic would go here
             setState(() {
-              selectedFileName = 'example_image.jpg';
+              selectedFileName = 'сонгосон_зураг.jpg';
             });
           },
           child: Container(
-            padding: context.responsivePadding(
-              small: 14,
-              medium: 15,
-              large: 16,
-              tablet: 18,
-              veryNarrow: 12,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             decoration: BoxDecoration(
-              color: context.cardBackgroundColor,
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 12,
-                  medium: 13,
-                  large: 14,
-                  tablet: 16,
-                  veryNarrow: 10,
-                ),
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
               ),
-              border: Border.all(color: context.borderColor),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: context.responsivePadding(
-                    small: 10,
-                    medium: 11,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 8,
-                  ),
+                  padding: EdgeInsets.all(8.w),
                   decoration: BoxDecoration(
-                    color: context.isDarkMode
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(
-                      context.responsiveBorderRadius(
-                        small: 8,
-                        medium: 9,
-                        large: 10,
-                        tablet: 12,
-                        veryNarrow: 6,
-                      ),
-                    ),
+                    color: AppColors.deepGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Icon(
-                    Icons.upload_file,
-                    color: const Color(0xFFe6ff00),
-                    size: context.responsiveFontSize(
-                      small: 18,
-                      medium: 19,
-                      large: 20,
-                      tablet: 22,
-                      veryNarrow: 16,
-                    ),
+                    Icons.image_rounded,
+                    color: AppColors.deepGreen,
+                    size: 20.sp,
                   ),
                 ),
-                SizedBox(
-                  width: context.responsiveSpacing(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 12,
-                  ),
-                ),
+                SizedBox(width: 14.w),
                 Expanded(
                   child: Text(
                     selectedFileName,
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 13,
-                        medium: 14,
-                        large: 15,
-                        tablet: 16,
-                        veryNarrow: 12,
-                      ),
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Icon(
-                  Icons.attach_file,
-                  color: const Color(0xFFe6ff00),
-                  size: context.responsiveFontSize(
-                    small: 18,
-                    medium: 19,
-                    large: 20,
-                    tablet: 22,
-                    veryNarrow: 16,
-                  ),
+                  Icons.add_circle_outline_rounded,
+                  color: AppColors.deepGreen,
+                  size: 20.sp,
                 ),
               ],
             ),
@@ -440,54 +321,36 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
     );
   }
 
-  Widget _buildGlassButton() {
+  Widget _buildSubmitButton() {
     return Container(
+      width: double.infinity,
+      height: 56.h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(100),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            offset: const Offset(0, 6),
-            blurRadius: 6,
+            color: AppColors.deepGreen.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFCAD2DB),
-            foregroundColor: Colors.black,
-            padding: EdgeInsets.symmetric(
-              vertical: context.responsiveSpacing(
-                small: 14,
-                medium: 15,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 12,
-              ),
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100),
-            ),
+      child: ElevatedButton(
+        onPressed: () {
+          // Send request logic
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.deepGreen,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
           ),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Text(
-              buttonText,
-              key: ValueKey(buttonText),
-              style: TextStyle(
-                fontSize: context.responsiveFontSize(
-                  small: 14,
-                  medium: 15,
-                  large: 16,
-                  tablet: 17,
-                  veryNarrow: 13,
-                ),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          elevation: 0,
+        ),
+        child: Text(
+          buttonText,
+          style: TextStyle(
+            fontSize: 15.sp,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),

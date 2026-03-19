@@ -71,7 +71,6 @@ class NekhemjlekhHeader extends StatelessWidget {
                               style: TextStyle(
                                 color: context.textPrimaryColor,
                                 fontSize: 18.sp,
-                                fontWeight: FontWeight.bold,
                                 letterSpacing: -0.3,
                               ),
                             ),
@@ -142,7 +141,6 @@ class NekhemjlekhHeader extends StatelessWidget {
                               style: TextStyle(
                                 color: context.textPrimaryColor,
                                 fontSize: 13.sp,
-                                fontWeight: FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),

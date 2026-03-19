@@ -267,7 +267,6 @@ class _BurtguulekhGurawState extends State<Burtguulekh_Guraw> {
                 style: TextStyle(
                   color: context.isDarkMode ? Colors.white : Colors.black,
                   fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
               IconButton(

@@ -68,69 +68,40 @@ class _BlogListPageState extends State<BlogListPage> {
             bottom: false,
             child: Padding(
               padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
-              child: Container(
-                height: 56.h,
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                decoration: BoxDecoration(
-                  color: AppColors.deepGreen,
-                  borderRadius: BorderRadius.circular(24.r),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.white,
-                          size: 20.sp,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 16.w),
-                    Text(
-                      'Бүх мэдээлэл',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: EdgeInsets.all(8.w),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(16.r),
+                        color: AppColors.deepGreen,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.deepGreen.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        'Мэдээ мэдээлэл',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFB1F3B7),
-                        ),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                        size: 20.sp,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Text(
+                    'Бүх мэдээлэл',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      color: isDark ? Colors.white : context.textPrimaryColor,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -150,7 +121,7 @@ class _BlogListPageState extends State<BlogListPage> {
                             final imageUrl = blog.images.isNotEmpty
                                 ? (blog.images.first.startsWith('http')
                                     ? blog.images.first
-                                    : '${ApiService.baseUrl}/medegdel/${blog.images.first}')
+                                    : '${ApiService.baseUrl}/${blog.images.first}')
                                 : '';
                             
                             final postMap = {
@@ -168,7 +139,10 @@ class _BlogListPageState extends State<BlogListPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => BlogDetailPage(blog: blog),
+                                    builder: (context) => BlogDetailPage(
+                                      blogs: _blogs,
+                                      initialIndex: index,
+                                    ),
                                   ),
                                 );
                               },
@@ -194,7 +168,7 @@ class _BlogListPageState extends State<BlogListPage> {
                                   children: [
                                     // Left Image
                                     Hero(
-                                      tag: 'blog_image_list_${blog.id}',
+                                      tag: 'blog_image_${blog.id}',
                                       child: Container(
                                         width: 110.w,
                                         height: 110.h,
@@ -230,7 +204,6 @@ class _BlogListPageState extends State<BlogListPage> {
                                                     style: TextStyle(
                                                       color: AppColors.deepGreen,
                                                       fontSize: 9.sp,
-                                                      fontWeight: FontWeight.w700,
                                                     ),
                                                   ),
                                                 ),
@@ -241,7 +214,6 @@ class _BlogListPageState extends State<BlogListPage> {
                                               blog.title,
                                               style: TextStyle(
                                                 fontSize: 14.sp,
-                                                fontWeight: FontWeight.w800,
                                                 color: context.textPrimaryColor,
                                                 height: 1.2,
                                               ),

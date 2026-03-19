@@ -9,6 +9,7 @@ import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class EbarimtPage extends StatefulWidget {
   const EbarimtPage({super.key});
@@ -379,28 +380,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
 
     return Scaffold(
       backgroundColor: context.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: context.textPrimaryColor,
-            size: 20.sp,
-          ),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'И-Баримт',
-          style: TextStyle(
-            color: context.textPrimaryColor,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-          ),
-        ),
-      ),
+      appBar: buildStandardAppBar(context, title: 'И-Баримт'),
       body: SafeArea(
         child: Column(
           children: [

@@ -52,7 +52,6 @@ class ContractSelectionModal extends StatelessWidget {
                   style: TextStyle(
                     color: isDarkMode ? Colors.white : Colors.black87,
                     fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 IconButton(
@@ -113,7 +112,6 @@ class ContractSelectionModal extends StatelessWidget {
                                 style: TextStyle(
                                   color: isDarkMode ? Colors.white : Colors.black87,
                                   fontSize: 13.sp,
-                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               SizedBox(height: 3.h),

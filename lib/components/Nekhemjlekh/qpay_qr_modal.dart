@@ -274,7 +274,6 @@ class _QPayQRModalState extends State<QPayQRModal> {
             color: textPrimary.withOpacity(0.9),
             fontSize: 13.sp,
             letterSpacing: 2.0,
-            fontWeight: FontWeight.w300,
           ),
         ),
       ),
@@ -319,7 +318,6 @@ class _QPayQRModalState extends State<QPayQRModal> {
               color: textPrimary.withOpacity(0.9),
               fontSize: 13.sp,
               letterSpacing: 2.0,
-              fontWeight: FontWeight.w300,
             ),
           ),
         ],
@@ -344,7 +342,6 @@ class _QPayQRModalState extends State<QPayQRModal> {
           style: TextStyle(
             color: textPrimary,
             fontSize: 32.sp,
-            fontWeight: FontWeight.w300,
             letterSpacing: -0.5,
           ),
         ),
@@ -565,7 +562,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
           Text(label, style: TextStyle(color: textSecondary.withOpacity(0.5), fontSize: 11.sp)),
           Row(
             children: [
-              Text(value, style: TextStyle(color: textPrimary, fontSize: 12.sp, fontWeight: FontWeight.w400)),
+              Text(value, style: TextStyle(color: textPrimary, fontSize: 12.sp)),
               if (isCopyable)
                 GestureDetector(
                   onTap: () {
@@ -630,7 +627,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
           ),
           child: _isChecking
               ? SizedBox(height: 20.w, width: 20.w, child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Text('ТӨЛБӨР ШАЛГАХ', style: TextStyle(fontSize: 14.sp, letterSpacing: 1.0, fontWeight: FontWeight.w300)),
+              : Text('ТӨЛБӨР ШАЛГАХ', style: TextStyle(fontSize: 14.sp, letterSpacing: 1.0)),
         ),
       ),
     );
@@ -670,7 +667,6 @@ class _QPayQRModalState extends State<QPayQRModal> {
                           ? Colors.white
                           : context.textPrimaryColor,
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

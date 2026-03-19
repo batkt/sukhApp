@@ -14,7 +14,7 @@ class AppToast {
     String message, {
     IconData? icon,
     Color? color,
-    Duration duration = const Duration(seconds: 3),
+    Duration duration = const Duration(milliseconds: 1500),
     double? progress,
   }) {
     _manager.show(
@@ -56,7 +56,7 @@ class _AppToastManager {
     String message, {
     IconData? icon,
     Color? color,
-    Duration duration = const Duration(seconds: 3),
+    Duration duration = const Duration(milliseconds: 1500),
     double? progress,
   }) {
     _timer?.cancel();
@@ -105,7 +105,7 @@ class _AppToastManager {
   void hide() {
     _timer?.cancel();
     _dataNotifier.value = null; // Triggers exit animation
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 150), () {
       _overlayEntry?.remove();
       _overlayEntry = null;
     });
@@ -150,7 +150,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 150),
     );
 
     _slideAnimation = Tween<Offset>(

@@ -56,7 +56,6 @@ class PaymentSection extends StatelessWidget {
                       style: TextStyle(
                         color: AppColors.deepGreen,
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     SizedBox(height: 2.h),
@@ -67,7 +66,6 @@ class PaymentSection extends StatelessWidget {
                       style: TextStyle(
                         color: context.textSecondaryColor,
                         fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -93,7 +91,6 @@ class PaymentSection extends StatelessWidget {
                     child: Text(
                       'Төлбөр төлөх',
                       style: TextStyle(
-                        fontWeight: FontWeight.w600,
                         fontSize: 14.sp,
                         color: selectedCount > 0
                             ? Colors.white

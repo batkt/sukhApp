@@ -38,7 +38,6 @@ class NotificationDropdown extends StatelessWidget {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const Spacer(),
@@ -107,7 +106,6 @@ class NotificationDropdown extends StatelessWidget {
                   style: TextStyle(
                     color: const Color(0xFFe6ff00),
                     fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -162,7 +160,6 @@ class NotificationDropdown extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -245,7 +242,6 @@ class NotificationsPage extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   const Spacer(),
@@ -360,7 +356,6 @@ class NotificationsPage extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),

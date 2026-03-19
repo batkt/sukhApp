@@ -10,15 +10,22 @@ import 'package:sukh_app/services/socket_service.dart';
 import 'package:intl/intl.dart';
 
 class BlogDetailPage extends StatefulWidget {
-  final BlogModel blog;
+  final List<BlogModel> blogs;
+  final int initialIndex;
 
-  const BlogDetailPage({super.key, required this.blog});
+  const BlogDetailPage({
+    super.key,
+    required this.blogs,
+    required this.initialIndex,
+  });
 
   @override
   State<BlogDetailPage> createState() => _BlogDetailPageState();
 }
 
 class _BlogDetailPageState extends State<BlogDetailPage> {
+  late PageController _pageController;
+  late int _currentIndex;
   late BlogModel _currentBlog;
   String? _userId;
   String? _baiguullagiinId;
@@ -26,7 +33,15 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
   @override
   void initState() {
     super.initState();
-    _currentBlog = widget.blog;
+    _currentIndex = widget.initialIndex;
+    _currentBlog = widget.blogs[_currentIndex];
+    
+    // Initializing PageController with infinite loop start if needed
+    final initialPage = widget.blogs.length > 2 
+        ? (widget.blogs.length * 500) + _currentIndex 
+        : _currentIndex;
+    _pageController = PageController(initialPage: initialPage);
+    
     _initializeData();
     _setupSocketListener();
   }
@@ -60,6 +75,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
   @override
   void dispose() {
     SocketService.instance.setBaiguullagiinMedegdelCallback(null);
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -83,10 +99,40 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
         _currentBlog = updatedBlog;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Алдаа гарлаа: $e')),
-      );
+      if (e.toString().contains('Өгөгдөл шинэчлэгдсэнгүй')) {
+         _manuallyToggleReaction(emoji);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Алдаа гарлаа: $e')),
+        );
+      }
     }
+  }
+
+  void _manuallyToggleReaction(String emoji) {
+     final reactions = List<ReactionModel>.from(_currentBlog.reactions);
+     final index = reactions.indexWhere((r) => r.emoji == emoji);
+     
+     if (index >= 0) {
+       final reaction = reactions[index];
+       if (reaction.users.contains(_userId)) {
+         final updatedUsers = List<String>.from(reaction.users)..remove(_userId);
+         if (updatedUsers.isEmpty && reaction.count <= 1) {
+           reactions.removeAt(index);
+         } else {
+           reactions[index] = ReactionModel(emoji: emoji, count: reaction.count - 1, users: updatedUsers);
+         }
+       } else {
+         final updatedUsers = List<String>.from(reaction.users)..add(_userId!);
+         reactions[index] = ReactionModel(emoji: emoji, count: reaction.count + 1, users: updatedUsers);
+       }
+     } else {
+       reactions.add(ReactionModel(emoji: emoji, count: 1, users: [_userId!]));
+     }
+     
+     setState(() {
+       _currentBlog = _currentBlog.copyWith(reactions: reactions);
+     });
   }
 
   void _showEmojiPicker() {
@@ -136,7 +182,6 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                 'Сэтгэгдэл илэрхийлэх',
                 style: TextStyle(
                   fontSize: 18.sp,
-                  fontWeight: FontWeight.w800,
                   color: context.textPrimaryColor,
                 ),
               ),
@@ -157,7 +202,6 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
                             groupName,
                             style: TextStyle(
                               fontSize: 12.sp,
-                              fontWeight: FontWeight.w700,
                               color: context.textSecondaryColor,
                               letterSpacing: 1,
                             ),
@@ -220,289 +264,378 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.isDarkMode;
-    final imageUrl = _currentBlog.images.isNotEmpty
-        ? (_currentBlog.images.first.startsWith('http')
-            ? _currentBlog.images.first
-            : '${ApiService.baseUrl}/medegdel/${_currentBlog.images.first}')
-        : '';
-
     return Scaffold(
       backgroundColor: context.surfaceColor,
       body: Stack(
         children: [
-          CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Simplified & Immersive Header
-              SliverAppBar(
-                expandedHeight: 300.h,
-                pinned: false,
-                automaticallyImplyLeading: false,
-                backgroundColor: context.surfaceColor,
-                elevation: 0,
-                flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  background: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Hero(
-                        tag: 'blog_image_${_currentBlog.id}',
-                        child: imageUrl.isNotEmpty
-                            ? Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  color: isDark ? Colors.grey[800] : Colors.grey[200],
-                                  child: Icon(
-                                    Icons.image_outlined,
-                                    size: 50.sp,
-                                    color: isDark ? Colors.grey[600] : Colors.grey[400],
-                                  ),
-                                ),
-                              )
-                            : Container(
-                                color: isDark ? Colors.grey[800] : Colors.grey[200],
-                                child: Icon(
-                                  Icons.image_outlined,
-                                  size: 50.sp,
-                                  color: isDark ? Colors.grey[600] : Colors.grey[400],
-                                ),
-                              ),
-                      ),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.3),
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.5),
-                            ],
-                            stops: const [0.0, 0.5, 1.0],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              final realIndex = widget.blogs.isNotEmpty ? index % widget.blogs.length : 0;
+              setState(() {
+                _currentIndex = realIndex;
+                _currentBlog = widget.blogs[_currentIndex];
+              });
+              // Update socket listener for new blog
+              _setupSocketListener();
+            },
+            itemCount: widget.blogs.length > 2 ? 10000 : widget.blogs.length,
+            itemBuilder: (context, index) {
+              final realIndex = widget.blogs.isNotEmpty ? index % widget.blogs.length : 0;
+              final blog = widget.blogs[realIndex];
+              
+              final isDark = context.isDarkMode;
+              final imageUrl = blog.images.isNotEmpty
+                  ? (blog.images.first.startsWith('http')
+                      ? blog.images.first
+                      : '${ApiService.baseUrl}/${blog.images.first}')
+                  : '';
 
-              // Content Section
-              SliverToBoxAdapter(
-                child: Container(
-                  color: context.surfaceColor,
-                  padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 40.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Badge & Date
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                            decoration: BoxDecoration(
-                              color: AppColors.deepGreen.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(20.r),
-                              border: Border.all(
-                                color: AppColors.deepGreen.withOpacity(0.1),
-                                width: 0.5,
-                              ),
-                            ),
-                            child: Text(
-                              'Шинэ мэдээ',
-                              style: TextStyle(
-                                color: AppColors.deepGreen,
-                                fontSize: 10.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Icon(
-                            Icons.calendar_today_rounded,
-                            size: 14.sp,
-                            color: context.textSecondaryColor.withOpacity(0.6),
-                          ),
-                          SizedBox(width: 6.w),
-                          Text(
-                            DateFormat('yyyy.MM.dd').format(_currentBlog.createdAt),
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: context.textSecondaryColor.withOpacity(0.8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      SizedBox(height: 24.h),
-                      
-                      // Title
-                      Text(
-                        _currentBlog.title,
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          fontWeight: FontWeight.w900,
-                          color: context.textPrimaryColor,
-                          height: 1.25,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      
-                      SizedBox(height: 16.h),
-                      
-                      // Styled Divider
-                      Row(
-                        children: [
-                          Container(
-                            width: 40.w,
-                            height: 4.h,
-                            decoration: BoxDecoration(
-                              color: AppColors.deepGreen,
-                              borderRadius: BorderRadius.circular(2.r),
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Container(
-                            width: 8.w,
-                            height: 4.h,
-                            decoration: BoxDecoration(
-                              color: AppColors.deepGreen.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(2.r),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      SizedBox(height: 32.h),
-                      
-                      // Content Text
-                      Text(
-                        _currentBlog.content,
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          color: context.textPrimaryColor.withOpacity(0.9),
-                          height: 1.8,
-                          letterSpacing: 0.1,
-                        ),
-                      ),
-                      
-                      SizedBox(height: 40.h),
-                      
-                      // Reactions Section
-                      if (_currentBlog.reactions.any((r) => r.count > 0)) ...[
-                        const Divider(),
-                        SizedBox(height: 20.h),
-                        Text(
-                          'Уншигчдын сэтгэгдэл',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w800,
-                            color: context.textPrimaryColor,
-                          ),
-                        ),
-                        SizedBox(height: 16.h),
-                      ],
-                      Wrap(
-                        spacing: 12.w,
-                        runSpacing: 12.h,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          ..._currentBlog.reactions.where((r) => r.count > 0).map((reaction) {
-                            final isSelected = _userId != null && reaction.users.contains(_userId);
-                            return GestureDetector(
-                              onTap: () => _toggleReaction(reaction.emoji),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                                decoration: BoxDecoration(
-                                  color: isSelected 
-                                      ? AppColors.deepGreen.withOpacity(0.15) 
-                                      : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100]),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                  border: Border.all(
-                                    color: isSelected 
-                                        ? AppColors.deepGreen 
-                                        : Colors.transparent,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      reaction.emoji,
-                                      style: TextStyle(fontSize: 16.sp),
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      '${reaction.count}',
-                                      style: TextStyle(
-                                        color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
-                                        fontSize: 13.sp,
-                                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
-                          // Add reaction button
-                          GestureDetector(
-                            onTap: _showEmojiPicker,
-                            child: Container(
-                              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 10.h),
-                              decoration: BoxDecoration(
-                                color: _currentBlog.reactions.isEmpty
-                                    ? AppColors.deepGreen.withOpacity(0.1)
-                                    : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100]),
-                                borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(
-                                  color: _currentBlog.reactions.isEmpty
-                                      ? AppColors.deepGreen.withOpacity(0.3)
-                                      : Colors.transparent,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.add_reaction_outlined,
-                                    size: 18.sp,
-                                    color: _currentBlog.reactions.isEmpty
-                                        ? AppColors.deepGreen 
-                                        : context.textSecondaryColor,
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.only(left: 8.w),
-                                    child: Text(
-                                      'Сэтгэгдэл',
-                                      style: TextStyle(
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: context.textSecondaryColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      SizedBox(height: 100.h),
-                    ],
+              return CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  SliverAppBar(
+  expandedHeight: 300.h,
+  pinned: false,
+  automaticallyImplyLeading: false,
+  backgroundColor: context.surfaceColor,
+  elevation: 0,
+  flexibleSpace: FlexibleSpaceBar(
+    centerTitle: true,
+    background: Stack(
+      fit: StackFit.expand,
+      children: [
+        Hero(
+          tag: 'blog_image_${blog.id}',
+          child: imageUrl.isNotEmpty
+              ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: isDark ? Colors.grey[800] : Colors.grey[200],
+                    child: Icon(Icons.image_outlined, size: 50.sp,
+                      color: isDark ? Colors.grey[600] : Colors.grey[400]),
                   ),
+                )
+              : Container(
+                  color: isDark ? Colors.grey[800] : Colors.grey[200],
+                  child: Icon(Icons.image_outlined, size: 50.sp,
+                    color: isDark ? Colors.grey[600] : Colors.grey[400]),
                 ),
-              ),
-            ],
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.3),
+                Colors.transparent,
+                Colors.black.withOpacity(0.5),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+        ),
+        // ✅ Tap overlay on top of everything
+        if (imageUrl.isNotEmpty)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _FullImageView(
+                      imageUrl: imageUrl,
+                      tag: 'blog_image_${blog.id}',
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    ),
+  ),
+),
+
+                  SliverToBoxAdapter(
+                    child: Container(
+                      color: context.surfaceColor,
+                      padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 40.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20.r),
+                                  border: Border.all(
+                                    color: AppColors.deepGreen.withOpacity(0.1),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Шинэ мэдээ',
+                                  style: TextStyle(
+                                    color: AppColors.deepGreen,
+                                    fontSize: 10.sp,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Icon(
+                                Icons.calendar_today_rounded,
+                                size: 14.sp,
+                                color: context.textSecondaryColor.withOpacity(0.6),
+                              ),
+                              SizedBox(width: 6.w),
+                              Text(
+                                DateFormat('yyyy.MM.dd').format(blog.createdAt),
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: context.textSecondaryColor.withOpacity(0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          SizedBox(height: 24.h),
+                          
+                          Text(
+                            blog.title,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              color: context.textPrimaryColor,
+                              height: 1.25,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          
+                          SizedBox(height: 16.h),
+                          
+                          Row(
+                            children: [
+                              Container(
+                                width: 40.w,
+                                height: 4.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen,
+                                  borderRadius: BorderRadius.circular(2.r),
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Container(
+                                width: 8.w,
+                                height: 4.h,
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(2.r),
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          SizedBox(height: 32.h),
+                          
+                          Text(
+                            blog.content,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              color: context.textPrimaryColor.withOpacity(0.9),
+                              height: 1.8,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                          
+                          SizedBox(height: 40.h),
+                          
+                          if (blog.reactions.any((r) => r.count > 0)) ...[
+                            const Divider(),
+                            SizedBox(height: 20.h),
+                            Text(
+                              'Уншигчдын сэтгэгдэл',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                color: context.textPrimaryColor,
+                              ),
+                            ),
+                            SizedBox(height: 16.h),
+                          ],
+                          Wrap(
+                            spacing: 12.w,
+                            runSpacing: 12.h,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              ...blog.reactions.where((r) => r.count > 0).map((reaction) {
+                                final isSelected = _userId != null && reaction.users.contains(_userId);
+                                return GestureDetector(
+                                  onTap: () => _toggleReaction(reaction.emoji),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                                    decoration: BoxDecoration(
+                                      color: isSelected 
+                                          ? AppColors.deepGreen.withOpacity(0.15) 
+                                          : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100]),
+                                      borderRadius: BorderRadius.circular(16.r),
+                                      border: Border.all(
+                                        color: isSelected 
+                                            ? AppColors.deepGreen 
+                                            : Colors.transparent,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          reaction.emoji,
+                                          style: TextStyle(fontSize: 16.sp),
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Text(
+                                          '${reaction.count}',
+                                          style: TextStyle(
+                                            color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
+                                            fontSize: 13.sp,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+                              GestureDetector(
+                                onTap: _showEmojiPicker,
+                                child: Container(
+                                  padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 10.h),
+                                  decoration: BoxDecoration(
+                                    color: blog.reactions.isEmpty
+                                        ? AppColors.deepGreen.withOpacity(0.1)
+                                        : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100]),
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    border: Border.all(
+                                      color: blog.reactions.isEmpty
+                                          ? AppColors.deepGreen.withOpacity(0.3)
+                                          : Colors.transparent,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.add_reaction_outlined,
+                                        size: 18.sp,
+                                        color: blog.reactions.isEmpty
+                                            ? AppColors.deepGreen 
+                                            : context.textSecondaryColor,
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.only(left: 8.w),
+                                        child: Text(
+                                          'Сэтгэгдэл',
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            color: context.textSecondaryColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          SizedBox(height: 100.h),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           
-          // Floating Header
+          Positioned(
+  top: 0,
+  left: 0,
+  right: 0,
+  child: SafeArea(
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            width: 44.w,
+            height: 44.w,
+            decoration: BoxDecoration(
+              color: context.isDarkMode
+                  ? const Color(0xFF1A1F26).withOpacity(0.9)
+                  : Colors.white.withOpacity(0.9),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: context.isDarkMode
+                    ? Colors.white.withOpacity(0.08)
+                    : AppColors.deepGreen.withOpacity(0.1),
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.arrow_back_rounded,
+                color: context.isDarkMode ? Colors.white : AppColors.deepGreen,
+                size: 22.sp,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
+),
+
+        ],
+      ),
+    );
+  }
+}
+class _FullImageView extends StatelessWidget {
+  final String imageUrl;
+  final String tag;
+
+  const _FullImageView({required this.imageUrl, required this.tag});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Center(
+            child: Hero(
+              tag: tag,
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.broken_image,
+                    color: Colors.white54,
+                    size: 60,
+                  ),
+                ),
+              ),
+            ),
+          ),
           Positioned(
             top: 0,
             left: 0,
@@ -510,69 +643,28 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
             child: SafeArea(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 0),
-                child: Container(
-                  height: 56.h,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1F26).withOpacity(0.9) : Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(24.r),
-                    border: Border.all(
-                      color: isDark 
-                          ? Colors.white.withOpacity(0.08) 
-                          : AppColors.deepGreen.withOpacity(0.1),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 44.w,
+                      height: 44.w,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_back_rounded,
+                          color: Colors.white,
+                          size: 22.sp,
+                        ),
+                      ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: EdgeInsets.all(8.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.deepGreen.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_rounded,
-                            color: isDark ? Colors.white : AppColors.deepGreen,
-                            size: 20.sp,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Text(
-                        'Мэдээлэл',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w800,
-                          color: context.textPrimaryColor,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.deepGreen.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        child: Text(
-                          'Мэдээ мэдээлэл',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.deepGreen,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -583,4 +675,3 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
     );
   }
 }
-

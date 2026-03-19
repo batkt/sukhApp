@@ -248,7 +248,26 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         try { await SocketService.instance.connect(); } catch (_) {}
 
         setState(() => _isLoading = false);
-        showGlassSnackBar(context, message: 'Нэвтрэлт амжилттай', icon: Icons.check_outlined, iconColor: Colors.green);
+        showGlassSnackBar(context,
+            message: 'Нэвтрэлт амжилттай',
+            icon: Icons.check_outlined,
+            iconColor: Colors.green);
+
+        // --- Biometric Onboarding/Fix Logic ---
+        final biometricEnabled = await StorageService.isBiometricEnabled();
+        final savedBiometricPw =
+            await StorageService.getSavedPasswordForBiometric();
+
+        if (biometricEnabled &&
+            savedBiometricPw == null &&
+            _biometricAvailable) {
+          // Fix for users who enabled it but didn't save password
+          await StorageService.savePasswordForBiometric(password);
+        } else if (!biometricEnabled && _biometricAvailable) {
+          // Offer to enable if context is right
+          await _showBiometricEnablePrompt(context, password);
+        }
+        // --------------------------------------
 
         final taniltsuulgaKharakhEsekh = await StorageService.getTaniltsuulgaKharakhEsekh();
         final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
@@ -685,6 +704,86 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           child: Icon(_biometricIcon, color: AppColors.deepGreen, size: 28.sp),
         ),
       ),
+    );
+  }
+
+  Future<void> _showBiometricEnablePrompt(BuildContext context, String password) async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+          title: Row(
+            children: [
+              Icon(_biometricIcon, color: AppColors.deepGreen),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  Theme.of(context).platform == TargetPlatform.iOS 
+                      ? 'Face ID ашиглах уу?' 
+                      : 'Хурууны хээ ашиглах уу?',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Дараагийн удаа илүү хурдан нэвтрэхийн тулд биометрийг идэвхжүүлэх үү?',
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'Үгүй, баярлалаа',
+                style: TextStyle(color: Colors.grey, fontSize: 13.sp),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final authenticated = await BiometricService.authenticate();
+                if (authenticated) {
+                  await StorageService.savePasswordForBiometric(password);
+                  await StorageService.setBiometricEnabled(true);
+                  if (context.mounted) {
+                    showGlassSnackBar(
+                      context,
+                      message: 'Биометрийн нэвтрэлт идэвхжлээ',
+                      icon: Icons.check_circle,
+                      iconColor: Colors.green,
+                    );
+                    setState(() {
+                      _checkBiometricStatus();
+                    });
+                  }
+                }
+                if (context.mounted) {
+                    Navigator.pop(dialogContext); // Close dialog AFTER scanning
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.deepGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              ),
+              child: Text(
+                'Тийм, идэвхжүүлье',
+                style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:local_auth_android/local_auth_android.dart';
+import 'package:local_auth_darwin/local_auth_darwin.dart';
 
 /// BiometricService - Handles biometric authentication (Face ID/Fingerprint)
 class BiometricService {
@@ -63,10 +65,21 @@ class BiometricService {
       }
 
       // Use proper authentication - local_auth will automatically use Face ID on iOS and fingerprint on Android
-      // The authenticate method will use the best available biometric method
-      // With NSFaceIDUsageDescription in Info.plist, Face ID will work on iOS
       final didAuthenticate = await _instance.authenticate(
         localizedReason: localizedReason,
+        authMessages: const <AuthMessages>[
+          AndroidAuthMessages(
+            signInTitle: 'Баталгаажуулалт шаардлагатай',
+            signInHint: 'Таныг мөн эсэхийг шалгаж байна',
+            cancelButton: 'Цуцлах',
+          ),
+          IOSAuthMessages(
+            cancelButton: 'Цуцлах',
+            localizedFallbackTitle: 'Нууц код ашиглах',
+          ),
+        ],
+        biometricOnly: false, // Allow pattern/pin fallback
+        persistAcrossBackgrounding: true,
       );
 
       return didAuthenticate;

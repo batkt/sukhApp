@@ -8,6 +8,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/common/bg_painter.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
   final bool fromMenu;
@@ -96,7 +97,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       final districtId = district['id']?.toString() ?? district['_id']?.toString();
       if (districtId != null) {
         final khoroos = await ApiService.getWalletKhoroos(districtId);
-        setState(() => _khoroos = khoroos);
+        // Filter out "0-р хороо" or similar placeholder entries
+        setState(() {
+          _khoroos = khoroos.where((k) {
+            final name = (k['name'] ?? k['khorooName'] ?? '').toString();
+            return !name.contains('0-р хороо') && name.trim() != '0';
+          }).toList();
+        });
       }
     } catch (_) {}
   }
@@ -143,6 +150,19 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     if (district == null) return 'Сонгох';
     final rawName = (district['districtName'] ?? district['name'] ?? '').toString().toUpperCase();
     return _districtFullNames[rawName] ?? rawName;
+  }
+
+  String _getKhorooDisplayName(Map<String, dynamic>? khoroo) {
+    if (khoroo == null) return 'Сонгох';
+    String name = (khoroo['name'] ?? khoroo['khorooName'] ?? khoroo['ner'] ?? '').toString();
+    
+    for (final entry in _districtFullNames.entries) {
+      if (name.toUpperCase().startsWith(entry.key)) {
+        return name.replaceFirst(RegExp(entry.key, caseSensitive: false), entry.value);
+      }
+    }
+    
+    return name;
   }
 
   int _numericCompare(String a, String b) {
@@ -225,6 +245,11 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         }
       }
 
+      final customerId = _selectedWalletCustomer?['customerId']?.toString() ??
+          _selectedWalletCustomer?['customerCode']?.toString() ??
+          _selectedWalletCustomer?['id']?.toString() ??
+          _selectedWalletCustomer?['_id']?.toString();
+
       // Save logic (simplified for the refactor but keeping same functionality)
       await StorageService.saveWalletAddress(
         bairId: bairId!,
@@ -232,8 +257,9 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         source: source,
         baiguullagiinId: _selectedBuilding!['baiguullagiinId']?.toString(),
         barilgiinId: _selectedBuilding!['barilgiinId']?.toString() ?? bairId,
-        customerId: _selectedWalletCustomer?['customerId']?.toString(),
-        customerName: _selectedWalletCustomer?['customerName']?.toString(),
+        customerId: customerId,
+        customerName: _selectedWalletCustomer?['customerName']?.toString() ??
+            _selectedWalletCustomer?['ner']?.toString(),
       );
 
       // Connect billing
@@ -241,12 +267,17 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         bairId: bairId,
         doorNo: doorNo,
         baiguullagiinId: _selectedBuilding!['baiguullagiinId']?.toString(),
-        customerId: _selectedWalletCustomer?['customerId']?.toString(),
+        customerId: customerId,
+        customerCode: _selectedWalletCustomer?['customerCode']?.toString(),
       );
 
       if (mounted) {
         showGlassSnackBar(context, message: 'Амжилттай хадгалагдлаа', icon: Icons.check_circle, iconColor: Colors.green);
-        context.go('/nuur');
+        if (widget.fromMenu) {
+          Navigator.of(context).pop(true);
+        } else {
+          context.go('/nuur');
+        }
       }
     } catch (e) {
       showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error);
@@ -270,7 +301,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Хэрэглэгч сонгох', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+            Text('Хэрэглэгч сонгох', style: TextStyle(fontSize: 18.sp)),
             SizedBox(height: 16.h),
             ...customers.map((c) => ListTile(
               title: Text(c['customerName'] ?? 'Нэргүй'),
@@ -295,18 +326,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : Colors.black87),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Хаяг тохируулах',
-          style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 18.sp, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: buildStandardAppBar(context, title: 'Хаяг тохируулах'),
       body: CustomPaint(
         painter: SharedBgPainter(isDark: isDark, brandColor: AppColors.deepGreen),
         child: SafeArea(
@@ -349,7 +369,6 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
             color: isDark ? Colors.white : Colors.black87,
           ),
         ),
@@ -400,7 +419,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           SizedBox(height: 16.h),
           _buildSelectionField(
             label: 'Хороо / Баг',
-            value: _selectedKhoroo?['name'] ?? 'Сонгох',
+            value: _getKhorooDisplayName(_selectedKhoroo),
             icon: Icons.explore_rounded,
             onTap: _selectedDistrict == null ? null : () => _showPicker('Хороо сонгох', _khoroos, (val) => _onKhorooSelected(val)),
             isDark: isDark,
@@ -453,7 +472,6 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                     value,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       color: onTap == null ? (isDark ? Colors.white12 : Colors.grey.shade400) : (isDark ? Colors.white : Colors.black87),
                     ),
                   ),
@@ -471,12 +489,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Хаалганы дугаар / Тоот', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black54)),
+        Text('Хаалганы дугаар / Тоот', style: TextStyle(fontSize: 13.sp, color: isDark ? Colors.white70 : Colors.black54)),
         SizedBox(height: 8.h),
         TextField(
           controller: _doorNoController,
           keyboardType: TextInputType.text,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
           decoration: InputDecoration(
             hintText: 'Жишээ: 101',
             filled: true,
@@ -504,7 +522,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         ),
         child: _isSaving
             ? SizedBox(width: 24.r, height: 24.r, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : Text('Хадгалах', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+            : Text('Хадгалах', style: TextStyle(fontSize: 16.sp)),
       ),
     );
   }
@@ -514,8 +532,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     
     // Initial sort
     filteredItems.sort((a, b) {
-      final nameA = title.contains('Дүүрэг') ? _getDistrictDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString();
-      final nameB = title.contains('Дүүрэг') ? _getDistrictDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString();
+      final nameA = title.contains('Дүүрэг') 
+          ? _getDistrictDisplayName(a) 
+          : (title.contains('Хороо') ? _getKhorooDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString());
+      final nameB = title.contains('Дүүрэг') 
+          ? _getDistrictDisplayName(b) 
+          : (title.contains('Хороо') ? _getKhorooDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString());
       return _numericCompare(nameA, nameB);
     });
 
@@ -554,7 +576,6 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                         title,
                         style: TextStyle(
                           fontSize: 18.sp,
-                          fontWeight: FontWeight.w900,
                           color: isDark ? Colors.white : Colors.black87,
                           letterSpacing: -0.5,
                         ),
@@ -593,17 +614,21 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                               filteredItems = List.from(items);
                             } else {
                               final query = val.toLowerCase();
-                              filteredItems = items.where((i) {
-                                final name = (title.contains('Дүүрэг') 
-                                    ? _getDistrictDisplayName(i)
-                                    : (i['name'] ?? i['ner'] ?? '').toString()).toLowerCase();
-                                return name.contains(query);
-                              }).toList();
+                                filteredItems = items.where((i) {
+                                  final name = (title.contains('Дүүрэг') 
+                                      ? _getDistrictDisplayName(i)
+                                      : (title.contains('Хороо') ? _getKhorooDisplayName(i) : (i['name'] ?? i['ner'] ?? '').toString())).toLowerCase();
+                                  return name.contains(query);
+                                }).toList();
                             }
                             
                             filteredItems.sort((a, b) {
-                              final nameA = title.contains('Дүүрэг') ? _getDistrictDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString();
-                              final nameB = title.contains('Дүүрэг') ? _getDistrictDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString();
+                              final nameA = title.contains('Дүүрэг') 
+                                  ? _getDistrictDisplayName(a) 
+                                  : (title.contains('Хороо') ? _getKhorooDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString());
+                              final nameB = title.contains('Дүүрэг') 
+                                  ? _getDistrictDisplayName(b) 
+                                  : (title.contains('Хороо') ? _getKhorooDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString());
                               
                               if (val.isNotEmpty) {
                                 final lowA = nameA.toLowerCase();
@@ -633,7 +658,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       final item = filteredItems[index];
                       final name = title.contains('Дүүрэг') 
                           ? _getDistrictDisplayName(item)
-                          : (item['name'] ?? item['ner'] ?? '');
+                          : (title.contains('Хороо') ? _getKhorooDisplayName(item) : (item['name'] ?? item['ner'] ?? ''));
                       
                       return Material(
                         color: Colors.transparent,
@@ -667,7 +692,6 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     style: TextStyle(
                                       color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
                                       fontSize: 15.sp,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),

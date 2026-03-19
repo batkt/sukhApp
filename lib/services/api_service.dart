@@ -622,7 +622,6 @@ class ApiService {
         throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      // Check if the error already contains "Төлбөр олдсонгүй" to avoid nested messages
       if (e.toString().contains('Төлбөр олдсонгүй') ||
           e.toString().contains('Биллингийн мэдээлэл олдсонгүй')) {
         throw Exception('Төлбөр олдсонгүй');
@@ -995,6 +994,43 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Биллингийн нэр өөрчлөхөд алдаа гарлаа: $e');
+    }
+  }
+
+  // Set billing nickname
+  static Future<Map<String, dynamic>> setWalletBillingNickname({
+    required String billingId,
+    required String nickname,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.put(
+        Uri.parse('$baseUrl/wallet/billing/$billingId/nickname'),
+        headers: headers,
+        body: json.encode({'nickname': nickname}),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(
+            data['message'] ?? 'Хоч нэр өөрчлөхөд алдаа гарлаа',
+          );
+        }
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          data['message'] ??
+              'Хоч нэр өөрчлөхөд алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Хоч нэр өөрчлөхөд алдаа гарлаа: $e');
     }
   }
 

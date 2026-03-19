@@ -10,7 +10,7 @@ void showGlassSnackBar(
   Color iconColor = Colors.white,
   double opacity = 0.1,
   double blur = 10, // kept for API compatibility (ignored)
-  Duration duration = const Duration(seconds: 3),
+  Duration duration = const Duration(milliseconds: 1500),
 }) {
   final cleanMessage = message.replaceAll("Exception: ", "");
 

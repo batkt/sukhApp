@@ -114,7 +114,6 @@ class _PaymentModalState extends State<PaymentModal> {
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       IconButton(
@@ -165,7 +164,6 @@ class _PaymentModalState extends State<PaymentModal> {
                                 widget.totalSelectedAmount,
                                 style: TextStyle(
                                   fontSize: 14.sp,
-                                  fontWeight: FontWeight.w700,
                                   color: AppColors.deepGreen,
                                 ),
                               ),
@@ -201,7 +199,6 @@ class _PaymentModalState extends State<PaymentModal> {
                                 '${widget.selectedCount} гэрээ',
                                 style: TextStyle(
                                   fontSize: 12.sp,
-                                  fontWeight: FontWeight.w600,
                                   color: context.textPrimaryColor,
                                 ),
                               ),
@@ -243,7 +240,6 @@ class _PaymentModalState extends State<PaymentModal> {
                                     'Төлбөр төлөх',
                                     style: TextStyle(
                                       fontSize: 12.sp,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                           ),
@@ -512,7 +508,6 @@ class _PaymentModalState extends State<PaymentModal> {
             'И-баримт хүлээн авах',
             style: TextStyle(
               fontSize: 11.sp,
-              fontWeight: FontWeight.w600,
               color: context.textPrimaryColor.withOpacity(0.8),
             ),
           ),
@@ -622,7 +617,6 @@ class _PaymentModalState extends State<PaymentModal> {
             title,
             style: TextStyle(
               fontSize: 11.sp,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
             ),
           ),

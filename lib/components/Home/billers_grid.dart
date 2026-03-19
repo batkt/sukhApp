@@ -24,19 +24,19 @@ class _BillersGridState extends State<BillersGrid> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    final allBillers = widget.billers.take(6).toList();
+    final allBillers = widget.billers.take(7).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Modernized Section Header
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical:4.h),
           child: Row(
             children: [
               Container(
                 width: 4.w,
-                height: 18.h,
+                height: 16.h,
                 decoration: BoxDecoration(
                   color: AppColors.deepGreen,
                   borderRadius: BorderRadius.circular(2.r),
@@ -47,7 +47,6 @@ class _BillersGridState extends State<BillersGrid> {
                 'Төлбөрийн үйлчилгээ',
                 style: TextStyle(
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
                   color: context.textPrimaryColor,
                   letterSpacing: -0.5,
                 ),
@@ -60,12 +59,12 @@ class _BillersGridState extends State<BillersGrid> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(vertical: 8.h),
+          padding: EdgeInsets.symmetric(vertical: 4.h),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 16.w,
-            mainAxisSpacing: 16.h,
-            childAspectRatio: 0.8, // Slightly taller for better text spacing
+            crossAxisCount: 4,
+            crossAxisSpacing: 12.w,
+            mainAxisSpacing: 12.h,
+            childAspectRatio: 0.8, // Adjust for square icon tile
           ),
           itemCount: allBillers.length,
           itemBuilder: (context, index) {

@@ -9,6 +9,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/services/session_service.dart';
+import 'package:sukh_app/widgets/standard_app_bar.dart';
 
 class PhoneVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -279,37 +280,15 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         backgroundColor: isDark
             ? AppColors.darkBackground
             : AppColors.lightBackground,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
-            onPressed: () async {
-              // Clear auth data when user presses back - token was saved during login
-              // but verification was cancelled, so we need to logout
-              await SessionService.logout();
-              // Return false to indicate verification was cancelled
-              // This will keep user on login screen
-              if (mounted) {
-                context.pop(false);
-              }
-            },
-          ),
-          title: Text(
-            'Утас баталгаажуулах',
-            style: TextStyle(
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-              fontSize: context.responsiveFontSize(
-                small: 18,
-                medium: 20,
-                large: 22,
-                tablet: 24,
-              ),
-            ),
-          ),
+        appBar: buildStandardAppBar(
+          context,
+          title: 'Утас баталгаажуулах',
+          onBackPressed: () async {
+            await SessionService.logout();
+            if (mounted) {
+              context.pop(false);
+            }
+          },
         ),
         body: SafeArea(
           child: SingleChildScrollView(

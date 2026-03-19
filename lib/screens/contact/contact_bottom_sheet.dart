@@ -16,7 +16,6 @@ class ContactBottomSheet extends StatefulWidget {
 
 class _ContactBottomSheetState extends State<ContactBottomSheet> {
   bool isLoading = true;
-  String? organizationName;
   List<String> suhPhoneNumbers = []; // СӨХ phone numbers from baiguullaga
   List<String> ajiltanPhones = []; // Ajiltan phone numbers from geree.suhUtas
   bool isExpanded = false; // For expandable СӨХ section
@@ -35,11 +34,6 @@ class _ContactBottomSheetState extends State<ContactBottomSheet> {
       List<String> baiguullagaPhones = [];
       if (baiguullagiinId != null) {
         final baiguullagaResponse = await ApiService.fetchBaiguullagaById(baiguullagiinId);
-        if (mounted) {
-          setState(() {
-            organizationName = baiguullagaResponse['ner']?.toString() ?? 'СӨХ';
-          });
-        }
         // Get organization phones (СӨХ main phones)
         if (baiguullagaResponse['utas'] != null && baiguullagaResponse['utas'] is List) {
           baiguullagaPhones = (baiguullagaResponse['utas'] as List)
@@ -230,7 +224,7 @@ class _ContactBottomSheetState extends State<ContactBottomSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(context, organizationName ?? 'СӨХ'),
+        _buildSectionHeader(context, 'СӨХ-тэй холбогдох'),
         SizedBox(height: 8.h),
         
         // СӨХ phone tile - shows phone number, expandable to show ajiltan

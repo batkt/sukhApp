@@ -21,11 +21,19 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
   List<BlogModel> _blogs = [];
   bool _isLoading = true;
   String? _errorMessage;
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(viewportFraction: 0.82);
     _loadBlogs();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadBlogs() async {
@@ -45,6 +53,15 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
           _blogs = blogs;
           _isLoading = false;
         });
+        
+        // If more than 2 blogs, set initial page to middle for cyclic feel
+        if (_blogs.length > 2) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_pageController.hasClients) {
+              _pageController.jumpToPage(_blogs.length * 500);
+            }
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -94,7 +111,6 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
                     'Мэдээ мэдээлэл',
                     style: TextStyle(
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.w800,
                       color: context.textPrimaryColor,
                       letterSpacing: -0.5,
                     ),
@@ -122,7 +138,6 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
                         'Бүгд',
                         style: TextStyle(
                           fontSize: 10.sp,
-                          fontWeight: FontWeight.w700,
                           color: AppColors.deepGreen,
                         ),
                       ),
@@ -139,17 +154,19 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
           ),
         ),
         SizedBox(
-          height: 175.h,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _blogs.length > 5 ? 5 : _blogs.length,
-            padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 4.w),
+          height: 185.h,
+          child: PageView.builder(
+            controller: _pageController,
+            padEnds: false,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _blogs.length > 2 ? 10000 : _blogs.length,
             itemBuilder: (context, index) {
-              final blog = _blogs[index];
+              final realIndex = _blogs.length > 0 ? index % _blogs.length : 0;
+              final blog = _blogs[realIndex];
               final imageUrl = blog.images.isNotEmpty
                   ? (blog.images.first.startsWith('http')
                       ? blog.images.first
-                      : '${ApiService.baseUrl}/medegdel/${blog.images.first}')
+                      : '${ApiService.baseUrl}/${blog.images.first}')
                   : '';
               
               // Create compatible map for BlogDetailPage (for now)
@@ -168,51 +185,64 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => BlogDetailPage(blog: blog),
+                      builder: (context) => BlogDetailPage(
+                        blogs: _blogs,
+                        initialIndex: realIndex,
+                      ),
                     ),
                   );
                 },
-                child: Container(
-                  width: 250.w,
-                  margin: EdgeInsets.only(
-                    right: 16.w,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1F26) : Colors.white,
-                    borderRadius: BorderRadius.circular(24.r),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.08)
-                          : AppColors.deepGreen.withOpacity(0.05),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
+                child: Padding(
+                  padding: EdgeInsets.only(right: 12.w, top: 8.h, bottom: 8.h),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1A1F26) : Colors.white,
+                      borderRadius: BorderRadius.circular(24.r),
+                      border: Border.all(
                         color: isDark
-                            ? Colors.black.withOpacity(0.4)
-                            : Colors.black.withOpacity(0.06),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                            ? Colors.white.withOpacity(0.08)
+                            : AppColors.deepGreen.withOpacity(0.05),
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24.r),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            Hero(
-                              tag: 'blog_image_${blog.id}',
-                              child: SizedBox(
-                                height: 95.h,
-                                width: double.infinity,
-                                child: imageUrl.isNotEmpty
-                                    ? Image.network(
-                                        imageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) =>
-                                            Container(
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark
+                              ? Colors.black.withOpacity(0.4)
+                              : Colors.black.withOpacity(0.06),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Stack(
+                            children: [
+                              Hero(
+                                tag: 'blog_image_${blog.id}',
+                                child: SizedBox(
+                                  height: 95.h,
+                                  width: double.infinity,
+                                  child: imageUrl.isNotEmpty
+                                      ? Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) =>
+                                              Container(
+                                            color: isDark
+                                                ? Colors.grey[800]
+                                                : Colors.grey[200],
+                                            child: Icon(
+                                              Icons.image_outlined,
+                                              color: isDark
+                                                  ? Colors.grey[600]
+                                                  : Colors.grey[400],
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
                                           color: isDark
                                               ? Colors.grey[800]
                                               : Colors.grey[200],
@@ -223,81 +253,68 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
                                                 : Colors.grey[400],
                                           ),
                                         ),
-                                      )
-                                    : Container(
-                                        color: isDark
-                                            ? Colors.grey[800]
-                                            : Colors.grey[200],
-                                        child: Icon(
-                                          Icons.image_outlined,
-                                          color: isDark
-                                              ? Colors.grey[600]
-                                              : Colors.grey[400],
-                                        ),
-                                      ),
+                                ),
                               ),
-                            ),
-                            Positioned(
-                              top: 10.h,
-                              left: 10.w,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 8.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(10.r),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.2),
-                                    width: 0.5,
+                              Positioned(
+                                top: 10.h,
+                                left: 10.w,
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w,
+                                    vertical: 4.h,
                                   ),
-                                ),
-                                child: Text(
-                                  postMap['date']!,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8.sp,
-                                    fontWeight: FontWeight.w600,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    postMap['date']!,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8.sp,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 10.h),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  blog.title,
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: context.textPrimaryColor,
-                                    height: 1.1,
+                            ],
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 10.h),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    blog.title,
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      color: context.textPrimaryColor,
+                                      height: 1.1,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                SizedBox(height: 5.h),
-                                Text(
-                                  postMap['description']!,
-                                  style: TextStyle(
-                                    fontSize: 11.sp,
-                                    color: context.textSecondaryColor.withOpacity(0.8),
-                                    height: 1.2,
+                                  SizedBox(height: 5.h),
+                                  Text(
+                                    postMap['description']!,
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: context.textSecondaryColor.withOpacity(0.8),
+                                      height: 1.2,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -309,4 +326,3 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
     );
   }
 }
-

@@ -71,7 +71,6 @@ class BillingConnectionSection extends StatelessWidget {
                       style: TextStyle(
                         color: context.textPrimaryColor,
                         fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     SizedBox(height: 2.h),
@@ -121,7 +120,6 @@ class BillingConnectionSection extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -135,7 +133,6 @@ class BillingConnectionSection extends StatelessWidget {
                           'Одоо холбох',
                           style: TextStyle(
                             fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],

@@ -464,17 +464,29 @@ class StorageService {
       if (source != null) {
         await prefs.setString(_walletBairSourceKey, source);
       }
+      
       if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
         await prefs.setString(_walletBairBaiguullagiinIdKey, baiguullagiinId);
+      } else {
+        await prefs.remove(_walletBairBaiguullagiinIdKey);
       }
+      
       if (barilgiinId != null && barilgiinId.isNotEmpty) {
         await prefs.setString(_walletBairBarilgiinIdKey, barilgiinId);
+      } else {
+        await prefs.remove(_walletBairBarilgiinIdKey);
       }
+      
       if (customerId != null && customerId.isNotEmpty) {
         await prefs.setString(_walletCustomerIdKey, customerId);
+      } else {
+        await prefs.remove(_walletCustomerIdKey);
       }
+      
       if (customerName != null && customerName.isNotEmpty) {
         await prefs.setString(_walletCustomerNameKey, customerName);
+      } else {
+        await prefs.remove(_walletCustomerNameKey);
       }
 
       return true;

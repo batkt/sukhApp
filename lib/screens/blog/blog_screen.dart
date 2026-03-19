@@ -166,7 +166,6 @@ class _BlogScreenState extends State<BlogScreen> {
                   blog.title,
                   style: TextStyle(
                     fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 SizedBox(height: 5.h),

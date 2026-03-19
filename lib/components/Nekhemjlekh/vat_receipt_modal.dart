@@ -89,7 +89,6 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                       style: TextStyle(
                         color: context.textPrimaryColor,
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     IconButton(
@@ -223,7 +222,6 @@ class _VATReceiptModalState extends State<VATReceiptModal>
             style: TextStyle(
               color: context.textPrimaryColor,
               fontSize: 13.sp,
-              fontWeight: isBold ? FontWeight.w700 : FontWeight.normal,
             ),
           ),
         ],
@@ -270,7 +268,6 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: 13.sp,
-                    fontWeight: isBold ? FontWeight.w700 : FontWeight.normal,
                   ),
                 ),
                 SizedBox(width: 6.w),

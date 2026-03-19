@@ -1,59 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 
-/// Standard AppBar for all pages - matches ebarimt page style
-AppBar buildStandardAppBar(
+/// Standard AppBar for all pages - matches home screen floating style
+PreferredSizeWidget buildStandardAppBar(
   BuildContext context, {
   required String title,
   VoidCallback? onBackPressed,
   List<Widget>? actions,
   bool automaticallyImplyLeading = true,
+  Color? backButtonColor,
+  Color? backButtonIconColor,
+  Color? titleColor,
 }) {
-  final isDark = context.isDarkMode;
-  return AppBar(
-    backgroundColor: AppColors.getDeepGreen(isDark),
-    toolbarHeight: context.responsiveSpacing(
-      small: 70,
-      medium: 75,
-      large: 80,
-      tablet: 85,
-      veryNarrow: 60,
-    ),
-    leading: automaticallyImplyLeading
-        ? IconButton(
-            icon: Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-              size: context.responsiveIconSize(
-                small: 28,
-                medium: 30,
-                large: 32,
-                tablet: 34,
-                veryNarrow: 24,
+  return PreferredSize(
+    preferredSize: Size.fromHeight(60.h),
+    child: SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Left Action / Back Button
+            if (automaticallyImplyLeading)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: onBackPressed ?? () => context.pop(),
+                  child: Container(
+                    width: 34.w,
+                    height: 34.w,
+                    decoration: BoxDecoration(
+                      color: backButtonColor ?? AppColors.deepGreen,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (backButtonColor ?? AppColors.deepGreen).withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: backButtonIconColor ?? Colors.white,
+                        size: 20.sp,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            
+            // Title
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: titleColor ?? (context.isDarkMode ? Colors.white : context.textPrimaryColor),
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
               ),
             ),
-            onPressed: onBackPressed ?? () => context.pop(),
-          )
-        : null,
-    title: Text(
-      title,
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: context.responsiveFontSize(
-          small: 18,
-          medium: 20,
-          large: 22,
-          tablet: 24,
-          veryNarrow: 16,
+            
+            // Right Actions
+            if (actions != null && actions.isNotEmpty)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: actions,
+                ),
+              ),
+          ],
         ),
-        fontWeight: FontWeight.w600,
       ),
     ),
-    centerTitle: true,
-    elevation: 0,
-    actions: actions,
   );
 }

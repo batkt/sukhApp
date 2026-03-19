@@ -225,7 +225,6 @@ class _SideMenuState extends State<SideMenu> {
             style: TextStyle(
               color: Colors.white,
               fontSize: 18.sp,
-              fontWeight: FontWeight.w900,
               letterSpacing: 2.0,
             ),
           ),
@@ -254,7 +253,6 @@ class _SideMenuState extends State<SideMenu> {
             style: TextStyle(
               color: context.textSecondaryColor.withOpacity(0.5),
               fontSize: 11.sp,
-              fontWeight: FontWeight.w800,
               letterSpacing: 1.2,
             ),
           ),
@@ -287,7 +285,6 @@ class _SideMenuState extends State<SideMenu> {
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -337,7 +334,6 @@ class _SideMenuState extends State<SideMenu> {
                       style: TextStyle(
                         color: Colors.red,
                         fontSize: 15.sp,
-                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
@@ -351,7 +347,6 @@ class _SideMenuState extends State<SideMenu> {
             style: TextStyle(
               color: context.textSecondaryColor.withOpacity(0.4),
               fontSize: 10.sp,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],

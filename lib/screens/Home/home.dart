@@ -16,11 +16,22 @@ import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
+import 'package:sukh_app/screens/Home/billing_list_page.dart';
+import 'package:sukh_app/components/Home/billing_actions.dart';
+import 'package:sukh_app/components/Home/billing_connection_service.dart';
+import 'package:sukh_app/components/Home/gree_section.dart';
+import 'package:sukh_app/components/Home/billing_box.dart';
+import 'package:sukh_app/components/Home/billers_section.dart';
+import 'package:sukh_app/components/Home/home_header.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:provider/provider.dart';
+import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:sukh_app/widgets/app_logo.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -98,6 +109,7 @@ class _BookingScreenState extends State<NuurKhuudas>
   GereeResponse? _gereeResponse;
   bool _isLoadingGeree = false;
   double totalNiitTulbur = 0.0;
+  double totalNiitAldangi = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // New variables for invoice tracking
@@ -124,8 +136,8 @@ class _BookingScreenState extends State<NuurKhuudas>
   Map<String, dynamic>? _userBillingData;
 
   // GlobalKey to access BillingListSection state
-  final GlobalKey<BillingListSectionState> _billingListSectionKey =
-      GlobalKey<BillingListSectionState>();
+  // No longer needed since billing list is on its own page
+  // final GlobalKey<BillingListSectionState> _billingListSectionKey = ...
 
   // Periodic refresh for balance (fallback when socket notification is missed)
   Timer? _balanceRefreshTimer;
@@ -157,12 +169,12 @@ class _BookingScreenState extends State<NuurKhuudas>
     _setupSocketListener();
     _loadGereeData();
     _loadNekhemjlekhCron(); // Load nekhemjlekh cron data for date calculation
-    _loadAllBillingPayments(); // Load total balance on init
+    _refreshBillingInfo(); // Consolidated refresh
     _checkRecentWalletPayments(); // Check latest wallet payment status
 
     // Periodic balance refresh (every 60s) - fallback when socket notification is missed
     _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (mounted) _loadAllBillingPayments();
+      if (mounted) _refreshBillingInfo();
     });
 
     // Trigger animation after a short delay to ensure data is loaded
@@ -301,133 +313,181 @@ class _BookingScreenState extends State<NuurKhuudas>
     _loadBillingList();
   }
 
+  double _parseNum(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
+
   Future<void> _loadBillingList() async {
-    setState(() {
-      _isLoadingBillingList = true;
-    });
+    await _refreshBillingInfo();
+  }
+
+  bool _isInitialBillingLoaded = false;
+
+  Future<void> _refreshBillingInfo() async {
+    if (!mounted) return;
+
+    // Only show full loading state on the very first load
+    if (!_isInitialBillingLoaded) {
+      setState(() {
+        _isLoadingBillingList = true;
+      });
+    }
 
     try {
-      // Load connected billings from Wallet API
-      final billingList = await ApiService.getWalletBillingList();
+      // 1. Fetch data from Wallet API
+      final rawBillingList = await ApiService.getWalletBillingList();
+      double total = 0.0;
+      double totalAldangi = 0.0;
+      double ownOrgTotal = 0.0;
+      double ownOrgAldangi = 0.0;
 
-      // Also load user profile to get billing data saved locally
+      // 2. Fetch User Profile
       Map<String, dynamic>? userBillingData;
       try {
-        final userProfile = await ApiService.getUserProfile();
-        if (userProfile['success'] == true && userProfile['result'] != null) {
-          final userData = userProfile['result'];
-          // Check if user has billing data saved locally
-          // Show billing data if user has:
-          // 1. walletCustomerId or walletCustomerCode (billing customer info), OR
-          // 2. walletBairId and walletDoorNo (address info), OR
-          // 3. bairniiNer (building name) - indicates address was saved
-          final hasCustomerInfo =
-              userData['walletCustomerId'] != null ||
-              userData['walletCustomerCode'] != null;
-          final hasAddressInfo =
-              userData['walletBairId'] != null &&
-              userData['walletDoorNo'] != null;
-          final hasBuildingName =
-              userData['bairniiNer'] != null &&
-              userData['bairniiNer'].toString().isNotEmpty;
-
-          if (hasCustomerInfo || hasAddressInfo || hasBuildingName) {
-            // Combine ovog and ner for full name
-            String fullName = '';
-            if (userData['ovog'] != null &&
-                userData['ovog'].toString().isNotEmpty) {
-              fullName = userData['ovog'].toString();
-              if (userData['ner'] != null &&
-                  userData['ner'].toString().isNotEmpty) {
-                fullName += ' ${userData['ner'].toString()}';
-              }
-            } else if (userData['ner'] != null &&
-                userData['ner'].toString().isNotEmpty) {
-              fullName = userData['ner'].toString();
-            }
-
+        final profileRes = await ApiService.getUserProfile();
+        if (profileRes['success'] == true && profileRes['result'] != null) {
+          final userData = profileRes['result'];
+          if (userData['walletCustomerId'] != null ||
+              userData['walletBairId'] != null ||
+              (userData['bairniiNer']?.isNotEmpty ?? false)) {
+            String fullName = userData['ovog'] != null
+                ? '${userData['ovog']} ${userData['ner'] ?? ''}'
+                : (userData['ner'] ?? '');
             userBillingData = {
               'customerId': userData['walletCustomerId']?.toString(),
               'customerCode': userData['walletCustomerCode']?.toString(),
               'customerName': fullName,
-              'ner': userData['ner']?.toString(),
-              'ovog': userData['ovog']?.toString(),
               'billingName': 'Орон сууцны төлбөр',
               'bairniiNer': userData['bairniiNer']?.toString() ?? '',
-              'customerAddress':
-                  userData['bairniiNer']?.toString() ??
-                  '', // Use bairniiNer as customerAddress
               'walletBairId': userData['walletBairId']?.toString(),
               'walletDoorNo': userData['walletDoorNo']?.toString(),
-              'duureg': userData['duureg']?.toString(),
-              'horoo': userData['horoo']?.toString(),
-              'isLocalData': true, // Flag to indicate this is from user profile
+              'isLocalData': true,
             };
           }
         }
-      } catch (e) {
-        // Error loading user profile
-      }
+      } catch (_) {}
 
-      // Check if userBillingData already exists in billingList to avoid duplicates
-      if (userBillingData != null && billingList.isNotEmpty) {
-        final userCustomerId = userBillingData['customerId']?.toString();
-        final userCustomerCode = userBillingData['customerCode']?.toString();
-
-        // Check if any billing in the list matches the user profile data
-        final isDuplicate = billingList.any((billing) {
-          final billingCustomerId = billing['customerId']?.toString();
-          final billingCustomerCode = billing['customerCode']?.toString();
-
-          // Match by customerId or customerCode
-          if (userCustomerId != null && billingCustomerId == userCustomerId) {
-            return true;
-          }
-          if (userCustomerCode != null &&
-              billingCustomerCode == userCustomerCode) {
-            return true;
-          }
-
-          // Also check if billingName matches "Орон сууцны төлбөр" and has same address
-          final billingName = billing['billingName']?.toString() ?? '';
-          if (billingName == 'Орон сууцны төлбөр' &&
-              userBillingData != null &&
-              userBillingData['billingName'] == 'Орон сууцны төлбөр') {
-            final userBairId = userBillingData['walletBairId']?.toString();
-            final billingBairId =
-                billing['walletBairId']?.toString() ??
-                billing['bairId']?.toString();
-            if (userBairId != null && billingBairId == userBairId) {
-              return true;
+      // 3. Calculate Own Org (Residential) Balance
+      final currentBaiguullagiinId = await StorageService.getBaiguullagiinId();
+      if (currentBaiguullagiinId != '698e7fd3b6dd386b6c56a808') {
+        try {
+          final userId = await StorageService.getUserId();
+          if (userId != null) {
+            final geree = await ApiService.fetchGeree(userId);
+            if (geree['jagsaalt'] != null && geree['jagsaalt'] is List) {
+              for (var contract in geree['jagsaalt']) {
+                double uld = _parseNum(
+                  contract['uldegdel'] ??
+                      contract['globalUldegdel'] ??
+                      contract['balance'] ??
+                      contract['uldegdl_dun'] ??
+                      contract['tulukh_uldegdel'],
+                );
+                double ald = _parseNum(
+                  contract['aldangi'] ??
+                      contract['billLateFeeAmount'] ??
+                      contract['aldangi_dun'],
+                );
+                ownOrgTotal += uld;
+                ownOrgAldangi += ald;
+              }
             }
           }
+        } catch (_) {}
+      }
+      total = ownOrgTotal;
+      totalAldangi = ownOrgAldangi;
 
-          return false;
-        });
+      // 4. Calculate Wallet Billing Balances
+      List<Map<String, dynamic>> updatedBillingList = [];
+      for (var billing in rawBillingList) {
+        Map<String, dynamic> item = Map<String, dynamic>.from(billing);
+        double itemTotal = 0.0;
+        double itemAldandi = 0.0;
+        final billingId = billing['billingId']?.toString();
 
-        if (isDuplicate) {
-          userBillingData = null; // Don't show duplicate
+        if (billingId != null && billingId.isNotEmpty) {
+          try {
+            final billsData = await ApiService.getWalletBillingBills(
+              billingId: billingId,
+            );
+            List<dynamic> bills = (billsData['newBills'] is List)
+                ? billsData['newBills']
+                : (billsData.containsKey('newBills') &&
+                          billsData['newBills'] is Map
+                      ? [billsData['newBills']]
+                      : []);
+            for (var b in bills) {
+              itemTotal += _parseNum(b['billTotalAmount']);
+              itemAldandi += _parseNum(
+                b['billLateFeeAmount'] ?? b['billLateFee'],
+              );
+            }
+          } catch (_) {}
+        }
+        item['perItemTotal'] = itemTotal;
+        item['perItemAldangi'] = itemAldandi;
+
+        final bName = item['billingName']?.toString() ?? '';
+        if (ownOrgTotal > 0 &&
+            (bName.contains('Орон сууцны') || bName.contains('Property'))) {
+        } else {
+          total += itemTotal;
+          totalAldangi += itemAldandi;
+        }
+        updatedBillingList.add(item);
+      }
+
+      if (userBillingData != null) {
+        userBillingData['perItemTotal'] = ownOrgTotal;
+        userBillingData['perItemAldangi'] = ownOrgAldangi;
+
+        bool hasDuplicateInWallet = false;
+        for (var b in updatedBillingList) {
+          final bName = b['billingName']?.toString() ?? '';
+          if (bName == 'Орон сууцны төлбөр' ||
+              (b['customerId']?.toString() ==
+                      userBillingData['customerId']?.toString() &&
+                  userBillingData['customerId'] != null)) {
+            if (_parseNum(b['perItemTotal']) == 0 && ownOrgTotal > 0) {
+              b['perItemTotal'] = ownOrgTotal;
+              b['perItemAldangi'] = ownOrgAldangi;
+            }
+            hasDuplicateInWallet = true;
+          }
+        }
+
+        if (hasDuplicateInWallet) {
+          userBillingData = null;
         }
       }
 
       if (mounted) {
         setState(() {
-          _billingList = billingList;
+          _billingList = updatedBillingList;
           _userBillingData = userBillingData;
+          totalNiitTulbur = total;
+          totalNiitAldangi = totalAldangi;
           _isLoadingBillingList = false;
+          _isInitialBillingLoaded = true;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingBillingList = false;
+          _isInitialBillingLoaded = true;
         });
       }
     }
   }
 
   Future<void> _deleteBilling(Map<String, dynamic> billing) async {
-    final billingId = billing['billingId']?.toString() ??
+    final billingId =
+        billing['billingId']?.toString() ??
         billing['walletBillingId']?.toString();
 
     if (billingId == null) {
@@ -445,10 +505,14 @@ class _BookingScreenState extends State<NuurKhuudas>
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Биллинг устгах',
-            style: TextStyle(color: context.textPrimaryColor)),
-        content: Text('Та энэ биллингийг устгахдаа итгэлтэй байна уу?',
-            style: TextStyle(color: context.textSecondaryColor)),
+        title: Text(
+          'Биллинг устгах',
+          style: TextStyle(color: context.textPrimaryColor),
+        ),
+        content: Text(
+          'Та энэ биллингийг устгахдаа итгэлтэй байна уу?',
+          style: TextStyle(color: context.textSecondaryColor),
+        ),
         backgroundColor: context.backgroundColor,
         actions: [
           TextButton(
@@ -457,7 +521,10 @@ class _BookingScreenState extends State<NuurKhuudas>
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Тийм', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Тийм',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -489,6 +556,205 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
+  Future<void> _editBilling(
+    Map<String, dynamic> billing, [
+    VoidCallback? onUpdated,
+  ]) async {
+    final billingId =
+        billing['billingId']?.toString() ??
+        billing['walletBillingId']?.toString();
+
+    if (billingId == null) {
+      showGlassSnackBar(
+        context,
+        message: 'Энэ биллинг засварлах боломжгүй байна.',
+        icon: Icons.info_outline,
+        iconColor: Colors.orange,
+      );
+      return;
+    }
+
+    final currentNickname = billing['nickname']?.toString() ?? '';
+    final controller = TextEditingController(text: currentNickname);
+
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = context.isDarkMode;
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            margin: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(24.w),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1C2229) : Colors.white,
+              borderRadius: BorderRadius.circular(24.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(10.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepGreen.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.deepGreen,
+                        size: 20.sp,
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Text(
+                        'Нэр өгөх',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: isDark ? Colors.white54 : Colors.black38,
+                        size: 22.sp,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  billing['billingName']?.toString() ?? 'Биллинг',
+                  style: TextStyle(
+                    color: isDark ? Colors.white54 : Colors.black45,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Жишээ: Миний байр',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white30 : Colors.black26,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? Colors.white.withOpacity(0.06)
+                        : Colors.grey.withOpacity(0.08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 14.h,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48.h,
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        Navigator.of(ctx).pop(controller.text.trim()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepGreen,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                      ),
+                    ),
+                    child: Text(
+                      'Хадгалах',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (result == null) return; // dismissed
+
+    try {
+      await ApiService.setWalletBillingNickname(
+        billingId: billingId,
+        nickname: result,
+      );
+      if (mounted) {
+        // Directly mutate the billing map reference so all holders see the change
+        billing['nickname'] = result.isEmpty ? null : result;
+        // Also update in _billingList for consistency
+        setState(() {
+          for (int i = 0; i < _billingList.length; i++) {
+            final itemBillingId =
+                _billingList[i]['billingId']?.toString() ??
+                _billingList[i]['walletBillingId']?.toString();
+            if (itemBillingId == billingId) {
+              _billingList[i]['nickname'] = result.isEmpty ? null : result;
+              break;
+            }
+          }
+        });
+        // Trigger rebuild on calling page (e.g. BillingListPage)
+        onUpdated?.call();
+        showGlassSnackBar(
+          context,
+          message: result.isEmpty
+              ? 'Хоч нэр устгагдлаа'
+              : 'Хоч нэр хадгалагдлаа',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: e.toString().replaceAll("Exception: ", ""),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+    }
+  }
+
   Future<void> _loadGereeData() async {
     setState(() {
       _isLoadingGeree = true;
@@ -503,7 +769,6 @@ class _BookingScreenState extends State<NuurKhuudas>
             _gereeResponse = GereeResponse.fromJson(response);
             _isLoadingGeree = false;
           });
-          // Trigger animation when data loads
           _progressAnimationController.reset();
           _progressAnimationController.forward();
         }
@@ -626,16 +891,16 @@ class _BookingScreenState extends State<NuurKhuudas>
   Future<void> _loadAllBillingPayments() async {
     try {
       double total = 0.0;
+      double totalAldangi = 0.0;
+      double ownOrgTotal = 0.0;
+      double ownOrgAldangi = 0.0;
       _lastBalanceRefresh = DateTime.now();
 
-      // If this is the wallet-only organization, skip OWN_ORG (nekhemjlekh) total
       final currentBaiguullagiinId = await StorageService.getBaiguullagiinId();
       final isWalletOnlyOrg =
           currentBaiguullagiinId == '698e7fd3b6dd386b6c56a808';
 
       if (!isWalletOnlyOrg) {
-        // Load OWN_ORG payments - use merged invoices (nekhemjlekhiinTuukh + gereeniiTulukhAvlaga)
-        // Same logic as nekhemjlekh screen so home header matches "Төлбөр төлөх" amount
         try {
           final userId = await StorageService.getUserId();
           if (userId != null) {
@@ -647,90 +912,47 @@ class _BookingScreenState extends State<NuurKhuudas>
                 final contract = c is Map<String, dynamic>
                     ? c
                     : Map<String, dynamic>.from(c as Map);
-                final gereeniiDugaar = contract['gereeniiDugaar']?.toString();
-                if (gereeniiDugaar == null || gereeniiDugaar.isEmpty) continue;
 
-                final baiguullagiinId = contract['baiguullagiinId']?.toString();
-                final gereeniiId = contract['_id']?.toString();
-
-                try {
-                  final results = await Future.wait([
-                    ApiService.fetchNekhemjlekhiinTuukh(
-                      gereeniiDugaar: gereeniiDugaar,
-                      khuudasniiDugaar: 1,
-                      khuudasniiKhemjee: 200,
-                    ),
-                    baiguullagiinId != null
-                        ? ApiService.fetchGereeniiTulukhAvlaga(
-                            baiguullagiinId: baiguullagiinId,
-                            gereeniiId: gereeniiId,
-                          )
-                        : Future.value({'jagsaalt': []}),
-                  ]);
-
-                  final response = results[0] as Map<String, dynamic>;
-                  final tulukhAvlagaResponse =
-                      results[1] as Map<String, dynamic>;
-
-                  if (response['jagsaalt'] != null &&
-                      response['jagsaalt'] is List) {
-                    final rawInvoices = response['jagsaalt'] as List;
-                    final tulukhAvlagaList =
-                        tulukhAvlagaResponse['jagsaalt'] is List
-                        ? (tulukhAvlagaResponse['jagsaalt'] as List)
-                              .cast<Map<String, dynamic>>()
-                        : <Map<String, dynamic>>[];
-
-                    final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
-                      rawInvoices,
-                      tulukhAvlagaList,
-                      gereeniiId,
-                      gereeniiDugaar,
-                      userId,
-                    );
-
-                    // Sum uldegdel from the contract directly as requested by the user
-                    // because it is the absolute source of truth for OWN_ORG.
-                    final contractUldegdel = contract['uldegdel'] ?? contract['globalUldegdel'];
-                    if (contractUldegdel != null) {
-                      final amt = (contractUldegdel is num)
-                          ? contractUldegdel.toDouble()
-                          : (double.tryParse(contractUldegdel.toString()) ?? 0.0);
-                      if (amt > 0) total += amt;
-                    }
-                  }
-                } catch (_) {
-                  // Fallback to contract uldegdel if invoice fetch fails
-                  final contractUldegdel =
-                      contract['uldegdel'] ?? contract['globalUldegdel'];
-                  if (contractUldegdel != null) {
-                    final amt = (contractUldegdel is num)
-                        ? contractUldegdel.toDouble()
-                        : (double.tryParse(contractUldegdel.toString()) ?? 0.0);
-                    if (amt > 0) total += amt;
-                  }
+                final contractUldegdel =
+                    contract['uldegdel'] ?? contract['globalUldegdel'];
+                if (contractUldegdel != null) {
+                  final amt = (contractUldegdel is num)
+                      ? contractUldegdel.toDouble()
+                      : (double.tryParse(contractUldegdel.toString()) ?? 0.0);
+                  if (amt > 0) ownOrgTotal += amt;
                 }
+
+                final contractAldangiValue = contract['aldangi'] ?? 0.0;
+                final aldAmnt = (contractAldangiValue is num)
+                    ? contractAldangiValue.toDouble()
+                    : (double.tryParse(contractAldangiValue.toString()) ?? 0.0);
+                if (aldAmnt > 0) ownOrgAldangi += aldAmnt;
               }
             }
           }
-        } catch (e) {
-          // Error loading OWN_ORG payments
-        }
+        } catch (_) {}
       }
-      double internalTotal = total;
+
+      total = ownOrgTotal;
+      totalAldangi = ownOrgAldangi;
 
       // Load WALLET_API payments
+      List<Map<String, dynamic>> updatedBillingList = [];
       try {
-        final billingList = await ApiService.getWalletBillingList();
-        for (var billing in billingList) {
+        final rawBillingList = await ApiService.getWalletBillingList();
+        for (var billing in rawBillingList) {
+          Map<String, dynamic> updatedBilling = Map<String, dynamic>.from(
+            billing,
+          );
           final billingId = billing['billingId']?.toString();
+          double billingTotal = 0.0;
+          double billingAldangi = 0.0;
+
           if (billingId != null && billingId.isNotEmpty) {
             try {
               final billingData = await ApiService.getWalletBillingBills(
                 billingId: billingId,
               );
-
-              // Extract bills from billingData
               List<Map<String, dynamic>> bills = [];
               if (billingData['newBills'] != null &&
                   billingData['newBills'] is List) {
@@ -740,67 +962,59 @@ class _BookingScreenState extends State<NuurKhuudas>
                   if (firstItem.containsKey('billId')) {
                     bills = List<Map<String, dynamic>>.from(newBillsList);
                   } else if (firstItem.containsKey('billingId') &&
-                      firstItem['newBills'] != null) {
-                    if (firstItem['newBills'] is List) {
-                      bills = List<Map<String, dynamic>>.from(
-                        firstItem['newBills'],
-                      );
-                    }
+                      firstItem['newBills'] != null &&
+                      firstItem['newBills'] is List) {
+                    bills = List<Map<String, dynamic>>.from(
+                      firstItem['newBills'],
+                    );
                   }
                 }
               } else if (billingData.containsKey('billingId') &&
-                  billingData['newBills'] != null) {
-                if (billingData['newBills'] is List) {
-                  bills = List<Map<String, dynamic>>.from(
-                    billingData['newBills'],
-                  );
-                }
+                  billingData['newBills'] != null &&
+                  billingData['newBills'] is List) {
+                bills = List<Map<String, dynamic>>.from(
+                  billingData['newBills'],
+                );
               }
 
-              // Calculate total from payable bills
-              double billingTotal = 0.0;
               for (var bill in bills) {
-                final billTotalAmount =
+                final amt =
                     (bill['billTotalAmount'] as num?)?.toDouble() ?? 0.0;
-                billingTotal += billTotalAmount;
+                final ald =
+                    (bill['billLateFeeAmount'] as num?)?.toDouble() ??
+                    (bill['billLateFee'] as num?)?.toDouble() ??
+                    0.0;
+                billingTotal += amt;
+                billingAldangi += ald;
               }
-
-                // Deduplication: Avoid adding property fees from Wallet API if we already have them from OWN_ORG
-                final billingName = billing['billingName']?.toString() ?? '';
-                if (internalTotal > 0 && (billingName.contains('Орон сууцны') || billingName.contains('Property'))) {
-                   // Skip this billing item to avoid double counting
-                } else if (billingTotal > 0) {
-                   total += billingTotal;
-                }
-
-              // Automatically trigger check for recent PAID payments to sync Ebarimt info
-              if (billingData['payments'] != null && billingData['payments'] is List) {
-                final payments = billingData['payments'] as List;
-                if (payments.isNotEmpty) {
-                  final latestPayment = payments[0];
-                  final paymentId = latestPayment['paymentId']?.toString();
-                  final status = latestPayment['paymentStatus']?.toString().toUpperCase();
-                  if (paymentId != null && status == 'PAID') {
-                    print('🔄 [HOME] Auto-syncing status for recent PAID payment: $paymentId');
-                    // We call it silently without awaiting to not block UI
-                    ApiService.walletQpayCheckStatus(walletPaymentId: paymentId).catchError((e) {
-                      print('❌ [HOME] Auto-sync check failed for $paymentId: $e');
-                    });
-                  }
-                }
-              }
-            } catch (e) {
-              // Error loading billing
-            }
+            } catch (_) {}
           }
+
+          updatedBilling['perItemTotal'] = billingTotal;
+          updatedBilling['perItemAldangi'] = billingAldangi;
+
+          final billingName = billing['billingName']?.toString() ?? '';
+          if (ownOrgTotal > 0 &&
+              (billingName.contains('Орон сууцны') ||
+                  billingName.contains('Property'))) {
+            // Deduplication skip
+          } else {
+            total += billingTotal;
+            totalAldangi += billingAldangi;
+          }
+          updatedBillingList.add(updatedBilling);
         }
-      } catch (e) {
-        // Error loading WALLET_API payments
-      }
+      } catch (_) {}
 
       if (mounted) {
         setState(() {
           totalNiitTulbur = total;
+          totalNiitAldangi = totalAldangi;
+          _billingList = updatedBillingList;
+          if (_userBillingData != null) {
+            _userBillingData!['perItemTotal'] = ownOrgTotal;
+            _userBillingData!['perItemAldangi'] = ownOrgAldangi;
+          }
         });
       }
     } catch (e) {
@@ -819,7 +1033,9 @@ class _BookingScreenState extends State<NuurKhuudas>
         final walletPaymentId = latest['walletPaymentId']?.toString();
 
         if (walletPaymentId != null && status == 'PENDING') {
-          print('🔎 [HOME] Checking latest pending wallet payment: $walletPaymentId');
+          print(
+            '🔎 [HOME] Checking latest pending wallet payment: $walletPaymentId',
+          );
           final checkRes = await ApiService.walletQpayCheckStatus(
             walletPaymentId: walletPaymentId,
           );
@@ -1076,7 +1292,6 @@ class _BookingScreenState extends State<NuurKhuudas>
                           '$displayDays',
                           style: TextStyle(
                             fontSize: (circleSize * 0.25).clamp(28.0, 42.0),
-                            fontWeight: FontWeight.w800,
                             color: accentColor,
                             height: 1.0,
                           ),
@@ -1086,7 +1301,6 @@ class _BookingScreenState extends State<NuurKhuudas>
                           centerLabel,
                           style: TextStyle(
                             fontSize: 10.sp,
-                            fontWeight: FontWeight.w600,
                             color: accentColor.withOpacity(0.8),
                           ),
                         ),
@@ -1138,17 +1352,12 @@ class _BookingScreenState extends State<NuurKhuudas>
                       style: TextStyle(
                         fontSize: 10.sp,
                         color: context.textSecondaryColor,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       nextUnitDateText,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: accentColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: TextStyle(fontSize: 13.sp, color: accentColor),
                     ),
                   ],
                 ),
@@ -1194,92 +1403,21 @@ class _BookingScreenState extends State<NuurKhuudas>
         color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
         child: Column(
           children: [
-            // Floating Top Header
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 8.h),
-                child: Container(
-                  height: 56.h,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.deepGreen,
-                    borderRadius: BorderRadius.circular(24.r),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.1),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                        child: Icon(
-                          Icons.menu_rounded,
-                          color: Colors.white,
-                          size: 24.sp,
-                        ),
-                      ),
-                      
-                      const SizedBox.shrink(), // Removed Wallet Pill as requested
-                      
-                      // Notification Icon
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              context
-                                  .push('/medegdel-list')
-                                  .then((_) => _loadNotificationCount());
-                            },
-                            child: Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.white,
-                              size: 24.sp,
-                            ),
-                          ),
-                          if (_unreadNotificationCount > 0)
-                            Positioned(
-                              right: -2,
-                              top: -2,
-                              child: Container(
-                                padding: EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: AppColors.deepGreen, width: 1.5),
-                                ),
-                                constraints: BoxConstraints(
-                                  minWidth: 14.w,
-                                  minHeight: 14.h,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '$_unreadNotificationCount',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 7.sp,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            HomeHeader(
+              unreadNotificationCount: _unreadNotificationCount,
+              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+              onThemeToggle: () {
+                final themeService = Provider.of<ThemeService>(
+                  context,
+                  listen: false,
+                );
+                themeService.toggleTheme();
+              },
+              onNotificationTap: () {
+                context
+                    .push('/medegdel-list')
+                    .then((_) => _loadNotificationCount());
+              },
             ),
 
             Expanded(
@@ -1302,79 +1440,35 @@ class _BookingScreenState extends State<NuurKhuudas>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 4.h), // Reduced since header has padding
+                      // "Төлбөр" Box
+                      BillingBox(
+                        onTap: _navigateToBillingList,
+                        totalBalance: _formatNumberWithComma(totalNiitTulbur),
+                        totalAldangi: _formatNumberWithComma(totalNiitAldangi),
+                      ),
 
-                      // Billing Connection Section - only show when NO e-bill is connected
-                      if (_billingList.isEmpty &&
-                          _userBillingData == null &&
-                          !_isLoadingBillingList)
-                        BillingConnectionSection(
-                          isConnecting: _isConnectingBilling,
-                          onConnect: _connectBillingByAddress,
-                        ),
+                      SizedBox(height: 16.h),
 
-                      if (_billingList.isEmpty &&
-                          _userBillingData == null &&
-                          !_isLoadingBillingList)
-                        SizedBox(height: 12.h),
-
-                      // Billing List Section
-                      BillingListSection(
-                        key: _billingListSectionKey,
-                        isLoading: _isLoadingBillingList,
-                        billingList: _billingList,
-                        userBillingData: _userBillingData,
-                        onBillingTap: _showBillingDetailModal,
-                        expandAddressAbbreviations: _expandAddressAbbreviations,
-                        onDeleteTap: _deleteBilling,
-                        totalBalance: totalNiitTulbur,
+                      // Billers Grid
+                      BillersSection(
+                        isLoadingBillers: _isLoadingBillers,
+                        billers: _billers,
+                        onDevelopmentTap: () => _showDevelopmentModal(context),
+                        onBillerTap: () {
+                          if (_billingList.isEmpty &&
+                              _userBillingData == null) {
+                            _navigateToBillingList();
+                          }
+                        },
                       ),
 
                       SizedBox(height: 12.h),
 
-                      // Billers Grid
-                      if (_isLoadingBillers)
-                        SizedBox(
-                          height: 200.h,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.deepGreen,
-                            ),
-                          ),
-                        )
-                      else if (_billers.isEmpty)
-                        SizedBox(
-                          height: 200.h,
-                          child: Center(
-                            child: Text(
-                              'Биллер олдсонгүй',
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: 16.sp,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        BillersGrid(
-                          billers: _billers,
-                          onDevelopmentTap: () => _showDevelopmentModal(context),
-                          onBillerTap: () {
-                            if (_billingList.isEmpty && _userBillingData == null) {
-                              _billingListSectionKey.currentState
-                                  ?.showEmptyMessage();
-                            }
-                          },
-                        ),
-
-                      SizedBox(height: 12.h),
-
                       // Remaining Days Display
-                      if (_gereeResponse != null &&
-                          _gereeResponse!.jagsaalt.isNotEmpty)
-                        _buildRemainingDaysWidget(_gereeResponse!.jagsaalt.first),
+                      GreeSection(greeResponse: _gereeResponse),
 
                       SizedBox(height: 12.h),
-                      
+
                       // Blog Slider Section
                       const BlogSliderSection(),
 
@@ -1389,7 +1483,6 @@ class _BookingScreenState extends State<NuurKhuudas>
       ),
     );
   }
-
 
   // _buildPaymentDetails and _buildDetailRow moved to TotalBalanceModal component
 
@@ -1460,16 +1553,11 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
-  // _buildBillingConnectionSteps and _buildBillingListSection moved to components
-
-  // Helper function to convert address abbreviations to full names
   String _expandAddressAbbreviations(String address) {
     if (address.isEmpty) return address;
 
-    // Common Mongolian district abbreviations
     String expanded = address;
 
-    // Replace abbreviations with full names
     expanded = expanded.replaceAll(RegExp(r'\bБГД\b'), 'Баянгол дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bБЗД\b'), 'Баянзүрх дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bСБД\b'), 'Сүхбаатар дүүрэг');
@@ -1480,13 +1568,20 @@ class _BookingScreenState extends State<NuurKhuudas>
     return expanded;
   }
 
-  // _buildBillingCard moved to BillingCard component
-
-  Future<void> _showBillingDetailModal(Map<String, dynamic> billing) async {
+  Future<void> _showBillingDetailModal(
+    Map<String, dynamic> billing, [
+    BuildContext? bContext,
+  ]) async {
     if (!mounted) return;
 
+    final navContext = bContext ?? context;
+    if (billing['isLocalData'] == true) {
+      navContext.push('/nekhemjlekh');
+      return;
+    }
+
     final result = await Navigator.push(
-      context,
+      navContext,
       MaterialPageRoute(
         builder: (context) => BillingDetailPage(
           billing: billing,
@@ -1502,5 +1597,25 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
-  // All modal and helper methods moved to components
+  void _navigateToBillingList() {
+    context.push(
+      '/billing-list',
+      extra: {
+        'billingList': _billingList,
+        'userBillingData': _userBillingData,
+        'isLoading': _isLoadingBillingList,
+        'totalBalance': totalNiitTulbur,
+        'totalAldangi': totalNiitAldangi,
+        'onBillingTap': (billing, ctx) => _showBillingDetailModal(billing, ctx),
+        'expandAddressAbbreviations': _expandAddressAbbreviations,
+        'onDeleteTap': _deleteBilling,
+        'onEditTap': _editBilling,
+        'isConnecting': _isConnectingBilling,
+        'onConnect': _connectBillingByAddress,
+        'onRefresh': () async {
+          await Future.wait([_loadBillingList(), _loadAllBillingPayments()]);
+        },
+      },
+    );
+  }
 }

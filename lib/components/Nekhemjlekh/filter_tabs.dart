@@ -51,7 +51,6 @@ class FilterTabs extends StatelessWidget {
                 style: TextStyle(
                   color: isSelected ? Colors.white : context.textPrimaryColor,
                   fontSize: 11.sp,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
               ),
               if (count > 0) ...[
@@ -67,7 +66,6 @@ class FilterTabs extends StatelessWidget {
                     style: TextStyle(
                       color: isSelected ? Colors.white : AppColors.deepGreen,
                       fontSize: 9.sp,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),

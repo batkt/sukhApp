@@ -87,7 +87,7 @@ class BillerCard extends StatelessWidget {
                       // Logo content
                       Center(
                         child: Padding(
-                          padding: EdgeInsets.all(16.w),
+                          padding: EdgeInsets.all(8.w),
                           child: BillerUtils.buildBillerLogo(
                             rawBillerName,
                             transformedName: billerName,
@@ -105,8 +105,7 @@ class BillerCard extends StatelessWidget {
               billerName,
               style: TextStyle(
                 color: context.textPrimaryColor,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w700,
+                fontSize: 13.sp,
                 height: 1.2,
                 letterSpacing: -0.2,
               ),
@@ -166,7 +165,6 @@ class BillerCard extends StatelessWidget {
                 style: TextStyle(
                   color: context.textPrimaryColor,
                   fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

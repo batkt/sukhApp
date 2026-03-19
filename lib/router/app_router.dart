@@ -29,6 +29,10 @@ import 'package:sukh_app/screens/contact/contact_page.dart';
 import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
 import 'package:sukh_app/screens/zochin_urikh/zochin_urikh_page.dart';
 import 'package:sukh_app/screens/blog/blog_screen.dart';
+import 'package:sukh_app/screens/Home/utility_add_page.dart';
+import 'package:sukh_app/screens/Home/utility_code_input_page.dart';
+import 'package:sukh_app/screens/Home/payment_history_page.dart';
+import 'package:sukh_app/screens/Home/billing_list_page.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/main.dart';
@@ -45,7 +49,8 @@ final GoRouter appRouter = GoRouter(
     final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
     final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
     final isGoingToBiometricOnboarding = state.matchedLocation == '/hoyrdah';
-    final isGoingToPasswordReset = state.matchedLocation == '/nuuts-ug-sergeekh';
+    final isGoingToPasswordReset =
+        state.matchedLocation == '/nuuts-ug-sergeekh';
     if (isLoggedIn && (isGoingToLogin || isGoingToRegister)) {
       return '/nuur';
     }
@@ -329,6 +334,63 @@ final GoRouter appRouter = GoRouter(
             key: state.pageKey,
             child: const BlogScreen(),
           ),
+    ),
+    GoRoute(
+      path: '/utility-add',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const UtilityAddPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/utility-code-input',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const UtilityCodeInputPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/payment-history',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: PaymentHistoryPage(
+            billingId: extra?['billingId'] ?? '',
+            billingName: extra?['billingName'] ?? 'Хэрэглээний төлбөр',
+            expandAddressAbbreviations:
+                extra?['expandAddressAbbreviations'] ?? (s) => s,
+            formatNumberWithComma:
+                extra?['formatNumberWithComma'] ?? (n) => n.toString(),
+          ),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/billing-list',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: BillingListPage(
+            billingList: extra?['billingList'] ?? [],
+            userBillingData: extra?['userBillingData'],
+            isLoading: extra?['isLoading'] ?? false,
+            totalBalance: extra?['totalBalance'] ?? 0.0,
+            totalAldangi: extra?['totalAldangi'] ?? 0.0,
+            onBillingTap: extra?['onBillingTap'] ?? (billing, ctx) {},
+            expandAddressAbbreviations:
+                extra?['expandAddressAbbreviations'] ?? (s) => s,
+            onDeleteTap: extra?['onDeleteTap'],
+            onEditTap: extra?['onEditTap'],
+            isConnecting: extra?['isConnecting'] ?? false,
+            onConnect: extra?['onConnect'] ?? () {},
+            onRefresh: extra?['onRefresh'] ?? () async {},
+          ),
+        );
+      },
     ),
   ],
 );

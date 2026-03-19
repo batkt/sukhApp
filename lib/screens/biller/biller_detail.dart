@@ -324,7 +324,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       tablet: 16,
                       veryNarrow: 12,
                     ),
-                    fontWeight: FontWeight.w600,
                   ),
                   unselectedLabelStyle: TextStyle(
                     fontSize: context.responsiveFontSize(
@@ -334,7 +333,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       tablet: 16,
                       veryNarrow: 12,
                     ),
-                    fontWeight: FontWeight.w500,
                   ),
                   tabs: const [Tab(text: 'Биллинг')],
                 ),
@@ -411,7 +409,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                       tablet: 17,
                       veryNarrow: 13,
                     ),
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 SizedBox(
@@ -557,7 +554,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                           tablet: 17,
                           veryNarrow: 13,
                         ),
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -587,7 +583,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                 tablet: 18,
                 veryNarrow: 14,
               ),
-              fontWeight: FontWeight.w600,
             ),
           ),
 
@@ -733,7 +728,6 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
                             tablet: 17,
                             veryNarrow: 13,
                           ),
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),

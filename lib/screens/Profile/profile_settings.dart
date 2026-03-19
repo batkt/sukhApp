@@ -26,12 +26,6 @@ class AppBackground extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkBackground : const Color(0xFFF1F5F9),
-        image: DecorationImage(
-          image: const AssetImage('lib/assets/img/main_background.png'),
-          fit: BoxFit.none,
-          scale: 3,
-          opacity: isDark ? 0.3 : 0.05,
-        ),
       ),
       child: child,
     );
@@ -131,60 +125,208 @@ class _ProfileSettingsState extends State<ProfileSettings>
   }
 
   Future<void> _handleBiometricToggle(bool value) async {
-    // Save to storage first
-    final success = await StorageService.setBiometricEnabled(value);
-
-    if (!success) {
-      // If save failed, show error and don't update UI
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Тохиргоо хадгалахад алдаа гарлаа',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
+    if (value) {
+      // 1. Check if biometric is available
+      final isAvailable = await BiometricService.isAvailable();
+      if (!isAvailable) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Биометрийн баталгаажуулалт боломжгүй байна',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+        return;
       }
-      return;
-    }
 
-    // Verify it was saved
-    final verifyEnabled = await StorageService.isBiometricEnabled();
-
-    if (verifyEnabled != value) {
-      // State mismatch - something went wrong
-      if (mounted) {
-        showGlassSnackBar(
-          context,
-          message: 'Тохиргоо хадгалахад алдаа гарлаа',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
+      // 2. Authenticate with biometric first to confirm identity
+      final isAuthenticated = await BiometricService.authenticate();
+      if (!isAuthenticated) {
+        // User cancelled or failed biometric scan
+        return;
       }
-      return;
-    }
 
-    // Update UI after successful save and verification
-    if (mounted) {
-      setState(() {
-        _biometricEnabled = value;
-      });
-    }
+      // 3. Ask for numeric password to store for background login
+      final password = await _showPasswordForBiometricDialog();
+      if (password == null || password.isEmpty) {
+        // User cancelled password entry
+        return;
+      }
 
-    if (!value) {
-      // If disabling, clear saved biometric data
+      // 4. Save everything securely
+      final storedPw = await StorageService.savePasswordForBiometric(password);
+      final storedEnabled = await StorageService.setBiometricEnabled(true);
+
+      if (storedPw && storedEnabled) {
+        if (mounted) {
+          setState(() {
+            _biometricEnabled = true;
+          });
+          showGlassSnackBar(
+            context,
+            message: 'Биометрийн нэвтрэлт амжилттай идэвхжлээ',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+        }
+      } else {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Тохиргоо хадгалахад алдаа гарлаа',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+      }
+    } else {
+      // Disabling biometric login
       await StorageService.clearSavedPasswordForBiometric();
+      await StorageService.setBiometricEnabled(false);
+      
+      if (mounted) {
+        setState(() {
+          _biometricEnabled = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: 'Биометрийн нэвтрэлт идэвхгүй боллоо',
+          icon: Icons.info,
+          iconColor: Colors.orange,
+        );
+      }
     }
+  }
 
-    if (mounted) {
-      showGlassSnackBar(
-        context,
-        message: value
-            ? 'Биометрийн баталгаажуулалт идэвхжлээ'
-            : 'Биометрийн баталгаажуулалт идэвхгүй боллоо',
-        icon: value ? Icons.check_circle : Icons.info,
-        iconColor: value ? Colors.green : Colors.orange,
-      );
-    }
+  Future<String?> _showPasswordForBiometricDialog() async {
+    _deletePasswordController.clear();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: context.isDarkMode
+                  ? AppColors.darkSurface
+                  : AppColors.lightSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.r),
+                side: BorderSide(
+                  color: AppColors.deepGreen.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              title: Text(
+                'Нууц код баталгаажуулах',
+                style: TextStyle(
+                  color: AppColors.deepGreen,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Биометрээр нэвтрэх үед ашиглах 4 оронтой нууц кодоо оруулна уу.',
+                    style: TextStyle(
+                      color: context.textPrimaryColor.withOpacity(0.7),
+                      fontSize: 12.sp,
+                      height: 1.5,
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: context.isDarkMode ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(
+                        color: AppColors.deepGreen.withOpacity(0.2),
+                      ),
+                    ),
+                    child: TextFormField(
+                      controller: _deletePasswordController,
+                      obscureText: _obscureDeletePassword,
+                      keyboardType: TextInputType.number,
+                      autofocus: true,
+                      maxLength: 4,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 8,
+                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '****',
+                        hintStyle: TextStyle(
+                          color: context.textSecondaryColor.withOpacity(0.2),
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 16.h),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureDeletePassword
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                            color: AppColors.deepGreen.withOpacity(0.5),
+                          ),
+                          onPressed: () => setState(() => _obscureDeletePassword = !_obscureDeletePassword),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(
+                    'Цуцлах',
+                    style: TextStyle(
+                      color: context.textSecondaryColor,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Container(
+                  margin: EdgeInsets.only(left: 8.w),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_deletePasswordController.text.length == 4) {
+                        Navigator.pop(dialogContext, _deletePasswordController.text);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepGreen,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                    ),
+                    child: Text(
+                      'Хадгалах',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   String _getInitials(String name) {
@@ -225,20 +367,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
         setState(() {
           _userData = userData;
 
-          String fullName = '';
-          if (userData['ovog'] != null &&
-              userData['ovog'].toString().isNotEmpty) {
-            fullName = userData['ovog'];
-          }
-          if (userData['ner'] != null &&
-              userData['ner'].toString().isNotEmpty) {
-            if (fullName.isNotEmpty) {
-              fullName += ' ${userData['ner']}';
-            } else {
-              fullName = userData['ner'];
-            }
-          }
-          _nameController.text = fullName;
+          _nameController.text = userData['ner']?.toString() ?? '';
 
           if (userData['utas'] != null) {
             final utas = userData['utas'];
@@ -804,7 +933,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
             ),
           ),
           content: Text(
-            'Та өөрийн бүртгэлтэй хаягийг устгах хүсэлтэй байна у|?',
+            'Та өөрийн бүртгэлтэй хаягийг устгах хүсэлтэй байна уу?',
             style: TextStyle(color: context.textPrimaryColor, fontSize: 12.sp),
           ),
           actions: [
@@ -1110,6 +1239,204 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
   }
 
+  void _showCarPlateModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext modalContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final isDark = context.isDarkMode;
+          final isAllowed = _isPlateChangeAllowed();
+          
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF161618) : Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Container(
+                  margin: EdgeInsets.only(top: 12.h),
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+                // Header
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 16.h),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepGreen.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Icon(Icons.directions_car_rounded, color: AppColors.deepGreen, size: 20.sp),
+                      ),
+                      SizedBox(width: 14.w),
+                      Expanded(
+                        child: Text(
+                          'Миний машин',
+                          style: TextStyle(
+                            color: context.textPrimaryColor,
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close_rounded, color: AppColors.deepGreen),
+                        style: IconButton.styleFrom(
+                          backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Улсын дугаар',
+                        style: TextStyle(
+                          color: context.textSecondaryColor,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+                      if (_mashiniiDugaarController.text.length < 4)
+                        _buildModernTextField(
+                          key: const ValueKey('plate_number'),
+                          controller: _mashiniiDugaarController,
+                          label: 'Дугаар (Жишээ: 1234УАА)',
+                          icon: Icons.numbers_rounded,
+                          hint: '0000AAA',
+                          enabled: isAllowed,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(7),
+                            PlateNumberFormatter(),
+                          ],
+                          keyboardType: TextInputType.number,
+                          onChanged: (val) {
+                            setModalState(() {});
+                          },
+                        )
+                      else
+                        _buildModernTextField(
+                          key: const ValueKey('plate_text'),
+                          controller: _mashiniiDugaarController,
+                          label: 'Дугаар (Жишээ: 1234УАА)',
+                          icon: Icons.numbers_rounded,
+                          hint: '0000AAA',
+                          enabled: isAllowed,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(7),
+                            PlateNumberFormatter(),
+                          ],
+                          keyboardType: TextInputType.text,
+                          onChanged: (val) {
+                            setModalState(() {});
+                          },
+                        ),
+                      if (!isAllowed) ...[
+                        SizedBox(height: 16.h),
+                        Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline_rounded, color: Colors.blue, size: 18.sp),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Text(
+                                  'Та машины дугаараа сард 1 удаа солих боломжтой.',
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 32.h),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (isAllowed && !_isUpdatingPlate) 
+                              ? () async {
+                                  // Validation
+                                  final text = _mashiniiDugaarController.text.toUpperCase().replaceAll(' ', '').trim();
+                                  if (text.length != 7) {
+                                    showGlassSnackBar(context, message: 'Дугаар 7 тэмдэгт байх ёстой', icon: Icons.warning);
+                                    return;
+                                  }
+                                  // First 4 numbers
+                                  final numbers = text.substring(0, 4);
+                                  if (int.tryParse(numbers) == null) {
+                                    showGlassSnackBar(context, message: 'Эхний 4 тэмдэгт тоо байх ёстой', icon: Icons.warning);
+                                    return;
+                                  }
+                                  // Last 3 letters
+                                  final letters = text.substring(4);
+                                  final letterRegex = RegExp(r'^[A-ZА-ЯЁӨҮ]{3}$');
+                                  if (!letterRegex.hasMatch(letters)) {
+                                    showGlassSnackBar(context, message: 'Сүүлийн 3 тэмдэгт үсэг байх ёстой', icon: Icons.warning);
+                                    return;
+                                  }
+                                  
+                                  // Update the controller text with the CAPS version before API call
+                                  _mashiniiDugaarController.text = text;
+
+                                  Navigator.pop(context);
+                                  await _handleUpdatePlateNumber();
+                                } 
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.deepGreen,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(vertical: 16.h),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                            elevation: 0,
+                          ),
+                          child: _isUpdatingPlate
+                              ? SizedBox(width: 20.w, height: 20.w, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text('Хадгалах', style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      SizedBox(height: 32.h),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showPersonalInfoModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -1178,15 +1505,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        padding: EdgeInsets.all(6.w),
+                        padding: EdgeInsets.all(8.w),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white : Colors.black,
+                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.close_rounded,
-                          color: context.textSecondaryColor,
-                          size: 18.sp,
+                          color: AppColors.deepGreen,
+                          size: 20.sp,
                         ),
                       ),
                     ),
@@ -1251,22 +1578,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       else
                         _buildAddressPlaceholder(context),
                         
-                      SizedBox(height: 32.h),
-                      
-                      // Section 3: Car Info
-                      _buildSubSectionTitle('Тээврийн хэрэгсэл'),
-                      SizedBox(height: 12.h),
-                      _buildModernTextField(
-                        controller: _mashiniiDugaarController,
-                        label: 'Улсын дугаар',
-                        icon: Icons.directions_car_rounded,
-                        hint: 'Машины дугаар тохируулах',
-                        onTap: () {
-                          // Allow editing plate here too if needed
-                        },
-                      ),
-                      
-                      SizedBox(height: 40.h),
+                      SizedBox(height: 16.h),
                     ],
                   ),
                 ),
@@ -1363,6 +1675,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
     String? hint,
     VoidCallback? onTap,
     bool isPassword = false,
+    List<TextInputFormatter>? inputFormatters,
+    TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
+    Key? key,
   }) {
     final isDark = context.isDarkMode;
     return Column(
@@ -1384,19 +1700,25 @@ class _ProfileSettingsState extends State<ProfileSettings>
         ),
         SizedBox(height: 8.h),
         Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(14.r),
+            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
-              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+              color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
             ),
           ),
           child: TextField(
+            key: key ?? (keyboardType != null ? ValueKey(keyboardType) : null),
+            autofocus: enabled,
             controller: controller,
-            enabled: enabled,
+            enabled: true,
             onTap: onTap,
             readOnly: !enabled || onTap != null,
             obscureText: isPassword,
+            inputFormatters: inputFormatters,
+            keyboardType: keyboardType,
+            onChanged: onChanged,
             style: TextStyle(
               color: context.textPrimaryColor,
               fontSize: 14.sp,
@@ -1409,6 +1731,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 fontSize: 13.sp,
               ),
               border: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              filled: false,
               contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             ),
           ),
@@ -1564,7 +1891,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       ),
                                     )
                                   : Text(
-                                      'Нууц үг шинэчлэх',
+                                      'Нууц үг хадгалах',
                                       style: TextStyle(
                                         fontSize: 15.sp,
                                         fontWeight: FontWeight.w700,
@@ -1608,10 +1935,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
         SizedBox(height: 8.h),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(14.r),
+            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
-              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+              color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
             ),
           ),
           child: TextFormField(
@@ -1864,47 +2191,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
   Widget _buildUserDataGrid() {
     if (_userData == null) return const SizedBox.shrink();
 
-    // Build list of data items - only ovog, ner, utas, bair, toot
+    // Build list of data items - only bair, toot
     List<Map<String, dynamic>> dataItems = [];
-
-    // Овог
-    if (_userData!['ovog'] != null &&
-        _userData!['ovog'].toString().isNotEmpty) {
-      dataItems.add({
-        'icon': Icons.person_outline,
-        'label': 'Овог',
-        'value': _userData!['ovog'].toString(),
-      });
-    }
-
-    // Нэр
-    if (_userData!['ner'] != null && _userData!['ner'].toString().isNotEmpty) {
-      dataItems.add({
-        'icon': Icons.badge_outlined,
-        'label': 'Нэр',
-        'value': _userData!['ner'].toString(),
-      });
-    }
-
-    // Утас
-    if (_userData!['utas'] != null &&
-        _userData!['utas'].toString().isNotEmpty) {
-      dataItems.add({
-        'icon': Icons.phone_outlined,
-        'label': 'Утас',
-        'value': _userData!['utas'].toString(),
-      });
-    }
-
-    // Машины дугаар
-    final plateNumber = _userData!['mashiniiDugaar'] ?? _userData!['dugaar'];
-    if (plateNumber != null && plateNumber.toString().isNotEmpty) {
-      dataItems.add({
-        'icon': Icons.directions_car_filled_outlined,
-        'label': 'Машины дугаар',
-        'value': plateNumber.toString(),
-      });
-    }
 
     // Байр (Address)
     String? bairText;
@@ -2143,8 +2431,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
   }
 
   Widget _buildSection({
-    required String title,
-    required IconData icon,
+    String? title,
+    IconData? icon,
     required List<Widget> children,
   }) {
     final isDark = context.isDarkMode;
@@ -2172,33 +2460,34 @@ class _ProfileSettingsState extends State<ProfileSettings>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(6.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.deepGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8.r),
+          if (title != null && icon != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(6.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.deepGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Icon(icon, size: 16.sp, color: AppColors.deepGreen),
                   ),
-                  child: Icon(icon, size: 16.sp, color: AppColors.deepGreen),
-                ),
-                SizedBox(width: 10.w),
-                Text(
-                  title.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.deepGreen,
-                    letterSpacing: 1.0,
+                  SizedBox(width: 10.w),
+                  Text(
+                    title.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.deepGreen,
+                      letterSpacing: 1.0,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+            padding: EdgeInsets.fromLTRB(16.w, (title != null && icon != null) ? 0 : 16.h, 16.w, 16.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
@@ -2210,88 +2499,153 @@ class _ProfileSettingsState extends State<ProfileSettings>
   }
 
   Widget _buildProfileHero() {
-    final isDark = context.isDarkMode;
-    final name = _nameController.text.isNotEmpty ? _nameController.text : 'Хэрэглэгч';
-    final initials = _getInitials(name);
+    String displayName = _nameController.text.isNotEmpty ? _nameController.text : 'Хэрэглэгч';
+    String initialSource = displayName;
     
+    // Try to get both initials from userData if possible
+    if (_userData != null) {
+      final ovog = _userData!['ovog']?.toString() ?? '';
+      final ner = _userData!['ner']?.toString() ?? '';
+      if (ovog.isNotEmpty && ner.isNotEmpty) {
+        initialSource = '$ovog $ner';
+      }
+    }
+    
+    final initials = _getInitials(initialSource);
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [AppColors.deepGreen, AppColors.deepGreenDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(40.r)),
+        borderRadius: BorderRadius.circular(30.r),
         boxShadow: [
           BoxShadow(
-            color: AppColors.deepGreen.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: AppColors.deepGreen.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
           // Avatar
           Container(
-            width: 80.w,
-            height: 80.w,
+            width: 60.w,
+            height: 60.w,
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
               ],
-              border: Border.all(color: Colors.white, width: 3.w),
+              border: Border.all(color: Colors.white, width: 2.w),
             ),
             child: Center(
               child: Text(
                 initials,
                 style: TextStyle(
                   color: AppColors.deepGreen,
-                  fontSize: 28.sp,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -1,
                 ),
               ),
             ),
           ),
-          SizedBox(height: 20.h),
-          Text(
-            name,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22.sp,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20.r),
-            ),
-            child: Text(
-              _phoneController.text.isNotEmpty ? _phoneController.text : 'Утас тодорхойгүй',
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.95),
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w500,
-              ),
+          SizedBox(width: 20.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  displayName,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    _phoneController.text.isNotEmpty ? _phoneController.text : 'Утас тодорхойгүй',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.95),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildHeader() {
+    final isDark = context.isDarkMode;
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.deepGreen.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: 20.sp,
+                ),
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Text(
+              'Тохиргоо',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : context.textPrimaryColor,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildSettingsTile({
     required IconData icon,
@@ -2481,42 +2835,24 @@ class _ProfileSettingsState extends State<ProfileSettings>
     final isDark = context.isDarkMode;
     
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Тохиргоо',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: context.surfaceColor,
       body: AppBackground(
         child: _isLoading
             ? _buildLoadingSkeleton()
             : FadeTransition(
                 opacity: _fadeAnimation,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildProfileHero(),
+                    _buildHeader(),
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 40.h),
+                        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 40.h),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // 1. Account Info
                             _buildSection(
-                              title: 'Бүртгэл',
-                              icon: Icons.person_rounded,
                               children: [
                                 _buildSettingsTile(
                                   icon: Icons.account_circle_outlined,
@@ -2532,21 +2868,20 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       : 'Дугаар тохируулах',
                                   showBorder: false,
                                   onTap: () {
-                                    _showPersonalInfoModal(context);
+                                    _showCarPlateModal(context);
                                   },
                                 ),
                               ],
                             ),
 
-                            // 2. Security
+                            // 2. Unified Settings (Security & App)
                             _buildSection(
-                              title: 'Аюулгүй байдал',
-                              icon: Icons.security_rounded,
                               children: [
                                 _buildSettingsTile(
                                   icon: Icons.lock_reset_rounded,
                                   title: 'Нууц код солих',
-                                  subtitle: 'Нэвтрэх 4 оронтой код шинэчлэх',
+                                  subtitle: 'Нэвтрэх 4 оронтой код хадгалах',
+                                  showBorder: !_biometricAvailable,
                                   onTap: () => _showChangePasswordModal(context),
                                 ),
                                 if (_biometricAvailable)
@@ -2564,107 +2899,16 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   ),
                               ],
                             ),
-
-                            // 3. App Settings
-                            _buildSection(
-                              title: 'Апп тохиргоо',
-                              icon: Icons.tune_rounded,
-                              children: [
-                                  _buildSettingsTile(
-                                    icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                                    title: isDark ? 'Dark Mode' : 'Light Mode',
-                                    subtitle: isDark ? 'Харанхуй горим' : 'Гэрэлт горим',
-                                    onTap: () {
-                                      // Toggle handled by switch, but onTap is required
-                                      final themeService = Provider.of<ThemeService>(context, listen: false);
-                                      themeService.toggleTheme();
-                                    },
-                                    trailing: Switch(
-                                      value: isDark,
-                                      onChanged: (val) {
-                                        final themeService = Provider.of<ThemeService>(context, listen: false);
-                                        themeService.toggleTheme();
-                                      },
-                                      activeColor: AppColors.deepGreen,
-                                    ),
-                                  ),
-                                  SizedBox(height: 12.h),
-                                ],
-                              ),
                             // 4. Logout & Delete
                             _buildSection(
-                              title: 'Устгах & Гарах',
-                              icon: Icons.logout_rounded,
                               children: [
                                 _buildSettingsTile(
                                   icon: Icons.delete_forever_rounded,
                                   title: 'Бүртгэл устгах',
                                   subtitle: 'Бүртгэл болон бүх мэдээллийг устгах',
                                   iconColor: Colors.redAccent,
-                                  onTap: _handleDeleteAccount,
-                                ),
-                                _buildSettingsTile(
-                                  icon: Icons.logout_rounded,
-                                  title: 'Системээс гарах',
-                                  subtitle: 'Одоогийн сессийг дуусгах',
-                                  iconColor: Colors.redAccent,
                                   showBorder: false,
-                                  onTap: () async {
-                                    final confirmed = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        backgroundColor: context.surfaceColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16.r),
-                                        ),
-                                        title: Text(
-                                          'Гарах',
-                                          style: TextStyle(
-                                            color: context.textPrimaryColor,
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        content: Text(
-                                          'Та системээс гарахдаа итгэлтэй байна уу?',
-                                          style: TextStyle(
-                                            color: context.textSecondaryColor,
-                                            fontSize: 13.sp,
-                                          ),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context, false),
-                                            child: Text(
-                                              'Үгүй',
-                                              style: TextStyle(
-                                                color: context.textSecondaryColor,
-                                                fontSize: 14.sp,
-                                              ),
-                                            ),
-                                          ),
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(context, true),
-                                            child: Text(
-                                              'Тийм',
-                                              style: TextStyle(
-                                                color: Colors.redAccent,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14.sp,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-
-                                    if (confirmed == true && mounted) {
-                                      await SessionService.logout();
-                                      if (mounted) {
-                                        context.go('/newtrekh');
-                                      }
-                                    }
-                                  },
+                                  onTap: _handleDeleteAccount,
                                 ),
                               ],
                             ),
@@ -2677,6 +2921,42 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 ),
               ),
       ),
+    );
+  }
+}
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
+
+class PlateNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text.toUpperCase();
+    String result = '';
+    
+    for (int i = 0; i < text.length && i < 7; i++) {
+      final char = text[i];
+      if (i < 4) {
+        if (RegExp(r'[0-9]').hasMatch(char)) {
+          result += char;
+        }
+      } else {
+        // Last 3 characters must be Cyrillic letters
+        if (RegExp(r'[А-ЯӨҮЁ]').hasMatch(char)) {
+          result += char;
+        }
+      }
+    }
+    
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
     );
   }
 }
