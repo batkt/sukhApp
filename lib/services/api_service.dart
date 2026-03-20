@@ -684,7 +684,8 @@ class ApiService {
             return Map<String, dynamic>.from(rawData);
           } else if (rawData is List && rawData.isNotEmpty) {
             final matched = rawData.firstWhere(
-              (item) => item is Map && item['billingId']?.toString() == billingId,
+              (item) =>
+                  item is Map && item['billingId']?.toString() == billingId,
               orElse: () => rawData[0],
             );
             return Map<String, dynamic>.from(matched);
@@ -696,7 +697,8 @@ class ApiService {
             return Map<String, dynamic>.from(rawData);
           } else if (rawData is List && rawData.isNotEmpty) {
             final matched = rawData.firstWhere(
-              (item) => item is Map && item['billingId']?.toString() == billingId,
+              (item) =>
+                  item is Map && item['billingId']?.toString() == billingId,
               orElse: () => rawData[0],
             );
             return Map<String, dynamic>.from(matched);
@@ -1604,7 +1606,19 @@ class ApiService {
     }
   }
 
+  static Map<String, String>? _cachedWalletHeaders;
+  static DateTime? _lastWalletHeadersFetch;
+  static const Duration _walletHeadersCacheDuration = Duration(minutes: 5);
+
   static Future<Map<String, String>> getWalletApiHeaders() async {
+    // Check cache first
+    if (_cachedWalletHeaders != null &&
+        _lastWalletHeadersFetch != null &&
+        DateTime.now().difference(_lastWalletHeadersFetch!) <
+            _walletHeadersCacheDuration) {
+      return _cachedWalletHeaders!;
+    }
+
     final token = await StorageService.getToken();
 
     String? userId;
@@ -1636,6 +1650,10 @@ class ApiService {
       );
       print('   This may cause Wallet API calls to fail');
     }
+
+    // Cache the headers
+    _cachedWalletHeaders = headers;
+    _lastWalletHeadersFetch = DateTime.now();
 
     return headers;
   }
@@ -2251,7 +2269,7 @@ class ApiService {
             'Профайл авахад алдаа гарлаа: ${response.statusCode}';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          errorMessage = errorData['message'] ?? errorMessage;
         } catch (_) {}
         throw Exception(errorMessage);
       }
@@ -2263,7 +2281,28 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getUserProfile() async {
+  static Map<String, dynamic>? _cachedUserProfile;
+  static DateTime? _lastProfileFetch;
+  static const Duration _profileCacheDuration = Duration(minutes: 5);
+
+  static void clearProfileCache() {
+    _cachedUserProfile = null;
+    _lastProfileFetch = null;
+    _cachedWalletHeaders = null;
+    _lastWalletHeadersFetch = null;
+  }
+
+  static Future<Map<String, dynamic>> getUserProfile({
+    bool forceRefresh = false,
+  }) async {
+    // Check cache first
+    if (!forceRefresh &&
+        _cachedUserProfile != null &&
+        _lastProfileFetch != null &&
+        DateTime.now().difference(_lastProfileFetch!) < _profileCacheDuration) {
+      return _cachedUserProfile!;
+    }
+
     try {
       final headers = await getAuthHeaders();
 
@@ -2274,16 +2313,23 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        Map<String, dynamic> result;
 
         if (data['_id'] != null) {
-          return {'success': true, 'result': data};
+          result = {'success': true, 'result': data};
         } else if (data['result'] != null) {
-          return {'success': true, 'result': data['result']};
+          result = {'success': true, 'result': data['result']};
         } else if (data['success'] != null) {
-          return data;
+          result = data;
         } else {
           throw Exception(data['message'] ?? 'Хэрэглэгчийн мэдээлэл олдсонгүй');
         }
+
+        // Cache the result
+        _cachedUserProfile = result;
+        _lastProfileFetch = DateTime.now();
+
+        return result;
       } else {
         throw Exception(
           'Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',

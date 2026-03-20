@@ -163,13 +163,13 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     WidgetsBinding.instance.addObserver(this);
     _loadBillers();
-    _loadBillingList();
+    // _loadBillingList() was repeatedly triggering the same API pool synchronously. Consolidated below.
     _loadNotificationCount();
     _setupSocketListener();
     _loadGereeData();
-    _loadNekhemjlekhCron(); // Load nekhemjlekh cron data for date calculation
+    _loadNekhemjlekhCron();
     _refreshBillingInfo(); // Consolidated refresh
-    _checkRecentWalletPayments(); // Check latest wallet payment status
+    _checkRecentWalletPayments();
 
     // Periodic balance refresh (every 15s) - faster updates for better UX
     _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
@@ -228,11 +228,12 @@ class _BookingScreenState extends State<NuurKhuudas>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final now = DateTime.now();
-      if (_lastBalanceRefresh == null ||
-          now.difference(_lastBalanceRefresh!).inSeconds >= 1) {
-        // Reduced to 1 second for immediate refresh
+      // Added an initial loaded guard so that didChangeDependencies doesn't
+      // instantly double-fetch the API on hot-restart initialization.
+      if (_isInitialBillingLoaded && 
+          (_lastBalanceRefresh == null || now.difference(_lastBalanceRefresh!).inSeconds >= 15)) {
         _lastBalanceRefresh = now;
-        _immediateRefresh(); // Use immediate refresh instead of just payments
+        _immediateRefresh(); 
       }
     });
   }
@@ -431,62 +432,34 @@ class _BookingScreenState extends State<NuurKhuudas>
       totalAldangi = ownOrgAldangi;
 
       // 4. USE ACTUAL BILLING API DATA - Get individual billing for each toot
-      List<Map<String, dynamic>> updatedBillingList = [];
-
-      // Fetch actual billing data for each toot
-      for (var userToot in userBillingToots) {
+      // Fetch actual billing data concurrently
+      final futures = userBillingToots.map((userToot) async {
         double tootTotal = 0.0;
         double tootAldangi = 0.0;
         List<Map<String, dynamic>> bills = [];
 
         try {
-          // Get billing details for this specific toot using billingId
           final billingId = userToot['billingId']?.toString();
-          final tootAddress = userToot['bairniiNer']?.toString() ?? '';
-          final tootDoorNo = userToot['walletDoorNo']?.toString() ?? '';
-
-          print('🔍 [DEBUG] Fetching billing for toot:');
-          print('   - billingId: $billingId');
-          print('   - address: $tootAddress');
-          print('   - doorNo: $tootDoorNo');
 
           if (billingId != null && billingId.isNotEmpty) {
             final billingDetails = await ApiService.getWalletBillingBills(
               billingId: billingId,
             );
 
-            print('🔍 [DEBUG] Billing response for $billingId:');
-            print('   - success: ${billingDetails['success']}');
-            print('   - data length: ${billingDetails['data']?.length ?? 0}');
-
             if (billingDetails.isNotEmpty &&
                 billingDetails['billingId'] != null) {
               final billingData = billingDetails;
 
-              print('🔍 [DEBUG] Billing data for $tootAddress $tootDoorNo:');
-              print('   - customerName: ${billingData['customerName']}');
-              print('   - customerAddress: ${billingData['customerAddress']}');
-              print('   - newBillsCount: ${billingData['newBillsCount']}');
-              print('   - paidTotal: ${billingData['paidTotal']}');
-
               // Calculate from actual billing data
               final newBills = billingData['newBills'] as List? ?? [];
 
-              print('🔍 [DEBUG] Processing ${newBills.length} new bills:');
               for (var bill in newBills) {
                 final amount = _parseNum(bill['billTotalAmount']);
                 final lateFee = _parseNum(bill['billLateFee']);
                 tootTotal += amount;
                 tootAldangi += lateFee;
                 bills.add(bill);
-                print(
-                  '   - Bill: ${bill['billNo']} - Amount: $amount - LateFee: $lateFee',
-                );
               }
-
-              print('🔍 [DEBUG] Final totals for $tootAddress $tootDoorNo:');
-              print('   - Total: $tootTotal');
-              print('   - Aldangi: $tootAldangi');
 
               // Store billing details for display
               userToot['billingDetails'] = billingData;
@@ -495,25 +468,18 @@ class _BookingScreenState extends State<NuurKhuudas>
               userToot['newBillsCount'] = billingData['newBillsCount'] ?? 0;
               userToot['paidCount'] = billingData['paidCount'] ?? 0;
               userToot['paidTotal'] = _parseNum(billingData['paidTotal']);
-            } else {
-              print('❌ [DEBUG] No billing data found for $billingId');
             }
-          } else {
-            print(
-              '❌ [DEBUG] No billingId found for toot at $tootAddress $tootDoorNo',
-            );
           }
         } catch (e) {
           print('❌ [ERROR] Failed to fetch billing details for toot: $e');
-          // Fallback to 0 if API call fails
-          tootTotal = 0.0;
-          tootAldangi = 0.0;
         }
 
         userToot['perItemTotal'] = tootTotal;
         userToot['perItemAldangi'] = tootAldangi;
-        updatedBillingList.add(userToot);
-      }
+        return userToot;
+      });
+
+      final updatedBillingList = await Future.wait(futures);
 
       if (mounted) {
         setState(() {
