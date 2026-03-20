@@ -462,7 +462,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
                           ),
                           SizedBox(height: 2.h),
                           Text(
-                            'Version 2.0.1',
+                            'Version 2.1.3',
                             style: TextStyle(
                               fontSize: 9.sp,
                               color: isDark

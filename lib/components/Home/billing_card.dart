@@ -326,36 +326,33 @@ class _BillingCardState extends State<BillingCard>
     required bool isDark,
     required BuildContext context,
   }) {
-    return Container(
-      width: 42.w,
-      height: 42.w,
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C2229) : Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : const Color(0xFFE8ECF0),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 42.w,
+        height: 42.h,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1C2229) : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(
             color: isDark
-                ? Colors.black.withOpacity(0.2)
-                : Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFE8ECF0),
+            width: 1,
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(21.r),
-          child: Center(
-            child: Icon(icon, color: color, size: 18.sp),
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Icon(icon, color: color, size: 18.sp),
         ),
       ),
     );

@@ -1710,6 +1710,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     final serviceColor = service['color'] as Color? ?? AppColors.deepGreen;
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         // Disabled for now - show "Тун удахгүй" message
         showGlassSnackBar(
@@ -1741,7 +1742,7 @@ class _BookingScreenState extends State<NuurKhuudas>
             // Logo/Icon
             Container(
               width: 50.w,
-              height: 50.w,
+              height: 50.h,
               decoration: BoxDecoration(
                 color: serviceColor.withOpacity(isDark ? 0.2 : 0.12),
                 borderRadius: BorderRadius.circular(10.r),

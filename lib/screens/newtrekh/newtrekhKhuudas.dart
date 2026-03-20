@@ -896,7 +896,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         ),
         SizedBox(height: 4.h),
         Text(
-          "Version 2.0.1",
+          "Version 2.1.3",
           style: TextStyle(
             color: isDark ? Colors.white12 : Colors.black12,
             fontSize: 10.sp,
