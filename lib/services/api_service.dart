@@ -683,8 +683,11 @@ class ApiService {
           if (rawData is Map) {
             return Map<String, dynamic>.from(rawData);
           } else if (rawData is List && rawData.isNotEmpty) {
-            // If it's a list, the first item usually contains the billing info
-            return Map<String, dynamic>.from(rawData[0]);
+            final matched = rawData.firstWhere(
+              (item) => item is Map && item['billingId']?.toString() == billingId,
+              orElse: () => rawData[0],
+            );
+            return Map<String, dynamic>.from(matched);
           }
           return {};
         } else if (data['success'] == true && data['data'] != null) {
@@ -692,9 +695,11 @@ class ApiService {
           if (rawData is Map) {
             return Map<String, dynamic>.from(rawData);
           } else if (rawData is List && rawData.isNotEmpty) {
-             // Handle the list format seen in some responses
-             final firstItem = Map<String, dynamic>.from(rawData[0]);
-             return firstItem;
+            final matched = rawData.firstWhere(
+              (item) => item is Map && item['billingId']?.toString() == billingId,
+              orElse: () => rawData[0],
+            );
+            return Map<String, dynamic>.from(matched);
           }
         }
         print('📄 [API] No valid data found, returning empty map');
@@ -749,13 +754,12 @@ class ApiService {
       final headers = await getAuthHeaders();
       final url = '$baseUrl/walletAddress/details/$bairId/$doorNo';
       print('🔍 [WALLET ADDRESS] Fetching: $url');
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
+      final response = await http.get(Uri.parse(url), headers: headers);
 
       print('🔍 [WALLET ADDRESS] Status: ${response.statusCode}');
-      print('🔍 [WALLET ADDRESS] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+      print(
+        '🔍 [WALLET ADDRESS] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -847,14 +851,19 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['aldaa'] ?? data['message'] ?? 'Биллинг хадгалахад алдаа гарлаа');
+          throw Exception(
+            data['aldaa'] ??
+                data['message'] ??
+                'Биллинг хадгалахад алдаа гарлаа',
+          );
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['aldaa'] ?? data['message'] ??
+          data['aldaa'] ??
+              data['message'] ??
               'Биллинг хадгалахад алдаа гарлаа: ${response.statusCode}',
         );
       }
@@ -879,14 +888,17 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['aldaa'] ?? data['message'] ?? 'Биллинг устгахад алдаа гарлаа');
+          throw Exception(
+            data['aldaa'] ?? data['message'] ?? 'Биллинг устгахад алдаа гарлаа',
+          );
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['aldaa'] ?? data['message'] ??
+          data['aldaa'] ??
+              data['message'] ??
               'Биллинг устгахад алдаа гарлаа: ${response.statusCode}',
         );
       }
@@ -912,14 +924,17 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['aldaa'] ?? data['message'] ?? 'Билл устгахад алдаа гарлаа');
+          throw Exception(
+            data['aldaa'] ?? data['message'] ?? 'Билл устгахад алдаа гарлаа',
+          );
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['aldaa'] ?? data['message'] ??
+          data['aldaa'] ??
+              data['message'] ??
               'Билл устгахад алдаа гарлаа: ${response.statusCode}',
         );
       }
@@ -927,7 +942,6 @@ class ApiService {
       throw Exception('Билл устгахад алдаа гарлаа: $e');
     }
   }
-
 
   static Future<Map<String, dynamic>> recoverWalletBill({
     required String billingId,
@@ -1016,9 +1030,7 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(
-            data['message'] ?? 'Хоч нэр өөрчлөхөд алдаа гарлаа',
-          );
+          throw Exception(data['message'] ?? 'Хоч нэр өөрчлөхөд алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
@@ -1283,12 +1295,16 @@ class ApiService {
     String? barilgiinId,
     String? customerId,
     String? customerCode,
+    String? ovog,
+    String? ner,
   }) async {
     try {
       final requestBody = <String, dynamic>{'bairId': bairId, 'doorNo': doorNo};
 
       if (customerId != null) requestBody['customerId'] = customerId;
       if (customerCode != null) requestBody['customerCode'] = customerCode;
+      if (ovog != null) requestBody['ovog'] = ovog;
+      if (ner != null) requestBody['ner'] = ner;
 
       if (duureg != null && duureg.isNotEmpty) {
         requestBody['duureg'] = duureg;
@@ -1594,7 +1610,9 @@ class ApiService {
     String? userId;
     try {
       final userProfile = await getUserProfile();
-      if (userProfile['result']?['utas'] != null) {
+      if (userProfile['result']?['walletUserId'] != null) {
+        userId = userProfile['result']['walletUserId'].toString();
+      } else if (userProfile['result']?['utas'] != null) {
         userId = userProfile['result']['utas'].toString();
       } else if (userProfile['result']?['nevtrekhNer'] != null) {
         userId = userProfile['result']['nevtrekhNer'].toString();

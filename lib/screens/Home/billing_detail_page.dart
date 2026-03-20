@@ -49,6 +49,65 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     _loadAllBillingsData();
   }
 
+  Map<String, dynamic> _extractBillingData(Map<String, dynamic> data, String? billingId) {
+    if (billingId == null) return {'bills': <Map<String, dynamic>>[], 'billingName': null};
+
+    if (data['billingId']?.toString() == billingId && data['newBills'] is List) {
+      final list = data['newBills'] as List;
+      if (list.isEmpty || (list[0] is Map && list[0].containsKey('billId'))) {
+        return {
+          'bills': List<Map<String, dynamic>>.from(list),
+          'billingName': data['billingName']
+        };
+      }
+    }
+
+    if (data.containsKey('data') && data['data'] is List) {
+      final itemList = data['data'] as List;
+      final matchedItem = itemList.firstWhere(
+        (item) => item is Map && item['billingId']?.toString() == billingId,
+        orElse: () => null,
+      );
+      if (matchedItem is Map && matchedItem['newBills'] is List) {
+        return {
+          'bills': List<Map<String, dynamic>>.from(matchedItem['newBills']),
+          'billingName': matchedItem['billingName']
+        };
+      }
+    }
+
+    if (data['newBills'] is List) {
+      final itemList = data['newBills'] as List;
+      if (itemList.isNotEmpty) {
+        final firstItem = itemList[0];
+        if (firstItem is Map && firstItem.containsKey('billId')) {
+          return {
+            'bills': List<Map<String, dynamic>>.from(itemList),
+            'billingName': data['billingName']
+          };
+        } else if (firstItem is Map && firstItem.containsKey('billingId')) {
+          final matchedItem = itemList.firstWhere(
+            (item) => item is Map && item['billingId']?.toString() == billingId,
+            orElse: () => null,
+          );
+          if (matchedItem is Map && matchedItem['newBills'] is List) {
+            return {
+              'bills': List<Map<String, dynamic>>.from(matchedItem['newBills']),
+              'billingName': matchedItem['billingName']
+            };
+          }
+        }
+      } else {
+        return {
+          'bills': <Map<String, dynamic>>[],
+          'billingName': data['billingName']
+        };
+      }
+    }
+
+    return {'bills': <Map<String, dynamic>>[], 'billingName': null};
+  }
+
   Future<void> _loadAllBillingsData() async {
     try {
       setState(() {
@@ -58,10 +117,53 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         _allBills = [];
       });
 
-      // 1. Get the list of all connected billings
-      final billingList = await ApiService.getWalletBillingList();
+      // If we have billingData passed from parent, use it instead of re-fetching
+      if (widget.billingData != null) {
+        print(' [DEBUG] Using passed billing data instead of re-fetching');
 
-      if (billingList.isEmpty) {
+        final billingData = widget.billingData!;
+        final billingId = widget.billing['billingId']?.toString();
+
+        final extracted = _extractBillingData(billingData, billingId);
+        final bills = extracted['bills'] as List<Map<String, dynamic>>;
+        final bName = extracted['billingName']?.toString() ??
+            billingData['billingName']?.toString() ??
+            'Хэрэглээний төлбөр';
+
+        // Add metadata to each bill
+        for (var bill in bills) {
+          bill['parentBillingId'] = billingId;
+          bill['parentBillerName'] = bName;
+          _allBills.add(bill);
+        }
+
+        if (!mounted) return;
+
+        setState(() {
+          // Auto-select all bills initially
+          for (var bill in _allBills) {
+            final id = bill['billId']?.toString();
+            if (id != null) _selectedBillIds.add(id);
+          }
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Original logic - only run if no billingData was passed
+      print(' [DEBUG] No billing data passed, fetching from API');
+
+      // 1. Get the list of billings to process
+      final specificBillingId = widget.billing['billingId']?.toString();
+      List<Map<String, dynamic>> targetBillingList = [];
+
+      if (specificBillingId != null && specificBillingId.isNotEmpty) {
+        targetBillingList = [widget.billing];
+      } else {
+        targetBillingList = await ApiService.getWalletBillingList();
+      }
+
+      if (targetBillingList.isEmpty) {
         setState(() {
           _isLoading = false;
           _errorMessage = 'Холбогдсон биллинг олдсонгүй';
@@ -71,7 +173,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       // 2. Fetch bills for each billing provider
       List<Map<String, dynamic>> collectedBills = [];
-      for (var billing in billingList) {
+      for (var billing in targetBillingList) {
         final billingId = billing['billingId']?.toString();
         if (billingId == null) continue;
 
@@ -80,30 +182,16 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             billingId: billingId,
           );
 
-          List<Map<String, dynamic>> bills = [];
-          if (billingData['newBills'] != null &&
-              billingData['newBills'] is List) {
-            final newBillsList = billingData['newBills'] as List;
-            if (newBillsList.isNotEmpty) {
-              final firstItem = newBillsList[0];
-              if (firstItem is Map && firstItem.containsKey('billId')) {
-                bills = List<Map<String, dynamic>>.from(newBillsList);
-              } else if (firstItem is Map &&
-                  firstItem.containsKey('billingId') &&
-                  firstItem['newBills'] != null) {
-                bills = List<Map<String, dynamic>>.from(firstItem['newBills']);
-              }
-            }
-          } else if (billingData.containsKey('billingId') &&
-              billingData['newBills'] != null) {
-            bills = List<Map<String, dynamic>>.from(billingData['newBills']);
-          }
+          final extracted = _extractBillingData(billingData, billingId);
+          final bills = extracted['bills'] as List<Map<String, dynamic>>;
+          final bName = extracted['billingName']?.toString();
 
           // Add metadata to each bill to know which billing it belongs to
           for (var bill in bills) {
             bill['parentBillingId'] = billingId;
             bill['parentBillerName'] =
                 billing['billerName'] ??
+                bName ??
                 billingData['billingName'] ??
                 'Хэрэглээний төлбөр';
             collectedBills.add(bill);
@@ -303,11 +391,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     final firstBill = _allBills.isNotEmpty ? _allBills.first : null;
     final billingName =
         widget.billing['billingName']?.toString() ?? 'Хэрэглээний төлбөр';
-    final customerAddress = widget.expandAddressAbbreviations(
-      firstBill?['customerAddress']?.toString() ??
-          widget.billing['customerAddress']?.toString() ??
-          '',
-    );
+    
+    final customerAddressStr = firstBill?['customerAddress']?.toString() ??
+        widget.billing['customerAddress']?.toString() ??
+        widget.billing['bairniiNer']?.toString() ??
+        '';
+        
+    final customerAddress = widget.expandAddressAbbreviations(customerAddressStr);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -331,9 +421,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                       billingId: billingId,
                       billingName: billingName,
                       customerName:
-                          widget.billing['customerName']?.toString() ?? '',
+                          widget.billing['customerName']?.toString() ?? 
+                          widget.billing['ner']?.toString() ?? '',
                       customerAddress:
-                          widget.billing['customerAddress']?.toString() ?? '',
+                          widget.billing['customerAddress']?.toString() ?? 
+                          widget.billing['bairniiNer']?.toString() ?? '',
                     ),
                   ),
                 );
@@ -640,13 +732,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                     if (isSelected) {
                                       _selectedBillIds.remove(id);
                                     } else {
-                                      if (_selectedBillIds.length < 10) {
+                                      if (_selectedBillIds.length < 5) {
                                         _selectedBillIds.add(id);
                                       } else {
                                         showGlassSnackBar(
                                           context,
                                           message:
-                                              'Нэг удаад хамгийн ихдээ 10 нэхэмжлэх сонгох боломжтой',
+                                              'Нэг удаад хамгийн ихдээ 5 нэхэмжлэх сонгох боломжтой',
                                         );
                                       }
                                     }

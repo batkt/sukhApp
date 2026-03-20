@@ -21,12 +21,12 @@ class AddressSelectionScreen extends StatefulWidget {
 
 class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   final TextEditingController _doorNoController = TextEditingController();
-  
+
   List<Map<String, dynamic>> _cities = [];
   List<Map<String, dynamic>> _districts = [];
   List<Map<String, dynamic>> _khoroos = [];
   List<Map<String, dynamic>> _buildings = [];
-  
+
   Map<String, dynamic>? _selectedCity;
   Map<String, dynamic>? _selectedDistrict;
   Map<String, dynamic>? _selectedKhoroo;
@@ -52,7 +52,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         _cities = cities;
         _isLoading = false;
       });
-      
+
       // Auto-select Ulaanbaatar if available
       final ulaanbaatar = cities.firstWhere(
         (c) => c['name']?.toString().contains('УЛААНБААТАР') ?? false,
@@ -63,7 +63,11 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      showGlassSnackBar(context, message: 'Мэдээлэл авахад алдаа гарлаа', icon: Icons.error);
+      showGlassSnackBar(
+        context,
+        message: 'Мэдээлэл авахад алдаа гарлаа',
+        icon: Icons.error,
+      );
     }
   }
 
@@ -75,7 +79,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       _selectedBuilding = null;
       _districts = [];
     });
-    
+
     try {
       final cityId = city['id']?.toString() ?? city['_id']?.toString();
       if (cityId != null) {
@@ -92,17 +96,26 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       _selectedBuilding = null;
       _khoroos = [];
     });
-    
+
     try {
-      final districtId = district['id']?.toString() ?? district['_id']?.toString();
+      final districtId =
+          district['id']?.toString() ?? district['_id']?.toString();
       if (districtId != null) {
         final khoroos = await ApiService.getWalletKhoroos(districtId);
         // Filter out "0-р хороо" or similar placeholder entries
         setState(() {
-          _khoroos = khoroos.where((k) {
-            final name = (k['name'] ?? k['khorooName'] ?? '').toString();
-            return !name.contains('0-р хороо') && name.trim() != '0';
-          }).toList();
+          _khoroos =
+              khoroos.where((k) {
+                final name = (k['name'] ?? k['khorooName'] ?? '')
+                    .toString()
+                    .trim();
+                return name != '0-р хороо' && name != '0';
+              }).toList()..sort(
+                (a, b) => _numericCompare(
+                  _getKhorooDisplayName(a),
+                  _getKhorooDisplayName(b),
+                ),
+              );
         });
       }
     } catch (_) {}
@@ -114,7 +127,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       _selectedBuilding = null;
       _buildings = [];
     });
-    
+
     try {
       final khorooId = khoroo['id']?.toString() ?? khoroo['_id']?.toString();
       if (khorooId != null) {
@@ -124,7 +137,9 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     } catch (_) {}
   }
 
-  List<Map<String, dynamic>> _sortBuildingsNumeric(List<Map<String, dynamic>> buildings) {
+  List<Map<String, dynamic>> _sortBuildingsNumeric(
+    List<Map<String, dynamic>> buildings,
+  ) {
     final sorted = List<Map<String, dynamic>>.from(buildings);
     sorted.sort((a, b) {
       final aName = a['name']?.toString() ?? a['ner']?.toString() ?? '';
@@ -148,43 +163,52 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
   String _getDistrictDisplayName(Map<String, dynamic>? district) {
     if (district == null) return 'Сонгох';
-    final rawName = (district['districtName'] ?? district['name'] ?? '').toString().toUpperCase();
+    final rawName = (district['districtName'] ?? district['name'] ?? '')
+        .toString()
+        .toUpperCase();
     return _districtFullNames[rawName] ?? rawName;
   }
 
   String _getKhorooDisplayName(Map<String, dynamic>? khoroo) {
     if (khoroo == null) return 'Сонгох';
-    String name = (khoroo['name'] ?? khoroo['khorooName'] ?? khoroo['ner'] ?? '').toString();
-    
+    String name =
+        (khoroo['name'] ?? khoroo['khorooName'] ?? khoroo['ner'] ?? '')
+            .toString();
+
     for (final entry in _districtFullNames.entries) {
       if (name.toUpperCase().startsWith(entry.key)) {
-        return name.replaceFirst(RegExp(entry.key, caseSensitive: false), entry.value);
+        return name.replaceFirst(
+          RegExp(entry.key, caseSensitive: false),
+          entry.value,
+        );
       }
     }
-    
+
     return name;
   }
 
   int _numericCompare(String a, String b) {
     final aStr = a.toLowerCase();
     final bStr = b.toLowerCase();
-    
+
     final RegExp regExp = RegExp(r'(\d+|\D+)');
     final Iterable<Match> aMatches = regExp.allMatches(aStr);
     final Iterable<Match> bMatches = regExp.allMatches(bStr);
-    
+
     final List<String> aParts = aMatches.map((m) => m.group(0)!).toList();
     final List<String> bParts = bMatches.map((m) => m.group(0)!).toList();
-    
-    final int minLen = aParts.length < bParts.length ? aParts.length : bParts.length;
-    
+
+    final int minLen = aParts.length < bParts.length
+        ? aParts.length
+        : bParts.length;
+
     for (int i = 0; i < minLen; i++) {
       final aPart = aParts[i];
       final bPart = bParts[i];
-      
+
       final bool aIsDigit = RegExp(r'^\d+$').hasMatch(aPart);
       final bool bIsDigit = RegExp(r'^\d+$').hasMatch(bPart);
-      
+
       if (aIsDigit && bIsDigit) {
         final int aNum = int.parse(aPart);
         final int bNum = int.parse(bPart);
@@ -193,7 +217,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         if (aPart != bPart) return aPart.compareTo(bPart);
       }
     }
-    
+
     return aParts.length.compareTo(bParts.length);
   }
 
@@ -207,87 +231,149 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   }
 
   Future<void> _handleAddressSubmit() async {
-    if (_selectedBuilding == null || _doorNoController.text.isEmpty) {
-      showGlassSnackBar(context, message: 'Мэдээллээ бүрэн оруулна уу', icon: Icons.warning);
+    // Prevent double submissions
+    if (_isSaving) {
+      print('🔍 [DEBUG] Already submitting, ignoring duplicate call');
       return;
     }
 
     setState(() => _isSaving = true);
     try {
+      if (_selectedBuilding == null || _doorNoController.text.isEmpty) {
+        showGlassSnackBar(
+          context,
+          message: 'Мэдээллээ бүрэн оруулна уу',
+          icon: Icons.warning,
+        );
+        return;
+      }
+
       final source = _selectedBuilding!['source']?.toString();
-      final bairId = _selectedBuilding!['id']?.toString() ?? _selectedBuilding!['_id']?.toString();
+      final bairId =
+          _selectedBuilding!['id']?.toString() ??
+          _selectedBuilding!['_id']?.toString();
       final doorNo = _doorNoController.text.trim();
 
       if (source == 'OWN_ORG') {
-        final baiguullagiinId = _selectedBuilding!['baiguullagiinId']?.toString();
-        final barilgiinId = _selectedBuilding!['barilgiinId']?.toString() ?? bairId;
-        
+        final baiguullagiinId = _selectedBuilding!['baiguullagiinId']
+            ?.toString();
+        final barilgiinId =
+            _selectedBuilding!['barilgiinId']?.toString() ?? bairId;
+
         final validate = await ApiService.validateOwnOrgToot(
           toot: doorNo,
           baiguullagiinId: baiguullagiinId!,
           barilgiinId: barilgiinId!,
         );
-        
+
         if (validate['valid'] != true) {
           throw Exception(validate['message'] ?? 'Тоот буруу байна');
         }
       } else if (source == 'WALLET_API' && _selectedWalletCustomer == null) {
         // Fetch customers if not yet selected for Wallet API
-        final customers = await ApiService.getWalletCustomersByAddress(bairId: bairId!, doorNo: doorNo);
+        final customers = await ApiService.getWalletCustomersByAddress(
+          bairId: bairId!,
+          doorNo: doorNo,
+        );
         if (customers.isEmpty) throw Exception('Хаяг олдсонгүй');
-        
+
         if (customers.length == 1) {
           _selectedWalletCustomer = customers[0];
         } else {
-          setState(() => _isSaving = false);
-          _showMultiAccountSelection(customers);
-          return;
+          // Don't reset _isSaving here - maintain it through customer selection
+          final selectedCustomer = await _showMultiAccountSelection(customers);
+          if (selectedCustomer != null) {
+            setState(() => _selectedWalletCustomer = selectedCustomer);
+            // Continue with the same submission - don't call _handleAddressSubmit again
+          } else {
+            // User cancelled selection
+            setState(() => _isSaving = false);
+            return;
+          }
         }
       }
 
-      final customerId = _selectedWalletCustomer?['customerId']?.toString() ??
-          _selectedWalletCustomer?['customerCode']?.toString() ??
-          _selectedWalletCustomer?['id']?.toString() ??
-          _selectedWalletCustomer?['_id']?.toString();
+      // Ensure we have a customer before proceeding
+      if (_selectedWalletCustomer == null && source == 'WALLET_API') {
+        // This case should ideally not be reached if the logic is correct
+        throw Exception('Хэрэглэгч сонгоогүй байна.');
+      }
 
-      // Save logic (simplified for the refactor but keeping same functionality)
-      await StorageService.saveWalletAddress(
+      // Use the selected customer's customerId directly
+      final customerId = _selectedWalletCustomer?['customerId']?.toString();
+
+      if (customerId == null || customerId.isEmpty) {
+        throw Exception('Хэрэглэгчийн ID олдсонгүй.');
+      }
+
+      // The fetchWalletBilling API call handles adding the address to the user's toots array on the backend.
+      // The response from this API will contain the updated user profile, which is then saved.
+
+      print('🔍 [DEBUG] Sending to fetchWalletBilling:');
+      print('   - bairId: $bairId');
+      print('   - doorNo: $doorNo');
+      print('   - customerId: $customerId');
+      print('   - customerCode: ${_selectedWalletCustomer?['customerCode']}');
+      print('   - customerName: ${_selectedWalletCustomer?['customerName']}');
+
+      final response = await ApiService.fetchWalletBilling(
         bairId: bairId!,
-        doorNo: doorNo,
-        source: source,
-        baiguullagiinId: _selectedBuilding!['baiguullagiinId']?.toString(),
-        barilgiinId: _selectedBuilding!['barilgiinId']?.toString() ?? bairId,
-        customerId: customerId,
-        customerName: _selectedWalletCustomer?['customerName']?.toString() ??
-            _selectedWalletCustomer?['ner']?.toString(),
-      );
-
-      // Connect billing
-      await ApiService.fetchWalletBilling(
-        bairId: bairId,
         doorNo: doorNo,
         baiguullagiinId: _selectedBuilding!['baiguullagiinId']?.toString(),
         customerId: customerId,
         customerCode: _selectedWalletCustomer?['customerCode']?.toString(),
+        // Pass resident name to be saved in the new toot entry
+        ovog: _selectedWalletCustomer?['ovog']?.toString(),
+        ner: _selectedWalletCustomer?['ner']?.toString(),
       );
 
+      print('🔍 [DEBUG] Response from fetchWalletBilling:');
+      print('   - billingInfo: ${response['billingInfo']}');
+
       if (mounted) {
-        showGlassSnackBar(context, message: 'Амжилттай хадгалагдлаа', icon: Icons.check_circle, iconColor: Colors.green);
+        showGlassSnackBar(
+          context,
+          message: 'Амжилттай хадгалагдлаа',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
         if (widget.fromMenu) {
           Navigator.of(context).pop(true);
         } else {
-          context.go('/nuur');
+          // Immediate refresh when returning to home
+          Navigator.of(context).pop(true);
+          // Force immediate refresh in parent
+          if (mounted) {
+            // Small delay to ensure navigation completes
+            Future.delayed(const Duration(milliseconds: 50), () {
+              if (context.mounted) {
+                // Trigger immediate refresh in home screen
+                context.push('/home').then((_) {
+                  // Additional immediate refresh after navigation
+                  if (mounted) {
+                    context.pushReplacement('/home');
+                  }
+                });
+              }
+            });
+          }
         }
       }
     } catch (e) {
-      showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error);
+      showGlassSnackBar(
+        context,
+        message: e.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error,
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  void _showMultiAccountSelection(List<Map<String, dynamic>> customers) {
-    showModalBottomSheet(
+  Future<Map<String, dynamic>?> _showMultiAccountSelection(
+    List<Map<String, dynamic>> customers,
+  ) {
+    return showModalBottomSheet<Map<String, dynamic>?>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -303,15 +389,15 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           children: [
             Text('Хэрэглэгч сонгох', style: TextStyle(fontSize: 18.sp)),
             SizedBox(height: 16.h),
-            ...customers.map((c) => ListTile(
-              title: Text(c['customerName'] ?? 'Нэргүй'),
-              subtitle: Text(c['customerAddress'] ?? ''),
-              onTap: () {
-                setState(() => _selectedWalletCustomer = c);
-                Navigator.pop(context);
-                _handleAddressSubmit();
-              },
-            )),
+            ...customers.map(
+              (c) => ListTile(
+                title: Text(c['customerName'] ?? 'Нэргүй'),
+                subtitle: Text(c['customerAddress'] ?? ''),
+                onTap: () {
+                  Navigator.pop(context, c); // Return the selected customer
+                },
+              ),
+            ),
             SizedBox(height: 24.h),
           ],
         ),
@@ -328,13 +414,18 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       extendBodyBehindAppBar: true,
       appBar: buildStandardAppBar(context, title: 'Хаяг тохируулах'),
       body: CustomPaint(
-        painter: SharedBgPainter(isDark: isDark, brandColor: AppColors.deepGreen),
+        painter: SharedBgPainter(
+          isDark: isDark,
+          brandColor: AppColors.deepGreen,
+        ),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: isTablet ? 500 : double.infinity),
+                constraints: BoxConstraints(
+                  maxWidth: isTablet ? 500 : double.infinity,
+                ),
                 child: Column(
                   children: [
                     _buildHeader(isDark),
@@ -361,7 +452,11 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             color: AppColors.deepGreen.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.location_on_rounded, color: AppColors.deepGreen, size: 32.sp),
+          child: Icon(
+            Icons.location_on_rounded,
+            color: AppColors.deepGreen,
+            size: 32.sp,
+          ),
         ),
         SizedBox(height: 16.h),
         Text(
@@ -405,7 +500,11 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             label: 'Хот / Аймаг',
             value: _selectedCity?['name'] ?? 'Сонгох',
             icon: Icons.location_city_rounded,
-            onTap: () => _showPicker('Хот / Аймаг сонгох', _cities, (val) => _onCitySelected(val)),
+            onTap: () => _showPicker(
+              'Хот / Аймаг сонгох',
+              _cities,
+              (val) => _onCitySelected(val),
+            ),
             isDark: isDark,
           ),
           SizedBox(height: 16.h),
@@ -413,7 +512,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             label: 'Дүүрэг / Сум',
             value: _getDistrictDisplayName(_selectedDistrict),
             icon: Icons.map_rounded,
-            onTap: _selectedCity == null ? null : () => _showPicker('Дүүрэг сонгох', _districts, (val) => _onDistrictSelected(val)),
+            onTap: _selectedCity == null
+                ? null
+                : () => _showPicker(
+                    'Дүүрэг сонгох',
+                    _districts,
+                    (val) => _onDistrictSelected(val),
+                  ),
             isDark: isDark,
           ),
           SizedBox(height: 16.h),
@@ -421,15 +526,31 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             label: 'Хороо / Баг',
             value: _getKhorooDisplayName(_selectedKhoroo),
             icon: Icons.explore_rounded,
-            onTap: _selectedDistrict == null ? null : () => _showPicker('Хороо сонгох', _khoroos, (val) => _onKhorooSelected(val)),
+            onTap: _selectedDistrict == null
+                ? null
+                : () => _showPicker(
+                    'Хороо сонгох',
+                    _khoroos,
+                    (val) => _onKhorooSelected(val),
+                  ),
             isDark: isDark,
           ),
           SizedBox(height: 16.h),
           _buildSelectionField(
             label: 'Барилга / Хотхон',
-            value: _selectedBuilding?['name'] ?? _selectedBuilding?['ner'] ?? 'Сонгох',
+            value:
+                _selectedBuilding?['name'] ??
+                _selectedBuilding?['ner'] ??
+                'Сонгох',
             icon: Icons.apartment_rounded,
-            onTap: _selectedKhoroo == null ? null : () => _showPicker('Барилга сонгох', _buildings, (val) => _onBuildingSelected(val), showSearch: true),
+            onTap: _selectedKhoroo == null
+                ? null
+                : () => _showPicker(
+                    'Барилга сонгох',
+                    _buildings,
+                    (val) => _onBuildingSelected(val),
+                    showSearch: true,
+                  ),
             isDark: isDark,
           ),
           SizedBox(height: 24.h),
@@ -453,32 +574,56 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: onTap == null ? Colors.transparent : (isSelected ? AppColors.deepGreen.withOpacity(0.3) : Colors.transparent),
+            color: onTap == null
+                ? Colors.transparent
+                : (isSelected
+                      ? AppColors.deepGreen.withOpacity(0.3)
+                      : Colors.transparent),
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20.sp, color: isSelected ? AppColors.deepGreen : (isDark ? Colors.white24 : Colors.grey)),
+            Icon(
+              icon,
+              size: 20.sp,
+              color: isSelected
+                  ? AppColors.deepGreen
+                  : (isDark ? Colors.white24 : Colors.grey),
+            ),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontSize: 11.sp, color: isDark ? Colors.white38 : Colors.grey)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: isDark ? Colors.white38 : Colors.grey,
+                    ),
+                  ),
                   Text(
                     value,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: onTap == null ? (isDark ? Colors.white12 : Colors.grey.shade400) : (isDark ? Colors.white : Colors.black87),
+                      color: onTap == null
+                          ? (isDark ? Colors.white12 : Colors.grey.shade400)
+                          : (isDark ? Colors.white : Colors.black87),
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 18.sp, color: isDark ? Colors.white24 : Colors.grey),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 18.sp,
+              color: isDark ? Colors.white24 : Colors.grey,
+            ),
           ],
         ),
       ),
@@ -489,7 +634,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Хаалганы дугаар / Тоот', style: TextStyle(fontSize: 13.sp, color: isDark ? Colors.white70 : Colors.black54)),
+        Text(
+          'Хаалганы дугаар / Тоот',
+          style: TextStyle(
+            fontSize: 13.sp,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
+        ),
         SizedBox(height: 8.h),
         TextField(
           controller: _doorNoController,
@@ -498,9 +649,17 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           decoration: InputDecoration(
             hintText: 'Жишээ: 101',
             filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            fillColor: isDark
+                ? Colors.white.withOpacity(0.05)
+                : const Color(0xFFF8FAFC),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16.w,
+              vertical: 16.h,
+            ),
           ),
         ),
       ],
@@ -516,28 +675,46 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           backgroundColor: AppColors.deepGreen,
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(vertical: 16.h),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
           elevation: 4,
           shadowColor: AppColors.deepGreen.withOpacity(0.4),
         ),
         child: _isSaving
-            ? SizedBox(width: 24.r, height: 24.r, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            ? SizedBox(
+                width: 24.r,
+                height: 24.r,
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
             : Text('Хадгалах', style: TextStyle(fontSize: 16.sp)),
       ),
     );
   }
 
-  void _showPicker(String title, List<Map<String, dynamic>> items, Function(Map<String, dynamic>) onSelected, {bool showSearch = true}) {
+  void _showPicker(
+    String title,
+    List<Map<String, dynamic>> items,
+    Function(Map<String, dynamic>) onSelected, {
+    bool showSearch = true,
+  }) {
     List<Map<String, dynamic>> filteredItems = List.from(items);
-    
+
     // Initial sort
     filteredItems.sort((a, b) {
-      final nameA = title.contains('Дүүрэг') 
-          ? _getDistrictDisplayName(a) 
-          : (title.contains('Хороо') ? _getKhorooDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString());
-      final nameB = title.contains('Дүүрэг') 
-          ? _getDistrictDisplayName(b) 
-          : (title.contains('Хороо') ? _getKhorooDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString());
+      final nameA = title.contains('Дүүрэг')
+          ? _getDistrictDisplayName(a)
+          : (title.contains('Хороо')
+                ? _getKhorooDisplayName(a)
+                : (a['name'] ?? a['ner'] ?? '').toString());
+      final nameB = title.contains('Дүүрэг')
+          ? _getDistrictDisplayName(b)
+          : (title.contains('Хороо')
+                ? _getKhorooDisplayName(b)
+                : (b['name'] ?? b['ner'] ?? '').toString());
       return _numericCompare(nameA, nameB);
     });
 
@@ -549,7 +726,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         builder: (context, setModalState) {
           final isDark = context.isDarkMode;
           final primaryColor = AppColors.deepGreen;
-          
+
           return Container(
             height: MediaQuery.of(context).size.height * 0.8,
             decoration: BoxDecoration(
@@ -583,7 +760,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       const Spacer(),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close_rounded, color: isDark ? Colors.white54 : Colors.black45),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: isDark ? Colors.white54 : Colors.black45,
+                        ),
                       ),
                     ],
                   ),
@@ -593,20 +773,37 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                     padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 16.h),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9),
+                        color: isDark
+                            ? Colors.white.withOpacity(0.05)
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
-                          color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                          color: isDark
+                              ? Colors.white10
+                              : Colors.black.withOpacity(0.05),
                         ),
                       ),
                       child: TextField(
-                        style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14.sp),
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 14.sp,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Хайх...',
-                          hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38, fontSize: 14.sp),
-                          prefixIcon: Icon(Icons.search_rounded, color: primaryColor, size: 20.sp),
+                          hintStyle: TextStyle(
+                            color: isDark ? Colors.white38 : Colors.black38,
+                            fontSize: 14.sp,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: primaryColor,
+                            size: 20.sp,
+                          ),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 15.h),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 15.h,
+                          ),
                         ),
                         onChanged: (val) {
                           setModalState(() {
@@ -614,34 +811,47 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                               filteredItems = List.from(items);
                             } else {
                               final query = val.toLowerCase();
-                                filteredItems = items.where((i) {
-                                  final name = (title.contains('Дүүрэг') 
-                                      ? _getDistrictDisplayName(i)
-                                      : (title.contains('Хороо') ? _getKhorooDisplayName(i) : (i['name'] ?? i['ner'] ?? '').toString())).toLowerCase();
-                                  return name.contains(query);
-                                }).toList();
+                              filteredItems = items.where((i) {
+                                final name =
+                                    (title.contains('Дүүрэг')
+                                            ? _getDistrictDisplayName(i)
+                                            : (title.contains('Хороо')
+                                                  ? _getKhorooDisplayName(i)
+                                                  : (i['name'] ??
+                                                            i['ner'] ??
+                                                            '')
+                                                        .toString()))
+                                        .toLowerCase();
+                                return name.contains(query);
+                              }).toList();
                             }
-                            
+
                             filteredItems.sort((a, b) {
-                              final nameA = title.contains('Дүүрэг') 
-                                  ? _getDistrictDisplayName(a) 
-                                  : (title.contains('Хороо') ? _getKhorooDisplayName(a) : (a['name'] ?? a['ner'] ?? '').toString());
-                              final nameB = title.contains('Дүүрэг') 
-                                  ? _getDistrictDisplayName(b) 
-                                  : (title.contains('Хороо') ? _getKhorooDisplayName(b) : (b['name'] ?? b['ner'] ?? '').toString());
-                              
+                              final nameA = title.contains('Дүүрэг')
+                                  ? _getDistrictDisplayName(a)
+                                  : (title.contains('Хороо')
+                                        ? _getKhorooDisplayName(a)
+                                        : (a['name'] ?? a['ner'] ?? '')
+                                              .toString());
+                              final nameB = title.contains('Дүүрэг')
+                                  ? _getDistrictDisplayName(b)
+                                  : (title.contains('Хороо')
+                                        ? _getKhorooDisplayName(b)
+                                        : (b['name'] ?? b['ner'] ?? '')
+                                              .toString());
+
                               if (val.isNotEmpty) {
                                 final lowA = nameA.toLowerCase();
                                 final lowB = nameB.toLowerCase();
                                 final lowQuery = val.toLowerCase();
-                                
+
                                 bool startsA = lowA.startsWith(lowQuery);
                                 bool startsB = lowB.startsWith(lowQuery);
-                                
+
                                 if (startsA && !startsB) return -1;
                                 if (!startsA && startsB) return 1;
                               }
-                              
+
                               return _numericCompare(nameA, nameB);
                             });
                           });
@@ -651,15 +861,20 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                   ),
                 Expanded(
                   child: ListView.separated(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 8.h,
+                    ),
                     itemCount: filteredItems.length,
                     separatorBuilder: (context, index) => SizedBox(height: 4.h),
                     itemBuilder: (context, index) {
                       final item = filteredItems[index];
-                      final name = title.contains('Дүүрэг') 
+                      final name = title.contains('Дүүрэг')
                           ? _getDistrictDisplayName(item)
-                          : (title.contains('Хороо') ? _getKhorooDisplayName(item) : (item['name'] ?? item['ner'] ?? ''));
-                      
+                          : (title.contains('Хороо')
+                                ? _getKhorooDisplayName(item)
+                                : (item['name'] ?? item['ner'] ?? ''));
+
                       return Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -669,7 +884,10 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           },
                           borderRadius: BorderRadius.circular(16.r),
                           child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 14.h,
+                            ),
                             child: Row(
                               children: [
                                 Container(
@@ -680,7 +898,9 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     borderRadius: BorderRadius.circular(10.r),
                                   ),
                                   child: Icon(
-                                    title.contains('Барилга') ? Icons.apartment_rounded : Icons.location_on_rounded,
+                                    title.contains('Барилга')
+                                        ? Icons.apartment_rounded
+                                        : Icons.location_on_rounded,
                                     size: 18.sp,
                                     color: primaryColor,
                                   ),
@@ -690,14 +910,18 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                   child: Text(
                                     name,
                                     style: TextStyle(
-                                      color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                                      color: isDark
+                                          ? Colors.white.withOpacity(0.9)
+                                          : Colors.black87,
                                       fontSize: 15.sp,
                                     ),
                                   ),
                                 ),
                                 Icon(
                                   Icons.chevron_right_rounded,
-                                  color: isDark ? Colors.white24 : Colors.black12,
+                                  color: isDark
+                                      ? Colors.white24
+                                      : Colors.black12,
                                   size: 20.sp,
                                 ),
                               ],
@@ -712,7 +936,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
               ],
             ),
           );
-        }
+        },
       ),
     );
   }

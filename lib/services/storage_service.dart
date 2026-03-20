@@ -44,6 +44,7 @@ class StorageService {
   static const String _walletBairBaiguullagiinIdKey =
       'wallet_bair_baiguullagiin_id';
   static const String _walletBairBarilgiinIdKey = 'wallet_bair_barilgiin_id';
+  static const String _walletUserIdKey = 'wallet_user_id';
   static const String _walletBillingIdKey = 'wallet_billing_id';
   static const String _phoneVerifiedKey = 'phone_verified';
   static const String _deviceIdKey = 'device_id';
@@ -51,6 +52,29 @@ class StorageService {
   static const String _walletCustomerIdKey = 'wallet_customer_id';
   static const String _walletCustomerNameKey = 'wallet_customer_name';
   static const String _ebarimtInfoKey = 'ebarimt_info';
+  static const String _tootsKey = 'user_toots';
+
+  static Future<bool> saveToots(List<dynamic> toots) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_tootsKey, json.encode(toots));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<List<dynamic>> getToots() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tootsStr = prefs.getString(_tootsKey);
+      if (tootsStr != null) {
+        return json.decode(tootsStr) as List<dynamic>;
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 
   static Future<bool> saveEbarimtInfo(Map<String, dynamic> info) async {
     try {
@@ -148,6 +172,14 @@ class StorageService {
         await prefs.setString(_barilgiinIdKey, user!['barilgiinId'].toString());
       }
 
+      // Save walletUserId from root level
+      if (user?['walletUserId'] != null) {
+        await prefs.setString(
+          _walletUserIdKey,
+          user!['walletUserId'].toString(),
+        );
+      }
+
       // Save tukhainBaaziinKholbolt - check multiple possible locations
       String? tukhainBaaziinKholbolt;
 
@@ -177,6 +209,19 @@ class StorageService {
         await prefs.setBool(
           _taniltsuulgaKharakhEsekhKey,
           user!['taniltsuulgaKharakhEsekh'] == true,
+        );
+      }
+
+      // Save toots array if present (matches latest schema)
+      if (user?['toots'] != null && user!['toots'] is List) {
+        await prefs.setString(_tootsKey, json.encode(user['toots']));
+      }
+
+      // Save billNicknames array if present
+      if (user?['billNicknames'] != null && user!['billNicknames'] is List) {
+        await prefs.setString(
+          'bill_nicknames',
+          json.encode(user['billNicknames']),
         );
       }
 
@@ -464,25 +509,25 @@ class StorageService {
       if (source != null) {
         await prefs.setString(_walletBairSourceKey, source);
       }
-      
+
       if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
         await prefs.setString(_walletBairBaiguullagiinIdKey, baiguullagiinId);
       } else {
         await prefs.remove(_walletBairBaiguullagiinIdKey);
       }
-      
+
       if (barilgiinId != null && barilgiinId.isNotEmpty) {
         await prefs.setString(_walletBairBarilgiinIdKey, barilgiinId);
       } else {
         await prefs.remove(_walletBairBarilgiinIdKey);
       }
-      
+
       if (customerId != null && customerId.isNotEmpty) {
         await prefs.setString(_walletCustomerIdKey, customerId);
       } else {
         await prefs.remove(_walletCustomerIdKey);
       }
-      
+
       if (customerName != null && customerName.isNotEmpty) {
         await prefs.setString(_walletCustomerNameKey, customerName);
       } else {

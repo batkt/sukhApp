@@ -196,8 +196,8 @@ class _BillingCardState extends State<BillingCard>
                               displayName,
                               style: TextStyle(
                                 color: context.textPrimaryColor,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -207,21 +207,21 @@ class _BillingCardState extends State<BillingCard>
                             if (!showSubtitle &&
                                 billingName.isNotEmpty &&
                                 billingName != displayName) ...[
-                              SizedBox(height: 2.h),
+                              SizedBox(height: 4.h),
                               Text(
                                 billingName,
                                 style: TextStyle(
                                   color: context.textSecondaryColor.withOpacity(
                                     0.6,
                                   ),
-                                  fontSize: 11.sp,
+                                  fontSize: 13.sp,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
 
-                            SizedBox(height: 2.h),
+                            SizedBox(height: 4.h),
 
                             // Address line
                             Text(
@@ -232,7 +232,7 @@ class _BillingCardState extends State<BillingCard>
                                         : 'Хаяг сонгоно уу'),
                               style: TextStyle(
                                 color: context.textSecondaryColor,
-                                fontSize: 11.sp,
+                                fontSize: 13.sp,
                                 height: 1.3,
                               ),
                               maxLines: 1,
@@ -242,14 +242,14 @@ class _BillingCardState extends State<BillingCard>
                             // Biller name
                             if (billerName != null &&
                                 billerName.isNotEmpty) ...[
-                              SizedBox(height: 2.h),
+                              SizedBox(height: 4.h),
                               Text(
                                 billerName,
                                 style: TextStyle(
                                   color: context.textSecondaryColor.withOpacity(
                                     0.8,
                                   ),
-                                  fontSize: 10.sp,
+                                  fontSize: 12.sp,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 maxLines: 1,
@@ -288,87 +288,74 @@ class _BillingCardState extends State<BillingCard>
 
             // ── Action Buttons (Edit / Delete) ──
             if (hasActions) ...[
-              SizedBox(width: 6.w),
-              Container(
-                width: 42.w,
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1C2229) : Colors.white,
-                  borderRadius: BorderRadius.circular(14.r),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.06)
-                        : const Color(0xFFE8ECF0),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDark
-                          ? Colors.black.withOpacity(0.2)
-                          : Colors.black.withOpacity(0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 3),
+              SizedBox(width: 8.w),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (widget.onEditTap != null)
+                    _buildActionButton(
+                      onTap: widget.onEditTap!,
+                      icon: Icons.edit_outlined,
+                      color: AppColors.deepGreen,
+                      isDark: isDark,
+                      context: context,
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    if (widget.onEditTap != null)
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: widget.onEditTap,
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(14.r),
-                              bottom: widget.onDeleteTap == null
-                                  ? Radius.circular(14.r)
-                                  : Radius.zero,
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.edit_outlined,
-                                color: AppColors.deepGreen,
-                                size: 18.sp,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (widget.onEditTap != null && widget.onDeleteTap != null)
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: isDark
-                            ? Colors.white.withOpacity(0.06)
-                            : const Color(0xFFE8ECF0),
-                      ),
-                    if (widget.onDeleteTap != null)
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: widget.onDeleteTap,
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(14.r),
-                              top: widget.onEditTap == null
-                                  ? Radius.circular(14.r)
-                                  : Radius.zero,
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.delete_outline_rounded,
-                                color: Colors.red[400],
-                                size: 18.sp,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                  if (widget.onEditTap != null && widget.onDeleteTap != null)
+                    SizedBox(height: 8.h),
+                  if (widget.onDeleteTap != null)
+                    _buildActionButton(
+                      onTap: widget.onDeleteTap!,
+                      icon: Icons.delete_outline_rounded,
+                      color: Colors.red[400]!,
+                      isDark: isDark,
+                      context: context,
+                    ),
+                ],
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required VoidCallback onTap,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+    required BuildContext context,
+  }) {
+    return Container(
+      width: 42.w,
+      height: 42.w,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1C2229) : Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.06)
+              : const Color(0xFFE8ECF0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.2)
+                : Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(21.r),
+          child: Center(
+            child: Icon(icon, color: color, size: 18.sp),
+          ),
         ),
       ),
     );
@@ -381,22 +368,22 @@ class _BillingCardState extends State<BillingCard>
     bool isPrimary = false,
   }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
       decoration: BoxDecoration(
         color: isPrimary ? color : color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(10.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: isPrimary ? Colors.white : color, size: 11.sp),
-          SizedBox(width: 4.w),
+          Icon(icon, color: isPrimary ? Colors.white : color, size: 14.sp),
+          SizedBox(width: 6.w),
           Text(
             label,
             style: TextStyle(
               color: isPrimary ? Colors.white : color,
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w400,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

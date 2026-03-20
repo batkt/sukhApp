@@ -6,6 +6,9 @@ import 'package:sukh_app/components/Home/billing_connection_section.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/services/api_service.dart';
+import 'package:intl/intl.dart';
+import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 
 class BillingListPage extends StatefulWidget {
   final List<Map<String, dynamic>> billingList;
@@ -97,6 +100,74 @@ class _BillingListPageState extends State<BillingListPage> {
       if (mounted) {
         setState(() => _localIsLoading = false);
       }
+    }
+  }
+
+  String _formatNumberWithComma(dynamic value) {
+    if (value == null) return '0.00';
+    try {
+      final number = double.parse(value.toString());
+      final formatter = NumberFormat('#,##0.00', 'en_US');
+      return formatter.format(number);
+    } catch (e) {
+      return '0.00';
+    }
+  }
+
+  Future<void> _handleBillingTap(Map<String, dynamic> billing) async {
+    if (billing['isLocalData'] == true) {
+      Map<String, dynamic>? billingDetails = billing['billingDetails'];
+
+      if (billingDetails == null) {
+        final billingId = billing['billingId']?.toString();
+        if (billingId != null && billingId.isNotEmpty) {
+          setState(() => _localIsLoading = true);
+          try {
+            final response = await ApiService.getWalletBillingBills(
+              billingId: billingId,
+            );
+            if (response.isNotEmpty && response['billingId'] != null) {
+              billingDetails = response;
+              billing['billingDetails'] = billingDetails;
+            }
+          } catch (e) {
+            print('Error fetching billing details in list page: $e');
+          } finally {
+            if (mounted) setState(() => _localIsLoading = false);
+          }
+        }
+      }
+
+      final result = await Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (context) => BillingDetailPage(
+            billing: billing,
+            billingData: billingDetails,
+            expandAddressAbbreviations: widget.expandAddressAbbreviations,
+            formatNumberWithComma: _formatNumberWithComma,
+          ),
+        ),
+      );
+
+      if (result == true && mounted) {
+        _refresh();
+      }
+      return;
+    }
+
+    // Non-wallet usage
+    final result = await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (context) => BillingDetailPage(
+          billing: billing,
+          expandAddressAbbreviations: widget.expandAddressAbbreviations,
+          formatNumberWithComma: _formatNumberWithComma,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      _refresh();
     }
   }
 
@@ -199,13 +270,7 @@ class _BillingListPageState extends State<BillingListPage> {
                       residentialBillings: residential,
                       utilityBillings: utility,
                       userBillingData: widget.userBillingData,
-                      onBillingTap: (billing) {
-                        if (billing['isLocalData'] == true) {
-                          context.push('/nekhemjlekh');
-                        } else {
-                          widget.onBillingTap(billing);
-                        }
-                      },
+                      onBillingTap: _handleBillingTap,
                       expandAddressAbbreviations:
                           widget.expandAddressAbbreviations,
                       onDeleteTap: widget.onDeleteTap,

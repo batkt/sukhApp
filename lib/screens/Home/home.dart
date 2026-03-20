@@ -171,8 +171,8 @@ class _BookingScreenState extends State<NuurKhuudas>
     _refreshBillingInfo(); // Consolidated refresh
     _checkRecentWalletPayments(); // Check latest wallet payment status
 
-    // Periodic balance refresh (every 60s) - fallback when socket notification is missed
-    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    // Periodic balance refresh (every 15s) - faster updates for better UX
+    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) _refreshBillingInfo();
     });
 
@@ -224,14 +224,15 @@ class _BookingScreenState extends State<NuurKhuudas>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _loadNotificationCount();
-    // Refresh balance when dependencies change (e.g. returning from nekhemjlekh)
+    // Refresh balance when dependencies change (e.g. returning from address selection)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final now = DateTime.now();
       if (_lastBalanceRefresh == null ||
-          now.difference(_lastBalanceRefresh!).inSeconds >= 2) {
+          now.difference(_lastBalanceRefresh!).inSeconds >= 1) {
+        // Reduced to 1 second for immediate refresh
         _lastBalanceRefresh = now;
-        _loadAllBillingPayments();
+        _immediateRefresh(); // Use immediate refresh instead of just payments
       }
     });
   }
@@ -240,10 +241,17 @@ class _BookingScreenState extends State<NuurKhuudas>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed && mounted) {
+      // Immediate refresh when app resumes
       _loadAllBillingPayments();
+      _loadBillingList(); // Also refresh billing list
+
+      // Reset timer to more frequent updates
       _balanceRefreshTimer?.cancel();
-      _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-        if (mounted) _loadAllBillingPayments();
+      _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+        if (mounted) {
+          _loadAllBillingPayments();
+          _loadBillingList();
+        }
       });
     } else if (state == AppLifecycleState.paused) {
       _balanceRefreshTimer?.cancel();
@@ -343,33 +351,55 @@ class _BookingScreenState extends State<NuurKhuudas>
       double ownOrgTotal = 0.0;
       double ownOrgAldangi = 0.0;
 
-      // 2. Fetch User Profile
-      Map<String, dynamic>? userBillingData;
+      // 2. Fetch User Profile and extract all wallet-linked toots
+      List<Map<String, dynamic>> userBillingToots = [];
       try {
         final profileRes = await ApiService.getUserProfile();
         if (profileRes['success'] == true && profileRes['result'] != null) {
           final userData = profileRes['result'];
-          if (userData['walletCustomerId'] != null ||
-              userData['walletBairId'] != null ||
-              (userData['bairniiNer']?.isNotEmpty ?? false)) {
-            String fullName = userData['ovog'] != null
-                ? '${userData['ovog']} ${userData['ner'] ?? ''}'
-                : (userData['ner'] ?? '');
-            userBillingData = {
-              'customerId': userData['walletCustomerId']?.toString(),
-              'customerCode': userData['walletCustomerCode']?.toString(),
-              'customerName': fullName,
-              'billingName': 'Орон сууцны төлбөр',
-              'bairniiNer': userData['bairniiNer']?.toString() ?? '',
-              'walletBairId': userData['walletBairId']?.toString(),
-              'walletDoorNo': userData['walletDoorNo']?.toString(),
-              'isLocalData': true,
-            };
+          final List<dynamic> toots = userData['toots'] ?? [];
+
+          for (var toot in toots) {
+            if (toot['source'] == 'WALLET_API' ||
+                toot['walletCustomerId'] != null ||
+                toot['walletBairId'] != null) {
+              String fullName = toot['ovog'] != null && toot['ovog'].toString().isNotEmpty
+                  ? '${toot['ovog']} ${toot['ner'] ?? ''}'
+                  : (toot['ner'] ?? '');
+
+              if (fullName.trim().isEmpty) {
+                fullName = userData['ovog'] != null && userData['ovog'].toString().isNotEmpty
+                    ? '${userData['ovog']} ${userData['ner'] ?? ''}'
+                    : (userData['ner'] ?? '');
+              }
+
+              // Try to find matching billing in Wallet API list to get nickname
+              final matchedRaw = rawBillingList.firstWhere(
+                (b) => b is Map && b['billingId']?.toString() == toot['billingId']?.toString(),
+                orElse: () => <String, dynamic>{},
+              );
+
+              userBillingToots.add({
+                'customerId': toot['walletCustomerId']?.toString(),
+                'customerCode': toot['walletCustomerCode']?.toString(),
+                'customerName': fullName,
+                'billingName': matchedRaw.isNotEmpty && matchedRaw['billingName'] != null
+                    ? matchedRaw['billingName'].toString()
+                    : 'Орон сууцны төлбөр',
+                'nickname': matchedRaw.isNotEmpty ? matchedRaw['nickname']?.toString() : null,
+                'bairniiNer': toot['bairniiNer']?.toString() ?? userData['bairniiNer']?.toString() ?? '',
+                'walletBairId': toot['walletBairId']?.toString(),
+                'walletDoorNo': toot['walletDoorNo']?.toString(),
+                'billingId': toot['billingId']?.toString(), 
+                'isLocalData': true,
+              });
+            }
           }
         }
       } catch (_) {}
 
       // 3. Calculate Own Org (Residential) Balance
+      // ... (rest of the logic stays similar but we'll apply it to all toots later)
       final currentBaiguullagiinId = await StorageService.getBaiguullagiinId();
       if (currentBaiguullagiinId != '698e7fd3b6dd386b6c56a808') {
         try {
@@ -400,74 +430,95 @@ class _BookingScreenState extends State<NuurKhuudas>
       total = ownOrgTotal;
       totalAldangi = ownOrgAldangi;
 
-      // 4. Calculate Wallet Billing Balances
+      // 4. USE ACTUAL BILLING API DATA - Get individual billing for each toot
       List<Map<String, dynamic>> updatedBillingList = [];
-      for (var billing in rawBillingList) {
-        Map<String, dynamic> item = Map<String, dynamic>.from(billing);
-        double itemTotal = 0.0;
-        double itemAldandi = 0.0;
-        final billingId = billing['billingId']?.toString();
 
-        if (billingId != null && billingId.isNotEmpty) {
-          try {
-            final billsData = await ApiService.getWalletBillingBills(
+      // Fetch actual billing data for each toot
+      for (var userToot in userBillingToots) {
+        double tootTotal = 0.0;
+        double tootAldangi = 0.0;
+        List<Map<String, dynamic>> bills = [];
+
+        try {
+          // Get billing details for this specific toot using billingId
+          final billingId = userToot['billingId']?.toString();
+          final tootAddress = userToot['bairniiNer']?.toString() ?? '';
+          final tootDoorNo = userToot['walletDoorNo']?.toString() ?? '';
+
+          print('🔍 [DEBUG] Fetching billing for toot:');
+          print('   - billingId: $billingId');
+          print('   - address: $tootAddress');
+          print('   - doorNo: $tootDoorNo');
+
+          if (billingId != null && billingId.isNotEmpty) {
+            final billingDetails = await ApiService.getWalletBillingBills(
               billingId: billingId,
             );
-            List<dynamic> bills = (billsData['newBills'] is List)
-                ? billsData['newBills']
-                : (billsData.containsKey('newBills') &&
-                          billsData['newBills'] is Map
-                      ? [billsData['newBills']]
-                      : []);
-            for (var b in bills) {
-              itemTotal += _parseNum(b['billTotalAmount']);
-              itemAldandi += _parseNum(
-                b['billLateFeeAmount'] ?? b['billLateFee'],
-              );
+
+            print('🔍 [DEBUG] Billing response for $billingId:');
+            print('   - success: ${billingDetails['success']}');
+            print('   - data length: ${billingDetails['data']?.length ?? 0}');
+
+            if (billingDetails.isNotEmpty &&
+                billingDetails['billingId'] != null) {
+              final billingData = billingDetails;
+
+              print('🔍 [DEBUG] Billing data for $tootAddress $tootDoorNo:');
+              print('   - customerName: ${billingData['customerName']}');
+              print('   - customerAddress: ${billingData['customerAddress']}');
+              print('   - newBillsCount: ${billingData['newBillsCount']}');
+              print('   - paidTotal: ${billingData['paidTotal']}');
+
+              // Calculate from actual billing data
+              final newBills = billingData['newBills'] as List? ?? [];
+
+              print('🔍 [DEBUG] Processing ${newBills.length} new bills:');
+              for (var bill in newBills) {
+                final amount = _parseNum(bill['billTotalAmount']);
+                final lateFee = _parseNum(bill['billLateFee']);
+                tootTotal += amount;
+                tootAldangi += lateFee;
+                bills.add(bill);
+                print(
+                  '   - Bill: ${bill['billNo']} - Amount: $amount - LateFee: $lateFee',
+                );
+              }
+
+              print('🔍 [DEBUG] Final totals for $tootAddress $tootDoorNo:');
+              print('   - Total: $tootTotal');
+              print('   - Aldangi: $tootAldangi');
+
+              // Store billing details for display
+              userToot['billingDetails'] = billingData;
+              userToot['bills'] = bills;
+              userToot['hasNewBills'] = billingData['hasNewBills'] ?? false;
+              userToot['newBillsCount'] = billingData['newBillsCount'] ?? 0;
+              userToot['paidCount'] = billingData['paidCount'] ?? 0;
+              userToot['paidTotal'] = _parseNum(billingData['paidTotal']);
+            } else {
+              print('❌ [DEBUG] No billing data found for $billingId');
             }
-          } catch (_) {}
-        }
-        item['perItemTotal'] = itemTotal;
-        item['perItemAldangi'] = itemAldandi;
-
-        final bName = item['billingName']?.toString() ?? '';
-        if (ownOrgTotal > 0 &&
-            (bName.contains('Орон сууцны') || bName.contains('Property'))) {
-        } else {
-          total += itemTotal;
-          totalAldangi += itemAldandi;
-        }
-        updatedBillingList.add(item);
-      }
-
-      if (userBillingData != null) {
-        userBillingData['perItemTotal'] = ownOrgTotal;
-        userBillingData['perItemAldangi'] = ownOrgAldangi;
-
-        bool hasDuplicateInWallet = false;
-        for (var b in updatedBillingList) {
-          final bName = b['billingName']?.toString() ?? '';
-          if (bName == 'Орон сууцны төлбөр' ||
-              (b['customerId']?.toString() ==
-                      userBillingData['customerId']?.toString() &&
-                  userBillingData['customerId'] != null)) {
-            if (_parseNum(b['perItemTotal']) == 0 && ownOrgTotal > 0) {
-              b['perItemTotal'] = ownOrgTotal;
-              b['perItemAldangi'] = ownOrgAldangi;
-            }
-            hasDuplicateInWallet = true;
+          } else {
+            print(
+              '❌ [DEBUG] No billingId found for toot at $tootAddress $tootDoorNo',
+            );
           }
+        } catch (e) {
+          print('❌ [ERROR] Failed to fetch billing details for toot: $e');
+          // Fallback to 0 if API call fails
+          tootTotal = 0.0;
+          tootAldangi = 0.0;
         }
 
-        if (hasDuplicateInWallet) {
-          userBillingData = null;
-        }
+        userToot['perItemTotal'] = tootTotal;
+        userToot['perItemAldangi'] = tootAldangi;
+        updatedBillingList.add(userToot);
       }
 
       if (mounted) {
         setState(() {
           _billingList = updatedBillingList;
-          _userBillingData = userBillingData;
+          _userBillingData = null; // We now merge everything into _billingList
           totalNiitTulbur = total;
           totalNiitAldangi = totalAldangi;
           _isLoadingBillingList = false;
@@ -481,6 +532,27 @@ class _BookingScreenState extends State<NuurKhuudas>
           _isInitialBillingLoaded = true;
         });
       }
+    }
+  }
+
+  // Immediate refresh method for critical operations
+  Future<void> _immediateRefresh() async {
+    if (!mounted) return;
+
+    try {
+      // Force refresh all billing-related data immediately
+      await Future.wait([
+        _loadBillingList(),
+        _loadAllBillingPayments(),
+        _loadNotificationCount(), // Also refresh notifications
+      ]);
+
+      // Force UI update
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('❌ [ERROR] Immediate refresh failed: $e');
     }
   }
 
@@ -537,10 +609,11 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     try {
       await ApiService.removeWalletBilling(billingId: billingId);
-      if (mounted) {
-        _loadBillingList();
-        _loadAllBillingPayments();
-      }
+
+      // Immediate refresh after successful deletion
+      await _immediateRefresh();
+
+      // Show success message with fresh context
       if (navigatorKey.currentContext != null) {
         showGlassSnackBar(
           navigatorKey.currentContext!,
@@ -548,8 +621,6 @@ class _BookingScreenState extends State<NuurKhuudas>
           icon: Icons.check_circle,
           iconColor: Colors.green,
         );
-        _loadBillingList();
-        _loadAllBillingPayments();
       }
     } catch (e) {
       if (navigatorKey.currentContext != null) {
@@ -680,9 +751,15 @@ class _BookingScreenState extends State<NuurKhuudas>
     try {
       final billers = await ApiService.getWalletBillers();
 
+      // Filter out "Төрийн банк" and "Онлайн биллер"
+      final filteredBillers = billers.where((biller) {
+        final name = (biller['name'] ?? '').toString().toLowerCase();
+        return !name.contains('төрийн банк') && !name.contains('онлайн биллер');
+      }).toList();
+
       if (mounted) {
         setState(() {
-          _billers = billers;
+          _billers = filteredBillers;
           _isLoadingBillers = false;
         });
       }
@@ -1276,6 +1353,11 @@ class _BookingScreenState extends State<NuurKhuudas>
 
                       SizedBox(height: 16.h),
 
+                      // Нэмэлт боломж Section
+                      _buildAdditionalServicesSection(),
+
+                      SizedBox(height: 16.h),
+
                       // Billers Grid
                       if (_isLoadingBillers)
                         SizedBox(
@@ -1428,32 +1510,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     return expanded;
   }
 
-  Future<void> _showBillingDetailModal(
-    Map<String, dynamic> billing, [
-    BuildContext? bContext,
-  ]) async {
-    final navContext = bContext ?? navigatorKey.currentContext;
-    if (navContext == null) return;
-    if (billing['isLocalData'] == true) {
-      navContext.push('/nekhemjlekh');
-      return;
-    }
 
-    final result = await Navigator.of(navContext, rootNavigator: true).push(
-      MaterialPageRoute(
-        builder: (context) => BillingDetailPage(
-          billing: billing,
-          expandAddressAbbreviations: _expandAddressAbbreviations,
-          formatNumberWithComma: _formatNumberWithComma,
-        ),
-      ),
-    );
-
-    if (result == true && mounted) {
-      _loadAllBillingPayments();
-      _loadBillingList();
-    }
-  }
 
   void _navigateToBillingList() {
     context.push(
@@ -1464,7 +1521,6 @@ class _BookingScreenState extends State<NuurKhuudas>
         'isLoading': _isLoadingBillingList,
         'totalBalance': totalNiitTulbur,
         'totalAldangi': totalNiitAldangi,
-        'onBillingTap': (billing) => _showBillingDetailModal(billing),
         'expandAddressAbbreviations': _expandAddressAbbreviations,
         'onDeleteTap': _deleteBilling,
         'onEditTap': _editBilling,
@@ -1574,6 +1630,128 @@ class _BookingScreenState extends State<NuurKhuudas>
                     : AppColors.deepGreen.withOpacity(0.6),
                 size: 12.sp,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdditionalServicesSection() {
+    final isDark = context.isDarkMode;
+
+    // Define the additional services
+    final services = [
+      {'name': 'parkease', 'label': 'Parkease'},
+      {'name': 'камер', 'label': 'Камер'},
+      {'name': 'лифт', 'label': 'Лифт'},
+      {'name': 'дуудлага', 'label': 'Дуудлага'},
+      {'name': 'цэвэрлэгээ', 'label': 'Цэвэрлэгээ'},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+          child: Row(
+            children: [
+              Container(
+                width: 4.w,
+                height: 16.h,
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Text(
+                'Нэмэлт боломж',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: context.textPrimaryColor,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        SizedBox(height: 12.h),
+
+        // Services Grid
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(vertical: 4.h),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 12.w,
+            mainAxisSpacing: 12.h,
+            childAspectRatio: 0.8,
+          ),
+          itemCount: services.length,
+          itemBuilder: (context, index) {
+            final service = services[index];
+            return _buildServiceCard(service, isDark);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServiceCard(Map<String, dynamic> service, bool isDark) {
+    return GestureDetector(
+      onTap: () {
+        // Disabled for now - show "Тун удахгүй" message
+        showGlassSnackBar(
+          context,
+          message: 'Тун удахгүй',
+          icon: Icons.info_outline,
+          iconColor: Colors.orange,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : const Color(0xFFF5F7FA),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.grey.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Temporary logo placeholder
+            Container(
+              width: 32.w,
+              height: 32.w,
+              decoration: BoxDecoration(
+                color: AppColors.deepGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(
+                Icons.apps_rounded, // Temporary icon
+                color: AppColors.deepGreen.withOpacity(0.6),
+                size: 20.sp,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              service['label'] ?? '',
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: isDark ? Colors.white70 : Colors.black87,
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
