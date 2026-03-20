@@ -49,15 +49,20 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     _loadAllBillingsData();
   }
 
-  Map<String, dynamic> _extractBillingData(Map<String, dynamic> data, String? billingId) {
-    if (billingId == null) return {'bills': <Map<String, dynamic>>[], 'billingName': null};
+  Map<String, dynamic> _extractBillingData(
+    Map<String, dynamic> data,
+    String? billingId,
+  ) {
+    if (billingId == null)
+      return {'bills': <Map<String, dynamic>>[], 'billingName': null};
 
-    if (data['billingId']?.toString() == billingId && data['newBills'] is List) {
+    if (data['billingId']?.toString() == billingId &&
+        data['newBills'] is List) {
       final list = data['newBills'] as List;
       if (list.isEmpty || (list[0] is Map && list[0].containsKey('billId'))) {
         return {
           'bills': List<Map<String, dynamic>>.from(list),
-          'billingName': data['billingName']
+          'billingName': data['billingName'],
         };
       }
     }
@@ -71,7 +76,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       if (matchedItem is Map && matchedItem['newBills'] is List) {
         return {
           'bills': List<Map<String, dynamic>>.from(matchedItem['newBills']),
-          'billingName': matchedItem['billingName']
+          'billingName': matchedItem['billingName'],
         };
       }
     }
@@ -83,7 +88,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         if (firstItem is Map && firstItem.containsKey('billId')) {
           return {
             'bills': List<Map<String, dynamic>>.from(itemList),
-            'billingName': data['billingName']
+            'billingName': data['billingName'],
           };
         } else if (firstItem is Map && firstItem.containsKey('billingId')) {
           final matchedItem = itemList.firstWhere(
@@ -93,14 +98,14 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           if (matchedItem is Map && matchedItem['newBills'] is List) {
             return {
               'bills': List<Map<String, dynamic>>.from(matchedItem['newBills']),
-              'billingName': matchedItem['billingName']
+              'billingName': matchedItem['billingName'],
             };
           }
         }
       } else {
         return {
           'bills': <Map<String, dynamic>>[],
-          'billingName': data['billingName']
+          'billingName': data['billingName'],
         };
       }
     }
@@ -126,7 +131,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
         final extracted = _extractBillingData(billingData, billingId);
         final bills = extracted['bills'] as List<Map<String, dynamic>>;
-        final bName = extracted['billingName']?.toString() ??
+        final bName =
+            extracted['billingName']?.toString() ??
             billingData['billingName']?.toString() ??
             'Хэрэглээний төлбөр';
 
@@ -391,13 +397,16 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     final firstBill = _allBills.isNotEmpty ? _allBills.first : null;
     final billingName =
         widget.billing['billingName']?.toString() ?? 'Хэрэглээний төлбөр';
-    
-    final customerAddressStr = firstBill?['customerAddress']?.toString() ??
+
+    final customerAddressStr =
+        firstBill?['customerAddress']?.toString() ??
         widget.billing['customerAddress']?.toString() ??
         widget.billing['bairniiNer']?.toString() ??
         '';
-        
-    final customerAddress = widget.expandAddressAbbreviations(customerAddressStr);
+
+    final customerAddress = widget.expandAddressAbbreviations(
+      customerAddressStr,
+    );
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -421,11 +430,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                       billingId: billingId,
                       billingName: billingName,
                       customerName:
-                          widget.billing['customerName']?.toString() ?? 
-                          widget.billing['ner']?.toString() ?? '',
+                          widget.billing['customerName']?.toString() ??
+                          widget.billing['ner']?.toString() ??
+                          '',
                       customerAddress:
-                          widget.billing['customerAddress']?.toString() ?? 
-                          widget.billing['bairniiNer']?.toString() ?? '',
+                          widget.billing['customerAddress']?.toString() ??
+                          widget.billing['bairniiNer']?.toString() ??
+                          '',
                     ),
                   ),
                 );

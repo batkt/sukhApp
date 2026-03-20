@@ -20,11 +20,9 @@ class PageTransitions {
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const curve = Curves.easeOutCubic;
 
-        // Primary: slide in from right to center (dx: 1.0 -> 0.0)
         final primaryTween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
             .chain(CurveTween(curve: curve));
             
-        // Secondary: slide out slightly to the left (dx: 0.0 -> -0.3) for parallax
         final secondaryTween = Tween(begin: Offset.zero, end: const Offset(-0.3, 0.0))
             .chain(CurveTween(curve: curve));
 
@@ -39,7 +37,6 @@ class PageTransitions {
     );
   }
 
-  /// Creates a horizontal slide transition for Navigator.push
   static PageRouteBuilder<T> createRoute<T>(Widget page) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
@@ -65,7 +62,6 @@ class PageTransitions {
     );
   }
 
-  /// Alias for buildSmoothFadeTransition using the new slide animation
   static CustomTransitionPage<void> buildSmoothFadeTransition({
     required LocalKey key,
     required Widget child,
@@ -73,7 +69,6 @@ class PageTransitions {
     return buildFadeThroughTransition(key: key, child: child);
   }
 
-  /// Alias for createSmoothRoute using the new slide animation 
   static PageRouteBuilder<T> createSmoothRoute<T>(Widget page) {
     return createRoute<T>(page);
   }

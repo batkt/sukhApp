@@ -27,7 +27,9 @@ class PaymentHistory {
       paymentStatus: json['paymentStatus'],
       paymentStatusText: json['paymentStatusText'],
       paymentStatusDate: DateTime.parse(json['paymentStatusDate']),
-      bills: (json['bills'] as List).map((bill) => Bill.fromJson(bill)).toList(),
+      bills: (json['bills'] as List)
+          .map((bill) => Bill.fromJson(bill))
+          .toList(),
     );
   }
 }
@@ -39,6 +41,7 @@ class Bill {
   final bool hasVat;
   final double billTotalAmount;
   final String billPeriod;
+  final double billLateFee;
 
   Bill({
     required this.billerName,
@@ -47,16 +50,18 @@ class Bill {
     required this.hasVat,
     required this.billTotalAmount,
     required this.billPeriod,
+    required this.billLateFee,
   });
 
   factory Bill.fromJson(Map<String, dynamic> json) {
     return Bill(
       billerName: json['billerName'],
-      billType: json['billtype'],
+      billType: json['billType'] ?? json['billtype'],
       billNo: json['billNo'],
       hasVat: json['hasVat'],
       billTotalAmount: (json['billTotalAmount'] as num).toDouble(),
       billPeriod: json['billPeriod'],
+      billLateFee: (json['billLateFee'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

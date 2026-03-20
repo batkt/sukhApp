@@ -212,11 +212,20 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                       ),
                                       SizedBox(width: 16.w),
                                       Text(
-                                        '${NumberFormat('#,##0.00').format(bill.billTotalAmount)}₮',
+                                        '${NumberFormat('#,##0.00').format(bill.billTotalAmount)}',
                                         style: TextStyle(
                                           fontSize: 14.sp,
                                           fontWeight: FontWeight.w600,
                                           color: context.textPrimaryColor,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        '${NumberFormat('#,##0.00').format(bill.billLateFee)}',
+                                        style: TextStyle(
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.error,
                                         ),
                                       ),
                                     ],

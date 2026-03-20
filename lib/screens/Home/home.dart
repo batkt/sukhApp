@@ -15,7 +15,6 @@ import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
@@ -1697,100 +1696,8 @@ class _BookingScreenState extends State<NuurKhuudas>
             mainAxisSpacing: 12.h,
             childAspectRatio: 0.8,
           ),
-          itemCount: services.length + 1, // +1 for test button
+          itemCount: services.length,
           itemBuilder: (context, index) {
-            if (index == services.length) {
-              // Test button
-              return GestureDetector(
-                onTap: () async {
-                  int testIndex = 0;
-                  final scenarios = [
-                    // Force update
-                    {
-                      "version": "9.9.9",
-                      "minVersion": "9.9.9",
-                      "buildNumber": "999",
-                      "isForceUpdate": true,
-                      "updateUrl":
-                          "https://play.google.com/store/apps/details?id=com.home.sukh_app",
-                      "message": "TEST: Force update required!",
-                    },
-                    // Recommended update
-                    {
-                      "version": "3.0.0",
-                      "minVersion": "2.0.0",
-                      "buildNumber": "50",
-                      "isForceUpdate": false,
-                      "updateUrl":
-                          "https://play.google.com/store/apps/details?id=com.home.sukh_app",
-                      "message": "TEST: New features available!",
-                    },
-                    // No update
-                    {
-                      "version": "2.1.2",
-                      "minVersion": "2.0.0",
-                      "buildNumber": "36",
-                      "isForceUpdate": false,
-                    },
-                  ];
-
-                  final scenario = scenarios[testIndex % scenarios.length];
-                  testIndex++;
-
-                  // Enable test mode with scenario
-                  // Note: You'll need to add test mode to UpdateService first
-                  print(
-                    '🧪 Testing scenario: ${scenario["message"] ?? "No update"}',
-                  );
-
-                  // For now, just show current version info
-                  final packageInfo = await PackageInfo.fromPlatform();
-                  showGlassSnackBar(
-                    context,
-                    message:
-                        'Current: ${packageInfo.version} (${packageInfo.buildNumber})',
-                    icon: Icons.info,
-                  );
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : const Color(0xFFF5F7FA),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 38.w,
-                        height: 38.w,
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(isDark ? 0.2 : 0.12),
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Icon(
-                          Icons.bug_report,
-                          color: Colors.red,
-                          size: 22.sp,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        'Test',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
             final service = services[index];
             return _buildServiceCard(service, isDark);
           },
@@ -1833,8 +1740,8 @@ class _BookingScreenState extends State<NuurKhuudas>
           children: [
             // Logo/Icon
             Container(
-              width: 38.w,
-              height: 38.w,
+              width: 50.w,
+              height: 50.w,
               decoration: BoxDecoration(
                 color: serviceColor.withOpacity(isDark ? 0.2 : 0.12),
                 borderRadius: BorderRadius.circular(10.r),

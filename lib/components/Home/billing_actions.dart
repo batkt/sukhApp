@@ -211,7 +211,7 @@ class HomeBillingManager {
                 SizedBox(height: 20.h),
                 SizedBox(
                   width: double.infinity,
-                  height: 48.h,
+                  height: 50.h,
                   child: ElevatedButton(
                     onPressed: () =>
                         Navigator.of(ctx).pop(controller.text.trim()),
@@ -222,12 +222,15 @@ class HomeBillingManager {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14.r),
                       ),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
                     ),
-                    child: Text(
-                      'Хадгалах',
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w500,
+                    child: Center(
+                      child: Text(
+                        'Хадгалах',
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
