@@ -4,28 +4,33 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sukh_app/components/Menu/side_menu.dart';
-import 'package:sukh_app/components/Home/billing_connection_section.dart';
-import 'package:sukh_app/components/Home/billing_list_section.dart';
-import 'package:sukh_app/components/Home/billers_grid.dart';
-import 'package:sukh_app/components/Home/blog_slider_section.dart';
-import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
-import 'package:sukh_app/models/geree_model.dart';
+import 'package:sukh_app/services/session_service.dart';
+import 'package:sukh_app/services/update_service.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
+import 'package:sukh_app/widgets/shake_hint_modal.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/common/bg_painter.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
+import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 import 'package:sukh_app/screens/Home/billing_list_page.dart';
 import 'package:sukh_app/components/Home/billing_actions.dart';
 import 'package:sukh_app/components/Home/billing_box.dart';
 import 'package:sukh_app/components/Home/billers_section.dart';
 import 'package:sukh_app/components/Home/home_header.dart';
-import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/components/Menu/side_menu.dart';
+import 'package:sukh_app/components/Home/blog_slider_section.dart';
+import 'package:sukh_app/components/Home/billers_grid.dart';
 import 'package:sukh_app/utils/format_util.dart';
-import 'package:sukh_app/constants/constants.dart';
-import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:provider/provider.dart';
 import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
@@ -230,10 +235,11 @@ class _BookingScreenState extends State<NuurKhuudas>
       final now = DateTime.now();
       // Added an initial loaded guard so that didChangeDependencies doesn't
       // instantly double-fetch the API on hot-restart initialization.
-      if (_isInitialBillingLoaded && 
-          (_lastBalanceRefresh == null || now.difference(_lastBalanceRefresh!).inSeconds >= 15)) {
+      if (_isInitialBillingLoaded &&
+          (_lastBalanceRefresh == null ||
+              now.difference(_lastBalanceRefresh!).inSeconds >= 15)) {
         _lastBalanceRefresh = now;
-        _immediateRefresh(); 
+        _immediateRefresh();
       }
     });
   }
@@ -364,19 +370,24 @@ class _BookingScreenState extends State<NuurKhuudas>
             if (toot['source'] == 'WALLET_API' ||
                 toot['walletCustomerId'] != null ||
                 toot['walletBairId'] != null) {
-              String fullName = toot['ovog'] != null && toot['ovog'].toString().isNotEmpty
+              String fullName =
+                  toot['ovog'] != null && toot['ovog'].toString().isNotEmpty
                   ? '${toot['ovog']} ${toot['ner'] ?? ''}'
                   : (toot['ner'] ?? '');
 
               if (fullName.trim().isEmpty) {
-                fullName = userData['ovog'] != null && userData['ovog'].toString().isNotEmpty
+                fullName =
+                    userData['ovog'] != null &&
+                        userData['ovog'].toString().isNotEmpty
                     ? '${userData['ovog']} ${userData['ner'] ?? ''}'
                     : (userData['ner'] ?? '');
               }
 
               // Try to find matching billing in Wallet API list to get nickname
               final matchedRaw = rawBillingList.firstWhere(
-                (b) => b is Map && b['billingId']?.toString() == toot['billingId']?.toString(),
+                (b) =>
+                    b is Map &&
+                    b['billingId']?.toString() == toot['billingId']?.toString(),
                 orElse: () => <String, dynamic>{},
               );
 
@@ -384,14 +395,20 @@ class _BookingScreenState extends State<NuurKhuudas>
                 'customerId': toot['walletCustomerId']?.toString(),
                 'customerCode': toot['walletCustomerCode']?.toString(),
                 'customerName': fullName,
-                'billingName': matchedRaw.isNotEmpty && matchedRaw['billingName'] != null
+                'billingName':
+                    matchedRaw.isNotEmpty && matchedRaw['billingName'] != null
                     ? matchedRaw['billingName'].toString()
                     : 'Орон сууцны төлбөр',
-                'nickname': matchedRaw.isNotEmpty ? matchedRaw['nickname']?.toString() : null,
-                'bairniiNer': toot['bairniiNer']?.toString() ?? userData['bairniiNer']?.toString() ?? '',
+                'nickname': matchedRaw.isNotEmpty
+                    ? matchedRaw['nickname']?.toString()
+                    : null,
+                'bairniiNer':
+                    toot['bairniiNer']?.toString() ??
+                    userData['bairniiNer']?.toString() ??
+                    '',
                 'walletBairId': toot['walletBairId']?.toString(),
                 'walletDoorNo': toot['walletDoorNo']?.toString(),
-                'billingId': toot['billingId']?.toString(), 
+                'billingId': toot['billingId']?.toString(),
                 'isLocalData': true,
               });
             }
@@ -1476,8 +1493,6 @@ class _BookingScreenState extends State<NuurKhuudas>
     return expanded;
   }
 
-
-
   void _navigateToBillingList() {
     context.push(
       '/billing-list',
@@ -1606,13 +1621,37 @@ class _BookingScreenState extends State<NuurKhuudas>
   Widget _buildAdditionalServicesSection() {
     final isDark = context.isDarkMode;
 
-    // Define the additional services
     final services = [
-      {'name': 'parkease', 'label': 'Parkease'},
-      {'name': 'камер', 'label': 'Камер'},
-      {'name': 'лифт', 'label': 'Лифт'},
-      {'name': 'дуудлага', 'label': 'Дуудлага'},
-      {'name': 'цэвэрлэгээ', 'label': 'Цэвэрлэгээ'},
+      {
+        'name': 'parkease',
+        'label': 'ParkEase',
+        'imageAsset': 'lib/assets/img/parkease_logo.png',
+        'color': const Color(0xFF3B82F6),
+      }, // Bright Blue
+      {
+        'name': 'камер',
+        'label': 'Камер',
+        'icon': Icons.videocam_rounded,
+        'color': const Color(0xFF8B5CF6),
+      }, // Bright Purple
+      {
+        'name': 'лифт',
+        'label': 'Лифт',
+        'icon': Icons.elevator_rounded,
+        'color': const Color(0xFFF97316),
+      }, // Bright Orange
+      {
+        'name': 'дуудлага',
+        'label': 'Дуудлага',
+        'icon': Icons.build_circle_rounded,
+        'color': const Color(0xFFEF4444),
+      }, // Bright Red
+      {
+        'name': 'цэвэрлэгээ',
+        'label': 'Цэвэрлэгээ',
+        'icon': Icons.cleaning_services_rounded,
+        'color': const Color(0xFF10B981),
+      }, // Bright Emerald
     ];
 
     return Column(
@@ -1658,8 +1697,100 @@ class _BookingScreenState extends State<NuurKhuudas>
             mainAxisSpacing: 12.h,
             childAspectRatio: 0.8,
           ),
-          itemCount: services.length,
+          itemCount: services.length + 1, // +1 for test button
           itemBuilder: (context, index) {
+            if (index == services.length) {
+              // Test button
+              return GestureDetector(
+                onTap: () async {
+                  int testIndex = 0;
+                  final scenarios = [
+                    // Force update
+                    {
+                      "version": "9.9.9",
+                      "minVersion": "9.9.9",
+                      "buildNumber": "999",
+                      "isForceUpdate": true,
+                      "updateUrl":
+                          "https://play.google.com/store/apps/details?id=com.home.sukh_app",
+                      "message": "TEST: Force update required!",
+                    },
+                    // Recommended update
+                    {
+                      "version": "3.0.0",
+                      "minVersion": "2.0.0",
+                      "buildNumber": "50",
+                      "isForceUpdate": false,
+                      "updateUrl":
+                          "https://play.google.com/store/apps/details?id=com.home.sukh_app",
+                      "message": "TEST: New features available!",
+                    },
+                    // No update
+                    {
+                      "version": "2.1.2",
+                      "minVersion": "2.0.0",
+                      "buildNumber": "36",
+                      "isForceUpdate": false,
+                    },
+                  ];
+
+                  final scenario = scenarios[testIndex % scenarios.length];
+                  testIndex++;
+
+                  // Enable test mode with scenario
+                  // Note: You'll need to add test mode to UpdateService first
+                  print(
+                    '🧪 Testing scenario: ${scenario["message"] ?? "No update"}',
+                  );
+
+                  // For now, just show current version info
+                  final packageInfo = await PackageInfo.fromPlatform();
+                  showGlassSnackBar(
+                    context,
+                    message:
+                        'Current: ${packageInfo.version} (${packageInfo.buildNumber})',
+                    icon: Icons.info,
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : const Color(0xFFF5F7FA),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 38.w,
+                        height: 38.w,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(isDark ? 0.2 : 0.12),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Icon(
+                          Icons.bug_report,
+                          color: Colors.red,
+                          size: 22.sp,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        'Test',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
             final service = services[index];
             return _buildServiceCard(service, isDark);
           },
@@ -1669,6 +1800,8 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   Widget _buildServiceCard(Map<String, dynamic> service, bool isDark) {
+    final serviceColor = service['color'] as Color? ?? AppColors.deepGreen;
+
     return GestureDetector(
       onTap: () {
         // Disabled for now - show "Тун удахгүй" message
@@ -1685,29 +1818,40 @@ class _BookingScreenState extends State<NuurKhuudas>
               ? Colors.white.withOpacity(0.05)
               : const Color(0xFFF5F7FA),
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : Colors.grey.withOpacity(0.2),
-            width: 1,
-          ),
+          // Only add border if not ParkEase
+          border: service['name'] != 'parkease'
+              ? Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.grey.withOpacity(0.2),
+                  width: 1,
+                )
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Temporary logo placeholder
+            // Logo/Icon
             Container(
-              width: 32.w,
-              height: 32.w,
+              width: 38.w,
+              height: 38.w,
               decoration: BoxDecoration(
-                color: AppColors.deepGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8.r),
+                color: serviceColor.withOpacity(isDark ? 0.2 : 0.12),
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              child: Icon(
-                Icons.apps_rounded, // Temporary icon
-                color: AppColors.deepGreen.withOpacity(0.6),
-                size: 20.sp,
-              ),
+              child: service['imageAsset'] != null
+                  ? Padding(
+                      padding: EdgeInsets.all(6.w),
+                      child: Image.asset(
+                        service['imageAsset'] as String,
+                        fit: BoxFit.contain,
+                      ),
+                    )
+                  : Icon(
+                      service['icon'] as IconData?,
+                      color: serviceColor,
+                      size: 22.sp,
+                    ),
             ),
             SizedBox(height: 8.h),
             Text(

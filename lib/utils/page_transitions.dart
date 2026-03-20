@@ -3,21 +3,11 @@ import 'package:go_router/go_router.dart';
 
 /// Global page transition configurations for the app
 class PageTransitions {
-  /// Duration for fade out (current page disappearing)
-  static const int fadeOutDurationMs = 150;
+  /// Total transition duration (standard 300ms for smooth sliding)
+  static const int totalDurationMs = 300;
 
-  /// Duration for fade in (new page appearing)
-  static const int fadeInDurationMs = 150;
-
-  /// Total transition duration
-  static const int totalDurationMs = fadeOutDurationMs + fadeInDurationMs;
-
-  /// Creates a fade-through transition for GoRouter
-  ///
-  /// This transition ensures:
-  /// 1. Current page fades out completely first
-  /// 2. Then new page fades in
-  /// 3. No overlapping/mixing of page items during transition
+  /// Creates a horizontal slide transition for GoRouter
+  /// Maintains the old method name so we don't have to rewrite app_router.dart
   static CustomTransitionPage<void> buildFadeThroughTransition({
     required LocalKey key,
     required Widget child,
@@ -28,132 +18,63 @@ class PageTransitions {
       transitionDuration: const Duration(milliseconds: totalDurationMs),
       reverseTransitionDuration: const Duration(milliseconds: totalDurationMs),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Create a sequential fade transition:
-        // - First half: fade out old page (0.0 to 0.5 -> opacity 1.0 to 0.0)
-        // - Second half: fade in new page (0.5 to 1.0 -> opacity 0.0 to 1.0)
+        const curve = Curves.easeOutCubic;
 
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (context, child) {
-            double opacity;
+        // Primary: slide in from right to center (dx: 1.0 -> 0.0)
+        final primaryTween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+            .chain(CurveTween(curve: curve));
+            
+        // Secondary: slide out slightly to the left (dx: 0.0 -> -0.3) for parallax
+        final secondaryTween = Tween(begin: Offset.zero, end: const Offset(-0.3, 0.0))
+            .chain(CurveTween(curve: curve));
 
-            if (animation.value < 0.5) {
-              // First half - keep new page invisible
-              opacity = 0.0;
-            } else {
-              // Second half - fade in new page
-              // Map 0.5-1.0 to 0.0-1.0
-              opacity = (animation.value - 0.5) * 2.0;
-            }
-
-            return Opacity(
-              opacity: opacity,
-              child: child,
-            );
-          },
-          child: child,
+        return SlideTransition(
+          position: animation.drive(primaryTween),
+          child: SlideTransition(
+            position: secondaryAnimation.drive(secondaryTween),
+            child: child,
+          ),
         );
       },
     );
   }
 
-  /// Creates a fade-through transition for Navigator.push
-  ///
-  /// Usage:
-  /// ```dart
-  /// Navigator.push(
-  ///   context,
-  ///   PageTransitions.createRoute(NextPage()),
-  /// );
-  /// ```
+  /// Creates a horizontal slide transition for Navigator.push
   static PageRouteBuilder<T> createRoute<T>(Widget page) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionDuration: const Duration(milliseconds: totalDurationMs),
       reverseTransitionDuration: const Duration(milliseconds: totalDurationMs),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Fade in the new page during the second half
-        final fadeInAnimation = Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).animate(
-          CurvedAnimation(
-            parent: animation,
-            curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
-          ),
-        );
+        const curve = Curves.easeOutCubic;
 
-        return FadeTransition(
-          opacity: fadeInAnimation,
-          child: child,
+        final primaryTween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
+            .chain(CurveTween(curve: curve));
+            
+        final secondaryTween = Tween(begin: Offset.zero, end: const Offset(-0.3, 0.0))
+            .chain(CurveTween(curve: curve));
+
+        return SlideTransition(
+          position: animation.drive(primaryTween),
+          child: SlideTransition(
+            position: secondaryAnimation.drive(secondaryTween),
+            child: child,
+          ),
         );
       },
     );
   }
 
-  /// Alternative: Creates a smoother crossfade transition with minimal overlap
-  ///
-  /// This version has a very brief overlap period but ensures smooth animation
+  /// Alias for buildSmoothFadeTransition using the new slide animation
   static CustomTransitionPage<void> buildSmoothFadeTransition({
     required LocalKey key,
     required Widget child,
   }) {
-    return CustomTransitionPage(
-      key: key,
-      child: child,
-      transitionDuration: const Duration(milliseconds: totalDurationMs),
-      reverseTransitionDuration: const Duration(milliseconds: totalDurationMs),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Fade in with delay - starts at 0.3 instead of 0.5 for smoother feel
-        final fadeIn = Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).animate(
-          CurvedAnimation(
-            parent: animation,
-            curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
-          ),
-        );
-
-        return FadeTransition(
-          opacity: fadeIn,
-          child: child,
-        );
-      },
-    );
+    return buildFadeThroughTransition(key: key, child: child);
   }
 
-  /// Creates a smooth crossfade route for Navigator.push
-  ///
-  /// Usage:
-  /// ```dart
-  /// Navigator.push(
-  ///   context,
-  ///   PageTransitions.createSmoothRoute(NextPage()),
-  /// );
-  /// ```
+  /// Alias for createSmoothRoute using the new slide animation 
   static PageRouteBuilder<T> createSmoothRoute<T>(Widget page) {
-    return PageRouteBuilder<T>(
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: const Duration(milliseconds: totalDurationMs),
-      reverseTransitionDuration: const Duration(milliseconds: totalDurationMs),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Fade in with slight delay for smoother transition
-        final fadeIn = Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).animate(
-          CurvedAnimation(
-            parent: animation,
-            curve: const Interval(0.3, 1.0, curve: Curves.easeIn),
-          ),
-        );
-
-        return FadeTransition(
-          opacity: fadeIn,
-          child: child,
-        );
-      },
-    );
+    return createRoute<T>(page);
   }
 }

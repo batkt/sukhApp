@@ -184,7 +184,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
       // Disabling biometric login
       await StorageService.clearSavedPasswordForBiometric();
       await StorageService.setBiometricEnabled(false);
-      
+
       if (mounted) {
         setState(() {
           _biometricEnabled = false;
@@ -241,7 +241,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   SizedBox(height: 20.h),
                   Container(
                     decoration: BoxDecoration(
-                      color: context.isDarkMode ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+                      color: context.isDarkMode
+                          ? Colors.white.withOpacity(0.05)
+                          : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(16.r),
                       border: Border.all(
                         color: AppColors.deepGreen.withOpacity(0.2),
@@ -276,7 +278,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 : Icons.visibility_rounded,
                             color: AppColors.deepGreen.withOpacity(0.5),
                           ),
-                          onPressed: () => setState(() => _obscureDeletePassword = !_obscureDeletePassword),
+                          onPressed: () => setState(
+                            () => _obscureDeletePassword =
+                                !_obscureDeletePassword,
+                          ),
                         ),
                       ),
                     ),
@@ -300,7 +305,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   child: ElevatedButton(
                     onPressed: () {
                       if (_deletePasswordController.text.length == 4) {
-                        Navigator.pop(dialogContext, _deletePasswordController.text);
+                        Navigator.pop(
+                          dialogContext,
+                          _deletePasswordController.text,
+                        );
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -310,7 +318,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 10.h,
+                      ),
                     ),
                     child: Text(
                       'Хадгалах',
@@ -333,7 +344,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     if (name.isEmpty) return 'U';
     List<String> names = name.split(' ').where((n) => n.isNotEmpty).toList();
     if (names.isEmpty) return 'U';
-    
+
     if (names.length >= 2) {
       return (names[0][0] + names[1][0]).toUpperCase();
     }
@@ -380,10 +391,17 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
           final plateRaw = userData['mashiniiDugaar'] ?? userData['dugaar'];
           if (plateRaw != null) {
+            String plateText;
             if (plateRaw is List && plateRaw.isNotEmpty) {
-              _mashiniiDugaarController.text = plateRaw.first.toString();
+              plateText = plateRaw.first.toString();
             } else {
-              _mashiniiDugaarController.text = plateRaw.toString();
+              plateText = plateRaw.toString();
+            }
+            // Remove "БҮРТГЭЛГҮЙ" default value and set to empty
+            if (plateText.trim().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
+              _mashiniiDugaarController.text = '';
+            } else {
+              _mashiniiDugaarController.text = plateText;
             }
           }
 
@@ -395,27 +413,36 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 final data = response['data'] ?? response['result'] ?? response;
                 final orshinSuugchMashin = data['orshinSuugchMashin'];
                 final mashin = data['mashin'] ?? data;
-                
+
                 // Prioritize orshinSuugchMashin for plate and metadata
-                final plate = (orshinSuugchMashin != null) 
-                    ? (orshinSuugchMashin['mashiniiDugaar'] ?? orshinSuugchMashin['dugaar'])
+                final plate = (orshinSuugchMashin != null)
+                    ? (orshinSuugchMashin['mashiniiDugaar'] ??
+                          orshinSuugchMashin['dugaar'])
                     : (mashin['mashiniiDugaar'] ?? mashin['dugaar']);
-                
+
                 if (plate != null) {
                   setState(() {
                     final newPlate = (plate is List && plate.isNotEmpty)
                         ? plate.first.toString()
                         : plate.toString();
-                    
-                    _mashiniiDugaarController.text = newPlate;
+
+                    // Remove "БҮРТГЭЛГҮЙ" default value and set to empty
+                    if (newPlate.trim().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
+                      _mashiniiDugaarController.text = '';
+                    } else {
+                      _mashiniiDugaarController.text = newPlate;
+                    }
+
                     if (_userData != null) {
-                      _userData!['mashiniiDugaar'] = newPlate;
-                      
+                      _userData!['mashiniiDugaar'] =
+                          _mashiniiDugaarController.text;
+
                       // Sync last update date (dugaarUurchilsunOgnoo)
                       final updateDate = (orshinSuugchMashin != null)
                           ? orshinSuugchMashin['dugaarUurchilsunOgnoo']
-                          : (mashin['dugaarUurchilsunOgnoo'] ?? data['dugaarUurchilsunOgnoo']);
-                          
+                          : (mashin['dugaarUurchilsunOgnoo'] ??
+                                data['dugaarUurchilsunOgnoo']);
+
                       if (updateDate != null) {
                         _userData!['dugaarUurchilsunOgnoo'] = updateDate;
                       }
@@ -457,14 +484,18 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
   Future<void> _fetchBillingCronInfo(String barilgiinId) async {
     try {
-      final cronData = await ApiService.fetchNekhemjlekhCron(barilgiinId: barilgiinId);
+      final cronData = await ApiService.fetchNekhemjlekhCron(
+        barilgiinId: barilgiinId,
+      );
       if (cronData['success'] == true && cronData['data'] != null) {
         final List dataList = cronData['data'] is List ? cronData['data'] : [];
         if (dataList.isNotEmpty) {
           final firstCron = dataList.first;
           if (firstCron['nekhemjlekhUusgekhOgnoo'] != null) {
             setState(() {
-              _billingDay = int.tryParse(firstCron['nekhemjlekhUusgekhOgnoo'].toString());
+              _billingDay = int.tryParse(
+                firstCron['nekhemjlekhUusgekhOgnoo'].toString(),
+              );
               debugPrint('📅 [BILLING] Reset day set to: $_billingDay');
             });
           }
@@ -538,7 +569,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
     }
   }
 
-  Future<void> _handleChangePassword(void Function(void Function())? setModalState) async {
+  Future<void> _handleChangePassword(
+    void Function(void Function())? setModalState,
+  ) async {
     if (!_passwordFormKey.currentState!.validate()) {
       return;
     }
@@ -607,18 +640,18 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
   bool _isPlateChangeAllowed() {
     if (_userData == null) return true;
-    
+
     // If plate is empty/null, allow change regardless of date
     final plateNumber = _userData!['mashiniiDugaar'] ?? _userData!['dugaar'];
     if (plateNumber == null || plateNumber.toString().isEmpty) return true;
 
     final lastUpdate = _userData!['dugaarUurchilsunOgnoo'];
     if (lastUpdate == null) return true;
-    
+
     try {
       final lastDate = DateTime.parse(lastUpdate.toString());
       final now = DateTime.now();
-      
+
       if (_billingDay != null) {
         // Find the start date of the current billing cycle
         DateTime currentCycleStart;
@@ -633,11 +666,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
           }
           currentCycleStart = DateTime(prevYear, prevMonth, _billingDay!);
         }
-        
+
         // Allowed if last update was before this cycle started
         return lastDate.isBefore(currentCycleStart);
       }
-      
+
       // Default: Calendar month reset (1st of month)
       return lastDate.month != now.month || lastDate.year != now.year;
     } catch (e) {
@@ -673,7 +706,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
-      
+
       if (baiguullagiinId == null) {
         throw Exception('Байгууллагын мэдээлэл олдсонгүй');
       }
@@ -683,11 +716,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,
         ezemshigchiinUtas: _phoneController.text,
-        orshinSuugchMedeelel: {
-          'zochinTurul': 'Оршин суугч',
-        },
-      ); 
-      
+        orshinSuugchMedeelel: {'zochinTurul': 'Оршин суугч'},
+      );
+
       if (mounted) {
         if (response['success'] == true) {
           setState(() {
@@ -696,15 +727,26 @@ class _ProfileSettingsState extends State<ProfileSettings>
             final data = response['data'] ?? response;
             final osm = data['orshinSuugchMashin'];
             final mashin = data['mashin'];
-            
-            final plate = (osm != null) ? (osm['mashiniiDugaar'] ?? osm['dugaar']) : mashin?['dugaar'];
+
+            final plate = (osm != null)
+                ? (osm['mashiniiDugaar'] ?? osm['dugaar'])
+                : mashin?['dugaar'];
             if (plate != null && _userData != null) {
               final newPlate = plate.toString();
-              _mashiniiDugaarController.text = newPlate;
-              _userData!['mashiniiDugaar'] = newPlate;
-              
+
+              // Remove "БҮРТГЭЛГҮЙ" default value and set to empty
+              if (newPlate.trim().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
+                _mashiniiDugaarController.text = '';
+              } else {
+                _mashiniiDugaarController.text = newPlate;
+              }
+
+              _userData!['mashiniiDugaar'] = _mashiniiDugaarController.text;
+
               // Update metadata for restriction logic
-              final updateDate = osm?['dugaarUurchilsunOgnoo'] ?? mashin?['dugaarUurchilsunOgnoo'];
+              final updateDate =
+                  osm?['dugaarUurchilsunOgnoo'] ??
+                  mashin?['dugaarUurchilsunOgnoo'];
               if (updateDate != null) {
                 _userData!['dugaarUurchilsunOgnoo'] = updateDate;
               }
@@ -717,7 +759,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
             iconColor: Colors.green,
           );
           // Refresh background data to ensure everything is perfect
-          _loadUserProfile(); 
+          _loadUserProfile();
         } else {
           showGlassSnackBar(
             context,
@@ -1191,8 +1233,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
               color: isActive
                   ? Colors.transparent
                   : (isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : AppColors.deepGreen.withOpacity(0.2)),
+                        ? Colors.white.withOpacity(0.1)
+                        : AppColors.deepGreen.withOpacity(0.2)),
               width: 1,
             ),
             boxShadow: [
@@ -1248,7 +1290,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
         builder: (context, setModalState) {
           final isDark = context.isDarkMode;
           final isAllowed = _isPlateChangeAllowed();
-          
+
           return Container(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1281,7 +1323,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           color: AppColors.deepGreen.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10.r),
                         ),
-                        child: Icon(Icons.directions_car_rounded, color: AppColors.deepGreen, size: 20.sp),
+                        child: Icon(
+                          Icons.directions_car_rounded,
+                          color: AppColors.deepGreen,
+                          size: 20.sp,
+                        ),
                       ),
                       SizedBox(width: 14.w),
                       Expanded(
@@ -1296,15 +1342,20 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close_rounded, color: AppColors.deepGreen),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: AppColors.deepGreen,
+                        ),
                         style: IconButton.styleFrom(
-                          backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                          backgroundColor: isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.black.withOpacity(0.05),
                         ),
                       ),
                     ],
                   ),
                 ),
-                
+
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24.w),
                   child: Column(
@@ -1360,11 +1411,17 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           decoration: BoxDecoration(
                             color: Colors.blue.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                            border: Border.all(
+                              color: Colors.blue.withOpacity(0.2),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.info_outline_rounded, color: Colors.blue, size: 18.sp),
+                              Icon(
+                                Icons.info_outline_rounded,
+                                color: Colors.blue,
+                                size: 18.sp,
+                              ),
                               SizedBox(width: 10.w),
                               Expanded(
                                 child: Text(
@@ -1384,45 +1441,78 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: (isAllowed && !_isUpdatingPlate) 
+                          onPressed: (isAllowed && !_isUpdatingPlate)
                               ? () async {
                                   // Validation
-                                  final text = _mashiniiDugaarController.text.toUpperCase().replaceAll(' ', '').trim();
+                                  final text = _mashiniiDugaarController.text
+                                      .toUpperCase()
+                                      .replaceAll(' ', '')
+                                      .trim();
                                   if (text.length != 7) {
-                                    showGlassSnackBar(context, message: 'Дугаар 7 тэмдэгт байх ёстой', icon: Icons.warning);
+                                    showGlassSnackBar(
+                                      context,
+                                      message: 'Дугаар 7 тэмдэгт байх ёстой',
+                                      icon: Icons.warning,
+                                    );
                                     return;
                                   }
                                   // First 4 numbers
                                   final numbers = text.substring(0, 4);
                                   if (int.tryParse(numbers) == null) {
-                                    showGlassSnackBar(context, message: 'Эхний 4 тэмдэгт тоо байх ёстой', icon: Icons.warning);
+                                    showGlassSnackBar(
+                                      context,
+                                      message: 'Эхний 4 тэмдэгт тоо байх ёстой',
+                                      icon: Icons.warning,
+                                    );
                                     return;
                                   }
                                   // Last 3 letters
                                   final letters = text.substring(4);
-                                  final letterRegex = RegExp(r'^[A-ZА-ЯЁӨҮ]{3}$');
+                                  final letterRegex = RegExp(
+                                    r'^[A-ZА-ЯЁӨҮ]{3}$',
+                                  );
                                   if (!letterRegex.hasMatch(letters)) {
-                                    showGlassSnackBar(context, message: 'Сүүлийн 3 тэмдэгт үсэг байх ёстой', icon: Icons.warning);
+                                    showGlassSnackBar(
+                                      context,
+                                      message:
+                                          'Сүүлийн 3 тэмдэгт үсэг байх ёстой',
+                                      icon: Icons.warning,
+                                    );
                                     return;
                                   }
-                                  
+
                                   // Update the controller text with the CAPS version before API call
                                   _mashiniiDugaarController.text = text;
 
                                   Navigator.pop(context);
                                   await _handleUpdatePlateNumber();
-                                } 
+                                }
                               : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.deepGreen,
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.symmetric(vertical: 16.h),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16.r),
+                            ),
                             elevation: 0,
                           ),
                           child: _isUpdatingPlate
-                              ? SizedBox(width: 20.w, height: 20.w, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text('Хадгалах', style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.bold)),
+                              ? SizedBox(
+                                  width: 20.w,
+                                  height: 20.w,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Хадгалах',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
                       SizedBox(height: 32.h),
@@ -1507,7 +1597,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       child: Container(
                         padding: EdgeInsets.all(8.w),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                          color: isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.black.withOpacity(0.05),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -1545,9 +1637,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         enabled: false,
                         hint: 'Утасны дугаар хоосон байна',
                       ),
-                      
+
                       SizedBox(height: 32.h),
-                      
+
                       // Section 2: Address & Property
                       Row(
                         children: [
@@ -1555,7 +1647,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           const Spacer(),
                           TextButton.icon(
                             onPressed: () => _handleUpdateAddress(),
-                            icon: Icon(Icons.edit_location_alt_rounded, size: 14.sp),
+                            icon: Icon(
+                              Icons.edit_location_alt_rounded,
+                              size: 14.sp,
+                            ),
                             label: Text(
                               'Солих',
                               style: TextStyle(
@@ -1565,7 +1660,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             ),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.deepGreen,
-                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12.w,
+                                vertical: 4.h,
+                              ),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
@@ -1573,11 +1671,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         ],
                       ),
                       SizedBox(height: 12.h),
-                      if (_userData != null) 
+                      if (_userData != null)
                         _buildUserDataGrid()
                       else
                         _buildAddressPlaceholder(context),
-                        
+
                       SizedBox(height: 16.h),
                     ],
                   ),
@@ -1609,7 +1707,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
@@ -1635,8 +1735,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                     _currentAddress != null && _currentAddress!.isNotEmpty 
-                        ? _currentAddress! 
+                    _currentAddress != null && _currentAddress!.isNotEmpty
+                        ? _currentAddress!
                         : 'Хаяг бүртгэгдээгүй байна',
                     style: TextStyle(
                       color: context.textPrimaryColor,
@@ -1702,10 +1802,14 @@ class _ProfileSettingsState extends State<ProfileSettings>
         Container(
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
             ),
           ),
           child: TextField(
@@ -1736,14 +1840,16 @@ class _ProfileSettingsState extends State<ProfileSettings>
               errorBorder: InputBorder.none,
               disabledBorder: InputBorder.none,
               filled: false,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 14.h,
+              ),
             ),
           ),
         ),
       ],
     );
   }
-
 
   void _showChangePasswordModal(BuildContext context) {
     showModalBottomSheet(
@@ -1833,9 +1939,12 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       ],
                     ),
                   ),
-                  
+
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.w,
+                      vertical: 24.h,
+                    ),
                     child: Form(
                       key: _passwordFormKey,
                       child: Column(
@@ -1846,7 +1955,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             label: 'Одоогийн нууц үг',
                             hint: '••••',
                             obscureText: _obscureCurrentPassword,
-                            onToggle: () => setModalState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
+                            onToggle: () => setModalState(
+                              () => _obscureCurrentPassword =
+                                  !_obscureCurrentPassword,
+                            ),
                           ),
                           SizedBox(height: 20.h),
                           _buildModernPasswordField(
@@ -1854,7 +1966,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             label: 'Шинэ нууц үг',
                             hint: '••••',
                             obscureText: _obscureNewPassword,
-                            onToggle: () => setModalState(() => _obscureNewPassword = !_obscureNewPassword),
+                            onToggle: () => setModalState(
+                              () => _obscureNewPassword = !_obscureNewPassword,
+                            ),
                           ),
                           SizedBox(height: 20.h),
                           _buildModernPasswordField(
@@ -1862,15 +1976,20 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             label: 'Шинэ нууц үг давтах',
                             hint: '••••',
                             obscureText: _obscureConfirmPassword,
-                            onToggle: () => setModalState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                            onToggle: () => setModalState(
+                              () => _obscureConfirmPassword =
+                                  !_obscureConfirmPassword,
+                            ),
                           ),
-                          
+
                           SizedBox(height: 32.h),
-                          
+
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isChangingPassword ? null : () => _handleChangePassword(setModalState),
+                              onPressed: _isChangingPassword
+                                  ? null
+                                  : () => _handleChangePassword(setModalState),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.deepGreen,
                                 foregroundColor: Colors.white,
@@ -1879,7 +1998,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   borderRadius: BorderRadius.circular(16.r),
                                 ),
                                 elevation: 8,
-                                shadowColor: AppColors.deepGreen.withOpacity(0.4),
+                                shadowColor: AppColors.deepGreen.withOpacity(
+                                  0.4,
+                                ),
                               ),
                               child: _isChangingPassword
                                   ? SizedBox(
@@ -1935,10 +2056,14 @@ class _ProfileSettingsState extends State<ProfileSettings>
         SizedBox(height: 8.h),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
             ),
           ),
           child: TextFormField(
@@ -1960,10 +2085,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 letterSpacing: 4,
               ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 14.h,
+              ),
               suffixIcon: IconButton(
                 icon: Icon(
-                  obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  obscureText
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
                   color: AppColors.deepGreen.withOpacity(0.7),
                   size: 20.sp,
                 ),
@@ -2034,7 +2164,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
         ),
         prefixIcon: Icon(icon, color: AppColors.deepGreen, size: 18.sp),
         filled: true,
-        fillColor: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFF8F8F8),
+        fillColor: isDark
+            ? Colors.white.withOpacity(0.08)
+            : const Color(0xFFF8F8F8),
         contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.w),
@@ -2099,7 +2231,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
               : AppColors.lightTextSecondary,
           fontSize: 12.sp,
         ),
-        prefixIcon: Icon(Icons.lock_outline, color: AppColors.deepGreen, size: 18.sp),
+        prefixIcon: Icon(
+          Icons.lock_outline,
+          color: AppColors.deepGreen,
+          size: 18.sp,
+        ),
         suffixIcon: IconButton(
           icon: Icon(
             obscureText
@@ -2200,13 +2336,19 @@ class _ProfileSettingsState extends State<ProfileSettings>
         _userData!['bairniiNer'].toString().isNotEmpty) {
       bairText = _userData!['bairniiNer'].toString();
     }
-    
+
     // Always add Address row - explicit request to re-enable address selection if missing
     dataItems.add({
       'icon': Icons.location_on_outlined,
       'label': 'Байр',
-      'value': (bairText != null && bairText.isNotEmpty) ? bairText : 'Хаяг сонгох',
-      'action': (bairText == null || bairText.isEmpty) ? () { _handleUpdateAddress(); } : null,
+      'value': (bairText != null && bairText.isNotEmpty)
+          ? bairText
+          : 'Хаяг сонгох',
+      'action': (bairText == null || bairText.isEmpty)
+          ? () {
+              _handleUpdateAddress();
+            }
+          : null,
       'isLink': (bairText == null || bairText.isEmpty),
     });
 
@@ -2232,7 +2374,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     }
 
     final isDark = context.isDarkMode;
-    
+
     // Build list layout with icon next to text
     return Column(
       children: dataItems.asMap().entries.map((entry) {
@@ -2241,7 +2383,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
         final isLast = index == dataItems.length - 1;
         final action = item['action'] as VoidCallback?;
         final isLink = item['isLink'] == true;
-        
+
         return InkWell(
           onTap: action,
           child: Container(
@@ -2291,7 +2433,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       Text(
                         item['value'] as String,
                         style: TextStyle(
-                          color: isLink ? AppColors.deepGreen : (isDark ? Colors.white : Colors.black87),
+                          color: isLink
+                              ? AppColors.deepGreen
+                              : (isDark ? Colors.white : Colors.black87),
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w600,
                           decoration: isLink ? TextDecoration.underline : null,
@@ -2350,9 +2494,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
           Text(
             label,
             style: TextStyle(
-              color: isDark
-                  ? Colors.white.withOpacity(0.6)
-                  : Colors.grey[600],
+              color: isDark ? Colors.white.withOpacity(0.6) : Colors.grey[600],
               fontSize: 9.sp,
               fontWeight: FontWeight.w500,
             ),
@@ -2487,7 +2629,12 @@ class _ProfileSettingsState extends State<ProfileSettings>
               ),
             ),
           Padding(
-            padding: EdgeInsets.fromLTRB(16.w, (title != null && icon != null) ? 0 : 16.h, 16.w, 16.h),
+            padding: EdgeInsets.fromLTRB(
+              16.w,
+              (title != null && icon != null) ? 0 : 16.h,
+              16.w,
+              16.h,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
@@ -2499,9 +2646,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
   }
 
   Widget _buildProfileHero() {
-    String displayName = _nameController.text.isNotEmpty ? _nameController.text : 'Хэрэглэгч';
+    String displayName = _nameController.text.isNotEmpty
+        ? _nameController.text
+        : 'Хэрэглэгч';
     String initialSource = displayName;
-    
+
     // Try to get both initials from userData if possible
     if (_userData != null) {
       final ovog = _userData!['ovog']?.toString() ?? '';
@@ -2510,7 +2659,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
         initialSource = '$ovog $ner';
       }
     }
-    
+
     final initials = _getInitials(initialSource);
 
     return Container(
@@ -2578,13 +2727,18 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 ),
                 SizedBox(height: 4.h),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 3.h,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
-                    _phoneController.text.isNotEmpty ? _phoneController.text : 'Утас тодорхойгүй',
+                    _phoneController.text.isNotEmpty
+                        ? _phoneController.text
+                        : 'Утас тодорхойгүй',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.95),
                       fontSize: 11.sp,
@@ -2646,7 +2800,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
   }
 
-
   Widget _buildSettingsTile({
     required IconData icon,
     required String title,
@@ -2664,8 +2817,14 @@ class _ProfileSettingsState extends State<ProfileSettings>
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 16.h),
           decoration: BoxDecoration(
-            border: showBorder 
-                ? Border(bottom: BorderSide(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)))
+            border: showBorder
+                ? Border(
+                    bottom: BorderSide(
+                      color: isDark
+                          ? Colors.white10
+                          : Colors.black.withOpacity(0.05),
+                    ),
+                  )
                 : null,
           ),
           child: Row(
@@ -2690,7 +2849,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     Text(
                       title,
                       style: TextStyle(
-                        color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                        color: isDark
+                            ? Colors.white.withOpacity(0.9)
+                            : Colors.black87,
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                       ),
@@ -2710,11 +2871,12 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   ],
                 ),
               ),
-              trailing ?? Icon(
-                Icons.chevron_right_rounded,
-                color: isDark ? Colors.white24 : Colors.black12,
-                size: 20.sp,
-              ),
+              trailing ??
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    size: 20.sp,
+                  ),
             ],
           ),
         ),
@@ -2833,7 +2995,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    
+
     return Scaffold(
       backgroundColor: context.surfaceColor,
       body: AppBackground(
@@ -2863,8 +3025,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 _buildSettingsTile(
                                   icon: Icons.directions_car_filled_outlined,
                                   title: 'Миний машин',
-                                  subtitle: _mashiniiDugaarController.text.isNotEmpty 
-                                      ? _mashiniiDugaarController.text 
+                                  subtitle:
+                                      _mashiniiDugaarController.text.isNotEmpty
+                                      ? _mashiniiDugaarController.text
                                       : 'Дугаар тохируулах',
                                   showBorder: false,
                                   onTap: () {
@@ -2882,20 +3045,34 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   title: 'Нууц код солих',
                                   subtitle: 'Нэвтрэх 4 оронтой код хадгалах',
                                   showBorder: !_biometricAvailable,
-                                  onTap: () => _showChangePasswordModal(context),
+                                  onTap: () =>
+                                      _showChangePasswordModal(context),
                                 ),
                                 if (_biometricAvailable)
                                   _buildSettingsTile(
-                                    icon: Theme.of(context).platform == TargetPlatform.iOS ? Icons.face_rounded : Icons.fingerprint_rounded,
-                                    title: Theme.of(context).platform == TargetPlatform.iOS ? 'Face ID' : 'Хурууны хээ',
-                                    subtitle: _biometricEnabled ? 'Идэвхтэй' : 'Идэвхгүй',
+                                    icon:
+                                        Theme.of(context).platform ==
+                                            TargetPlatform.iOS
+                                        ? Icons.face_rounded
+                                        : Icons.fingerprint_rounded,
+                                    title:
+                                        Theme.of(context).platform ==
+                                            TargetPlatform.iOS
+                                        ? 'Face ID'
+                                        : 'Хурууны хээ',
+                                    subtitle: _biometricEnabled
+                                        ? 'Идэвхтэй'
+                                        : 'Идэвхгүй',
                                     showBorder: false,
                                     trailing: Switch(
                                       value: _biometricEnabled,
-                                      onChanged: (val) => _handleBiometricToggle(val),
+                                      onChanged: (val) =>
+                                          _handleBiometricToggle(val),
                                       activeColor: AppColors.deepGreen,
                                     ),
-                                    onTap: () => _handleBiometricToggle(!_biometricEnabled),
+                                    onTap: () => _handleBiometricToggle(
+                                      !_biometricEnabled,
+                                    ),
                                   ),
                               ],
                             ),
@@ -2905,7 +3082,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 _buildSettingsTile(
                                   icon: Icons.delete_forever_rounded,
                                   title: 'Бүртгэл устгах',
-                                  subtitle: 'Бүртгэл болон бүх мэдээллийг устгах',
+                                  subtitle:
+                                      'Бүртгэл болон бүх мэдээллийг устгах',
                                   iconColor: Colors.redAccent,
                                   showBorder: false,
                                   onTap: _handleDeleteAccount,
@@ -2924,9 +3102,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
   }
 }
+
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,
@@ -2936,10 +3118,13 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 
 class PlateNumberFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final text = newValue.text.toUpperCase();
     String result = '';
-    
+
     for (int i = 0; i < text.length && i < 7; i++) {
       final char = text[i];
       if (i < 4) {
@@ -2953,7 +3138,7 @@ class PlateNumberFormatter extends TextInputFormatter {
         }
       }
     }
-    
+
     return TextEditingValue(
       text: result,
       selection: TextSelection.collapsed(offset: result.length),

@@ -44,11 +44,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   void initState() {
     super.initState();
     phoneController.addListener(() {
-      if (phoneController.text.length == 8 &&
-          !_showPasswordInput &&
-          !_isCheckingPhone) {
-        _checkPhoneExistence();
-      }
       setState(() {});
     });
     passwordController.addListener(() => setState(() {}));
@@ -103,7 +98,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       }
       showGlassSnackBar(
         context,
-        message: 'Биометрийн мэдээлэл олдсонгүй. Тохиргооноос биометрийн нэвтрэлтийг идэвхжүүлэх үү',
+        message:
+            'Биометрийн мэдээлэл олдсонгүй. Тохиргооноос биометрийн нэвтрэлтийг идэвхжүүлэх үү',
         icon: Icons.error,
         iconColor: Colors.orange,
       );
@@ -125,10 +121,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   Future<void> _checkPhoneExistence() async {
     String phone = phoneController.text.trim();
     if (phone.length != 8) {
-      showGlassSnackBar(context,
-          message: "Утасны дугаар 8 оронтой байх ёстой",
-          icon: Icons.error,
-          iconColor: Colors.red);
+      showGlassSnackBar(
+        context,
+        message: "Утасны дугаар 8 оронтой байх ёстой",
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
       return;
     }
 
@@ -150,10 +148,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             identity: phone,
             phoneNum: phone,
           );
-          
+
           // If this record is already linked to a resident ID, treat as existing user
-          if (easyData != null && 
-             (easyData['orshinSuugchiinId'] != null || easyData['orshinSuugchiid'] != null)) {
+          if (easyData != null &&
+              (easyData['orshinSuugchiinId'] != null ||
+                  easyData['orshinSuugchiid'] != null)) {
             setState(() {
               _showPasswordInput = true;
               _isCheckingPhone = false;
@@ -170,8 +169,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       }
     } catch (e) {
       setState(() => _isCheckingPhone = false);
-      showGlassSnackBar(context,
-          message: "Алдаа гарлаа: $e", icon: Icons.error, iconColor: Colors.red);
+      showGlassSnackBar(
+        context,
+        message: "Алдаа гарлаа: $e",
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
     }
   }
 
@@ -180,11 +183,21 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     String inputPassword = passwordController.text.trim();
 
     if (inputPhone.isEmpty) {
-      showGlassSnackBar(context, message: "Утасны дугаар оруулна уу", icon: Icons.error, iconColor: Colors.red);
+      showGlassSnackBar(
+        context,
+        message: "Утасны дугаар оруулна уу",
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
       return;
     }
     if (inputPassword.isEmpty) {
-      showGlassSnackBar(context, message: "Нууц код оруулна уу", icon: Icons.error, iconColor: Colors.red);
+      showGlassSnackBar(
+        context,
+        message: "Нууц код оруулна уу",
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
       return;
     }
 
@@ -192,16 +205,23 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     _performLoginWithCredentials(inputPhone, inputPassword);
   }
 
-  Future<void> _performLoginWithCredentials(String phone, String password) async {
+  Future<void> _performLoginWithCredentials(
+    String phone,
+    String password,
+  ) async {
     try {
       var savedBairId = await StorageService.getWalletBairId();
       var savedDoorNo = await StorageService.getWalletDoorNo();
       var savedBairName = await StorageService.getWalletBairName();
-      final savedBaiguullagiinId = await StorageService.getWalletBairBaiguullagiinId();
+      final savedBaiguullagiinId =
+          await StorageService.getWalletBairBaiguullagiinId();
       final savedBarilgiinId = await StorageService.getWalletBairBarilgiinId();
       final savedSource = await StorageService.getWalletBairSource();
 
-      final isOwnOrg = savedSource == 'OWN_ORG' && savedBaiguullagiinId != null && savedBarilgiinId != null;
+      final isOwnOrg =
+          savedSource == 'OWN_ORG' &&
+          savedBaiguullagiinId != null &&
+          savedBarilgiinId != null;
 
       final loginResponse = await ApiService.loginUser(
         utas: phone,
@@ -213,21 +233,33 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         barilgiinId: isOwnOrg ? savedBarilgiinId : null,
       );
 
-      final userDataDynamic = loginResponse['result'] ?? loginResponse['orshinSuugch'];
-      final userData = userDataDynamic is Map<String, dynamic> ? userDataDynamic : null;
+      final userDataDynamic =
+          loginResponse['result'] ?? loginResponse['orshinSuugch'];
+      final userData = userDataDynamic is Map<String, dynamic>
+          ? userDataDynamic
+          : null;
 
       if (mounted) {
         await StorageService.savePhoneNumber(phone);
         final loginOrgId = userData?['baiguullagiinId']?.toString();
-        final hasBaiguullagiinId = loginOrgId != null && loginOrgId.trim().isNotEmpty && loginOrgId.trim().toLowerCase() != 'null';
+        final hasBaiguullagiinId =
+            loginOrgId != null &&
+            loginOrgId.trim().isNotEmpty &&
+            loginOrgId.trim().toLowerCase() != 'null';
 
         // Address check
         bool hasAddress = await StorageService.hasSavedAddress();
         if (!hasAddress && userData != null) {
           final wBairId = userData['walletBairId']?.toString();
           final wDoorNo = userData['walletDoorNo']?.toString();
-          if (wBairId != null && wBairId.isNotEmpty && wDoorNo != null && wDoorNo.isNotEmpty) {
-            await StorageService.saveWalletAddress(bairId: wBairId, doorNo: wDoorNo);
+          if (wBairId != null &&
+              wBairId.isNotEmpty &&
+              wDoorNo != null &&
+              wDoorNo.isNotEmpty) {
+            await StorageService.saveWalletAddress(
+              bairId: wBairId,
+              doorNo: wDoorNo,
+            );
             hasAddress = true;
           }
         }
@@ -235,23 +267,33 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         // Profile check
         bool hasProfile = false;
         if (userData != null) {
-          final hasNer = userData['ner'] != null && userData['ner'].toString().isNotEmpty;
-          final hasOvog = userData['ovog'] != null && userData['ovog'].toString().isNotEmpty;
+          final hasNer =
+              userData['ner'] != null && userData['ner'].toString().isNotEmpty;
+          final hasOvog =
+              userData['ovog'] != null &&
+              userData['ovog'].toString().isNotEmpty;
           hasProfile = hasNer || hasOvog;
         }
 
         if (!hasProfile) {
-          context.go('/burtguulekh_signup', extra: {'baiguullagiinId': loginOrgId, 'utas': phone});
+          context.go(
+            '/burtguulekh_signup',
+            extra: {'baiguullagiinId': loginOrgId, 'utas': phone},
+          );
           return;
         }
 
-        try { await SocketService.instance.connect(); } catch (_) {}
+        try {
+          await SocketService.instance.connect();
+        } catch (_) {}
 
         setState(() => _isLoading = false);
-        showGlassSnackBar(context,
-            message: 'Нэвтрэлт амжилттай',
-            icon: Icons.check_outlined,
-            iconColor: Colors.green);
+        showGlassSnackBar(
+          context,
+          message: 'Нэвтрэлт амжилттай',
+          icon: Icons.check_outlined,
+          iconColor: Colors.green,
+        );
 
         // --- Biometric Onboarding/Fix Logic ---
         final biometricEnabled = await StorageService.isBiometricEnabled();
@@ -269,7 +311,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         }
         // --------------------------------------
 
-        final taniltsuulgaKharakhEsekh = await StorageService.getTaniltsuulgaKharakhEsekh();
+        final taniltsuulgaKharakhEsekh =
+            await StorageService.getTaniltsuulgaKharakhEsekh();
         final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
 
         await Future.delayed(const Duration(milliseconds: 300));
@@ -278,7 +321,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error, iconColor: Colors.red);
+        showGlassSnackBar(
+          context,
+          message: e.toString().replaceFirst('Exception: ', ''),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
       }
     }
   }
@@ -297,7 +345,8 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const RegistrationModal(),
+      builder: (context) =>
+          RegistrationModal(initialPhone: phoneController.text.trim()),
     );
   }
 
@@ -318,7 +367,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
       body: CustomPaint(
-        painter: SharedBgPainter(isDark: isDark, brandColor: AppColors.deepGreen),
+        painter: SharedBgPainter(
+          isDark: isDark,
+          brandColor: AppColors.deepGreen,
+        ),
         child: SafeArea(
           child: OrientationBuilder(
             builder: (context, orientation) {
@@ -350,7 +402,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                     return SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
                         child: IntrinsicHeight(
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -416,7 +470,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           "Нэвтрэх хэсэг",
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: isDark ? Colors.white.withOpacity(0.6) : AppColors.lightTextSecondary.withOpacity(0.7),
+            color: isDark
+                ? Colors.white.withOpacity(0.6)
+                : AppColors.lightTextSecondary.withOpacity(0.7),
             fontSize: isTablet ? 15.sp : 14.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -435,7 +491,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             color: isDark ? AppColors.darkSurface : Colors.white,
             borderRadius: BorderRadius.circular(24.r),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.0) : AppColors.lightBorderColor,
+              color: isDark
+                  ? Colors.white.withOpacity(0.0)
+                  : AppColors.lightBorderColor,
               width: 1,
             ),
             boxShadow: [
@@ -461,7 +519,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 keyboardType: TextInputType.phone,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(8)
+                  LengthLimitingTextInputFormatter(8),
                 ],
                 onFieldSubmitted: (_) =>
                     !_showPasswordInput ? _checkPhoneExistence() : null,
@@ -479,7 +537,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4)
+                    LengthLimitingTextInputFormatter(4),
                   ],
                   onFieldSubmitted: (_) => _handleLogin(),
                   suffixIcon: IconButton(
@@ -506,9 +564,13 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                           : AppColors.deepGreen,
                       padding: EdgeInsets.symmetric(vertical: 8.h),
                     ),
-                    child: Text("Нууц код мартсан?",
-                        style:
-                            TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      "Нууц код мартсан?",
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -529,8 +591,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       SizedBox(width: 12.w),
                       _buildBiometricButton(
                         context: context,
-                        onTap:
-                            _isLoading ? null : _authenticateWithBiometrics,
+                        onTap: _isLoading ? null : _authenticateWithBiometrics,
                         isDark: isDark,
                       ),
                     ],
@@ -554,8 +615,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                           SizedBox(width: 12.w),
                           _buildBiometricButton(
                             context: context,
-                            onTap:
-                                _isLoading ? null : _authenticateWithBiometrics,
+                            onTap: _isLoading
+                                ? null
+                                : _authenticateWithBiometrics,
                             isDark: isDark,
                           ),
                         ],
@@ -604,11 +666,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: TextStyle(
-                color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: TextStyle(
+            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         SizedBox(height: 8.h),
         Container(
           decoration: BoxDecoration(
@@ -632,24 +697,31 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             inputFormatters: inputFormatters,
             onFieldSubmitted: onFieldSubmitted,
             style: TextStyle(
-                color: isDark
-                    ? (readOnly ? Colors.white60 : Colors.white)
-                    : (readOnly ? Colors.black54 : AppColors.lightTextPrimary),
-                fontSize: 16.sp,
-                fontWeight: readOnly ? FontWeight.w600 : FontWeight.normal),
+              color: isDark
+                  ? (readOnly ? Colors.white60 : Colors.white)
+                  : (readOnly ? Colors.black54 : AppColors.lightTextPrimary),
+              fontSize: 16.sp,
+              fontWeight: readOnly ? FontWeight.w600 : FontWeight.normal,
+            ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                  color: isDark ? Colors.white24 : Colors.grey, fontSize: 15.sp),
-              prefixIcon: Icon(icon,
-                  color: isDark
-                      ? (readOnly ? AppColors.deepGreen : Colors.white38)
-                      : (readOnly ? AppColors.deepGreen : Colors.grey),
-                  size: 20.sp),
+                color: isDark ? Colors.white24 : Colors.grey,
+                fontSize: 15.sp,
+              ),
+              prefixIcon: Icon(
+                icon,
+                color: isDark
+                    ? (readOnly ? AppColors.deepGreen : Colors.white38)
+                    : (readOnly ? AppColors.deepGreen : Colors.grey),
+                size: 20.sp,
+              ),
               suffixIcon: suffixIcon,
               border: InputBorder.none,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 16.h,
+              ),
             ),
           ),
         ),
@@ -677,8 +749,22 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           ),
           child: Center(
             child: isLoading
-                ? SizedBox(height: 20.h, width: 20.w, child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-                : Text(label, style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                ? SizedBox(
+                    height: 20.h,
+                    width: 20.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -707,22 +793,27 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     );
   }
 
-  Future<void> _showBiometricEnablePrompt(BuildContext context, String password) async {
+  Future<void> _showBiometricEnablePrompt(
+    BuildContext context,
+    String password,
+  ) async {
     await showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
           title: Row(
             children: [
               Icon(_biometricIcon, color: AppColors.deepGreen),
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
-                  Theme.of(context).platform == TargetPlatform.iOS 
-                      ? 'Face ID ашиглах уу?' 
+                  Theme.of(context).platform == TargetPlatform.iOS
+                      ? 'Face ID ашиглах уу?'
                       : 'Хурууны хээ ашиглах уу?',
                   style: TextStyle(
                     fontSize: 16.sp,
@@ -768,17 +859,23 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                   }
                 }
                 if (context.mounted) {
-                    Navigator.pop(dialogContext); // Close dialog AFTER scanning
+                  Navigator.pop(dialogContext); // Close dialog AFTER scanning
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.deepGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               ),
               child: Text(
                 'Тийм, идэвхжүүлье',
-                style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -792,12 +889,18 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       children: [
         Text(
           "© 2026 Powered by Zevtabs LLC",
-          style: TextStyle(color: isDark ? Colors.white24 : Colors.black26, fontSize: 11.sp),
+          style: TextStyle(
+            color: isDark ? Colors.white24 : Colors.black26,
+            fontSize: 11.sp,
+          ),
         ),
         SizedBox(height: 4.h),
         Text(
           "Version 2.0.1",
-          style: TextStyle(color: isDark ? Colors.white12 : Colors.black12, fontSize: 10.sp),
+          style: TextStyle(
+            color: isDark ? Colors.white12 : Colors.black12,
+            fontSize: 10.sp,
+          ),
         ),
       ],
     );

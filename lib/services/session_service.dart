@@ -14,10 +14,6 @@ class SessionService {
       final now = DateTime.now();
       final timestamp = now.millisecondsSinceEpoch;
       await prefs.setInt(_loginTimestampKey, timestamp);
-
-      // Schedule notification for when session expires
-      final expiryTime = now.add(_sessionDuration);
-      await NotificationService.scheduleSessionExpiryNotification(expiryTime);
     } catch (e) {}
   }
 

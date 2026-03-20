@@ -28,7 +28,9 @@ class AppVersionInfo {
       minVersion: json['minVersion']?.toString() ?? '',
       isForceUpdate: json['isForceUpdate'] == true,
       updateUrl: json['updateUrl']?.toString() ?? '',
-      message: json['message']?.toString() ?? 'Апп-ын шинэ хувилбар гарсан байна. Шинэчлэх үү?',
+      message:
+          json['message']?.toString() ??
+          'Апп-ын шинэ хувилбар гарсан байна. Шинэчлэх үү?',
       buildNumber: json['buildNumber']?.toString() ?? '0',
     );
   }
@@ -58,35 +60,49 @@ class UpdateService {
       try {
         String platform = 'android'; // Default
         if (!kIsWeb) {
-          if (Platform.isIOS) platform = 'ios';
-          else if (Platform.isAndroid) platform = 'android';
-          else if (Platform.isWindows) platform = 'windows';
-          else if (Platform.isMacOS) platform = 'macos';
-          else if (Platform.isLinux) platform = 'linux';
+          if (Platform.isIOS)
+            platform = 'ios';
+          else if (Platform.isAndroid)
+            platform = 'android';
+          else if (Platform.isWindows)
+            platform = 'windows';
+          else if (Platform.isMacOS)
+            platform = 'macos';
+          else if (Platform.isLinux)
+            platform = 'linux';
         }
 
+        final apiUrl = '$baseUrl/app-version?platform=$platform';
+
         final response = await http.get(
-          Uri.parse('$baseUrl/app-version?platform=$platform'),
+          Uri.parse(apiUrl),
           headers: {'Content-Type': 'application/json'},
         );
 
         if (response.statusCode == 200) {
-          final data = json.decode(response.body);
+          final responseJson = json.decode(response.body);
+
+          // Handle wrapped response format: {success: true, data: {...}}
+          Map<String, dynamic> data;
+          if (responseJson['success'] == true && responseJson['data'] != null) {
+            data = responseJson['data'];
+          } else {
+            data = responseJson;
+          }
+
           final versionInfo = AppVersionInfo.fromJson(data);
           _latestVersionInfo = versionInfo;
 
-          // Check if current version is below minVersion (FORCE UPDATE)
-          if (versionInfo.minVersion.isNotEmpty) {
-            if (_isVersionNewer(versionInfo.minVersion, '0', currentVersion, currentBuildNumber)) {
-              // Current version is below minimum allowed version
-              return versionInfo.copyWith(isForceUpdate: true);
-            }
-          }
-
-          // Compare versions for normal update
-          if (_isVersionNewer(versionInfo.version, versionInfo.buildNumber, currentVersion, currentBuildNumber)) {
+          // Compare versions for normal update (respect API isForceUpdate value)
+          if (_isVersionNewer(
+            versionInfo.version,
+            versionInfo.buildNumber,
+            currentVersion,
+            currentBuildNumber,
+          )) {
             // Check if user has already dismissed this specific version
-            if (versionInfo.isForceUpdate || dismissedVersion != versionInfo.version) {
+            if (versionInfo.isForceUpdate ||
+                dismissedVersion != versionInfo.version) {
               return versionInfo;
             }
           }
@@ -112,10 +128,18 @@ class UpdateService {
     if (latestVersion.isEmpty) return false;
 
     // Compare version strings (e.g., "2.0.1" vs "2.0.0")
-    final latestParts = latestVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    final currentParts = currentVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final latestParts = latestVersion
+        .split('.')
+        .map((e) => int.tryParse(e) ?? 0)
+        .toList();
+    final currentParts = currentVersion
+        .split('.')
+        .map((e) => int.tryParse(e) ?? 0)
+        .toList();
 
-    final maxParts = latestParts.length > currentParts.length ? latestParts.length : currentParts.length;
+    final maxParts = latestParts.length > currentParts.length
+        ? latestParts.length
+        : currentParts.length;
 
     for (int i = 0; i < maxParts; i++) {
       final latest = i < latestParts.length ? latestParts[i] : 0;
@@ -144,7 +168,8 @@ class UpdateService {
 
   /// Get store URL based on platform
   static String getStoreUrl() {
-    if (_latestVersionInfo != null && _latestVersionInfo!.updateUrl.isNotEmpty) {
+    if (_latestVersionInfo != null &&
+        _latestVersionInfo!.updateUrl.isNotEmpty) {
       return _latestVersionInfo!.updateUrl;
     }
 
@@ -158,18 +183,5 @@ class UpdateService {
       return 'https://play.google.com/store/apps/details?id=com.home.sukh_app';
     }
     return '';
-  }
-}
-
-extension on AppVersionInfo {
-  AppVersionInfo copyWith({bool? isForceUpdate}) {
-    return AppVersionInfo(
-      version: version,
-      minVersion: minVersion,
-      isForceUpdate: isForceUpdate ?? this.isForceUpdate,
-      updateUrl: updateUrl,
-      message: message,
-      buildNumber: buildNumber,
-    );
   }
 }

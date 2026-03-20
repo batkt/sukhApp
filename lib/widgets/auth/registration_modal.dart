@@ -10,13 +10,15 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 
 class RegistrationModal extends StatefulWidget {
-  const RegistrationModal({super.key});
+  final String? initialPhone;
+
+  const RegistrationModal({super.key, this.initialPhone});
 
   @override
   State<RegistrationModal> createState() => _RegistrationModalState();
 }
 
-enum RegistrationStep { phone, otp, password, profile, biometric }
+enum RegistrationStep { phone, otp, password, biometric }
 
 class _RegistrationModalState extends State<RegistrationModal> {
   RegistrationStep _currentStep = RegistrationStep.phone;
@@ -24,10 +26,12 @@ class _RegistrationModalState extends State<RegistrationModal> {
 
   // Step 1: Phone
   final TextEditingController _phoneController = TextEditingController();
-  
+
   // Step 2: OTP
-  final List<TextEditingController> _otpControllers =
-      List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _otpControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
   int _resendSeconds = 30;
   Timer? _timer;
@@ -42,12 +46,16 @@ class _RegistrationModalState extends State<RegistrationModal> {
   bool _biometricAvailable = false;
   IconData _biometricIcon = Icons.fingerprint;
 
-  // Step 4: Profile
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _regNoController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
   Map<String, dynamic>? _easyRegisterData;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill phone number if provided from login
+    if (widget.initialPhone != null) {
+      _phoneController.text = widget.initialPhone!;
+    }
+  }
 
   @override
   void dispose() {
@@ -61,10 +69,6 @@ class _RegistrationModalState extends State<RegistrationModal> {
     }
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _regNoController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
@@ -88,84 +92,72 @@ class _RegistrationModalState extends State<RegistrationModal> {
 
     setState(() => _isLoading = true);
     try {
-      // For general registration (without specific SOH yet), we might need a default baiguullagiinId 
+      // For general registration (without specific SOH yet), we might need a default baiguullagiinId
       // or the API should handle it. Based on burtguulekh_signup.dart, it just sends phone and password directly to registerUser.
       // But for OTP, we usually need verifyPhoneNumber.
-      
-      // Since burtguulekh_signup didn't seem to require OTP, but the user wants a modern flow, 
-      // I'll check if a general OTP endpoint exists. 
+
+      // Since burtguulekh_signup didn't seem to require OTP, but the user wants a modern flow,
+      // I'll check if a general OTP endpoint exists.
       // verifyPhoneNumber in ApiService requires baiguullagiinId, duureg, etc.
-      
+
       // If we are doing "No Org" registration, maybe we skip OTP or use a general one?
       // Actually, looking at ApiService, verifyPhoneNumber is the only one.
-      
-      // Let's assume for now we go straight to password if no OTP is possible without Org, 
+
+      // Let's assume for now we go straight to password if no OTP is possible without Org,
       // OR we fetch a default org.
-      
+
       // Wait, burtguulekh_neg had a wallet registration.
-      
+
       // Let's stick to the simplest flow that works with existing APIs.
       // If the user is on the login screen and clicks "Sign Up", they probably just need Phone + Password.
-      
-      // Transition to password step directly for now as per burtguulekh_signup logic, 
+
+      // Transition to password step directly for now as per burtguulekh_signup logic,
       // but I'll make it LOOK multi-step.
-      
-      final exists = await ApiService.checkPhoneExists(utas: _phoneController.text.trim());
+      final exists = await ApiService.checkPhoneExists(
+        utas: _phoneController.text.trim(),
+      );
       if (exists != null) {
         throw Exception('Энэ дугаар аль хэдийн бүртгэгдсэн байна');
       }
 
-      // Try to get Easy Register data to pre-fill profile
-      try {
-        final phone = _phoneController.text.trim();
-        // Use both phoneNum and identity to ensure we find the user regardless of which field is populated
-        final easyData = await ApiService.easyRegisterUserSearch(
-          phoneNum: phone,
-          identity: phone,
-        );
-        if (easyData != null) {
-          // If already linked to a resident, they should login instead of registering
-          if (easyData['orshinSuugchiinId'] != null || easyData['orshinSuugchiid'] != null) {
-            throw Exception('Энэ дугаар бүртгэлтэй байна. Та нэвтэрч орно уу.');
-          }
-          
-          _easyRegisterData = easyData;
-          _firstNameController.text = easyData['givenName'] ?? easyData['name'] ?? '';
-          _lastNameController.text = easyData['familyName'] ?? easyData['surname'] ?? '';
-          _regNoController.text = easyData['regNo'] ?? easyData['register'] ?? '';
-          _emailController.text = easyData['email'] ?? '';
-        }
-      } catch (e) {
-        if (e.toString().contains('нэвтэрч орно уу')) rethrow;
-        print('EasyRegister search failed: $e');
-      }
-
-      await Future.delayed(const Duration(milliseconds: 500)); 
+      await Future.delayed(const Duration(milliseconds: 500));
       setState(() {
         _currentStep = RegistrationStep.password;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error);
+      showGlassSnackBar(
+        context,
+        message: e.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error,
+      );
     }
   }
 
   Future<void> _handlePasswordSubmit() async {
     if (_passwordController.text.length != 4 ||
         _passwordController.text != _confirmPasswordController.text) {
-      showGlassSnackBar(context, message: 'Нууц код таарахгүй байна', icon: Icons.error);
+      showGlassSnackBar(
+        context,
+        message: 'Нууц код таарахгүй байна',
+        icon: Icons.error,
+      );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      final savedBaiguullagiinId = await StorageService.getWalletBairBaiguullagiinId();
+      final savedBaiguullagiinId =
+          await StorageService.getWalletBairBaiguullagiinId();
       final registrationData = {
         'utas': _phoneController.text.trim(),
         'nuutsUg': _passwordController.text.trim(),
-        'baiguullagiinId': savedBaiguullagiinId ?? '698e7fd3b6dd386b6c56a808', // Use saved or Pure Wallet Org ID
-        'tsahilgaaniiZaalt': 200, // Default value as used in other registration screens
+        'baiguullagiinId':
+            savedBaiguullagiinId ??
+            '698e7fd3b6dd386b6c56a808', // Use saved or Pure Wallet Org ID
+        'tsahilgaaniiZaalt':
+            200, // Default value as used in other registration screens
       };
 
       final response = await ApiService.registerUser(registrationData);
@@ -177,55 +169,19 @@ class _RegistrationModalState extends State<RegistrationModal> {
       setState(() {
         _isLoading = false;
       });
-      
+
       if (mounted) {
         setState(() {
-          _currentStep = RegistrationStep.profile;
+          _currentStep = RegistrationStep.biometric;
         });
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error);
-    }
-  }
-
-  Future<void> _handleProfileSubmit() async {
-    setState(() => _isLoading = true);
-    try {
-      // You could call an API here to update the user's profile info right after registration
-      // For now, we'll just proceed to biometric setup
-      
-      final isBioAvailable = await BiometricService.isAvailable();
-      final bioIcon = await BiometricService.getBiometricIcon();
-      
-      setState(() {
-        _biometricAvailable = isBioAvailable;
-        _biometricIcon = bioIcon;
-        _isLoading = false;
-        
-        if (_biometricAvailable) {
-          _currentStep = RegistrationStep.biometric;
-        } else {
-          _finishRegistration();
-        }
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      showGlassSnackBar(context, message: e.toString(), icon: Icons.error);
-    }
-  }
-
-  Future<void> _finishRegistration() async {
-    if (_enableBiometric) {
-      await StorageService.savePasswordForBiometric(_passwordController.text.trim());
-      await StorageService.setBiometricEnabled(true);
-    }
-    
-    if (mounted) {
-      showGlassSnackBar(context, message: 'Амжилттай бүртгүүллээ!', icon: Icons.check_circle, iconColor: Colors.green);
-      Navigator.pop(context);
-      // Navigate to address selection as requested
-      context.go('/address_selection');
+      showGlassSnackBar(
+        context,
+        message: e.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error,
+      );
     }
   }
 
@@ -247,10 +203,31 @@ class _RegistrationModalState extends State<RegistrationModal> {
     }
   }
 
+  Future<void> _finishRegistration() async {
+    if (_enableBiometric) {
+      await StorageService.savePasswordForBiometric(
+        _passwordController.text.trim(),
+      );
+      await StorageService.setBiometricEnabled(true);
+    }
+
+    if (mounted) {
+      showGlassSnackBar(
+        context,
+        message: 'Амжилттай бүртгүүллээ!',
+        icon: Icons.check_circle,
+        iconColor: Colors.green,
+      );
+      Navigator.pop(context);
+      // Navigate to address selection as requested
+      context.go('/address_selection');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -275,12 +252,12 @@ class _RegistrationModalState extends State<RegistrationModal> {
             ),
           ),
           SizedBox(height: 24.h),
-          
+
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: _buildCurrentStep(isDark),
           ),
-          
+
           SizedBox(height: 32.h),
         ],
       ),
@@ -293,10 +270,8 @@ class _RegistrationModalState extends State<RegistrationModal> {
         return _buildPhoneStep(isDark);
       case RegistrationStep.password:
         return _buildPasswordStep(isDark);
-      case RegistrationStep.profile:
-        return _buildProfileStep(isDark);
       case RegistrationStep.otp:
-        return _buildOtpStep(isDark); 
+        return _buildOtpStep(isDark);
       case RegistrationStep.biometric:
         return _buildBiometricStep(isDark);
       default:
@@ -384,11 +359,14 @@ class _RegistrationModalState extends State<RegistrationModal> {
           ],
           suffixIcon: IconButton(
             icon: Icon(
-              _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+              _obscurePassword
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
               size: 20.sp,
               color: AppColors.deepGreen.withOpacity(0.5),
             ),
-            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            onPressed: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
           ),
         ),
         SizedBox(height: 16.h),
@@ -410,7 +388,8 @@ class _RegistrationModalState extends State<RegistrationModal> {
           children: [
             Expanded(
               child: _buildSecondaryButton(
-                onTap: () => setState(() => _currentStep = RegistrationStep.phone),
+                onTap: () =>
+                    setState(() => _currentStep = RegistrationStep.phone),
                 label: 'Буцах',
               ),
             ),
@@ -428,83 +407,12 @@ class _RegistrationModalState extends State<RegistrationModal> {
     );
   }
 
-  Widget _buildProfileStep(bool isDark) {
-    return Column(
-      key: const ValueKey('profile'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Хувийн мэдээлэл',
-          style: TextStyle(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          _easyRegisterData != null 
-              ? 'Таны мэдээллийг EasyRegister системээс амжилттай татлаа.'
-              : 'Та өөрийн хувийн мэдээллээ оруулна уу.',
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: isDark ? Colors.white54 : Colors.black54,
-          ),
-        ),
-        SizedBox(height: 24.h),
-        _buildInputField(
-          label: 'Овог',
-          hint: 'Овог',
-          controller: _lastNameController,
-          icon: Icons.person_outline_rounded,
-          isDark: isDark,
-        ),
-        SizedBox(height: 16.h),
-        _buildInputField(
-          label: 'Нэр',
-          hint: 'Нэр',
-          controller: _firstNameController,
-          icon: Icons.person_rounded,
-          isDark: isDark,
-        ),
-        SizedBox(height: 16.h),
-        _buildInputField(
-          label: 'Регистрийн дугаар',
-          hint: 'АА00000000',
-          controller: _regNoController,
-          icon: Icons.badge_outlined,
-          isDark: isDark,
-          textCapitalization: TextCapitalization.characters,
-        ),
-        SizedBox(height: 16.h),
-        _buildInputField(
-          label: 'Имэйл хаяг',
-          hint: 'example@mail.com',
-          controller: _emailController,
-          icon: Icons.email_outlined,
-          isDark: isDark,
-          keyboardType: TextInputType.emailAddress,
-        ),
-        SizedBox(height: 24.h),
-        _buildPrimaryButton(
-          onTap: _isLoading ? null : _handleProfileSubmit,
-          label: 'Үргэлжлүүлэх',
-          isLoading: _isLoading,
-        ),
-      ],
-    );
-  }
-
   Widget _buildBiometricStep(bool isDark) {
     return Column(
       key: const ValueKey('biometric'),
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(
-          _biometricIcon,
-          size: 72.sp,
-          color: AppColors.deepGreen,
-        ),
+        Icon(_biometricIcon, size: 72.sp, color: AppColors.deepGreen),
         SizedBox(height: 24.h),
         Text(
           'Биометрээр нэвтрэх',
@@ -568,7 +476,9 @@ class _RegistrationModalState extends State<RegistrationModal> {
         SizedBox(height: 8.h),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7FA),
+            color: isDark
+                ? Colors.white.withOpacity(0.05)
+                : const Color(0xFFF5F7FA),
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
@@ -594,7 +504,10 @@ class _RegistrationModalState extends State<RegistrationModal> {
               prefixIcon: Icon(icon, color: AppColors.deepGreen, size: 20.sp),
               suffixIcon: suffixIcon,
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 16.h,
+              ),
             ),
           ),
         ),
@@ -613,7 +526,9 @@ class _RegistrationModalState extends State<RegistrationModal> {
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 16.h),
         decoration: BoxDecoration(
-          color: onTap == null ? Colors.grey.withOpacity(0.3) : AppColors.deepGreen,
+          color: onTap == null
+              ? Colors.grey.withOpacity(0.3)
+              : AppColors.deepGreen,
           borderRadius: BorderRadius.circular(12.r),
           boxShadow: [
             if (onTap != null)

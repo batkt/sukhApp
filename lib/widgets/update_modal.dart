@@ -3,13 +3,43 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/update_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class UpdateModal extends StatelessWidget {
+class UpdateModal extends StatefulWidget {
   final AppVersionInfo versionInfo;
 
   const UpdateModal({super.key, required this.versionInfo});
+
+  @override
+  State<UpdateModal> createState() => _UpdateModalState();
+}
+
+class _UpdateModalState extends State<UpdateModal>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _slideAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutBack,
+    );
+
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   Future<void> _openStore() async {
     try {
@@ -30,168 +60,199 @@ class UpdateModal extends StatelessWidget {
     final isDark = context.isDarkMode;
 
     return PopScope(
-      canPop: !versionInfo.isForceUpdate,
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.symmetric(
-          horizontal: context.responsiveSpacing(
-            small: 20,
-            medium: 24,
-            large: 28,
-            tablet: 32,
-            veryNarrow: 16,
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-            borderRadius: BorderRadius.circular(20.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 20,
-                spreadRadius: 5,
+      canPop: !widget.versionInfo.isForceUpdate,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, -1.0),
+          end: Offset.zero,
+        ).animate(_slideAnimation),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.zero,
+          child: Container(
+            width: double.infinity,
+            margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 40.h),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F0F0F) : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(28.r),
+              border: Border.all(
+                color: AppColors.deepGreen.withOpacity(0.2),
+                width: 2.r,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Container(
-                padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 16.h),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.deepGreen.withOpacity(0.1),
-                      width: 1,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Modern Header
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    vertical: 24.h,
+                    horizontal: 24.w,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(26.r),
+                      topRight: Radius.circular(26.r),
                     ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(12.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.deepGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12.r),
+                  child: Column(
+                    children: [
+                      // Modern Icon with Badge
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 60.w,
+                            height: 60.w,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.system_update,
+                              color: Colors.white,
+                              size: 28.sp,
+                            ),
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              width: 20.w,
+                              height: 20.w,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.deepGreen,
+                                  width: 2.r,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.download,
+                                color: AppColors.deepGreen,
+                                size: 12.sp,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Icon(
-                        versionInfo.isForceUpdate
-                            ? Icons.warning_rounded
-                            : Icons.system_update_rounded,
-                        color: versionInfo.isForceUpdate
-                            ? Colors.orange
-                            : AppColors.deepGreen,
-                        size: context.responsiveFontSize(
-                          small: 24,
-                          medium: 26,
-                          large: 28,
-                          tablet: 30,
-                          veryNarrow: 22,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Text(
-                        versionInfo.isForceUpdate
-                            ? 'Заавал шинэчлэх шаардлагатай'
-                            : 'Шинэ хувилбар гарсан байна',
+
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Шинэ хувилбар гарсан байна',
                         style: TextStyle(
-                          color: context.textPrimaryColor,
-                          fontSize: context.responsiveFontSize(
-                            small: 16,
-                            medium: 17,
-                            large: 18,
-                            tablet: 19,
-                            veryNarrow: 15,
-                          ),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Content
-              Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Column(
-                  children: [
-                    Text(
-                      versionInfo.message,
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: context.responsiveFontSize(
-                          small: 14,
-                          medium: 15,
-                          large: 16,
-                          tablet: 17,
-                          veryNarrow: 13,
-                        ),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 24.h),
-                    // Update Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _openStore();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.deepGreen,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Шинэчлэх',
-                          style: TextStyle(
-                            fontSize: context.responsiveFontSize(
-                              small: 15,
-                              medium: 16,
-                              large: 17,
-                              tablet: 18,
-                              veryNarrow: 14,
-                            ),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (!versionInfo.isForceUpdate) ...[
-                      SizedBox(height: 12.h),
-                      // Later Button
-                      TextButton(
-                        onPressed: () {
-                          UpdateService.dismissUpdate(versionInfo.version);
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          'Дараа нь',
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: context.responsiveFontSize(
-                              small: 14,
-                              medium: 15,
-                              large: 16,
-                              tablet: 17,
-                              veryNarrow: 13,
-                            ),
-                          ),
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 14.sp,
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                // Content Area
+                Padding(
+                  padding: EdgeInsets.all(24.w),
+                  child: Column(
+                    children: [
+                      // Message Card
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.1)
+                                : Colors.grey.shade200,
+                            width: 1.r,
+                          ),
+                        ),
+                        child: Text(
+                          widget.versionInfo.message,
+                          style: TextStyle(
+                            color: context.textPrimaryColor,
+                            fontSize: 14.sp,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+                      // Action Buttons
+                      Row(
+                        children: [
+                          // Skip Button - check condition explicitly
+                          if (widget.versionInfo.isForceUpdate == false) ...[
+                            // Skip Button
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  UpdateService.dismissUpdate(
+                                    widget.versionInfo.version,
+                                  );
+                                  Navigator.of(context).pop();
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.grey.shade400),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                                ),
+                                child: Text(
+                                  'Дараа нь',
+                                  style: TextStyle(
+                                    color: context.textSecondaryColor,
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
+                          ],
+                          // Update Button
+                          Expanded(
+                            flex: widget.versionInfo.isForceUpdate ? 1 : 2,
+                            child: ElevatedButton(
+                              onPressed: _openStore,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.deepGreen,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 14.h),
+                                elevation: 0,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.download, size: 18.sp),
+                                  SizedBox(width: 8.w),
+                                  Text(
+                                    'Шинэчлэх',
+                                    style: TextStyle(
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
