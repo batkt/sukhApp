@@ -508,20 +508,21 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   int get selectedCount =>
       invoices.where((invoice) => invoice.isSelected).length;
 
-  /// Effective total: Always prioritize the absolute contract uldegdel for OWN_ORG
-  /// as requested – this is the source of truth for the organization.
+  /// Effective total: Sum up the balance (uldegdel) of each individual unpaid invoice.
+  /// We avoid using the contract-level globalUldegdel (which currently shows an incorrect sum).
   double get _effectiveTotalAmount {
-    // If we have an authoritative contract balance, use it.
-    if (_contractUldegdel != null && _contractUldegdel! > 0) {
-      return _contractUldegdel!;
-    }
-
-    // Otherwise fallback to summing items (though uldegdel should usually exist)
+    // Sum unique unpaid invoices as the primary source of truth
     final unpaid = invoices.where((i) => i.tuluv != 'Төлсөн').toList();
     if (unpaid.isNotEmpty) {
       final sum = unpaid.fold<double>(0, (s, i) => s + i.effectiveNiitTulbur);
       return sum;
     }
+    
+    // Remote fallback: Only if no invoices exist but we have a building balance.
+    if (_contractUldegdel != null && _contractUldegdel! > 0) {
+      return _contractUldegdel!;
+    }
+
     return 0;
   }
 

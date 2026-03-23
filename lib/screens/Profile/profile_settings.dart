@@ -1672,9 +1672,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               );
                             }
                           },
-                          icon: Icon(Icons.save_rounded, size: 18.sp),
                           label: Text(
-                            'И-мэйл хадгалах',
+                            'Хадгалах',
                             style: TextStyle(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.bold,

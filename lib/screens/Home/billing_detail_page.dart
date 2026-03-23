@@ -146,6 +146,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         if (!mounted) return;
 
         setState(() {
+          _allBillingsData = [widget.billing];
           // Auto-select first 5 bills initially
           int count = 0;
           for (var bill in _allBills) {
@@ -186,26 +187,93 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       List<Map<String, dynamic>> collectedBills = [];
       for (var billing in targetBillingList) {
         final billingId = billing['billingId']?.toString();
+        final source = billing['source']?.toString();
         if (billingId == null) continue;
 
         try {
-          final billingData = await ApiService.getWalletBillingBills(
-            billingId: billingId,
-          );
+          if (source == 'OWN_ORG') {
+            final gereeniiDugaar = billing['gereeniiDugaar']?.toString() ?? billingId;
+            final baiguullagiinId = billing['baiguullagiinId']?.toString();
+            final gereeniiId = billing['gereeniiId']?.toString();
 
-          final extracted = _extractBillingData(billingData, billingId);
-          final bills = extracted['bills'] as List<Map<String, dynamic>>;
-          final bName = extracted['billingName']?.toString();
+            // Fetch local invoices
+            final results = await Future.wait([
+              ApiService.fetchNekhemjlekhiinTuukh(
+                gereeniiDugaar: gereeniiDugaar,
+                khuudasniiDugaar: 1,
+                khuudasniiKhemjee: 200,
+              ),
+              baiguullagiinId != null
+                  ? ApiService.fetchGereeniiTulukhAvlaga(
+                      baiguullagiinId: baiguullagiinId,
+                      gereeniiId: gereeniiId,
+                    )
+                  : Future.value({'jagsaalt': []}),
+            ]);
 
-          // Add metadata to each bill to know which billing it belongs to
-          for (var bill in bills) {
-            bill['parentBillingId'] = billingId;
-            bill['parentBillerName'] =
-                billing['billerName'] ??
-                bName ??
-                billingData['billingName'] ??
-                'Хэрэглээний төлбөр';
-            collectedBills.add(bill);
+            final invoiceResponse = results[0] as Map<String, dynamic>;
+            final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
+
+            if (invoiceResponse['jagsaalt'] != null && invoiceResponse['jagsaalt'] is List) {
+              final rawInvoices = invoiceResponse['jagsaalt'] as List;
+              final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
+                  ? (tulukhAvlagaResponse['jagsaalt'] as List).cast<Map<String, dynamic>>()
+                  : <Map<String, dynamic>>[];
+
+              // Use the shared utility to merge if available, or just map manually
+              // Since this is becoming standard, we map to the Bill structure expected by this page
+              // Standard OWN_ORG logic: use official invoices as the primary source of truth for debts.
+              final Set<String> seenIds = {};
+              for (var inv in rawInvoices) {
+                if (inv['tuluv'] == 'Төлсөн') continue; // Skip historical payments
+                
+                final invoiceId = inv['_id']?.toString() ?? inv['id']?.toString() ?? '';
+                if (invoiceId.isNotEmpty && seenIds.contains(invoiceId)) continue;
+                if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
+
+                // IMPORTANT: Prioritize niitTulbur over uldegdel to avoid the 887k global total bug
+                final amt = (inv['niitTulbur'] as num?)?.toDouble() ?? 0.0;
+                final uld = (inv['uldegdel'] as num?)?.toDouble() ?? 0.0;
+                
+                final paymentAmt = amt > 0 ? amt : uld;
+
+                if (paymentAmt <= 0) continue;
+
+                collectedBills.add({
+                  'billId': invoiceId,
+                  'billTotalAmount': paymentAmt,
+                  'billLateFee': 0.0,
+                  'billPeriod': inv['ognoo']?.toString() ?? inv['nekhemjlekhiinOgnoo']?.toString() ?? '',
+                  'billtype': 'Орон сууц',
+                  'billerName': billing['billingName'] ?? 'Орон сууцны төлбөр',
+                  'customerAddress': billing['customerAddress'] ?? billing['bairniiNer'] ?? '',
+                  'parentBillingId': billingId,
+                  'parentBillerName': billing['billingName'] ?? 'Орон сууцны төлбөр',
+                  'source': 'OWN_ORG',
+                });
+              }
+            }
+          } else {
+            // Standard WALLET_API logic
+            final billingData = await ApiService.getWalletBillingBills(
+              billingId: billingId,
+            );
+
+            final extracted = _extractBillingData(billingData, billingId);
+            final bills = extracted['bills'] as List<Map<String, dynamic>>;
+            final bName = extracted['billingName']?.toString();
+
+            // Add metadata to each bill to know which billing it belongs to
+            for (var bill in bills) {
+              bill['parentBillingId'] = billingId;
+              bill['parentBillerName'] =
+                  billing['billerName'] ??
+                  bName ??
+                  billingData['billingName'] ??
+                  'Хэрэглээний төлбөр';
+              bill['source'] = 'WALLET_API';
+              collectedBills.add(bill);
+            }
           }
         } catch (e) {
           print('Error loading bills for $billingId: $e');
@@ -215,6 +283,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       if (!mounted) return;
 
       setState(() {
+        _allBillingsData = targetBillingList;
         _allBills = collectedBills;
         // Auto-select first 5 bills initially
         int count = 0;
@@ -279,43 +348,64 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       // Usually it's per billing. But if we want unified, we might need to loop or use a multi-billing endpoint if exists.
       // Based on ApiService.createWalletQPayPayment, it takes ONE billingId.
 
-      // Let's group selected bills by billingId
-      Map<String, List<String>> billsByBilling = {};
+      // 1. Group selected bills by billingId and source
+      Map<String, List<Map<String, dynamic>>> selectedBillsByBilling = {};
       for (var bill in _allBills) {
         final id = bill['billId']?.toString();
-        final billingId = bill['parentBillingId']?.toString();
-        if (id != null && _selectedBillIds.contains(id) && billingId != null) {
-          billsByBilling.putIfAbsent(billingId, () => []).add(id);
+        final bId = bill['parentBillingId']?.toString();
+        if (id != null && _selectedBillIds.contains(id) && bId != null) {
+          selectedBillsByBilling.putIfAbsent(bId, () => []).add(bill);
         }
       }
 
-      bool overallSuccess = true;
+      if (selectedBillsByBilling.isEmpty) return;
 
-      // Process each billing group (currently API supports one billing at a time)
-      // If there's only one billing selected, proceed as normal.
-      // If multiple, we'd theoretically need multiple QRs, but usually user selects one provider in the image.
-      // For now, let's take the first billing's bills to match current API capabilities.
-      if (billsByBilling.isEmpty) return;
+      // Currently, we process one provider at a time to keep it simple and match backend
+      final firstBillingId = selectedBillsByBilling.keys.first;
+      final selectedBills = selectedBillsByBilling[firstBillingId]!;
+      final source = selectedBills.first['source']?.toString();
+      final selectedBillIds = selectedBills.map((b) => b['billId']?.toString() ?? '').toList();
+      final totalAmount = selectedBills.fold(0.0, (sum, b) => sum + (b['billTotalAmount'] ?? 0.0));
 
-      final firstBillingId = billsByBilling.keys.first;
-      final selectedBillIds = billsByBilling[firstBillingId]!;
+      Map<String, dynamic>? qpayResponse;
 
-      final qpayResponse = await ApiService.createWalletQPayPayment(
-        billingId: firstBillingId,
-        billIds: selectedBillIds,
-        vatReceiveType: _vatReceiveType,
-        vatCompanyReg: _vatReceiveType == 'COMPANY'
-            ? _vatCompanyRegController.text
-            : null,
-      );
+      if (source == 'OWN_ORG') {
+        // Find the original billing entry to get baiguullagiinId/barilgiinId
+        final billingEntry = _allBillingsData.firstWhere(
+          (b) => b['billingId']?.toString() == firstBillingId,
+          orElse: () => widget.billing,
+        );
+        final baiguullagiinId = billingEntry['baiguullagiinId']?.toString();
+        final barilgiinId = billingEntry['barilgiinId']?.toString() ?? billingEntry['walletBairId']?.toString();
+        
+        // Use custom QPay for OWN_ORG
+        qpayResponse = await ApiService.qpayGargaya(
+          baiguullagiinId: baiguullagiinId,
+          barilgiinId: barilgiinId,
+          dun: totalAmount,
+          nekhemjlekhiinId: selectedBillIds.join(','),
+          turul: 'nekhemjlekh',
+        );
+        qpayResponse['success'] = true; // qpayGargaya doesn't always wrap in success: true
+      } else {
+        // Standard Wallet API payout
+        qpayResponse = await ApiService.createWalletQPayPayment(
+          billingId: firstBillingId,
+          billIds: selectedBillIds,
+          vatReceiveType: _vatReceiveType,
+          vatCompanyReg: _vatReceiveType == 'COMPANY'
+              ? _vatCompanyRegController.text
+              : null,
+        );
+      }
 
       if (!mounted) return;
 
       if (qpayResponse['success'] == true) {
         final walletPaymentId = qpayResponse['walletPaymentId']?.toString();
-        final paymentAmount =
-            (qpayResponse['paymentAmount'] as num?)?.toDouble() ?? 0.0;
-        final qrText = qpayResponse['qr_text']?.toString();
+        final qpayInvoiceId = qpayResponse['invoice_id']?.toString() ?? qpayResponse['invoiceId']?.toString();
+        final paymentAmount = (qpayResponse['paymentAmount'] as num?)?.toDouble() ?? totalAmount;
+        final qrText = qpayResponse['qrText']?.toString() ?? qpayResponse['qr_text']?.toString();
         final qrImage = qpayResponse['qr_image']?.toString();
         final urls = qpayResponse['urls'] as List<dynamic>?;
 
@@ -323,32 +413,47 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           MaterialPageRoute(
             builder: (ctx) => QPayQRModal(
               qrText: qrText,
-              qrImageWallet: qrImage,
+              qrImageWallet: source == 'WALLET_API' ? qrImage : null,
+              qrImageOwnOrg: source == 'OWN_ORG' ? qrImage : null,
               urls: urls,
               amount: paymentAmount,
               walletPaymentId: walletPaymentId,
+              invoiceNumber: qpayInvoiceId,
               closeOnSuccess: true,
               onCheckPaymentAsync: () async {
-                if (walletPaymentId == null) return null;
-                try {
-                  final status = await ApiService.walletQpayCheckStatus(
-                    walletPaymentId: walletPaymentId,
-                  );
-                  final state = status['status']?.toString().toUpperCase();
-                  if (state == 'PAID') return true;
-                  if (state == 'PENDING') return null;
-                  return false;
-                } catch (_) {
-                  return null;
+                if (source == 'WALLET_API' && walletPaymentId != null) {
+                  try {
+                    final status = await ApiService.walletQpayCheckStatus(
+                      walletPaymentId: walletPaymentId,
+                    );
+                    final state = status['status']?.toString().toUpperCase();
+                    if (state == 'PAID') return true;
+                    if (state == 'PENDING') return null;
+                    return false;
+                  } catch (_) {
+                    return null;
+                  }
+                } else if (source == 'OWN_ORG' && qpayInvoiceId != null) {
+                   try {
+                    final status = await ApiService.checkPaymentStatus(
+                      invoiceId: qpayInvoiceId,
+                    );
+                    final state = status['tuluv']?.toString();
+                    if (state == 'Төлсөн') return true;
+                    return null;
+                  } catch (_) {
+                    return null;
+                  }
                 }
+                return null;
               },
             ),
           ),
         );
 
         if (paid == true && mounted) {
-          // Show success and receipt
-          if (walletPaymentId != null) {
+           // Show success for WALLET payments (receipts)
+          if (source == 'WALLET_API' && walletPaymentId != null) {
             try {
               final paymentData = await ApiService.walletQpayGetPayment(
                 walletPaymentId: walletPaymentId,
@@ -439,6 +544,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                     builder: (_) => PaymentHistoryPage(
                       billingId: billingId,
                       billingName: billingName,
+                      source: widget.billing['source']?.toString(),
                       customerName:
                           widget.billing['customerName']?.toString() ??
                           widget.billing['ner']?.toString() ??

@@ -77,7 +77,7 @@ class BillingBox extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Хэрэглээний төлбөр',
+                    'Байрны төлбөр',
                     style: TextStyle(
                       fontSize: 15.sp,
                       color: context.textPrimaryColor,
