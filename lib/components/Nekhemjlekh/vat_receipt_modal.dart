@@ -146,12 +146,12 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                             if (widget.receipt.lottery != null)
                               _buildCopyableReceiptInfoRow(
                                 context,
-                                'Сугалааны дугаар:',
+                                'СУГАЛААНЫ ДУГААР:',
                                 widget.receipt.lottery!,
                               ),
                             _buildReceiptInfoRow(
                               context,
-                              'Огноо:',
+                              'ОГНОО:',
                               widget.receipt.formattedDate,
                             ),
                             _buildCopyableReceiptInfoRow(
@@ -169,7 +169,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                             ),
                             _buildCopyableReceiptInfoRow(
                               context,
-                              'Нийт дүн:',
+                              'НИЙТ ДҮН:',
                               widget.receipt.formattedAmount,
                               isBold: true,
                             ),
@@ -181,7 +181,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                             if (widget.receipt.totalCityTax > 0)
                               _buildReceiptInfoRow(
                                 context,
-                                'Хотын татвар:',
+                                'ХОТЫН ТАТВАР:',
                                 '${widget.receipt.totalCityTax.toStringAsFixed(2)}₮',
                               ),
                           ],

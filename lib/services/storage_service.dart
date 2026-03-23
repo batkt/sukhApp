@@ -27,6 +27,7 @@ class StorageService {
   static const String _barilgiinIdKey = 'barilgiinId';
   static const String _userIdKey = 'user_id';
   static const String _userNerKey = 'user_ner';
+  static const String _userMailKey = 'user_mail';
   static const String _duusakhOgnooKey = 'duusakh_ognoo';
   static const String _taniltsuulgaKharakhEsekhKey =
       'taniltsuulga_kharakh_esekh';
@@ -151,6 +152,11 @@ class StorageService {
         await prefs.setString(_userNerKey, user!['ner'].toString());
       }
 
+      // Save user email
+      if (user?['mail'] != null) {
+        await prefs.setString(_userMailKey, user!['mail'].toString());
+      }
+
       // Save baiguullagiinId
       if (user?['baiguullagiinId'] != null) {
         await prefs.setString(
@@ -251,6 +257,16 @@ class StorageService {
     }
   }
 
+  /// Get user email
+  static Future<String?> getUserEmail() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_userMailKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Get baiguullagiinId
   static Future<String?> getBaiguullagiinId() async {
     try {
@@ -333,6 +349,7 @@ class StorageService {
       await prefs.remove(_tokenKey);
       await prefs.remove(_userIdKey);
       await prefs.remove(_userNerKey);
+      await prefs.remove(_userMailKey);
       await prefs.remove(_baiguullagiinIdKey);
       await prefs.remove(_baiguullagiinNerKey);
       await prefs.remove(_barilgiinIdKey);

@@ -134,6 +134,7 @@ class _BookingScreenState extends State<NuurKhuudas>
   // Billing List
   List<Map<String, dynamic>> _billingList = [];
   bool _isLoadingBillingList = true;
+  bool _isRefreshing = false;
 
   // User billing data from profile
   Map<String, dynamic>? _userBillingData;
@@ -175,9 +176,9 @@ class _BookingScreenState extends State<NuurKhuudas>
     _refreshBillingInfo(); // Consolidated refresh
     _checkRecentWalletPayments();
 
-    // Periodic balance refresh (every 15s) - faster updates for better UX
-    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (mounted) _refreshBillingInfo();
+    // Periodic balance refresh (every 30s) - background refresh doesn't need to be too frequent
+    _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _refreshBillingInfo(forceRefresh: false);
     });
 
     // Trigger animation after a short delay to ensure data is loaded
@@ -238,7 +239,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           (_lastBalanceRefresh == null ||
               now.difference(_lastBalanceRefresh!).inSeconds >= 15)) {
         _lastBalanceRefresh = now;
-        _immediateRefresh();
+        _refreshBillingInfo(forceRefresh: false);
       }
     });
   }
@@ -253,10 +254,9 @@ class _BookingScreenState extends State<NuurKhuudas>
 
       // Reset timer to more frequent updates
       _balanceRefreshTimer?.cancel();
-      _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         if (mounted) {
-          _loadAllBillingPayments();
-          _loadBillingList();
+          _refreshBillingInfo(forceRefresh: false);
         }
       });
     } else if (state == AppLifecycleState.paused) {
@@ -339,19 +339,20 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   bool _isInitialBillingLoaded = false;
 
-  Future<void> _refreshBillingInfo() async {
-    if (!mounted) return;
+  Future<void> _refreshBillingInfo({bool forceRefresh = false}) async {
+    if (!mounted || _isRefreshing) return;
+    _isRefreshing = true;
 
     // Only show full loading state on the very first load
-    if (!_isInitialBillingLoaded) {
-      setState(() {
-        _isLoadingBillingList = true;
-      });
+    if (!_isInitialBillingLoaded && _billingList.isEmpty) {
+      if (mounted) setState(() => _isLoadingBillingList = true);
     }
 
     try {
       // 1. Fetch data from Wallet API
-      final rawBillingList = await ApiService.getWalletBillingList();
+      final rawBillingList = await ApiService.getWalletBillingList(
+        forceRefresh: forceRefresh,
+      );
       double total = 0.0;
       double totalAldangi = 0.0;
       double ownOrgTotal = 0.0;
@@ -366,6 +367,14 @@ class _BookingScreenState extends State<NuurKhuudas>
           final List<dynamic> toots = userData['toots'] ?? [];
 
           for (var toot in toots) {
+            final billingId = toot['billingId']?.toString();
+            // Skip if no billingId or if we already added this billingId
+            if (billingId == null ||
+                billingId.isEmpty ||
+                userBillingToots.any((b) => b['billingId'] == billingId)) {
+              continue;
+            }
+
             if (toot['source'] == 'WALLET_API' ||
                 toot['walletCustomerId'] != null ||
                 toot['walletBairId'] != null) {
@@ -460,6 +469,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           if (billingId != null && billingId.isNotEmpty) {
             final billingDetails = await ApiService.getWalletBillingBills(
               billingId: billingId,
+              forceRefresh: forceRefresh,
             );
 
             if (billingDetails.isNotEmpty &&
@@ -503,15 +513,16 @@ class _BookingScreenState extends State<NuurKhuudas>
           _userBillingData = null; // We now merge everything into _billingList
           totalNiitTulbur = total;
           totalNiitAldangi = totalAldangi;
-          _isLoadingBillingList = false;
-          _isInitialBillingLoaded = true;
         });
       }
     } catch (e) {
+      print('❌ [ERROR] _refreshBillingInfo: $e');
+    } finally {
       if (mounted) {
         setState(() {
           _isLoadingBillingList = false;
           _isInitialBillingLoaded = true;
+          _isRefreshing = false;
         });
       }
     }
@@ -524,7 +535,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     try {
       // Force refresh all billing-related data immediately
       await Future.wait([
-        _loadBillingList(),
+        _refreshBillingInfo(forceRefresh: true),
         _loadAllBillingPayments(),
         _loadNotificationCount(), // Also refresh notifications
       ]);
@@ -1576,7 +1587,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Байрны төлбөр',
+                    'Хэрэглээний төлбөр',
                     style: TextStyle(
                       fontSize: 15.sp,
                       color: context.textPrimaryColor,

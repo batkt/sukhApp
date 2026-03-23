@@ -445,34 +445,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           setState(() {
             final List<NekhemjlekhItem> finalInvoices = [];
             for (var item in mergedInvoices) {
-              final parsed = NekhemjlekhItem.fromJson(item);
-              
-              if (parsed.tuluv == 'Төлсөн' && parsed.uldegdel > 0) {
-                // It is marked as paid but still has remaining balance (uldegdel).
-                // Let's split it into a "Paid" part (for history) and an "Unpaid" part.
-                final paidAmount = parsed.niitTulburOriginal - parsed.uldegdel;
-                
-                if (paidAmount > 0) {
-                  // The paid part (appears in the "Paid" tab)
-                  final paidInfo = Map<String, dynamic>.from(item);
-                  paidInfo['niitTulbur'] = paidAmount;
-                  paidInfo['niitTulburOriginal'] = paidAmount;
-                  paidInfo['uldegdel'] = 0;
-                  paidInfo['_id'] = '${parsed.id}_paid';
-                  finalInvoices.add(NekhemjlekhItem.fromJson(paidInfo));
-                }
-                
-                // The remaining unpaid part (appears in the "Unpaid" tab so it can be paid)
-                final unpaidInfo = Map<String, dynamic>.from(item);
-                unpaidInfo['tuluv'] = 'Хэсэгчлэн';
-                unpaidInfo['niitTulbur'] = parsed.uldegdel;
-                unpaidInfo['niitTulburOriginal'] = parsed.uldegdel;
-                unpaidInfo['uldegdel'] = parsed.uldegdel;
-                // keep the original ID so payment APIs use the correct invoice ID
-                finalInvoices.add(NekhemjlekhItem.fromJson(unpaidInfo));
-              } else {
-                finalInvoices.add(parsed);
-              }
+              // One source of truth: keep each invoice as-is, no splitting.
+              finalInvoices.add(NekhemjlekhItem.fromJson(item));
             }
 
             invoices = finalInvoices;
@@ -525,7 +499,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
   bool get allSelected {
     final unpaidInvoices = invoices
-        .where((invoice) => invoice.tuluv == 'Төлөөгүй')
+        .where((invoice) => invoice.tuluv != 'Төлсөн')
         .toList();
     return unpaidInvoices.isNotEmpty &&
         unpaidInvoices.every((invoice) => invoice.isSelected);
@@ -543,7 +517,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     }
 
     // Otherwise fallback to summing items (though uldegdel should usually exist)
-    final unpaid = invoices.where((i) => i.tuluv == 'Төлөөгүй').toList();
+    final unpaid = invoices.where((i) => i.tuluv != 'Төлсөн').toList();
     if (unpaid.isNotEmpty) {
       final sum = unpaid.fold<double>(0, (s, i) => s + i.effectiveNiitTulbur);
       return sum;
@@ -563,8 +537,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     setState(() {
       bool newValue = !allSelected;
       for (var invoice in invoices) {
-        // Only select/deselect invoices with status "Төлөөгүй" (Unpaid)
-        if (invoice.tuluv == 'Төлөөгүй') {
+        // Only select/deselect invoices that are not paid
+        if (invoice.tuluv != 'Төлсөн') {
           invoice.isSelected = newValue;
         }
       }
@@ -588,6 +562,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           .where((invoice) => invoice.tuluv == 'Төлсөн')
           .toList();
     } else if (selectedFilter == 'Unpaid') {
+      // Unpaid = anything that is not fully paid (Төлөөгүй only, excludes Хэсэгчлэн since
+      // we no longer create that status — but kept for safety)
       filtered = filtered
           .where((invoice) => invoice.tuluv != 'Төлсөн')
           .toList();

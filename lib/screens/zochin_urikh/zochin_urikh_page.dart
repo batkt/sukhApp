@@ -384,8 +384,10 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                       TextFormField(
                         controller: _mashiniiDugaarController,
                         textCapitalization: TextCapitalization.characters,
+                        keyboardType: TextInputType.number,
                         inputFormatters: [
-                          CarPlateFormatter(),
+                          LengthLimitingTextInputFormatter(7),
+                          PlateNumberFormatter(),
                         ],
                         decoration: InputDecoration(
                           labelText: 'Машины дугаар',
@@ -1261,34 +1263,32 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 /// Custom formatter for Mongolian car plates: 4 digits + 3 letters
-class CarPlateFormatter extends TextInputFormatter {
+class PlateNumberFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
     final text = newValue.text.toUpperCase();
-    final buffer = StringBuffer();
-    
-    for (int i = 0; i < text.length && buffer.length < 7; i++) {
+    String result = '';
+
+    for (int i = 0; i < text.length && i < 7; i++) {
       final char = text[i];
-      
-      if (buffer.length < 4) {
-        // First 4 characters must be digits
+      if (i < 4) {
         if (RegExp(r'[0-9]').hasMatch(char)) {
-          buffer.write(char);
+          result += char;
         }
       } else {
-        // Last 3 characters must be letters (Cyrillic or Latin)
-        if (RegExp(r'[A-ZА-Я]').hasMatch(char)) {
-          buffer.write(char);
+        // Last 3 characters must be Cyrillic letters
+        if (RegExp(r'[А-ЯӨҮЁ]').hasMatch(char)) {
+          result += char;
         }
       }
     }
-    
+
     return TextEditingValue(
-      text: buffer.toString(),
-      selection: TextSelection.collapsed(offset: buffer.length),
+      text: result,
+      selection: TextSelection.collapsed(offset: result.length),
     );
   }
 }

@@ -193,6 +193,79 @@ class InvoiceCard extends StatelessWidget {
                         // Main content row
                         Row(
                           children: [
+                            // Selection Checkbox (Leading)
+                            if (!isHistory && onToggleSelect != null && invoice.tuluv != 'Төлсөн') ...[
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    onToggleSelect!();
+                                  },
+                                  borderRadius: BorderRadius.circular(6.w),
+                                  splashColor: AppColors.deepGreen.withOpacity(0.3),
+                                  highlightColor: AppColors.deepGreen.withOpacity(0.1),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOutCubic,
+                                    width: 22.w,
+                                    height: 22.w,
+                                    decoration: BoxDecoration(
+                                      gradient: invoice.isSelected
+                                          ? LinearGradient(
+                                              colors: [
+                                                AppColors.secondaryAccent,
+                                                AppColors.secondaryAccent.withOpacity(0.8),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            )
+                                          : null,
+                                      color: invoice.isSelected ? null : Colors.transparent,
+                                      border: Border.all(
+                                        color: invoice.isSelected
+                                            ? AppColors.deepGreen
+                                            : context.borderColor,
+                                        width: invoice.isSelected ? 2.5 : 2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6.w),
+                                      boxShadow: invoice.isSelected
+                                          ? [
+                                              BoxShadow(
+                                                color: AppColors.deepGreen.withOpacity(0.2),
+                                                blurRadius: 8,
+                                                spreadRadius: 0,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Center(
+                                      child: AnimatedScale(
+                                        scale: invoice.isSelected ? 1.0 : 0.0,
+                                        duration: const Duration(milliseconds: 250),
+                                        curve: Curves.elasticOut,
+                                        child: invoice.isSelected
+                                            ? Icon(
+                                                Icons.check_rounded,
+                                                color: Colors.white,
+                                                size: context.responsiveFontSize(
+                                                  small: 16,
+                                                  medium: 17,
+                                                  large: 18,
+                                                  tablet: 20,
+                                                  veryNarrow: 14,
+                                                ),
+                                                weight: 3,
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 14.w),
+                            ],
                             // Company logo
                             Container(
                               width: context.responsiveSpacing(
@@ -289,92 +362,6 @@ class InvoiceCard extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                                if (!isHistory) SizedBox(height: 6.h),
-                                // Checkbox for selection (only in non-history mode)
-                                if (!isHistory && onToggleSelect != null)
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () {
-                                        HapticFeedback.lightImpact();
-                                        onToggleSelect!();
-                                      },
-                                      borderRadius: BorderRadius.circular(6.w),
-                                      splashColor: AppColors.deepGreen
-                                          .withOpacity(0.3),
-                                      highlightColor: AppColors.deepGreen
-                                          .withOpacity(0.1),
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 300,
-                                        ),
-                                        curve: Curves.easeInOutCubic,
-                                        width: 22.w,
-                                        height: 22.w,
-                                        decoration: BoxDecoration(
-                                          gradient: invoice.isSelected
-                                              ? LinearGradient(
-                                                  colors: [
-                                                    AppColors.secondaryAccent,
-                                                    AppColors.secondaryAccent
-                                                        .withOpacity(0.8),
-                                                  ],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                )
-                                              : null,
-                                          color: invoice.isSelected
-                                              ? null
-                                              : Colors.transparent,
-                                          border: Border.all(
-                                            color: invoice.isSelected
-                                                ? AppColors.deepGreen
-                                                : context.borderColor,
-                                            width: invoice.isSelected ? 2.5 : 2,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            6.w,
-                                          ),
-                                          boxShadow: invoice.isSelected
-                                              ? [
-                                                  BoxShadow(
-                                                    color: AppColors.deepGreen
-                                                        .withOpacity(0.2),
-                                                    blurRadius: 8,
-                                                    spreadRadius: 0,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ]
-                                              : null,
-                                        ),
-                                        child: Center(
-                                          child: AnimatedScale(
-                                            scale: invoice.isSelected
-                                                ? 1.0
-                                                : 0.0,
-                                            duration: const Duration(
-                                              milliseconds: 250,
-                                            ),
-                                            curve: Curves.elasticOut,
-                                            child: invoice.isSelected
-                                                ? Icon(
-                                                    Icons.check_rounded,
-                                                    color: Colors.white,
-                                                    size: context.responsiveFontSize(
-                                                      small: 16,
-                                                      medium: 17,
-                                                      large: 18,
-                                                      tablet: 20,
-                                                      veryNarrow: 14,
-                                                    ),
-                                                    weight: 3,
-                                                  )
-                                                : const SizedBox.shrink(),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                               ],
                             ),
                           ],

@@ -225,7 +225,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           decoration: InputDecoration(
                             hintText: 'Гарчиг оруулах',
                             hintStyle: TextStyle(
-                              color: context.textSecondaryColor,
+                              color: context.textPrimaryColor,
                             ),
                             filled: true,
                             fillColor: context.cardBackgroundColor,
@@ -356,7 +356,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                           decoration: InputDecoration(
                             hintText: 'Дэлгэрэнгүй мэдээлэл оруулах',
                             hintStyle: TextStyle(
-                              color: context.textSecondaryColor,
+                              color: context.textPrimaryColor,
                             ),
                             filled: true,
                             fillColor: context.cardBackgroundColor,
@@ -490,7 +490,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                               ),
                               ),
                               disabledBackgroundColor:
-                                  context.textSecondaryColor,
+                                  context.textPrimaryColor.withOpacity(0.2),
                             ),
                             child: _isSubmitting
                                 ? SizedBox(
@@ -769,7 +769,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
               children: [
                 Icon(
                   Icons.add_photo_alternate_outlined,
-                  color: context.textSecondaryColor,
+                  color: context.textPrimaryColor,
                   size: context.responsiveFontSize(
                     small: 22,
                     medium: 24,
@@ -792,7 +792,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                       ? 'Өөр зураг сонгох'
                       : 'Зураг нэмэх (заавал биш)',
                   style: TextStyle(
-                    color: context.textSecondaryColor,
+                    color: context.textPrimaryColor,
                     fontSize: context.responsiveFontSize(
                       small: 14,
                       medium: 15,
@@ -827,7 +827,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
         : context.borderColor;
     final unselectedTextColor = isDark
         ? context.textPrimaryColor.withOpacity(0.7)
-        : context.textSecondaryColor;
+        : context.textPrimaryColor;
 
     return GestureDetector(
       onTap: () {

@@ -44,6 +44,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
   // Profile controllers
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _mashiniiDugaarController = TextEditingController();
 
   // Password controllers
@@ -100,6 +101,14 @@ class _ProfileSettingsState extends State<ProfileSettings>
     _loadUserProfile();
     _checkBiometricStatus();
     _loadCurrentAddress();
+
+    // Check for navigation actions after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = GoRouterState.of(context);
+      if (state.uri.queryParameters['action'] == 'edit_email') {
+        _showPersonalInfoModal(context);
+      }
+    });
   }
 
   Future<void> _loadOrganizationInfo() async {
@@ -165,7 +174,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
           });
           showGlassSnackBar(
             context,
-            message: 'Биометрийн нэвтрэлт амжилттай идэвхжлээ',
+            message: 'Биометрийн нэвтрэлт амжилттай идэвхэжлээ',
             icon: Icons.check_circle,
             iconColor: Colors.green,
           );
@@ -361,6 +370,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     _confirmPasswordController.dispose();
     _deletePasswordController.dispose();
     _mashiniiDugaarController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -388,6 +398,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
               _phoneController.text = utas.toString();
             }
           }
+          _emailController.text = userData['mail']?.toString() ?? '';
 
           final plateRaw = userData['mashiniiDugaar'] ?? userData['dugaar'];
           if (plateRaw != null) {
@@ -1340,18 +1351,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: AppColors.deepGreen,
-                        ),
-                        style: IconButton.styleFrom(
-                          backgroundColor: isDark
-                              ? Colors.white.withOpacity(0.05)
-                              : Colors.black.withOpacity(0.05),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -1592,23 +1591,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.05)
-                              : Colors.black.withOpacity(0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.close_rounded,
-                          color: AppColors.deepGreen,
-                          size: 20.sp,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -1637,6 +1619,81 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         enabled: false,
                         hint: 'Утасны дугаар хоосон байна',
                       ),
+                      SizedBox(height: 16.h),
+                      _buildModernTextField(
+                        controller: _emailController,
+                        label: 'И-мэйл хаяг',
+                        icon: Icons.alternate_email_rounded,
+                        enabled: true,
+                        hint: 'И-мэйл хаяг оруулах',
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      SizedBox(height: 16.h),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            if (_emailController.text.isEmpty) {
+                              showGlassSnackBar(
+                                context,
+                                message: 'И-мэйл хаяг оруулна уу',
+                                icon: Icons.warning,
+                              );
+                              return;
+                            }
+                            // Basic email regex
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                .hasMatch(_emailController.text)) {
+                              showGlassSnackBar(
+                                context,
+                                message: 'Зөв и-мэйл хаяг оруулна уу',
+                                icon: Icons.error,
+                              );
+                              return;
+                            }
+
+                            try {
+                              final response = await ApiService.updateUserProfile({
+                                'mail': _emailController.text,
+                              });
+                              if (response['success'] == true || response['_id'] != null) {
+                                showGlassSnackBar(
+                                  context,
+                                  message: 'И-мэйл амжилттай хадгалагдлаа',
+                                  icon: Icons.check_circle,
+                                  iconColor: Colors.green,
+                                );
+                                _loadUserProfile(); // Reload to update state
+                              }
+                            } catch (e) {
+                              showGlassSnackBar(
+                                context,
+                                message: 'Алдаа гарлаа: $e',
+                                icon: Icons.error,
+                              );
+                            }
+                          },
+                          icon: Icon(Icons.save_rounded, size: 18.sp),
+                          label: Text(
+                            'И-мэйл хадгалах',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.deepGreen,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24.w,
+                              vertical: 12.h,
+                            ),
+                            backgroundColor: AppColors.deepGreen.withOpacity(0.1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                          ),
+                        ),
+                      ),
+
 
                       SizedBox(height: 32.h),
 
@@ -1917,22 +1974,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               color: modalContext.textPrimaryColor,
                               fontSize: 18.sp,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(modalContext),
-                          child: Container(
-                            padding: EdgeInsets.all(6.w),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white : Colors.black,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.close_rounded,
-                              color: modalContext.textSecondaryColor,
-                              size: 18.sp,
                             ),
                           ),
                         ),

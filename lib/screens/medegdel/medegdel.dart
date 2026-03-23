@@ -85,7 +85,7 @@ class _MedegdelPageState extends State<MedegdelPage>
               child: TabBar(
                 controller: _tabController,
                 labelColor: Colors.white,
-                unselectedLabelColor: context.textSecondaryColor,
+                unselectedLabelColor: context.textPrimaryColor.withOpacity(0.6),
                 indicator: BoxDecoration(
                   color: AppColors.deepGreen,
                   borderRadius: BorderRadius.circular(
@@ -383,7 +383,7 @@ class _MedegdelPageState extends State<MedegdelPage>
                     Text(
                       timestamp,
                       style: TextStyle(
-                        color: context.textSecondaryColor,
+                        color: context.textPrimaryColor,
                         fontSize: context.responsiveFontSize(
                           small: 9,
                           medium: 10,
@@ -452,7 +452,7 @@ class _MedegdelPageState extends State<MedegdelPage>
           Text(
             description,
             style: TextStyle(
-              color: context.textSecondaryColor,
+              color: context.textPrimaryColor.withOpacity(0.85),
               fontSize: context.responsiveFontSize(
                 small: 11,
                 medium: 12,

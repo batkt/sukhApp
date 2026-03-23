@@ -650,7 +650,7 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                   Text(
                     notification.message,
                     style: TextStyle(
-                      color: context.textSecondaryColor,
+                      color: context.textPrimaryColor.withOpacity(0.9),
                       fontSize: context.responsiveFontSize(
                         small: 13,
                         medium: 14,
@@ -823,7 +823,7 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                               child: Text(
                                 notification.tailbar!,
                                 style: TextStyle(
-                                  color: context.textSecondaryColor,
+                                  color: context.textPrimaryColor,
                                   fontSize: context.responsiveFontSize(
                                     small: 11,
                                     medium: 12,
@@ -936,7 +936,7 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                       Text(
                         notification.formattedDateTime,
                         style: TextStyle(
-                          color: context.textSecondaryColor,
+                          color: context.textPrimaryColor,
                           fontSize: context.responsiveFontSize(
                             small: 9,
                             medium: 10,

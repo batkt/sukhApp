@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -60,7 +61,10 @@ class _EbarimtPageState extends State<EbarimtPage> {
   Future<void> _loadSavedUsers() async {
     setState(() => _isLoadingSavedUsers = true);
     try {
-      final response = await ApiService.easyRegisterGetSavedUsers();
+      final userId = await StorageService.getUserId();
+      final response = await ApiService.easyRegisterGetSavedUsers(
+        orshinSuugchiinId: userId,
+      );
       if (mounted) {
         setState(() {
           _savedUsers = response['jagsaalt'] ?? [];
@@ -433,7 +437,14 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     SizedBox(height: 20.h),
                     TextFormField(
                       controller: _citizenCodeController,
-                      keyboardType: TextInputType.text,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          return newValue.copyWith(
+                            text: newValue.text.toUpperCase(),
+                          );
+                        }),
+                      ],
                       style: TextStyle(
                         fontSize: 15.sp,
                         color: context.textPrimaryColor,
@@ -490,7 +501,8 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                                       CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
-                                                      '${user['givenName']} ${user['familyName']}',
+                                                      '${user['givenName'] ?? ''} ${user['familyName'] ?? ''}'
+                                                          .toUpperCase(),
                                                       style: TextStyle(
                                                         fontSize: 14.sp,
                                                         fontWeight:
@@ -498,9 +510,10 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                                       ),
                                                     ),
                                                     Text(
-                                                      user['regNo'] ??
-                                                          user['loginName'] ??
-                                                          '',
+                                                      ((user['regNo'] ??
+                                                              user['loginName'] ??
+                                                              '') as String)
+                                                          .toUpperCase(),
                                                       style: TextStyle(
                                                         fontSize: 12.sp,
                                                         color: context
@@ -775,7 +788,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Цахим төлбөрийн баримт',
+                        'ЦАХИМ ТӨЛБӨРИЙН БАРИМТ',
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: 14.sp,
@@ -827,7 +840,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                         borderRadius: BorderRadius.circular(6.r),
                       ),
                       child: Text(
-                        'И-Баримт',
+                        'И-БАРИМТ',
                         style: TextStyle(
                           color: AppColors.deepGreen,
                           fontSize: 9.sp,
@@ -973,7 +986,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
           ),
           Expanded(
             child: Text(
-              value,
+              value.toUpperCase(),
               style: TextStyle(
                 color: context.textPrimaryColor,
                 fontSize: 13.sp,

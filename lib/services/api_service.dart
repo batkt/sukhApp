@@ -20,6 +20,11 @@ class ApiService {
   // Helper method to wrap HTTP calls with better error handling
 
   static List<Map<String, dynamic>>? _cachedLocationData;
+  static List<Map<String, dynamic>>? _cachedWalletBillingList;
+  static DateTime? _lastWalletBillingListFetch;
+  static final Map<String, Map<String, dynamic>> _cachedWalletBillingBills = {};
+  static final Map<String, DateTime> _lastWalletBillingBillsFetch = {};
+  static const Duration _shortCacheDuration = Duration(seconds: 5);
 
   static Future<List<Map<String, dynamic>>> fetchLocationData() async {
     if (_cachedLocationData != null) {
@@ -630,7 +635,18 @@ class ApiService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getWalletBillingList() async {
+  static Future<List<Map<String, dynamic>>> getWalletBillingList({
+    bool forceRefresh = false,
+  }) async {
+    // Check cache
+    if (!forceRefresh &&
+        _cachedWalletBillingList != null &&
+        _lastWalletBillingListFetch != null &&
+        DateTime.now().difference(_lastWalletBillingListFetch!) <
+            _shortCacheDuration) {
+      return _cachedWalletBillingList!;
+    }
+
     try {
       final headers = await getWalletApiHeaders();
       final response = await http.get(
@@ -642,7 +658,10 @@ class ApiService {
         final data = json.decode(response.body);
         if (data['success'] == true && data['data'] != null) {
           if (data['data'] is List) {
-            return List<Map<String, dynamic>>.from(data['data']);
+            final list = List<Map<String, dynamic>>.from(data['data']);
+            _cachedWalletBillingList = list;
+            _lastWalletBillingListFetch = DateTime.now();
+            return list;
           }
         }
         return [];
@@ -661,7 +680,17 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getWalletBillingBills({
     required String billingId,
+    bool forceRefresh = false,
   }) async {
+    // Check cache
+    if (!forceRefresh &&
+        _cachedWalletBillingBills.containsKey(billingId) &&
+        _lastWalletBillingBillsFetch.containsKey(billingId) &&
+        DateTime.now().difference(_lastWalletBillingBillsFetch[billingId]!) <
+            _shortCacheDuration) {
+      return _cachedWalletBillingBills[billingId]!;
+    }
+
     try {
       final headers = await getWalletApiHeaders();
       final response = await http.get(
@@ -671,41 +700,41 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Only print once, not on every call
-        if (data['success'] == true || data['responseCode'] == true) {
-          print(
-            '📄 [API] Billing bills response: ${data.toString().substring(0, data.toString().length > 500 ? 500 : data.toString().length)}...',
-          );
-        }
+        
+        Map<String, dynamic> result = {};
 
         if (data['responseCode'] == true && data['data'] != null) {
           final rawData = data['data'];
           if (rawData is Map) {
-            return Map<String, dynamic>.from(rawData);
+            result = Map<String, dynamic>.from(rawData);
           } else if (rawData is List && rawData.isNotEmpty) {
             final matched = rawData.firstWhere(
               (item) =>
                   item is Map && item['billingId']?.toString() == billingId,
               orElse: () => rawData[0],
             );
-            return Map<String, dynamic>.from(matched);
+            result = Map<String, dynamic>.from(matched);
           }
-          return {};
         } else if (data['success'] == true && data['data'] != null) {
           final rawData = data['data'];
           if (rawData is Map) {
-            return Map<String, dynamic>.from(rawData);
+            result = Map<String, dynamic>.from(rawData);
           } else if (rawData is List && rawData.isNotEmpty) {
             final matched = rawData.firstWhere(
               (item) =>
                   item is Map && item['billingId']?.toString() == billingId,
               orElse: () => rawData[0],
             );
-            return Map<String, dynamic>.from(matched);
+            result = Map<String, dynamic>.from(matched);
           }
         }
-        print('📄 [API] No valid data found, returning empty map');
-        return {};
+
+        if (result.isNotEmpty) {
+          _cachedWalletBillingBills[billingId] = result;
+          _lastWalletBillingBillsFetch[billingId] = DateTime.now();
+        }
+        
+        return result;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
@@ -884,14 +913,19 @@ class ApiService {
         headers: headers,
       );
 
-      final data = json.decode(response.body);
+      dynamic data;
+      try {
+        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+          data = json.decode(response.body);
+        }
+      } catch (_) {}
 
       if (response.statusCode == 200) {
-        if (data['success'] == true) {
+        if (data != null && data['success'] == true) {
           return data;
         } else {
           throw Exception(
-            data['aldaa'] ?? data['message'] ?? 'Биллинг устгахад алдаа гарлаа',
+            data?['aldaa'] ?? data?['message'] ?? 'Биллинг устгахад алдаа гарлаа',
           );
         }
       } else if (response.statusCode == 401) {
@@ -899,12 +933,13 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['aldaa'] ??
-              data['message'] ??
+          data?['aldaa'] ??
+              data?['message'] ??
               'Биллинг устгахад алдаа гарлаа: ${response.statusCode}',
         );
       }
     } catch (e) {
+      if (e is Exception) rethrow;
       throw Exception('Биллинг устгахад алдаа гарлаа: $e');
     }
   }
@@ -920,14 +955,19 @@ class ApiService {
         headers: headers,
       );
 
-      final data = json.decode(response.body);
+      dynamic data;
+      try {
+        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+          data = json.decode(response.body);
+        }
+      } catch (_) {}
 
       if (response.statusCode == 200) {
-        if (data['success'] == true) {
+        if (data != null && data['success'] == true) {
           return data;
         } else {
           throw Exception(
-            data['aldaa'] ?? data['message'] ?? 'Билл устгахад алдаа гарлаа',
+            data?['aldaa'] ?? data?['message'] ?? 'Билл устгахад алдаа гарлаа',
           );
         }
       } else if (response.statusCode == 401) {
@@ -935,12 +975,13 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['aldaa'] ??
-              data['message'] ??
+          data?['aldaa'] ??
+              data?['message'] ??
               'Билл устгахад алдаа гарлаа: ${response.statusCode}',
         );
       }
     } catch (e) {
+      if (e is Exception) rethrow;
       throw Exception('Билл устгахад алдаа гарлаа: $e');
     }
   }
@@ -2006,6 +2047,7 @@ class ApiService {
     int khuudasniiDugaar = 1,
     int khuudasniiKhemjee = 100,
     String? search,
+    String? orshinSuugchiinId,
   }) async {
     try {
       final headers = await getAuthHeaders();
@@ -2023,6 +2065,7 @@ class ApiService {
         'khuudasniiDugaar': khuudasniiDugaar.toString(),
         'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
         if (search != null) 'search': search,
+        if (orshinSuugchiinId != null) 'orshinSuugchiinId': orshinSuugchiinId,
       };
 
       final uri = Uri.parse(
@@ -2030,9 +2073,34 @@ class ApiService {
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
+      print('🔍 [API] easyRegisterGetSavedUsers Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        dynamic data;
+        try {
+          if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+            data = json.decode(response.body);
+          }
+        } catch (_) {}
+
+        if (data is Map<String, dynamic> &&
+            data['jagsaalt'] != null &&
+            data['jagsaalt'] is List &&
+            orshinSuugchiinId != null &&
+            orshinSuugchiinId.isNotEmpty) {
+          final List<dynamic> fullList = data['jagsaalt'];
+          print('🔍 [API] easyRegisterGetSavedUsers: Filtering ${fullList.length} items by orshinSuugchiinId: $orshinSuugchiinId');
+          
+          final filteredList = fullList.where((u) {
+            final id = u['orshinSuugchiinId']?.toString();
+            return id == orshinSuugchiinId;
+          }).toList();
+          
+          print('✅ [API] easyRegisterGetSavedUsers: Found ${filteredList.length} matching items');
+          data['jagsaalt'] = filteredList;
+          if (data['niitMur'] != null) data['niitMur'] = filteredList.length;
+        }
+        return data;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
@@ -2454,46 +2522,47 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
-      print(
-        '📝 [API] updateOrshinSuugchAddress - Response status: ${response.statusCode}',
-      );
-      print(
-        '📝 [API] updateOrshinSuugchAddress - Response body: ${response.body}',
+      print('📝 [API] updateOrshinSuugchAddress - Response status: ${response.statusCode}');
+      return json.decode(response.body);
+    } catch (e) {
+      print('Error in updateOrshinSuugchAddress: $e');
+      rethrow;
+    }
+  }
+
+  /// Update user profile generically
+  static Future<Map<String, dynamic>> updateUserProfile(
+    Map<String, dynamic> updateData,
+  ) async {
+    try {
+      final userId = await StorageService.getUserId();
+      if (userId == null) {
+        throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
+      }
+
+      final headers = await getAuthHeaders();
+      final response = await http.put(
+        Uri.parse('$baseUrl/orshinSuugch/$userId'),
+        headers: headers,
+        body: json.encode({'_id': userId, ...updateData}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        try {
-          final responseData = json.decode(response.body);
-          return {
-            'success': true,
-            'message': 'Хаяг амжилттай шинэчлэгдлээ',
-            'data': responseData,
-          };
-        } catch (e) {
-          return {'success': true, 'message': 'Хаяг амжилттай шинэчлэгдлээ'};
+        final data = json.decode(response.body);
+        // Update local cache if needed
+        if (data['success'] == true || data['_id'] != null) {
+          _cachedUserProfile = null; // Invalidate cache
         }
+        return data;
       } else {
-        String errorMessage =
-            'Хаяг шинэчлэхэд алдаа гарлаа: ${response.statusCode}';
-        try {
-          final errorData = json.decode(response.body);
-          errorMessage =
-              errorData['message']?.toString() ??
-              errorData['aldaa']?.toString() ??
-              errorMessage;
-        } catch (_) {
-          // If response is not JSON, use default message
-        }
-        throw Exception(errorMessage);
+        throw Exception('Мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
-      print('Error updating orshinSuugch address: $e');
-      throw Exception('Хаяг шинэчлэхэд алдаа гарлаа: $e');
+      print('Error updating user profile: $e');
+      throw Exception('Мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
     }
   }
+
 
   static Future<Map<String, dynamic>> fetchGeree(String orshinSuugchId) async {
     try {
@@ -4437,7 +4506,12 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+          try {
+            return json.decode(response.body);
+          } catch (_) {}
+        }
+        throw Exception('Серверээс буруу форматтай хариу ирлээ');
       } else {
         throw Exception('Тохиргоо авахад алдаа гарлаа: ${response.statusCode}');
       }
@@ -4457,12 +4531,15 @@ class ApiService {
 
       final responseBody = response.body.trim();
       if (response.statusCode == 200) {
-        try {
-          return json.decode(responseBody);
-        } catch (e) {
-          // If not JSON but 200, it's likely a plain text message
-          return {'success': true, 'message': responseBody};
+        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+          try {
+            return json.decode(responseBody);
+          } catch (e) {
+            // If not JSON but 200, it's likely a plain text message
+            return {'success': true, 'message': responseBody};
+          }
         }
+        return {'success': true, 'message': responseBody};
       } else {
         throw Exception('Квот шалгахад алдаа гарлаа: ${response.statusCode}');
       }

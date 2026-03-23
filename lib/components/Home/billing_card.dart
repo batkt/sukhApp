@@ -225,11 +225,25 @@ class _BillingCardState extends State<BillingCard>
 
                             // Address line
                             Text(
-                              bairniiNer.isNotEmpty
-                                  ? '${widget.expandAddressAbbreviations(bairniiNer)}${doorNo.isNotEmpty ? ", $doorNo" : ""}'
-                                  : (customerCode.isNotEmpty
-                                        ? 'Код: $customerCode'
-                                        : 'Хаяг сонгоно уу'),
+                              () {
+                                final expanded = widget.expandAddressAbbreviations(bairniiNer);
+                                if (expanded.isEmpty) {
+                                  return customerCode.isNotEmpty ? 'Код: $customerCode' : 'Хаяг сонгоно уу';
+                                }
+                                if (doorNo.isNotEmpty) {
+                                  // Avoid duplication (e.g., "8, 8")
+                                  final cleanExpanded = expanded.trim();
+                                  final cleanDoor = doorNo.trim();
+                                  if (cleanExpanded.endsWith(cleanDoor) || 
+                                      cleanExpanded.endsWith(' $cleanDoor') || 
+                                      cleanExpanded.endsWith(', $cleanDoor') ||
+                                      cleanExpanded.endsWith('-$cleanDoor')) {
+                                    return cleanExpanded;
+                                  }
+                                  return '$cleanExpanded, $cleanDoor';
+                                }
+                                return expanded;
+                              }(),
                               style: TextStyle(
                                 color: context.textSecondaryColor,
                                 fontSize: 13.sp,

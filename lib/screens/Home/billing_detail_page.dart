@@ -146,10 +146,15 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         if (!mounted) return;
 
         setState(() {
-          // Auto-select all bills initially
+          // Auto-select first 5 bills initially
+          int count = 0;
           for (var bill in _allBills) {
+            if (count >= 5) break;
             final id = bill['billId']?.toString();
-            if (id != null) _selectedBillIds.add(id);
+            if (id != null) {
+              _selectedBillIds.add(id);
+              count++;
+            }
           }
           _isLoading = false;
         });
@@ -211,10 +216,15 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       setState(() {
         _allBills = collectedBills;
-        // Auto-select all bills initially
+        // Auto-select first 5 bills initially
+        int count = 0;
         for (var bill in _allBills) {
+          if (count >= 5) break;
           final id = bill['billId']?.toString();
-          if (id != null) _selectedBillIds.add(id);
+          if (id != null) {
+            _selectedBillIds.add(id);
+            count++;
+          }
         }
         _isLoading = false;
       });
@@ -619,6 +629,12 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                           ),
                         ),
                       ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20.w),
+                          child: _buildPaymentLimitReminder(context),
+                        ),
+                      ),
                       SliverPersistentHeader(
                         pinned: true,
                         delegate: _SliverAppBarDelegate(
@@ -630,20 +646,30 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                             child: Row(
                               children: [
                                 GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      if (_selectedBillIds.length ==
-                                          _allBills.length) {
-                                        _selectedBillIds.clear();
-                                      } else {
-                                        for (var bill in _allBills) {
-                                          final id = bill['billId']?.toString();
-                                          if (id != null)
-                                            _selectedBillIds.add(id);
+                                    onTap: () {
+                                      setState(() {
+                                        if (_selectedBillIds.length == _allBills.length || (_allBills.length > 5 && _selectedBillIds.length == 5)) {
+                                          _selectedBillIds.clear();
+                                        } else {
+                                          _selectedBillIds.clear();
+                                          int count = 0;
+                                          for (var bill in _allBills) {
+                                            if (count >= 5) break;
+                                            final id = bill['billId']?.toString();
+                                            if (id != null) {
+                                              _selectedBillIds.add(id);
+                                              count++;
+                                            }
+                                          }
+                                          if (_allBills.length > 5) {
+                                            showGlassSnackBar(
+                                              context,
+                                              message: 'Эхний 5 нэхэмжлэхийг сонголоо',
+                                            );
+                                          }
                                         }
-                                      }
-                                    });
-                                  },
+                                      });
+                                    },
                                   child: Row(
                                     children: [
                                       AnimatedContainer(
@@ -1131,6 +1157,56 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                           textAlign: TextAlign.center,
                         ),
                       ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildPaymentLimitReminder(BuildContext context) {
+    final isDark = context.isDarkMode;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : AppColors.deepGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.06)
+              : AppColors.deepGreen.withOpacity(0.12),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6.w),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.deepGreen.withOpacity(0.1)
+                  : AppColors.deepGreen.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.info_outline_rounded,
+              color: isDark ? AppColors.deepGreenAccent : AppColors.deepGreen,
+              size: 20.sp,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              'Нийт 5 хүртэл төлбөрийг нэг удаагийн төлөлтөөр төлөх боломжтой.',
+              style: TextStyle(
+                color: isDark ? Colors.white.withOpacity(0.8) : Colors.black87,
+                fontSize: 12.5.sp,
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.2,
+                height: 1.4,
               ),
             ),
           ),

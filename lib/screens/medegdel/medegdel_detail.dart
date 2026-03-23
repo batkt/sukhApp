@@ -446,7 +446,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                 IconButton(
                   icon: Icon(
                     Icons.close,
-                    color: context.textSecondaryColor,
+                    color: context.textPrimaryColor,
                     size: context.responsiveFontSize(
                       small: 20,
                       medium: 22,
@@ -1000,7 +1000,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                         Text(
                           'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
                           style: TextStyle(
-                            color: context.textSecondaryColor,
+                            color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
                               small: 9,
                               medium: 10,
@@ -1367,7 +1367,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   Text(
                     _formatDate(msg.createdAt),
                     style: TextStyle(
-                      color: context.textSecondaryColor,
+                      color: context.textPrimaryColor,
                       fontSize: context.responsiveFontSize(
                         small: 9,
                         medium: 10,
@@ -1389,7 +1389,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                           Text(
                             _formatTimeOnly(msg.updatedAt),
                             style: TextStyle(
-                              color: context.textSecondaryColor.withOpacity(0.8),
+                              color: context.textPrimaryColor.withOpacity(0.8),
                               fontSize: context.responsiveFontSize(small: 8, medium: 9, large: 10, veryNarrow: 7),
                             ),
                           ),
@@ -1479,7 +1479,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     decoration: InputDecoration(
                       hintText: 'Хариу бичих...',
                       hintStyle: TextStyle(
-                        color: context.textSecondaryColor,
+                        color: context.textPrimaryColor.withOpacity(0.5),
                         fontSize: context.responsiveFontSize(
                           small: 14,
                           medium: 15,
@@ -1650,7 +1650,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   Text(
                     label,
                     style: TextStyle(
-                      color: context.textSecondaryColor,
+                      color: context.textPrimaryColor,
                       fontSize: context.responsiveFontSize(
                         small: 9,
                         medium: 10,

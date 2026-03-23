@@ -78,7 +78,7 @@ class BillingListSectionState extends State<BillingListSection> {
             SizedBox(height: 16.h),
           ],
           if (hasUtility) ...[
-            _buildSectionHeader(context, title: 'Байрны төлбөр'),
+            _buildSectionHeader(context, title: 'Хэрэглээний төлбөр'),
             ...widget.utilityBillings.map((b) => _buildBillingCard(b)),
             SizedBox(height: 16.h),
           ],
@@ -89,7 +89,7 @@ class BillingListSectionState extends State<BillingListSection> {
 
   Widget _buildSectionHeader(BuildContext context, {required String title}) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+      padding: EdgeInsets.only(left: 4.w, right: 4.w, top: 16.h, bottom: 8.h),
       child: Text(
         title,
         style: TextStyle(

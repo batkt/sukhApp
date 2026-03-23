@@ -6,6 +6,7 @@ import 'package:sukh_app/components/Home/billing_connection_section.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
@@ -53,14 +54,6 @@ class _BillingListPageState extends State<BillingListPage> {
     final hasData =
         widget.billingList.isNotEmpty || widget.userBillingData != null;
     _localIsLoading = widget.isLoading && !hasData;
-
-    if (_localIsLoading) {
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted && _localIsLoading) {
-          setState(() => _localIsLoading = false);
-        }
-      });
-    }
   }
 
   @override
@@ -91,6 +84,30 @@ class _BillingListPageState extends State<BillingListPage> {
   }
 
   Future<void> _addNewAddress() async {
+    // Check if user has email
+    try {
+      final profileRes = await ApiService.getUserProfile();
+      final user = profileRes['result'];
+      final email = user?['mail']?.toString() ?? '';
+
+      if (email.isEmpty || email.endsWith('@amarhome.mn')) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Биллинг холбоход и-мэйл хаяг шаардлагатай',
+            icon: Icons.alternate_email_rounded,
+          );
+          // Navigate to profile to add email
+          context.push('/profile?action=edit_email');
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('Error checking profile for email: $e');
+      // If error, we still allow but maybe show warning?
+      // Better to allow if API is down to not block user, but here we require it.
+    }
+
     final result = await context.push('/utility-add');
     if (result == true) {
       setState(() => _localIsLoading = true);
@@ -252,7 +269,12 @@ class _BillingListPageState extends State<BillingListPage> {
             color: AppColors.deepGreen,
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16.w, 100.h, 16.w, 32.h),
+              padding: EdgeInsets.fromLTRB(
+                16.w,
+                140.h + MediaQuery.of(context).padding.top,
+                16.w,
+                32.h,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

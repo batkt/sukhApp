@@ -370,7 +370,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
           if (hasOwnOrg && (hasWallet || hasQrText))
             Row(
               children: [
-                Expanded(child: _buildQRCard('Байрны төлбөр', widget.qrImageOwnOrg, null, textSecondary)),
+                Expanded(child: _buildQRCard('Хэрэглээний төлбөр', widget.qrImageOwnOrg, null, textSecondary)),
                 SizedBox(width: 16.w),
                 Expanded(child: _buildQRCard('Хэтэвч', widget.qrImageWallet, widget.qrText, textSecondary)),
               ],

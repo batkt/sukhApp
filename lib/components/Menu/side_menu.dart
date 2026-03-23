@@ -359,16 +359,24 @@ class _SideMenuState extends State<SideMenu> {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Гарах'),
-        content: const Text('Та системээс гарахдаа итгэлтэй байна уу?'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        title: const Text(
+          'Гарах',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Та системээс гарахдаа итгэлтэй байна уу?',
+          style: TextStyle(color: Colors.black87),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Үгүй'),
+            child: const Text('Үгүй', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Тийм', style: TextStyle(color: Colors.red)),
+            child: const Text('Тийм', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

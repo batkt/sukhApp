@@ -849,7 +849,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                   if (context.mounted) {
                     showGlassSnackBar(
                       context,
-                      message: 'Биометрийн нэвтрэлт идэвхжлээ',
+                      message: 'Биометрийн нэвтрэлт идэвхэжлээ',
                       icon: Icons.check_circle,
                       iconColor: Colors.green,
                     );
