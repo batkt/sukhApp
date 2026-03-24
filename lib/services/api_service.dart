@@ -11,6 +11,7 @@ import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/main.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ApiService {
   static const String baseUrl = 'https://amarhome.mn/api';
@@ -1529,7 +1530,19 @@ class ApiService {
     String? davkhar,
     String? orts,
   }) async {
-    final requestBody = <String, dynamic>{'utas': utas, 'nuutsUg': nuutsUg};
+    String version = 'unknown';
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      version = packageInfo.version;
+    } catch (e) {
+      print('Error getting package info: $e');
+    }
+
+    final requestBody = <String, dynamic>{
+      'utas': utas,
+      'nuutsUg': nuutsUg,
+      'version': version,
+    };
 
     if (firebaseToken != null && firebaseToken.isNotEmpty) {
       requestBody['firebaseToken'] = firebaseToken;

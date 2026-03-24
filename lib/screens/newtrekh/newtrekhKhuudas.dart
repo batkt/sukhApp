@@ -16,6 +16,7 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/biometric_service.dart';
+import 'package:sukh_app/widgets/common_footer.dart';
 
 /// Modern minimal background with subtle gradient
 // SharedBgPainter is used from common widgets
@@ -885,24 +886,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   }
 
   Widget _buildFooter(bool isDark) {
-    return Column(
-      children: [
-        Text(
-          "© 2026 Powered by Zevtabs LLC",
-          style: TextStyle(
-            color: isDark ? Colors.white24 : Colors.black26,
-            fontSize: 11.sp,
-          ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          "Version 2.1.3",
-          style: TextStyle(
-            color: isDark ? Colors.white12 : Colors.black12,
-            fontSize: 10.sp,
-          ),
-        ),
-      ],
-    );
+    return CommonAppFooter(isDark: isDark);
   }
 }

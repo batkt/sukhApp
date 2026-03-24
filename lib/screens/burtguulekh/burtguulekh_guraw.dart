@@ -8,6 +8,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/common_footer.dart';
 
 /// Modern minimal background with subtle gradient
 class AppBackground extends StatelessWidget {
@@ -423,29 +424,7 @@ class _BurtguulekhGurawState extends State<Burtguulekh_Guraw> {
                     ),
                     Padding(
                       padding: EdgeInsets.only(bottom: 16.h),
-                      child: Column(
-                        children: [
-                          Text(
-                            '© 2026 Powered by Zevtabs LLC',
-                            style: TextStyle(
-                              fontSize: 10.sp,
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.25)
-                                  : Colors.black.withOpacity(0.3),
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            'Version 2.1.3',
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.2)
-                                  : Colors.black.withOpacity(0.25),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: CommonAppFooter(isDark: isDark),
                     ),
                   ],
                 );

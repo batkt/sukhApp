@@ -8,6 +8,7 @@ import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/screens/contact/contact_bottom_sheet.dart';
+import 'package:sukh_app/services/version_service.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({super.key});
@@ -20,6 +21,7 @@ class _SideMenuState extends State<SideMenu> {
   String? _baiguullagiinId;
   bool _canInviteGuests = false;
   String _userName = 'Ашиглагч';
+  String _appVersion = 'v2.0.3'; // Default fallback
 
   @override
   void initState() {
@@ -27,6 +29,16 @@ class _SideMenuState extends State<SideMenu> {
     _loadOrganizationInfo();
     _checkGuestInvitePermission();
     _loadUserData();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final version = await VersionService.getAppVersion();
+    if (mounted) {
+      setState(() {
+        _appVersion = version;
+      });
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -343,7 +355,7 @@ class _SideMenuState extends State<SideMenu> {
           ),
           SizedBox(height: 20.h),
           Text(
-            'Powered by Zevtabs LLC • v2.0.3',
+            'Powered by Zevtabs LLC • v$_appVersion',
             style: TextStyle(
               color: context.textSecondaryColor.withOpacity(0.4),
               fontSize: 10.sp,

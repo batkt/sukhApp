@@ -11,6 +11,11 @@ class VersionService {
   static const String _baseUrl = 'https://amarhome.mn/api';
   static const String _versionCheckUrl = '$_baseUrl/version-check';
 
+  static Future<String> getAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    return packageInfo.version;
+  }
+
   static Future<void> checkForUpdates(BuildContext context) async {
     try {
       // Get current app version
