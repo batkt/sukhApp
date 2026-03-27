@@ -192,7 +192,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
         try {
           if (source == 'OWN_ORG') {
-            final gereeniiDugaar = billing['gereeniiDugaar']?.toString() ?? billingId;
+            final gereeniiDugaar =
+                billing['gereeniiDugaar']?.toString() ?? billingId;
             final baiguullagiinId = billing['baiguullagiinId']?.toString();
             final gereeniiId = billing['gereeniiId']?.toString();
 
@@ -214,10 +215,12 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             final invoiceResponse = results[0] as Map<String, dynamic>;
             final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
 
-            if (invoiceResponse['jagsaalt'] != null && invoiceResponse['jagsaalt'] is List) {
+            if (invoiceResponse['jagsaalt'] != null &&
+                invoiceResponse['jagsaalt'] is List) {
               final rawInvoices = invoiceResponse['jagsaalt'] as List;
               final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
-                  ? (tulukhAvlagaResponse['jagsaalt'] as List).cast<Map<String, dynamic>>()
+                  ? (tulukhAvlagaResponse['jagsaalt'] as List)
+                        .cast<Map<String, dynamic>>()
                   : <Map<String, dynamic>>[];
 
               // Use the shared utility to merge if available, or just map manually
@@ -225,16 +228,19 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               // Standard OWN_ORG logic: use official invoices as the primary source of truth for debts.
               final Set<String> seenIds = {};
               for (var inv in rawInvoices) {
-                if (inv['tuluv'] == 'Төлсөн') continue; // Skip historical payments
-                
-                final invoiceId = inv['_id']?.toString() ?? inv['id']?.toString() ?? '';
-                if (invoiceId.isNotEmpty && seenIds.contains(invoiceId)) continue;
+                if (inv['tuluv'] == 'Төлсөн')
+                  continue; // Skip historical payments
+
+                final invoiceId =
+                    inv['_id']?.toString() ?? inv['id']?.toString() ?? '';
+                if (invoiceId.isNotEmpty && seenIds.contains(invoiceId))
+                  continue;
                 if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
 
                 // IMPORTANT: Prioritize niitTulbur over uldegdel to avoid the 887k global total bug
                 final amt = (inv['niitTulbur'] as num?)?.toDouble() ?? 0.0;
                 final uld = (inv['uldegdel'] as num?)?.toDouble() ?? 0.0;
-                
+
                 final paymentAmt = amt > 0 ? amt : uld;
 
                 if (paymentAmt <= 0) continue;
@@ -243,12 +249,17 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                   'billId': invoiceId,
                   'billTotalAmount': paymentAmt,
                   'billLateFee': 0.0,
-                  'billPeriod': inv['ognoo']?.toString() ?? inv['nekhemjlekhiinOgnoo']?.toString() ?? '',
+                  'billPeriod':
+                      inv['ognoo']?.toString() ??
+                      inv['nekhemjlekhiinOgnoo']?.toString() ??
+                      '',
                   'billtype': 'Орон сууц',
                   'billerName': billing['billingName'] ?? 'Орон сууцны төлбөр',
-                  'customerAddress': billing['customerAddress'] ?? billing['bairniiNer'] ?? '',
+                  'customerAddress':
+                      billing['customerAddress'] ?? billing['bairniiNer'] ?? '',
                   'parentBillingId': billingId,
-                  'parentBillerName': billing['billingName'] ?? 'Орон сууцны төлбөр',
+                  'parentBillerName':
+                      billing['billingName'] ?? 'Орон сууцны төлбөр',
                   'source': 'OWN_ORG',
                 });
               }
@@ -364,8 +375,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       final firstBillingId = selectedBillsByBilling.keys.first;
       final selectedBills = selectedBillsByBilling[firstBillingId]!;
       final source = selectedBills.first['source']?.toString();
-      final selectedBillIds = selectedBills.map((b) => b['billId']?.toString() ?? '').toList();
-      final totalAmount = selectedBills.fold(0.0, (sum, b) => sum + (b['billTotalAmount'] ?? 0.0));
+      final selectedBillIds = selectedBills
+          .map((b) => b['billId']?.toString() ?? '')
+          .toList();
+      final totalAmount = selectedBills.fold(
+        0.0,
+        (sum, b) => sum + (b['billTotalAmount'] ?? 0.0),
+      );
 
       Map<String, dynamic>? qpayResponse;
 
@@ -376,17 +392,26 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           orElse: () => widget.billing,
         );
         final baiguullagiinId = billingEntry['baiguullagiinId']?.toString();
-        final barilgiinId = billingEntry['barilgiinId']?.toString() ?? billingEntry['walletBairId']?.toString();
-        
+        final barilgiinId =
+            billingEntry['barilgiinId']?.toString() ??
+            billingEntry['walletBairId']?.toString();
+
         // Use custom QPay for OWN_ORG
+        final gereeniiDugaar =
+            billingEntry['gereeniiDugaar']?.toString() ??
+            billingEntry['walletContractNo']?.toString() ??
+            '';
         qpayResponse = await ApiService.qpayGargaya(
           baiguullagiinId: baiguullagiinId,
           barilgiinId: barilgiinId,
           dun: totalAmount,
           nekhemjlekhiinId: selectedBillIds.join(','),
-          turul: 'nekhemjlekh',
+          turul: gereeniiDugaar.isNotEmpty
+              ? gereeniiDugaar
+              : 'Орон сууцны төлбөр',
         );
-        qpayResponse['success'] = true; // qpayGargaya doesn't always wrap in success: true
+        qpayResponse['success'] =
+            true; // qpayGargaya doesn't always wrap in success: true
       } else {
         // Standard Wallet API payout
         qpayResponse = await ApiService.createWalletQPayPayment(
@@ -403,9 +428,14 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       if (qpayResponse['success'] == true) {
         final walletPaymentId = qpayResponse['walletPaymentId']?.toString();
-        final qpayInvoiceId = qpayResponse['invoice_id']?.toString() ?? qpayResponse['invoiceId']?.toString();
-        final paymentAmount = (qpayResponse['paymentAmount'] as num?)?.toDouble() ?? totalAmount;
-        final qrText = qpayResponse['qrText']?.toString() ?? qpayResponse['qr_text']?.toString();
+        final qpayInvoiceId =
+            qpayResponse['invoice_id']?.toString() ??
+            qpayResponse['invoiceId']?.toString();
+        final paymentAmount =
+            (qpayResponse['paymentAmount'] as num?)?.toDouble() ?? totalAmount;
+        final qrText =
+            qpayResponse['qrText']?.toString() ??
+            qpayResponse['qr_text']?.toString();
         final qrImage = qpayResponse['qr_image']?.toString();
         final urls = qpayResponse['urls'] as List<dynamic>?;
 
@@ -434,7 +464,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                     return null;
                   }
                 } else if (source == 'OWN_ORG' && qpayInvoiceId != null) {
-                   try {
+                  try {
                     final status = await ApiService.checkPaymentStatus(
                       invoiceId: qpayInvoiceId,
                     );
@@ -452,7 +482,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         );
 
         if (paid == true && mounted) {
-           // Show success for WALLET payments (receipts)
+          // Show success for WALLET payments (receipts)
           if (source == 'WALLET_API' && walletPaymentId != null) {
             try {
               final paymentData = await ApiService.walletQpayGetPayment(
@@ -752,30 +782,34 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                             child: Row(
                               children: [
                                 GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        if (_selectedBillIds.length == _allBills.length || (_allBills.length > 5 && _selectedBillIds.length == 5)) {
-                                          _selectedBillIds.clear();
-                                        } else {
-                                          _selectedBillIds.clear();
-                                          int count = 0;
-                                          for (var bill in _allBills) {
-                                            if (count >= 5) break;
-                                            final id = bill['billId']?.toString();
-                                            if (id != null) {
-                                              _selectedBillIds.add(id);
-                                              count++;
-                                            }
-                                          }
-                                          if (_allBills.length > 5) {
-                                            showGlassSnackBar(
-                                              context,
-                                              message: 'Эхний 5 нэхэмжлэхийг сонголоо',
-                                            );
+                                  onTap: () {
+                                    setState(() {
+                                      if (_selectedBillIds.length ==
+                                              _allBills.length ||
+                                          (_allBills.length > 5 &&
+                                              _selectedBillIds.length == 5)) {
+                                        _selectedBillIds.clear();
+                                      } else {
+                                        _selectedBillIds.clear();
+                                        int count = 0;
+                                        for (var bill in _allBills) {
+                                          if (count >= 5) break;
+                                          final id = bill['billId']?.toString();
+                                          if (id != null) {
+                                            _selectedBillIds.add(id);
+                                            count++;
                                           }
                                         }
-                                      });
-                                    },
+                                        if (_allBills.length > 5) {
+                                          showGlassSnackBar(
+                                            context,
+                                            message:
+                                                'Эхний 5 нэхэмжлэхийг сонголоо',
+                                          );
+                                        }
+                                      }
+                                    });
+                                  },
                                   child: Row(
                                     children: [
                                       AnimatedContainer(
@@ -1270,6 +1304,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       ),
     );
   }
+
   Widget _buildPaymentLimitReminder(BuildContext context) {
     final isDark = context.isDarkMode;
     return Container(

@@ -278,6 +278,8 @@ class SocketService {
       socket!.disconnect();
       socket!.dispose();
       socket = null;
+      _userId = null;
+      _baiguullagiinId = null;
       _isConnected = false;
       _notificationCallbacks.clear();
     }

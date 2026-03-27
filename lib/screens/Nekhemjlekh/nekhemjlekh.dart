@@ -56,7 +56,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   List<Map<String, dynamic>> availableContracts = [];
   String? selectedGereeniiDugaar;
   String? selectedContractDisplay;
-  double? _contractUldegdel; // Authoritative balance from backend (globalUldegdel)
+  double?
+  _contractUldegdel; // Authoritative balance from backend (globalUldegdel)
   String selectedFilter = 'All'; // All, Overdue, Paid, Due this month, Pending
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
@@ -218,8 +219,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       if (baiguullagiinId != null) {
-        final baiguullagaResponse = await ApiService.fetchBaiguullagaById(baiguullagiinId);
-        if (baiguullagaResponse['utas'] != null && baiguullagaResponse['utas'] is List) {
+        final baiguullagaResponse = await ApiService.fetchBaiguullagaById(
+          baiguullagiinId,
+        );
+        if (baiguullagaResponse['utas'] != null &&
+            baiguullagaResponse['utas'] is List) {
           final utasList = baiguullagaResponse['utas'] as List;
           if (utasList.isNotEmpty) {
             contactPhone = utasList.first.toString();
@@ -245,9 +249,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         }
       }
 
-      // Use effective total (sum of unpaid merged invoices or contract uldegdel)
-      final effective = _effectiveTotalAmount;
-      if (effective > 0) totalAmount = effective;
+      // totalAmount now correctly contains only the sum of SELECTED invoices
 
       if (selectedInvoiceIds.isEmpty) {
         throw Exception('Нэхэмжлэх сонгоогүй байна');
@@ -393,12 +395,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         selectedGereeniiDugaar = gereeniiDugaar;
         selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
         // Use uldegdel first (matches HistoryModal), fallback to globalUldegdel
-        final rawUldegdel = gereeToUse['uldegdel'] ?? gereeToUse['globalUldegdel'];
+        final rawUldegdel =
+            gereeToUse['uldegdel'] ?? gereeToUse['globalUldegdel'];
         _contractUldegdel = rawUldegdel != null
-            ? ((rawUldegdel is num) ? rawUldegdel.toDouble() : (double.tryParse(rawUldegdel.toString()) ?? 0.0))
+            ? ((rawUldegdel is num)
+                  ? rawUldegdel.toDouble()
+                  : (double.tryParse(rawUldegdel.toString()) ?? 0.0))
             : null;
 
-        final baiguullagiinId = gereeToUse['baiguullagiinId']?.toString() ??
+        final baiguullagiinId =
+            gereeToUse['baiguullagiinId']?.toString() ??
             await StorageService.getBaiguullagiinId();
         final barilgiinId = gereeToUse['barilgiinId']?.toString();
         final gereeniiId = gereeToUse['_id']?.toString();
@@ -425,7 +431,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           final rawInvoices = response['jagsaalt'] as List;
           final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
               ? (tulukhAvlagaResponse['jagsaalt'] as List)
-                  .cast<Map<String, dynamic>>()
+                    .cast<Map<String, dynamic>>()
               : <Map<String, dynamic>>[];
 
           // Merge gereeniiTulukhAvlaga into invoices (ekhniiUldegdel, avlaga) - matches web
@@ -517,7 +523,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       final sum = unpaid.fold<double>(0, (s, i) => s + i.effectiveNiitTulbur);
       return sum;
     }
-    
+
     // Remote fallback: Only if no invoices exist but we have a building balance.
     if (_contractUldegdel != null && _contractUldegdel! > 0) {
       return _contractUldegdel!;
@@ -527,11 +533,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   }
 
   String get totalSelectedAmount {
-    final amount = _effectiveTotalAmount;
-    if (amount >= 0) {
-      return '${formatNumber(amount, 2)}₮';
-    }
-    return '0.00₮';
+    // Only sum SELECTED invoices, not all unpaid
+    final selected = invoices.where((i) => i.isSelected);
+    if (selected.isEmpty) return '0.00₮';
+
+    final amount = selected.fold<double>(
+      0,
+      (s, i) => s + i.effectiveNiitTulbur,
+    );
+    return '${formatNumber(amount, 2)}₮';
   }
 
   void toggleSelectAll() {
@@ -551,7 +561,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
     // Apply month filter
     if (selectedMonth != null) {
-      final yearMonthStr = "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
+      final yearMonthStr =
+          "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
       filtered = filtered.where((invoice) {
         return invoice.nekhemjlekhiinOgnoo.startsWith(yearMonthStr);
       }).toList();
@@ -571,7 +582,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     }
     // 'All' shows everything (no additional filter)
 
-
     return filtered;
   }
 
@@ -580,17 +590,26 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   int _getFilterCount(String filterKey) {
     List<NekhemjlekhItem> monthFiltered = invoices;
     if (selectedMonth != null) {
-      final yearMonthStr = "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
-      monthFiltered = invoices.where((invoice) => invoice.nekhemjlekhiinOgnoo.startsWith(yearMonthStr)).toList();
+      final yearMonthStr =
+          "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
+      monthFiltered = invoices
+          .where(
+            (invoice) => invoice.nekhemjlekhiinOgnoo.startsWith(yearMonthStr),
+          )
+          .toList();
     }
 
     switch (filterKey) {
       case 'All':
         return monthFiltered.length;
       case 'Unpaid':
-        return monthFiltered.where((invoice) => invoice.tuluv != 'Төлсөн').length;
+        return monthFiltered
+            .where((invoice) => invoice.tuluv != 'Төлсөн')
+            .length;
       case 'Paid':
-        return monthFiltered.where((invoice) => invoice.tuluv == 'Төлсөн').length;
+        return monthFiltered
+            .where((invoice) => invoice.tuluv == 'Төлсөн')
+            .length;
       default:
         return 0;
     }
@@ -622,12 +641,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       ),
       child: PopupMenuButton<DateTime?>(
         offset: const Offset(0, 40),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
         color: context.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
           decoration: BoxDecoration(
-            color: context.isDarkMode ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+            color: context.isDarkMode
+                ? Colors.white.withOpacity(0.04)
+                : Colors.black.withOpacity(0.03),
             borderRadius: BorderRadius.circular(10.r),
           ),
           child: Row(
@@ -658,15 +681,26 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         itemBuilder: (context) => [
           PopupMenuItem<DateTime?>(
             value: null,
-            child: Text('Бүх', style: TextStyle(fontSize: 13.sp, color: context.textPrimaryColor)),
+            child: Text(
+              'Бүх',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: context.textPrimaryColor,
+              ),
+            ),
           ),
-          ...sortedMonths.map((month) => PopupMenuItem<DateTime?>(
-                value: month,
-                child: Text(
-                  "${month.year}.${month.month.toString().padLeft(2, '0')}",
-                  style: TextStyle(fontSize: 13.sp, color: context.textPrimaryColor),
+          ...sortedMonths.map(
+            (month) => PopupMenuItem<DateTime?>(
+              value: month,
+              child: Text(
+                "${month.year}.${month.month.toString().padLeft(2, '0')}",
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: context.textPrimaryColor,
                 ),
-              )),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -686,16 +720,20 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
               color: isSelected ? AppColors.deepGreen : Colors.transparent,
               borderRadius: BorderRadius.circular(8.r),
               border: Border.all(
-                color: isSelected ? AppColors.deepGreen : context.borderColor.withOpacity(0.2),
+                color: isSelected
+                    ? AppColors.deepGreen
+                    : context.borderColor.withOpacity(0.2),
                 width: 1,
               ),
-              boxShadow: isSelected ? [
-                BoxShadow(
-                  color: AppColors.deepGreen.withOpacity(0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                )
-              ] : null,
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.deepGreen.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
             ),
             child: Center(
               child: Text(
@@ -806,8 +844,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           try {
             final baiguullagiinId = await StorageService.getBaiguullagiinId();
             if (baiguullagiinId != null) {
-              final baiguullagaResponse = await ApiService.fetchBaiguullagaById(baiguullagiinId);
-              if (baiguullagaResponse['utas'] != null && baiguullagaResponse['utas'] is List) {
+              final baiguullagaResponse = await ApiService.fetchBaiguullagaById(
+                baiguullagiinId,
+              );
+              if (baiguullagaResponse['utas'] != null &&
+                  baiguullagaResponse['utas'] is List) {
                 final utasList = baiguullagaResponse['utas'] as List;
                 if (utasList.isNotEmpty) {
                   suhUtas = utasList.first.toString();
@@ -862,7 +903,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(context.isDarkMode ? 0.4 : 0.15),
+                        color: Colors.black.withOpacity(
+                          context.isDarkMode ? 0.4 : 0.15,
+                        ),
                         blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
@@ -884,13 +927,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                         child: GestureDetector(
                           onTap: () => Navigator.of(context).pop(),
                           child: Container(
-                            padding: EdgeInsets.all(context.responsiveSpacing(
-                              small: 6,
-                              medium: 8,
-                              large: 10,
-                              tablet: 12,
-                              veryNarrow: 4,
-                            )),
+                            padding: EdgeInsets.all(
+                              context.responsiveSpacing(
+                                small: 6,
+                                medium: 8,
+                                large: 10,
+                                tablet: 12,
+                                veryNarrow: 4,
+                              ),
+                            ),
                             decoration: BoxDecoration(
                               color: context.isDarkMode
                                   ? Colors.white.withOpacity(0.08)
@@ -922,13 +967,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                       ),
                       // Warning icon
                       Container(
-                        padding: EdgeInsets.all(context.responsiveSpacing(
-                          small: 16,
-                          medium: 18,
-                          large: 20,
-                          tablet: 24,
-                          veryNarrow: 12,
-                        )),
+                        padding: EdgeInsets.all(
+                          context.responsiveSpacing(
+                            small: 16,
+                            medium: 18,
+                            large: 20,
+                            tablet: 24,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.orange.withOpacity(0.1),
                           shape: BoxShape.circle,
@@ -1054,24 +1101,26 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                   veryNarrow: 18,
                                 ),
                               ),
-                              SizedBox(width: context.responsiveSpacing(
-                                small: 10,
-                                medium: 12,
-                                large: 14,
-                                tablet: 16,
-                                veryNarrow: 8,
-                              )),
+                              SizedBox(
+                                width: context.responsiveSpacing(
+                                  small: 10,
+                                  medium: 12,
+                                  large: 14,
+                                  tablet: 16,
+                                  veryNarrow: 8,
+                                ),
+                              ),
                               GestureDetector(
                                 onLongPress: () {
-                                  Clipboard.setData(ClipboardData(text: suhUtas));
+                                  Clipboard.setData(
+                                    ClipboardData(text: suhUtas),
+                                  );
                                   HapticFeedback.lightImpact();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
                                         'Дугаар хуулагдлаа: $suhUtas',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                        ),
+                                        style: TextStyle(color: Colors.white),
                                       ),
                                       backgroundColor: AppColors.deepGreen,
                                       duration: const Duration(seconds: 2),
@@ -1102,13 +1151,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                             ],
                           ),
                         ),
-                        SizedBox(height: context.responsiveSpacing(
-                          small: 16,
-                          medium: 20,
-                          large: 24,
-                          tablet: 28,
-                          veryNarrow: 12,
-                        )),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 16,
+                            medium: 20,
+                            large: 24,
+                            tablet: 28,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         // Call button
                         SizedBox(
                           width: double.infinity,
@@ -1121,7 +1172,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('Утас дуудах боломжгүй'),
+                                    content: const Text(
+                                      'Утас дуудах боломжгүй',
+                                    ),
                                     backgroundColor: Colors.red,
                                     behavior: SnackBarBehavior.floating,
                                   ),
@@ -1218,7 +1271,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                             children: [
                               Icon(
                                 Icons.phone_disabled_rounded,
-                                color: context.textSecondaryColor.withOpacity(0.5),
+                                color: context.textSecondaryColor.withOpacity(
+                                  0.5,
+                                ),
                                 size: context.responsiveIconSize(
                                   small: 32,
                                   medium: 36,
@@ -1831,6 +1886,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       }
     }
   }
+
   Future<void> _startPaymentStatusCheck() async {
     if (qpayInvoiceId == null) {
       print('No QPay invoice ID to check');
@@ -2513,7 +2569,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         totalSelectedAmount: totalSelectedAmount,
         selectedCount: selectedCount,
         invoices: invoices,
-        contractUldegdel: _effectiveTotalAmount > 0 ? _effectiveTotalAmount : _contractUldegdel,
+        contractUldegdel: _effectiveTotalAmount > 0
+            ? _effectiveTotalAmount
+            : _contractUldegdel,
         onPaymentTap: () async {
           // Refresh invoice list after payment check
           await _loadNekhemjlekh();
@@ -2577,10 +2635,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
               if (selectedContractDisplay != null &&
                   availableContracts.length > 1)
                 Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 8.w,
-                    vertical: 4.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   child: GestureDetector(
                     onTap: _showContractSelectionModal,
                     child: Container(
@@ -2680,9 +2735,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                     color: Colors.transparent,
                                     child: InkWell(
                                       onTap: _loadNekhemjlekh,
-                                      borderRadius: BorderRadius.circular(
-                                        10.r,
-                                      ),
+                                      borderRadius: BorderRadius.circular(10.r),
                                       child: Container(
                                         padding: EdgeInsets.symmetric(
                                           horizontal: 16.w,
@@ -2690,7 +2743,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                         ),
                                         decoration: BoxDecoration(
                                           color: AppColors.deepGreen,
-                                          borderRadius: BorderRadius.circular(10.r),
+                                          borderRadius: BorderRadius.circular(
+                                            10.r,
+                                          ),
                                         ),
                                         child: Text(
                                           'Дахин оролдох',
@@ -2841,9 +2896,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
-                                            SizedBox(
-                                              height: 6.h,
-                                            ),
+                                            SizedBox(height: 6.h),
                                             Text(
                                               selectedFilter == 'Paid'
                                                   ? 'Төлөгдсөн нэхэмжлэлийн түүх энд харагдана'
@@ -2867,170 +2920,173 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                 onRefresh: _loadNekhemjlekh,
                                 color: AppColors.deepGreen,
                                 child: SingleChildScrollView(
-                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
                                   padding: EdgeInsets.symmetric(
                                     horizontal: isVerySmallScreen
                                         ? 12
                                         : (isSmallScreen ? 14 : 16),
                                   ),
                                   child: Column(
-                                  children: [
-                                    if (selectedFilter != 'Paid' &&
-                                        filteredInvoices.isNotEmpty)
-                                      Padding(
-                                        padding: EdgeInsets.only(
-                                          left: isVerySmallScreen
-                                              ? 14
-                                              : (isSmallScreen ? 16 : 18),
-                                        ),
-                                        child: OptimizedGlass(
-                                          borderRadius: BorderRadius.circular(
-                                            12.r,
+                                    children: [
+                                      if (selectedFilter != 'Paid' &&
+                                          filteredInvoices.isNotEmpty)
+                                        Padding(
+                                          padding: EdgeInsets.only(
+                                            left: isVerySmallScreen
+                                                ? 14
+                                                : (isSmallScreen ? 16 : 18),
                                           ),
-                                          opacity: 0.08,
-                                          child: Material(
-                                            color: Colors.transparent,
-                                            child: InkWell(
-                                              onTap: toggleSelectAll,
-                                              borderRadius:
-                                                  BorderRadius.circular(12.r),
-                                              child: Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 12.w,
-                                                  vertical: 8.h,
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Container(
-                                                      width: isVerySmallScreen
-                                                          ? 18
-                                                          : (isSmallScreen
-                                                                ? 20
-                                                                : 22),
-                                                      height: isVerySmallScreen
-                                                          ? 18
-                                                          : (isSmallScreen
-                                                                ? 20
-                                                                : 22),
-                                                      decoration: BoxDecoration(
-                                                        gradient: allSelected
-                                                            ? LinearGradient(
-                                                                colors: [
-                                                                  AppColors
-                                                                      .deepGreen,
-                                                                  AppColors
+                                          child: OptimizedGlass(
+                                            borderRadius: BorderRadius.circular(
+                                              12.r,
+                                            ),
+                                            opacity: 0.08,
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: toggleSelectAll,
+                                                borderRadius:
+                                                    BorderRadius.circular(12.r),
+                                                child: Padding(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 12.w,
+                                                    vertical: 8.h,
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        width: isVerySmallScreen
+                                                            ? 18
+                                                            : (isSmallScreen
+                                                                  ? 20
+                                                                  : 22),
+                                                        height:
+                                                            isVerySmallScreen
+                                                            ? 18
+                                                            : (isSmallScreen
+                                                                  ? 20
+                                                                  : 22),
+                                                        decoration: BoxDecoration(
+                                                          gradient: allSelected
+                                                              ? LinearGradient(
+                                                                  colors: [
+                                                                    AppColors
+                                                                        .deepGreen,
+                                                                    AppColors
+                                                                        .deepGreen
+                                                                        .withOpacity(
+                                                                          0.8,
+                                                                        ),
+                                                                  ],
+                                                                )
+                                                              : null,
+                                                          color: allSelected
+                                                              ? null
+                                                              : Colors
+                                                                    .transparent,
+                                                          border: Border.all(
+                                                            color: allSelected
+                                                                ? AppColors
                                                                       .deepGreen
-                                                                      .withOpacity(
-                                                                        0.8,
-                                                                      ),
-                                                                ],
+                                                                : context
+                                                                      .borderColor,
+                                                            width: 2,
+                                                          ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                6.r,
+                                                              ),
+                                                        ),
+                                                        child: allSelected
+                                                            ? Icon(
+                                                                Icons
+                                                                    .check_rounded,
+                                                                color: Colors
+                                                                    .white,
+                                                                size:
+                                                                    isVerySmallScreen
+                                                                    ? 12
+                                                                    : (isSmallScreen
+                                                                          ? 14
+                                                                          : 16),
                                                               )
                                                             : null,
-                                                        color: allSelected
-                                                            ? null
-                                                            : Colors
-                                                                  .transparent,
-                                                        border: Border.all(
-                                                          color: allSelected
-                                                              ? AppColors
-                                                                    .deepGreen
-                                                              : context
-                                                                    .borderColor,
-                                                          width: 2,
-                                                        ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6.r,
-                                                            ),
                                                       ),
-                                                      child: allSelected
-                                                          ? Icon(
-                                                              Icons
-                                                                  .check_rounded,
-                                                              color:
-                                                                  Colors.white,
-                                                              size:
-                                                                  isVerySmallScreen
+                                                      SizedBox(
+                                                        width: isVerySmallScreen
+                                                            ? 10
+                                                            : (isSmallScreen
                                                                   ? 12
-                                                                  : (isSmallScreen
-                                                                        ? 14
-                                                                        : 16),
-                                                            )
-                                                          : null,
-                                                    ),
-                                                    SizedBox(
-                                                      width: isVerySmallScreen
-                                                          ? 10
-                                                          : (isSmallScreen
-                                                                ? 12
-                                                                : 14),
-                                                    ),
-                                                    Text(
-                                                      'Бүгдийг сонгох',
-                                                      style: TextStyle(
-                                                        color: context
-                                                            .textPrimaryColor,
-                                                        fontSize: 13.sp,
-                                                        fontWeight:
-                                                            FontWeight.w500,
+                                                                  : 14),
                                                       ),
-                                                    ),
-                                                  ],
+                                                      Text(
+                                                        'Бүгдийг сонгох',
+                                                        style: TextStyle(
+                                                          color: context
+                                                              .textPrimaryColor,
+                                                          fontSize: 13.sp,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    if (selectedFilter != 'Paid' &&
-                                        filteredInvoices.isNotEmpty)
-                                      SizedBox(
-                                        height: isVerySmallScreen
-                                            ? 10
-                                            : (isSmallScreen ? 12 : 16),
-                                      ),
-                                    ...filteredInvoices.map(
-                                      (invoice) => Padding(
-                                        padding: EdgeInsets.only(
-                                          bottom: isVerySmallScreen
+                                      if (selectedFilter != 'Paid' &&
+                                          filteredInvoices.isNotEmpty)
+                                        SizedBox(
+                                          height: isVerySmallScreen
                                               ? 10
                                               : (isSmallScreen ? 12 : 16),
                                         ),
-                                        child: InvoiceCard(
-                                          invoice: invoice,
-                                          isHistory: selectedFilter == 'Paid',
-                                          isSmallScreen: isSmallScreen,
-                                          isVerySmallScreen: isVerySmallScreen,
-                                          onToggleExpand: () {
-                                            setState(() {
-                                              invoice.isExpanded =
-                                                  !invoice.isExpanded;
-                                            });
-                                          },
-                                          onToggleSelect:
-                                              selectedFilter != 'Paid'
-                                              ? () {
-                                                  setState(() {
-                                                    invoice.isSelected =
-                                                        !invoice.isSelected;
-                                                  });
-                                                }
-                                              : null,
-                                          onShowVATReceipt:
-                                              selectedFilter == 'Paid'
-                                              ? () => _showVATReceiptModal(
-                                                  invoice.id,
-                                                )
-                                              : null,
+                                      ...filteredInvoices.map(
+                                        (invoice) => Padding(
+                                          padding: EdgeInsets.only(
+                                            bottom: isVerySmallScreen
+                                                ? 10
+                                                : (isSmallScreen ? 12 : 16),
+                                          ),
+                                          child: InvoiceCard(
+                                            invoice: invoice,
+                                            isHistory: selectedFilter == 'Paid',
+                                            isSmallScreen: isSmallScreen,
+                                            isVerySmallScreen:
+                                                isVerySmallScreen,
+                                            onToggleExpand: () {
+                                              setState(() {
+                                                invoice.isExpanded =
+                                                    !invoice.isExpanded;
+                                              });
+                                            },
+                                            onToggleSelect:
+                                                selectedFilter != 'Paid'
+                                                ? () {
+                                                    setState(() {
+                                                      invoice.isSelected =
+                                                          !invoice.isSelected;
+                                                    });
+                                                  }
+                                                : null,
+                                            onShowVATReceipt:
+                                                selectedFilter == 'Paid'
+                                                ? () => _showVATReceiptModal(
+                                                    invoice.id,
+                                                  )
+                                                : null,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
                             }(),
                           ),
                         ],

@@ -54,6 +54,7 @@ class StorageService {
   static const String _walletCustomerNameKey = 'wallet_customer_name';
   static const String _ebarimtInfoKey = 'ebarimt_info';
   static const String _tootsKey = 'user_toots';
+  static const String _billNicknamesKey = 'bill_nicknames';
 
   static Future<bool> saveToots(List<dynamic> toots) async {
     try {
@@ -226,7 +227,7 @@ class StorageService {
       // Save billNicknames array if present
       if (user?['billNicknames'] != null && user!['billNicknames'] is List) {
         await prefs.setString(
-          'bill_nicknames',
+          _billNicknamesKey,
           json.encode(user['billNicknames']),
         );
       }
@@ -356,14 +357,19 @@ class StorageService {
       await prefs.remove(_duusakhOgnooKey);
       await prefs.remove(_taniltsuulgaKharakhEsekhKey);
       // Clear wallet address on logout - each user should set their own address
-      await prefs.remove(_walletBairIdKey);
-      await prefs.remove(_walletDoorNoKey);
+      await clearWalletAddress();
+
+      // Clear other user-specific profile/state data
+      await prefs.remove(_walletUserIdKey);
+      await prefs.remove(_ebarimtInfoKey);
+      await prefs.remove(_tootsKey);
+      await prefs.remove(_billNicknamesKey);
+      await prefs.remove(_tukhainBaaziinKholboltKey);
+
       // Clear phone verified flag on logout
       await prefs.remove(_phoneVerifiedKey);
-      // NOTE: _lastVerifiedDeviceIdKey is NOT removed - it persists across logouts
-      // This allows the same device to skip OTP verification on subsequent logins
-      // Only new devices will require OTP verification
-      // Note: _shakeHintShownKey, _deviceIdKey, and _lastVerifiedDeviceIdKey are NOT removed - they persist across sessions
+
+      print('🧹 [STORAGE] Authentication data cleared');
       return true;
     } catch (e) {
       return false;
