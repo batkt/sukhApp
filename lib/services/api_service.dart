@@ -449,6 +449,27 @@ class ApiService {
     }
   }
 
+  static Future<List<String>> getWalletToots(String bairId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/walletAddress/toots/$bairId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['data'] != null && data['data'] is List) {
+          return List<String>.from(data['data'].map((i) => i.toString()));
+        }
+        return [];
+      } else {
+        throw Exception('Тоот авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Тоот авахад алдаа гарлаа: $e');
+    }
+  }
+
   // ==================== Wallet API Services ====================
 
   // Biller Services

@@ -63,11 +63,17 @@ class BillingBox extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.08),
-                    AppColors.deepGreen.withOpacity(isDark ? 0.1 : 0.03),
+                    AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.15),
+                    AppColors.deepGreen.withOpacity(isDark ? 0.1 : 0.08),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : AppColors.deepGreen.withOpacity(0.1),
+                  width: 1,
+                ),
               ),
               child: ValueListenableBuilder<String>(
                 valueListenable: AppLogoNotifier.currentIcon,

@@ -35,7 +35,13 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
   bool _isLoading = false;
   bool _isSaving = false;
+  bool _isFetchingDistricts = false;
+  bool _isFetchingKhoroos = false;
+  bool _isFetchingBuildings = false;
+  bool _isFetchingToots = false;
+  
   bool _isTootValid = false;
+  List<String> _toots = [];
   String? _tootValidationError;
 
   @override
@@ -83,10 +89,16 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     try {
       final cityId = city['id']?.toString() ?? city['_id']?.toString();
       if (cityId != null) {
+        setState(() => _isFetchingDistricts = true);
         final districts = await ApiService.getWalletDistricts(cityId);
-        setState(() => _districts = districts);
+        setState(() {
+          _districts = districts;
+          _isFetchingDistricts = false;
+        });
       }
-    } catch (_) {}
+    } catch (_) {
+      setState(() => _isFetchingDistricts = false);
+    }
   }
 
   Future<void> _onDistrictSelected(Map<String, dynamic> district) async {
@@ -101,6 +113,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       final districtId =
           district['id']?.toString() ?? district['_id']?.toString();
       if (districtId != null) {
+        setState(() => _isFetchingKhoroos = true);
         final khoroos = await ApiService.getWalletKhoroos(districtId);
         // Filter out "0-р хороо" or similar placeholder entries
         setState(() {
@@ -116,9 +129,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                   _getKhorooDisplayName(b),
                 ),
               );
+          _isFetchingKhoroos = false;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      setState(() => _isFetchingKhoroos = false);
+    }
   }
 
   Future<void> _onKhorooSelected(Map<String, dynamic> khoroo) async {
@@ -131,10 +147,16 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     try {
       final khorooId = khoroo['id']?.toString() ?? khoroo['_id']?.toString();
       if (khorooId != null) {
+        setState(() => _isFetchingBuildings = true);
         final buildings = await ApiService.getWalletBuildings(khorooId);
-        setState(() => _buildings = _sortBuildingsNumeric(buildings));
+        setState(() {
+          _buildings = _sortBuildingsNumeric(buildings);
+          _isFetchingBuildings = false;
+        });
       }
-    } catch (_) {}
+    } catch (_) {
+      setState(() => _isFetchingBuildings = false);
+    }
   }
 
   List<Map<String, dynamic>> _sortBuildingsNumeric(
@@ -227,7 +249,22 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       _doorNoController.clear();
       _isTootValid = building['source'] != 'OWN_ORG';
       _selectedWalletCustomer = null;
+      _toots = [];
     });
+
+    try {
+      final bairId = building['id']?.toString() ?? building['_id']?.toString();
+      if (bairId != null) {
+        setState(() => _isFetchingToots = true);
+        final toots = await ApiService.getWalletToots(bairId);
+        setState(() {
+          _toots = toots;
+          _isFetchingToots = false;
+        });
+      }
+    } catch (_) {
+      setState(() => _isFetchingToots = false);
+    }
   }
 
   Future<void> _handleAddressSubmit() async {
@@ -275,20 +312,33 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           bairId: bairId!,
           doorNo: doorNo,
         );
-        if (customers.isEmpty) throw Exception('Хаяг олдсонгүй');
-
-        if (customers.length == 1) {
-          _selectedWalletCustomer = customers[0];
-        } else {
-          // Don't reset _isSaving here - maintain it through customer selection
-          final selectedCustomer = await _showMultiAccountSelection(customers);
-          if (selectedCustomer != null) {
-            setState(() => _selectedWalletCustomer = selectedCustomer);
-            // Continue with the same submission - don't call _handleAddressSubmit again
+        
+        if (customers.isEmpty) {
+          final manualCode = await _showManualCodeDialog();
+          if (manualCode != null && manualCode.isNotEmpty) {
+            // Create a pseudo-customer object for manual entry
+            _selectedWalletCustomer = {
+              'customerId': manualCode,
+              'customerCode': manualCode,
+              'customerName': 'Гар аргаар оруулсан ($manualCode)',
+            };
           } else {
-            // User cancelled selection
-            setState(() => _isSaving = false);
-            return;
+            throw Exception('Хаяг олдсонгүй');
+          }
+        } else {
+          if (customers.length == 1) {
+            _selectedWalletCustomer = customers[0];
+          } else {
+            // Don't reset _isSaving here - maintain it through customer selection
+            final selectedCustomer = await _showMultiAccountSelection(customers);
+            if (selectedCustomer != null) {
+              setState(() => _selectedWalletCustomer = selectedCustomer);
+              // Continue with the same submission
+            } else {
+              // User cancelled selection
+              setState(() => _isSaving = false);
+              return;
+            }
           }
         }
       }
@@ -402,6 +452,44 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     );
   }
 
+  Future<String?> _showManualCodeDialog() {
+    final controller = TextEditingController();
+    return showDialog<String?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Хаяг олдсонгүй'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Бид таны оруулсан хаягаар мэдээлэл олсонгүй. Та хэрэглэгчийн кодоо гараар оруулах уу?',
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 16.h),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Хэрэглэгчийн код / Гэрээний №',
+                hintText: 'Жишээ: 1234567',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Цуцлах'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Оруулах'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
@@ -499,7 +587,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             icon: Icons.location_city_rounded,
             onTap: () => _showPicker(
               'Хот / Аймаг сонгох',
-              _cities,
+              () => _cities,
               (val) => _onCitySelected(val),
             ),
             isDark: isDark,
@@ -509,11 +597,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             label: 'Дүүрэг / Сум',
             value: _getDistrictDisplayName(_selectedDistrict),
             icon: Icons.map_rounded,
-            onTap: _selectedCity == null
+            isLoading: _isFetchingDistricts,
+            onTap: _selectedCity == null || _isFetchingDistricts
                 ? null
                 : () => _showPicker(
                     'Дүүрэг сонгох',
-                    _districts,
+                    () => _districts,
                     (val) => _onDistrictSelected(val),
                   ),
             isDark: isDark,
@@ -523,11 +612,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
             label: 'Хороо / Баг',
             value: _getKhorooDisplayName(_selectedKhoroo),
             icon: Icons.explore_rounded,
-            onTap: _selectedDistrict == null
+            isLoading: _isFetchingKhoroos,
+            onTap: _selectedDistrict == null || _isFetchingKhoroos
                 ? null
                 : () => _showPicker(
                     'Хороо сонгох',
-                    _khoroos,
+                    () => _khoroos,
                     (val) => _onKhorooSelected(val),
                   ),
             isDark: isDark,
@@ -540,11 +630,12 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 _selectedBuilding?['ner'] ??
                 'Сонгох',
             icon: Icons.apartment_rounded,
-            onTap: _selectedKhoroo == null
+            isLoading: _isFetchingBuildings,
+            onTap: _selectedKhoroo == null || _isFetchingBuildings
                 ? null
                 : () => _showPicker(
                     'Барилга сонгох',
-                    _buildings,
+                    () => _buildings,
                     (val) => _onBuildingSelected(val),
                     showSearch: true,
                   ),
@@ -563,10 +654,11 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     required IconData icon,
     required VoidCallback? onTap,
     required bool isDark,
+    bool isLoading = false,
   }) {
     final isSelected = value != 'Сонгох';
     return InkWell(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       borderRadius: BorderRadius.circular(12.r),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -616,6 +708,17 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                 ],
               ),
             ),
+            if (isLoading) ...[
+              SizedBox(width: 8.w),
+              SizedBox(
+                width: 14.r,
+                height: 14.r,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.deepGreen,
+                ),
+              ),
+            ],
             Icon(
               Icons.keyboard_arrow_down_rounded,
               size: 18.sp,
@@ -628,15 +731,43 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   }
 
   Widget _buildDoorNoField(bool isDark) {
+    if (_toots.isNotEmpty) {
+      return _buildSelectionField(
+        label: 'Хаалганы дугаар / Тоот',
+        value: _doorNoController.text.isEmpty ? 'Сонгох' : _doorNoController.text,
+        icon: Icons.meeting_room_rounded,
+        isLoading: _isFetchingToots,
+        onTap: _selectedBuilding == null || _isFetchingToots
+            ? null
+            : () => _showTootPicker(),
+        isDark: isDark,
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Хаалганы дугаар / Тоот',
-          style: TextStyle(
-            fontSize: 13.sp,
-            color: isDark ? Colors.white70 : Colors.black54,
-          ),
+        Row(
+          children: [
+            Text(
+              'Хаалганы дугаар / Тоот',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+            if (_isFetchingToots) ...[
+              SizedBox(width: 8.w),
+              SizedBox(
+                width: 12.r,
+                height: 12.r,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.deepGreen,
+                ),
+              ),
+            ],
+          ],
         ),
         SizedBox(height: 8.h),
         TextField(
@@ -660,6 +791,19 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showTootPicker() {
+    _showPicker(
+      'Тоот сонгох',
+      () => _toots.map((t) => {'name': t}).toList(),
+      (val) {
+        setState(() {
+          _doorNoController.text = val['name'].toString();
+        });
+      },
+      showSearch: true,
     );
   }
 
@@ -694,26 +838,59 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
   void _showPicker(
     String title,
-    List<Map<String, dynamic>> items,
+    List<Map<String, dynamic>> Function() getItems,
     Function(Map<String, dynamic>) onSelected, {
     bool showSearch = true,
   }) {
-    List<Map<String, dynamic>> filteredItems = List.from(items);
+    List<Map<String, dynamic>> filteredItems = List.from(getItems());
 
-    // Initial sort
-    filteredItems.sort((a, b) {
-      final nameA = title.contains('Дүүрэг')
-          ? _getDistrictDisplayName(a)
-          : (title.contains('Хороо')
+    void updateFilteredItems(String query) {
+      final items = getItems();
+      if (query.isEmpty) {
+        filteredItems = List.from(items);
+      } else {
+        final lowQuery = query.toLowerCase();
+        filteredItems = items.where((i) {
+          final name = (title.contains('Дүүрэг')
+                  ? _getDistrictDisplayName(i)
+                  : (title.contains('Хороо')
+                      ? _getKhorooDisplayName(i)
+                      : (i['name'] ?? i['ner'] ?? '').toString()))
+              .toLowerCase();
+          return name.contains(lowQuery);
+        }).toList();
+      }
+
+      filteredItems.sort((a, b) {
+        final nameA = title.contains('Дүүрэг')
+            ? _getDistrictDisplayName(a)
+            : (title.contains('Хороо')
                 ? _getKhorooDisplayName(a)
                 : (a['name'] ?? a['ner'] ?? '').toString());
-      final nameB = title.contains('Дүүрэг')
-          ? _getDistrictDisplayName(b)
-          : (title.contains('Хороо')
+        final nameB = title.contains('Дүүрэг')
+            ? _getDistrictDisplayName(b)
+            : (title.contains('Хороо')
                 ? _getKhorooDisplayName(b)
                 : (b['name'] ?? b['ner'] ?? '').toString());
-      return _numericCompare(nameA, nameB);
-    });
+
+        if (query.isNotEmpty) {
+          final lowA = nameA.toLowerCase();
+          final lowB = nameB.toLowerCase();
+          final lowQuery = query.toLowerCase();
+
+          bool startsA = lowA.startsWith(lowQuery);
+          bool startsB = lowB.startsWith(lowQuery);
+
+          if (startsA && !startsB) return -1;
+          if (!startsA && startsB) return 1;
+        }
+
+        return _numericCompare(nameA, nameB);
+      });
+    }
+
+    // Initial sort
+    updateFilteredItems('');
 
     showModalBottomSheet(
       context: context,
@@ -804,53 +981,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                         ),
                         onChanged: (val) {
                           setModalState(() {
-                            if (val.isEmpty) {
-                              filteredItems = List.from(items);
-                            } else {
-                              final query = val.toLowerCase();
-                              filteredItems = items.where((i) {
-                                final name =
-                                    (title.contains('Дүүрэг')
-                                            ? _getDistrictDisplayName(i)
-                                            : (title.contains('Хороо')
-                                                  ? _getKhorooDisplayName(i)
-                                                  : (i['name'] ??
-                                                            i['ner'] ??
-                                                            '')
-                                                        .toString()))
-                                        .toLowerCase();
-                                return name.contains(query);
-                              }).toList();
-                            }
-
-                            filteredItems.sort((a, b) {
-                              final nameA = title.contains('Дүүрэг')
-                                  ? _getDistrictDisplayName(a)
-                                  : (title.contains('Хороо')
-                                        ? _getKhorooDisplayName(a)
-                                        : (a['name'] ?? a['ner'] ?? '')
-                                              .toString());
-                              final nameB = title.contains('Дүүрэг')
-                                  ? _getDistrictDisplayName(b)
-                                  : (title.contains('Хороо')
-                                        ? _getKhorooDisplayName(b)
-                                        : (b['name'] ?? b['ner'] ?? '')
-                                              .toString());
-
-                              if (val.isNotEmpty) {
-                                final lowA = nameA.toLowerCase();
-                                final lowB = nameB.toLowerCase();
-                                final lowQuery = val.toLowerCase();
-
-                                bool startsA = lowA.startsWith(lowQuery);
-                                bool startsB = lowB.startsWith(lowQuery);
-
-                                if (startsA && !startsB) return -1;
-                                if (!startsA && startsB) return 1;
-                              }
-
-                              return _numericCompare(nameA, nameB);
-                            });
+                            updateFilteredItems(val);
                           });
                         },
                       ),

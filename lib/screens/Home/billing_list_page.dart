@@ -10,6 +10,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
+import 'package:sukh_app/services/socket_service.dart';
 
 class BillingListPage extends StatefulWidget {
   final List<Map<String, dynamic>> billingList;
@@ -48,13 +49,50 @@ class BillingListPage extends StatefulWidget {
 
 class _BillingListPageState extends State<BillingListPage> {
   bool _localIsLoading = false;
+  late List<Map<String, dynamic>> _localBillingList;
+  Map<String, dynamic>? _localUserBillingData;
+  late double _localTotalBalance;
+  late double _localTotalAldangi;
+
+  void Function(Map<String, dynamic>)? _notificationCallback;
 
   @override
   void initState() {
     super.initState();
-    final hasData =
-        widget.billingList.isNotEmpty || widget.userBillingData != null;
+    _localBillingList = List.from(widget.billingList);
+    _localUserBillingData = widget.userBillingData;
+    _localTotalBalance = widget.totalBalance;
+    _localTotalAldangi = widget.totalAldangi;
+
+    final hasData = _localBillingList.isNotEmpty || _localUserBillingData != null;
     _localIsLoading = widget.isLoading && !hasData;
+    _setupSocketListener();
+  }
+
+  void _setupSocketListener() async {
+    // Ensure socket is connected
+    if (!SocketService.instance.isConnected) {
+      await SocketService.instance.connect();
+    }
+
+    _notificationCallback = (notification) {
+      if (mounted) {
+        final type = (notification['type'] ?? notification['turul'])?.toString().toLowerCase() ?? '';
+        if (type == 'billing_update') {
+          // A billing was added or removed in the backend
+          _refresh();
+        }
+      }
+    };
+    SocketService.instance.setNotificationCallback(_notificationCallback!);
+  }
+
+  @override
+  void dispose() {
+    if (_notificationCallback != null) {
+      SocketService.instance.removeNotificationCallback(_notificationCallback);
+    }
+    super.dispose();
   }
 
   @override
@@ -79,9 +117,65 @@ class _BillingListPageState extends State<BillingListPage> {
   }
 
   Future<void> _refresh() async {
+    if (!mounted) return;
     setState(() => _localIsLoading = true);
+    
+    // Call parent refresh
     await widget.onRefresh();
-    if (mounted) setState(() => _localIsLoading = false);
+    
+    // Also fetch latest list locally to ensure UI updates even when pushed
+    if (mounted) {
+      try {
+        final newList = await ApiService.getWalletBillingList(forceRefresh: true);
+        
+        // Calculate new totals from the list if possible, 
+        // or just rely on the new list for the display
+        double newTotal = 0.0;
+        double newAldangi = 0.0;
+        
+        // Parallel fetch for details to get totals (consistent with home.dart logic)
+        final results = await Future.wait(newList.map((b) async {
+          final bId = b['billingId']?.toString();
+          if (bId != null && bId.isNotEmpty) {
+             try {
+               final details = await ApiService.getWalletBillingBills(billingId: bId, forceRefresh: true);
+               double t = 0.0;
+               double a = 0.0;
+               final bills = details['newBills'] as List? ?? [];
+               for (var bill in bills) {
+                 t += (bill['billTotalAmount'] is num) ? (bill['billTotalAmount'] as num).toDouble() : 0.0;
+                 a += (bill['billLateFee'] is num) ? (bill['billLateFee'] as num).toDouble() : 0.0;
+               }
+               return {'total': t, 'aldangi': a, 'details': details};
+             } catch(_) { return {'total': 0.0, 'aldangi': 0.0}; }
+          }
+          return {'total': 0.0, 'aldangi': 0.0};
+        }));
+
+        final List<Map<String, dynamic>> enrichedList = [];
+        for(int i=0; i<newList.length; i++) {
+          final item = Map<String, dynamic>.from(newList[i]);
+          item['perItemTotal'] = results[i]['total'];
+          item['perItemAldangi'] = results[i]['aldangi'];
+          item['billingDetails'] = results[i]['details'];
+          enrichedList.add(item);
+          newTotal += (results[i]['total'] as double);
+          newAldangi += (results[i]['aldangi'] as double);
+        }
+
+        if (mounted) {
+          setState(() {
+            _localBillingList = enrichedList;
+            _localTotalBalance = newTotal;
+            _localTotalAldangi = newAldangi;
+            _localIsLoading = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error fetching billing list in page refresh: $e');
+        if (mounted) setState(() => _localIsLoading = false);
+      }
+    }
   }
 
   Future<void> _addNewAddress() async {
@@ -193,7 +287,7 @@ class _BillingListPageState extends State<BillingListPage> {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
 
-    final residential = widget.billingList
+    final residential = _localBillingList
         .where((b) {
           final name = (b['billingName'] ?? '').toString().toLowerCase();
           return name.contains('орон сууц') ||
@@ -205,19 +299,19 @@ class _BillingListPageState extends State<BillingListPage> {
         })
         .where(
           (b) =>
-              widget.userBillingData == null ||
-              b['billingId'] != widget.userBillingData!['billingId'],
+              _localUserBillingData == null ||
+              b['billingId'] != _localUserBillingData!['billingId'],
         )
         .toList();
 
-    final utility = widget.billingList
+    final utility = _localBillingList
         .where((b) {
           return !residential.any((r) => r['billingId'] == b['billingId']);
         })
         .where(
           (b) =>
-              widget.userBillingData == null ||
-              b['billingId'] != widget.userBillingData!['billingId'],
+              _localUserBillingData == null ||
+              b['billingId'] != _localUserBillingData!['billingId'],
         )
         .toList();
 
@@ -292,7 +386,7 @@ class _BillingListPageState extends State<BillingListPage> {
                       isLoading: _localIsLoading,
                       residentialBillings: residential,
                       utilityBillings: utility,
-                      userBillingData: widget.userBillingData,
+                      userBillingData: _localUserBillingData,
                       onBillingTap: _handleBillingTap,
                       expandAddressAbbreviations:
                           widget.expandAddressAbbreviations,
@@ -306,8 +400,8 @@ class _BillingListPageState extends State<BillingListPage> {
                                 if (mounted) setState(() {});
                               })
                           : null,
-                      totalBalance: widget.totalBalance,
-                      totalAldangi: widget.totalAldangi,
+                      totalBalance: _localTotalBalance,
+                      totalAldangi: _localTotalAldangi,
                     ),
                 ],
               ),

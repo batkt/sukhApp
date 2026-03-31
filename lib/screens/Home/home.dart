@@ -191,9 +191,15 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   DateTime? _lastBalanceRefresh;
 
-  void _setupSocketListener() {
+  void _setupSocketListener() async {
     if (_notificationCallback != null)
       return; // Already registered (single callback)
+
+    // Ensure socket is connected if we are already logged in
+    if (!SocketService.instance.isConnected) {
+      await SocketService.instance.connect();
+    }
+
     _notificationCallback = (notification) {
       if (mounted) {
         _loadNotificationCount();
@@ -204,7 +210,9 @@ class _BookingScreenState extends State<NuurKhuudas>
         final guilgeeTurul = guilgee is Map
             ? (guilgee['turul']?.toString().toLowerCase() ?? '')
             : '';
+        final type = (notification['type'] ?? notification['turul'])?.toString().toLowerCase() ?? '';
         final isInvoiceOrAvlaga =
+            (type == 'billing_update') ||
             (guilgeeTurul == 'avlaga') ||
             title.toLowerCase().contains('нэхэмжлэх') ||
             title.toLowerCase().contains('авлага') ||

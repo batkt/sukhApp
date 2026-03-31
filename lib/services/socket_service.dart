@@ -18,10 +18,10 @@ class SocketService {
 
   /// Initialize socket connection
   Future<void> connect() async {
+    if (isConnected) {
+      return;
+    }
     try {
-      // Socket.io is at site root (same as web). Do not use /api so nginx can proxy /socket.io.
-      const serverUrl = 'https://amarhome.mn';
-
       // Get user ID
       _userId = await StorageService.getUserId();
       _baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -29,11 +29,9 @@ class SocketService {
       if (_userId == null) {
         return;
       }
-
-      // Disconnect existing connection if any
-      if (socket != null && socket!.connected) {
-        disconnect();
-      }
+      
+      // Socket.io is at site root (same as web). Do not use /api so nginx can proxy /socket.io.
+      const serverUrl = 'https://amarhome.mn';
 
       socket = IO.io(
         serverUrl,

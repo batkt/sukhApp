@@ -595,17 +595,18 @@ class InvoiceCard extends StatelessWidget {
                 .map((guilgee) {
                   // Use tulukhDun or undsenDun (API may use either for avlaga amount)
                   final amt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0);
+                  
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: context.responsiveSpacing(
-                        small: 6,
-                        medium: 8,
-                        large: 10,
-                        tablet: 12,
-                        veryNarrow: 4,
-                      )),
                       if (amt > 0) ...[
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        )),
                         _buildPriceRow(
                           context,
                           'Авлага',
@@ -640,37 +641,27 @@ class InvoiceCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: context.isDarkMode
                                   ? Colors.white.withOpacity(0.04)
-                                  : const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                                small: 8,
-                                medium: 10,
-                                large: 12,
-                                tablet: 14,
-                                veryNarrow: 6,
-                              )),
+                                  : Colors.black.withOpacity(0.03),
                             ),
                             child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
                                   Icons.info_outline_rounded,
-                                  color: context.isDarkMode
-                                      ? Colors.blue.shade300
-                                      : Colors.blue.shade600,
-                                  size: context.responsiveFontSize(
+                                  size: context.responsiveIconSize(
                                     small: 14,
                                     medium: 16,
                                     large: 18,
                                     tablet: 20,
                                     veryNarrow: 12,
                                   ),
+                                  color: context.textSecondaryColor,
                                 ),
                                 SizedBox(width: context.responsiveSpacing(
-                                  small: 4,
-                                  medium: 6,
-                                  large: 8,
-                                  tablet: 10,
-                                  veryNarrow: 3,
+                                  small: 6,
+                                  medium: 8,
+                                  large: 10,
+                                  tablet: 12,
+                                  veryNarrow: 4,
                                 )),
                                 Expanded(
                                   child: Column(
@@ -743,7 +734,9 @@ class InvoiceCard extends StatelessWidget {
                         _buildPriceRow(
                           context,
                           zardal.ner,
-                          zardal.formattedDisplayAmount,
+                          zardal.isEkhniiUldegdel && (invoice.ekhniiUldegdel ?? 0) > zardal.displayAmount
+                              ? '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮'
+                              : zardal.formattedDisplayAmount,
                         ),
                         if (zardal.turul.isNotEmpty) ...[
                           SizedBox(height: context.responsiveSpacing(
@@ -781,6 +774,52 @@ class InvoiceCard extends StatelessWidget {
                     );
                   }),
             ],
+          ],
+          // Dedicated row for ekhniiUldegdel if missing from breakdown (from registration or merge)
+          if ((invoice.ekhniiUldegdel ?? 0) > 0 &&
+              !(invoice.medeelel?.zardluud.any((z) => z.isEkhniiUldegdel) ??
+                  false) &&
+              !(invoice.medeelel?.guilgeenuud?.any((g) => g.ekhniiUldegdelEsekh) ??
+                  false)) ...[
+            SizedBox(
+              height: context.responsiveSpacing(
+                small: 6,
+                medium: 8,
+                large: 10,
+                tablet: 12,
+                veryNarrow: 4,
+              ),
+            ),
+            _buildPriceRow(
+              context,
+              'Эхний үлдэгдэл',
+              '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮',
+            ),
+            Padding(
+              padding: EdgeInsets.only(
+                left: context.responsiveSpacing(
+                  small: 10,
+                  medium: 12,
+                  large: 14,
+                  tablet: 16,
+                  veryNarrow: 8,
+                ),
+              ),
+              child: Text(
+                'Төрөл: Тогтмол',
+                style: TextStyle(
+                  color: context.textSecondaryColor,
+                  fontSize: context.responsiveFontSize(
+                    small: 11,
+                    medium: 12,
+                    large: 13,
+                    tablet: 14,
+                    veryNarrow: 10,
+                  ),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
           ],
           // Tailbar field
           if (invoice.medeelel != null &&
