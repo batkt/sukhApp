@@ -156,6 +156,7 @@ class AuthConfig {
   /// Logout user - clears both memory and persistent storage
   Future<void> logout() async {
     clear();
+    ApiService.clearProfileCache();
     await StorageService.clearAuthData();
     // Note: shake hint is NOT reset on logout - it persists across sessions
     // This way, once a user has seen the hint, they won't see it again

@@ -145,8 +145,10 @@ class _BillingCardState extends State<BillingCard>
         : billingName;
     final showSubtitle = (nickname != null && nickname.isNotEmpty);
 
-    // FIX: Whether to show the bottom pills row at all
-    final showPillsRow = hasNewBills && newBillsCount > 0;
+    // FIX: Show the bottom pills row if there are new bills OR a non-zero balance
+    final bool hasBalance = cardBalance != 0;
+    final bool isCredit = cardBalance < 0;
+    final showPillsRow = (hasNewBills && newBillsCount > 0) || hasBalance;
 
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
@@ -271,22 +273,33 @@ class _BillingCardState extends State<BillingCard>
                               ),
                             ],
 
-                            // FIX: Removed broken nested-if pattern.
-                            // Previously the commented-out Expanded made the
-                            // outer `if (shouldShowBalance)` body-less, so the
-                            // inner `if` and SizedBox were mis-parsed and caused
-                            // a render/layout exception that swallowed taps.
-                            // Now this is a single, clean condition.
                             if (showPillsRow) ...[
                               SizedBox(height: 8.h),
-                              Row(
+                              Wrap(
+                                spacing: 8.w,
+                                runSpacing: 8.h,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  _buildStatusPill(
-                                    icon: Icons.notifications_active_rounded,
-                                    label: '$newBillsCount шинэ',
-                                    color: Colors.blue[600]!,
-                                    isPrimary: false,
-                                  ),
+                                  if (hasNewBills && newBillsCount > 0)
+                                    _buildStatusPill(
+                                      icon: Icons.notifications_active_rounded,
+                                      label: '$newBillsCount шинэ',
+                                      color: Colors.blue[600]!,
+                                      isPrimary: false,
+                                    ),
+                                  if (hasBalance)
+                                    _buildStatusPill(
+                                      icon: isCredit
+                                          ? Icons.trending_up_rounded
+                                          : Icons.account_balance_wallet_rounded,
+                                      label: isCredit
+                                          ? '+${_formatNumber(cardBalance.abs())}₮ Илүү төлөлт'
+                                          : '${_formatNumber(cardBalance)}₮ Төлөх',
+                                      color: isCredit
+                                          ? Colors.green[600]!
+                                          : AppColors.error,
+                                      isPrimary: false,
+                                    ),
                                 ],
                               ),
                             ],

@@ -20,6 +20,15 @@ class BillingBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
 
+    // Parse numeric values to determine display mode
+    final double numericBalance = double.tryParse(
+          totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
+        ) ??
+        0.0;
+    final bool isCredit = numericBalance < 0;
+    final bool hasBalance = numericBalance != 0;
+    final bool hasAldangi = totalAldangi != '0' && totalAldangi.isNotEmpty;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -84,14 +93,71 @@ class BillingBox extends StatelessWidget {
                       letterSpacing: -0.2,
                     ),
                   ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    'Төлбөрийн дэлгэрэнгүй харах',
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: context.textSecondaryColor.withOpacity(0.6),
+                  SizedBox(height: 4.h),
+                  if (hasBalance) ...[
+                    if (isCredit) ...[
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.trending_up_rounded,
+                              color: Colors.green[600],
+                              size: 12.sp,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.green[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Text(
+                            '$totalBalance₮',
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.error,
+                            ),
+                          ),
+                          if (hasAldangi) ...[
+                            SizedBox(width: 8.w),
+                            Text(
+                              '· Алданги: $totalAldangi₮',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: AppColors.error.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ] else ...[
+                    Text(
+                      'Төлбөрийн дэлгэрэнгүй харах',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: context.textSecondaryColor.withOpacity(0.6),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

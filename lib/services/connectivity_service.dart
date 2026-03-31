@@ -60,7 +60,7 @@ class ConnectivityService {
   }
 
   void _showOfflineMessage() {
-    final context = navigatorKey.currentContext;
+    final context = navigatorKey.currentState?.overlay?.context ?? navigatorKey.currentContext;
     if (context != null && context.mounted) {
       showGlassSnackBar(
         context,
@@ -73,7 +73,7 @@ class ConnectivityService {
   }
 
   void _showOnlineMessage() {
-    final context = navigatorKey.currentContext;
+    final context = navigatorKey.currentState?.overlay?.context ?? navigatorKey.currentContext;
     if (context != null && context.mounted) {
       showGlassSnackBar(
         context,
@@ -96,7 +96,7 @@ class ConnectivityService {
   }
 
   void showNoInternetError() {
-    final context = navigatorKey.currentContext;
+    final context = navigatorKey.currentState?.overlay?.context ?? navigatorKey.currentContext;
     if (context != null && context.mounted) {
       showGlassSnackBar(
         context,

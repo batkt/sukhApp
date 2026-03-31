@@ -338,24 +338,21 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           iconColor: Colors.green,
         );
         if (widget.fromMenu) {
-          Navigator.of(context).pop(true);
+          if (context.canPop()) {
+            context.pop(true);
+          } else {
+            context.go('/nuur');
+          }
         } else {
-          // Immediate refresh when returning to home
-          Navigator.of(context).pop(true);
-          // Force immediate refresh in parent
+          // Check for onboarding
+          final taniltsuulgaKharakhEsekh =
+              await StorageService.getTaniltsuulgaKharakhEsekh();
           if (mounted) {
-            // Small delay to ensure navigation completes
-            Future.delayed(const Duration(milliseconds: 50), () {
-              if (context.mounted) {
-                // Trigger immediate refresh in home screen
-                context.push('/home').then((_) {
-                  // Additional immediate refresh after navigation
-                  if (mounted) {
-                    context.pushReplacement('/home');
-                  }
-                });
-              }
-            });
+            if (taniltsuulgaKharakhEsekh) {
+              context.go('/ekhniikh');
+            } else {
+              context.go('/nuur');
+            }
           }
         }
       }

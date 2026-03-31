@@ -138,6 +138,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   // User billing data from profile
   Map<String, dynamic>? _userBillingData;
+  bool _isInitialBillingLoaded = false;
 
   // GlobalKey to access BillingListSection state
   // No longer needed since billing list is on its own page
@@ -247,6 +248,9 @@ class _BookingScreenState extends State<NuurKhuudas>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed && mounted) {
+      // Clear profile cache so web-side updates are picked up immediately
+      ApiService.clearProfileCache();
+
       // Immediate refresh when app resumes
       _immediateRefresh();
 
@@ -331,11 +335,10 @@ class _BookingScreenState extends State<NuurKhuudas>
     return 0.0;
   }
 
+
   Future<void> _loadAllBillingPayments() async {
     await _refreshBillingInfo();
   }
-
-  bool _isInitialBillingLoaded = false;
 
   Future<void> _refreshBillingInfo({bool forceRefresh = false}) async {
     if (!mounted || _isRefreshing) return;
@@ -390,8 +393,8 @@ class _BookingScreenState extends State<NuurKhuudas>
                           // IMPORTANT: Prioritize niitTulbur over uldegdel to avoid the polluted 887k global total.
                           double amt = _parseNum(item['niitTulbur'] ?? item['uldegdel'] ?? item['niitTulburOriginal']);
                           double ald = _parseNum(item['aldangi'] ?? 0);
-                          if (amt > 0) invoiceSum += amt;
-                          if (ald > 0) aldangiSum += ald;
+                          invoiceSum += amt;
+                          aldangiSum += ald;
                           foundInvoices = true;
                         }
                       }
@@ -542,8 +545,13 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
-  Future<void> _deleteBilling(Map<String, dynamic> billing) async {
-    final activeContext = navigatorKey.currentContext;
+  Future<void> _deleteBilling(Map<String, dynamic> billing,
+      {BuildContext? ctx}) async {
+    final activeContext = ctx ??
+        (mounted
+            ? context
+            : (navigatorKey.currentState?.overlay?.context ??
+                navigatorKey.currentContext));
     if (activeContext == null) return;
 
     final billingId =
@@ -599,19 +607,28 @@ class _BookingScreenState extends State<NuurKhuudas>
       // Immediate refresh after successful deletion
       await _immediateRefresh();
 
-      // Show success message with fresh context
-      if (navigatorKey.currentContext != null) {
+      final finalContext = ctx ??
+          (mounted
+              ? context
+              : (navigatorKey.currentState?.overlay?.context ??
+                  navigatorKey.currentContext));
+      if (finalContext != null) {
         showGlassSnackBar(
-          navigatorKey.currentContext!,
+          finalContext,
           message: 'Биллинг амжилттай устгагдлаа',
           icon: Icons.check_circle,
           iconColor: Colors.green,
         );
       }
     } catch (e) {
-      if (navigatorKey.currentContext != null) {
+      final finalContext = ctx ??
+          (mounted
+              ? context
+              : (navigatorKey.currentState?.overlay?.context ??
+                  navigatorKey.currentContext));
+      if (finalContext != null) {
         showGlassSnackBar(
-          navigatorKey.currentContext!,
+          finalContext,
           message: e.toString().replaceAll("Exception: ", ""),
           icon: Icons.error,
           iconColor: Colors.red,
@@ -620,11 +637,13 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
-  Future<void> _editBilling(
-    Map<String, dynamic> billing, [
-    VoidCallback? onUpdated,
-  ]) async {
-    final activeContext = navigatorKey.currentContext;
+  Future<void> _editBilling(Map<String, dynamic> billing,
+      {BuildContext? ctx, VoidCallback? onUpdated}) async {
+    final activeContext = ctx ??
+        (mounted
+            ? context
+            : (navigatorKey.currentState?.overlay?.context ??
+                navigatorKey.currentContext));
     if (activeContext == null) return;
 
     await HomeBillingManager.editBilling(
@@ -1304,9 +1323,9 @@ class _BookingScreenState extends State<NuurKhuudas>
             _isConnectingBilling = false;
           });
         }
-        if (navigatorKey.currentContext != null) {
+        if (mounted) {
           showGlassSnackBar(
-            navigatorKey.currentContext!,
+            context,
             message: 'Хаяг олдсонгүй. Эхлээд хаягаа сонгоно уу.',
             icon: Icons.error,
             iconColor: Colors.red,
@@ -1327,9 +1346,9 @@ class _BookingScreenState extends State<NuurKhuudas>
           _isConnectingBilling = false;
         });
       }
-      if (navigatorKey.currentContext != null) {
+      if (mounted) {
         showGlassSnackBar(
-          navigatorKey.currentContext!,
+          context,
           message: 'Биллинг амжилттай холбогдлоо',
           icon: Icons.check_circle,
           iconColor: Colors.green,
@@ -1341,12 +1360,12 @@ class _BookingScreenState extends State<NuurKhuudas>
           _isConnectingBilling = false;
         });
       }
-      if (navigatorKey.currentContext != null) {
+      if (mounted) {
         final errorMessage = e.toString().contains('олдсонгүй')
             ? 'Биллингийн мэдээлэл олдсонгүй'
             : 'Биллинг холбоход алдаа гарлаа: $e';
         showGlassSnackBar(
-          navigatorKey.currentContext!,
+          context,
           message: errorMessage,
           icon: Icons.error,
           iconColor: Colors.red,

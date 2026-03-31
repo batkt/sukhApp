@@ -19,8 +19,9 @@ class BillingListPage extends StatefulWidget {
   final double totalAldangi;
   final Function(Map<String, dynamic>) onBillingTap;
   final String Function(String) expandAddressAbbreviations;
-  final Function(Map<String, dynamic>)? onDeleteTap;
-  final Function(Map<String, dynamic>, [VoidCallback?])? onEditTap;
+  final Function(Map<String, dynamic>, {BuildContext? ctx})? onDeleteTap;
+  final Function(Map<String, dynamic>, {BuildContext? ctx, VoidCallback? onUpdated})?
+      onEditTap;
   final bool isConnecting;
   final VoidCallback onConnect;
   final Future<void> Function() onRefresh;
@@ -295,11 +296,15 @@ class _BillingListPageState extends State<BillingListPage> {
                       onBillingTap: _handleBillingTap,
                       expandAddressAbbreviations:
                           widget.expandAddressAbbreviations,
-                      onDeleteTap: widget.onDeleteTap,
+                      onDeleteTap: widget.onDeleteTap != null
+                          ? (billing) =>
+                              widget.onDeleteTap!(billing, ctx: context)
+                          : null,
                       onEditTap: widget.onEditTap != null
-                          ? (billing) => widget.onEditTap!(billing, () {
-                              if (mounted) setState(() {});
-                            })
+                          ? (billing) => widget.onEditTap!(billing,
+                                  ctx: context, onUpdated: () {
+                                if (mounted) setState(() {});
+                              })
                           : null,
                       totalBalance: widget.totalBalance,
                       totalAldangi: widget.totalAldangi,

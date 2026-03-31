@@ -105,7 +105,7 @@ class ShakeService {
       return;
     }
 
-    final context = navigatorKey.currentContext;
+    final context = navigatorKey.currentState?.overlay?.context ?? navigatorKey.currentContext;
     if (context != null) {
       _isModalShowing = true;
       _lastModalShownTime = DateTime.now();
@@ -116,7 +116,7 @@ class ShakeService {
     } else {
       // Try again after a short delay if context is not ready
       Future.delayed(const Duration(milliseconds: 500), () {
-        final retryContext = navigatorKey.currentContext;
+      final retryContext = navigatorKey.currentState?.overlay?.context ?? navigatorKey.currentContext;
         if (retryContext != null && !_isModalShowing) {
           _isModalShowing = true;
           _lastModalShownTime = DateTime.now();

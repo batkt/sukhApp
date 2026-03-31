@@ -1608,8 +1608,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         controller: _nameController,
                         label: 'Нэр',
                         icon: Icons.person_outline_rounded,
-                        enabled: false,
-                        hint: 'Нэр хоосон байна',
+                        enabled: true,
+                        hint: 'Нэр оруулах',
                       ),
                       SizedBox(height: 16.h),
                       _buildModernTextField(
@@ -1632,33 +1632,35 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       Center(
                         child: TextButton.icon(
                           onPressed: () async {
-                            if (_emailController.text.isEmpty) {
+                            if (_nameController.text.trim().isEmpty) {
                               showGlassSnackBar(
                                 context,
-                                message: 'И-мэйл хаяг оруулна уу',
+                                message: 'Нэрээ оруулна уу',
                                 icon: Icons.warning,
                               );
                               return;
                             }
-                            // Basic email regex
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                .hasMatch(_emailController.text)) {
-                              showGlassSnackBar(
-                                context,
-                                message: 'Зөв и-мэйл хаяг оруулна уу',
-                                icon: Icons.error,
-                              );
-                              return;
+                            if (_emailController.text.isNotEmpty) {
+                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                  .hasMatch(_emailController.text)) {
+                                showGlassSnackBar(
+                                  context,
+                                  message: 'Зөв и-мэйл хаяг оруулна уу',
+                                  icon: Icons.error,
+                                );
+                                return;
+                              }
                             }
 
                             try {
                               final response = await ApiService.updateUserProfile({
-                                'mail': _emailController.text,
+                                'ner': _nameController.text.trim(),
+                                'mail': _emailController.text.trim(),
                               });
                               if (response['success'] == true || response['_id'] != null) {
                                 showGlassSnackBar(
                                   context,
-                                  message: 'И-мэйл амжилттай хадгалагдлаа',
+                                  message: 'Мэдээлэл амжилттай хадгалагдлаа',
                                   icon: Icons.check_circle,
                                   iconColor: Colors.green,
                                 );

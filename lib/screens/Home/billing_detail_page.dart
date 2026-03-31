@@ -241,9 +241,9 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                 final amt = (inv['niitTulbur'] as num?)?.toDouble() ?? 0.0;
                 final uld = (inv['uldegdel'] as num?)?.toDouble() ?? 0.0;
 
-                final paymentAmt = amt > 0 ? amt : uld;
+                final paymentAmt = amt != 0 ? amt : uld;
 
-                if (paymentAmt <= 0) continue;
+                if (paymentAmt == 0) continue;
 
                 collectedBills.add({
                   'billId': invoiceId,
@@ -785,9 +785,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                   onTap: () {
                                     setState(() {
                                       if (_selectedBillIds.length ==
-                                              _allBills.length ||
-                                          (_allBills.length > 5 &&
-                                              _selectedBillIds.length == 5)) {
+                                          _allBills.length) {
                                         _selectedBillIds.clear();
                                       } else {
                                         _selectedBillIds.clear();
@@ -1269,7 +1267,9 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             child: SizedBox(
               height: 54.h,
               child: ElevatedButton(
-                onPressed: _isProcessingPayment || _selectedBillIds.isEmpty
+                onPressed: _isProcessingPayment ||
+                        _selectedBillIds.isEmpty ||
+                        _totalSelectedAmount <= 0
                     ? null
                     : _processPayment,
                 style: ElevatedButton.styleFrom(

@@ -219,10 +219,22 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
 
         showGlassSnackBar(
           context,
-          message: 'Бүртгэл амжилттай үүслээ!',
+          message: 'Бүртгэл амжилттай үүслээ! Нэвтэрч байна...',
           icon: Icons.check_circle,
           iconColor: Colors.green,
         );
+
+        bool loginSuccess = false;
+        try {
+          await ApiService.loginUser(
+            utas: _phoneController.text.trim(),
+            nuutsUg: _passwordController.text.trim(),
+          );
+          await StorageService.savePhoneNumber(_phoneController.text.trim());
+          loginSuccess = true;
+        } catch (e) {
+          debugPrint('Автоматаар нэвтрэх үед алдаа гарлаа: $e');
+        }
 
         await Future.delayed(const Duration(milliseconds: 800));
 
@@ -230,9 +242,17 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
           final hasOrgId = (_baiguullagiinId ?? widget.baiguullagiinId ?? '')
               .trim()
               .isNotEmpty;
-          if (!hasOrgId) {
+              
+          if (!hasOrgId && loginSuccess) {
             context.go('/address_selection');
+          } else if (loginSuccess) {
+            // Check taniltsuulga dynamically based on user
+            final taniltsuulgaKharakhEsekh =
+                await StorageService.getTaniltsuulgaKharakhEsekh();
+            final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
+            context.go(targetRoute);
           } else {
+            // Fallback to login screen if auto login fails
             context.go('/newtrekh');
           }
         }

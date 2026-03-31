@@ -923,6 +923,9 @@ class ApiService {
 
       if (response.statusCode == 200) {
         if (data != null && data['success'] == true) {
+          // Clear billing cache so it's fresh after deletion
+          _cachedWalletBillingList = null;
+          _lastWalletBillingListFetch = null;
           return data;
         } else {
           throw Exception(
@@ -2364,13 +2367,20 @@ class ApiService {
 
   static Map<String, dynamic>? _cachedUserProfile;
   static DateTime? _lastProfileFetch;
-  static const Duration _profileCacheDuration = Duration(minutes: 5);
+  static const Duration _profileCacheDuration = Duration(seconds: 90); // Reduced for web-to-app sync
 
   static void clearProfileCache() {
     _cachedUserProfile = null;
     _lastProfileFetch = null;
     _cachedWalletHeaders = null;
     _lastWalletHeadersFetch = null;
+    
+    // Also clear other related data caches
+    _cachedWalletBillingList = null;
+    _lastWalletBillingListFetch = null;
+    _cachedWalletBillingBills.clear();
+    _lastWalletBillingBillsFetch.clear();
+    _cachedLocationData = null;
   }
 
   static Future<Map<String, dynamic>> getUserProfile({
@@ -2410,6 +2420,25 @@ class ApiService {
         _cachedUserProfile = result;
         _lastProfileFetch = DateTime.now();
 
+        // Persist user data locally so the app is always up to date with web changes
+        await StorageService.saveUserData(result);
+
+        // Auto-register in Wallet if missing but have mail + phone
+        final user = result['result'];
+        if (user != null &&
+            user['walletUserId'] == null &&
+            user['mail'] != null &&
+            user['mail'].toString().isNotEmpty &&
+            user['utas'] != null) {
+          final phone = user['utas'] is List
+              ? user['utas'][0].toString()
+              : user['utas'].toString();
+          
+          if (phone.isNotEmpty && !user['mail'].toString().endsWith('@amarhome.mn')) {
+            _autoRegisterWallet(phone, user['mail'].toString());
+          }
+        }
+
         return result;
       } else {
         throw Exception(
@@ -2422,6 +2451,21 @@ class ApiService {
       }
       print('Error in getUserProfile: $e');
       throw Exception('Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Private helper for background wallet registration
+  static Future<void> _autoRegisterWallet(String phone, String email) async {
+    try {
+      print('🚀 [WALLET] Background auto-registration for $phone ($email)');
+      final regResult = await registerWalletUser(utas: phone, mail: email);
+      if (regResult['success'] == true && regResult['userId'] != null) {
+        print('✅ [WALLET] Successfully auto-registered in background.');
+        // Refresh profile to pick up the new walletUserId
+        getUserProfile(forceRefresh: true).catchError((_) => null);
+      }
+    } catch (e) {
+      print('⚠️ [WALLET] Background auto-registration failed: $e');
     }
   }
 

@@ -68,6 +68,12 @@ class _AppToastManager {
       progress: progress,
     );
 
+    final overlay = Overlay.maybeOf(context);
+    if (overlay == null) {
+      debugPrint('AppToast: No Overlay found in context $context. Toasts require an Overlay ancestor.');
+      return;
+    }
+
     if (_overlayEntry == null) {
       _dataNotifier.value = newData;
       _overlayEntry = OverlayEntry(
@@ -76,7 +82,7 @@ class _AppToastManager {
           onDismiss: hide,
         ),
       );
-      Overlay.of(context).insert(_overlayEntry!);
+      overlay.insert(_overlayEntry!);
     } else {
       _dataNotifier.value = newData;
     }
