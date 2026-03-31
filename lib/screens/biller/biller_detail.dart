@@ -54,9 +54,23 @@ class _BillerDetailScreenState extends State<BillerDetailScreen>
 
     try {
       final billings = await ApiService.getWalletBillingList();
+      
+      // Filter billings to show only those matching current biller
+      final filteredBillings = billings.where((b) {
+        final bCode = b['billerCode']?.toString().trim().toUpperCase() ?? '';
+        final bName = b['billerName']?.toString().trim().toUpperCase() ?? '';
+        final wCode = widget.billerCode.trim().toUpperCase();
+        final wName = widget.billerName.trim().toUpperCase();
+        
+        return bCode == wCode || 
+               bName == wName || 
+               (bCode.isNotEmpty && wCode.isNotEmpty && (bCode.contains(wCode) || wCode.contains(bCode))) ||
+               (bName.isNotEmpty && wName.isNotEmpty && (bName.contains(wName) || wName.contains(bName)));
+      }).toList();
+
       if (mounted) {
         setState(() {
-          _billings = billings;
+          _billings = filteredBillings;
           _isLoadingBillings = false;
         });
       }

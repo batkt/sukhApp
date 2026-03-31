@@ -516,7 +516,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 focusNode: phoneFocusNode,
                 icon: Icons.phone_android_rounded,
                 isDark: isDark,
-                readOnly: _showPasswordInput,
+                readOnly: false,
                 keyboardType: TextInputType.phone,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
