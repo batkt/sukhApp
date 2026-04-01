@@ -384,7 +384,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                       TextFormField(
                         controller: _mashiniiDugaarController,
                         textCapitalization: TextCapitalization.characters,
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.text,
                         inputFormatters: [
                           LengthLimitingTextInputFormatter(7),
                           PlateNumberFormatter(),

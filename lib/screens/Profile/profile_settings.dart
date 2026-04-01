@@ -1400,7 +1400,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             LengthLimitingTextInputFormatter(7),
                             PlateNumberFormatter(),
                           ],
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.text,
                           onChanged: (val) {
                             setModalState(() {});
                           },
@@ -1552,14 +1552,20 @@ class _ProfileSettingsState extends State<ProfileSettings>
       backgroundColor: Colors.transparent,
       builder: (context) {
         final isDark = context.isDarkMode;
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF161618) : Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(28.r),
-              topRight: Radius.circular(28.r),
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
             ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF161618) : Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(28.r),
+                topRight: Radius.circular(28.r),
+              ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.3),
@@ -1770,7 +1776,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
               ),
             ],
           ),
-        );
+        ));
       },
     );
   }
