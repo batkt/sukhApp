@@ -622,8 +622,8 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
 
   Widget _buildPinBox(int index, bool isDark) {
     return Container(
-      width: 60.w,
-      height: 70.h,
+      width: 65.w,
+      height: 75.h,
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withOpacity(0.05)
@@ -656,36 +656,33 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black,
-            fontSize: 24.sp,
+            fontSize: 28.sp,
             fontWeight: FontWeight.bold,
+            height: 1.2, // Perfect for centering
           ),
           keyboardType: TextInputType.number,
           autofillHints: const [AutofillHints.oneTimeCode],
-          enableInteractiveSelection: false,
+          enableInteractiveSelection: true,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: const InputDecoration(
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
+            counterText: '',
           ),
           onChanged: (value) {
-            if (value.isEmpty) {
-              setState(() {});
-              return;
-            }
             if (value.length > 1) {
               final digits = value.replaceAll(RegExp(r'\D'), '');
-              for (var controller in _pinControllers) {
-                controller.clear();
-              }
               for (int i = 0; i < digits.length && i < 4; i++) {
-                _pinControllers[i].text = digits[i];
+                if (index + i < 4) {
+                  _pinControllers[index + i].text = digits[i];
+                }
               }
-              final lastIndex = (digits.length - 1).clamp(0, 3);
+              final lastIndex = (index + digits.length - 1).clamp(0, 3);
               _pinFocusNodes[lastIndex].requestFocus();
               setState(() {});
               return;
             }
-            if (index < 3) {
+            if (value.isNotEmpty && index < 3) {
               _pinFocusNodes[index + 1].requestFocus();
             }
             setState(() {});

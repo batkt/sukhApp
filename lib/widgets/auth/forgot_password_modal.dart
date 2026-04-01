@@ -271,48 +271,70 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
           ),
         ),
         SizedBox(height: 32.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (index) {
-            return SizedBox(
-              width: 60.w,
-              child: TextFormField(
-                controller: _otpControllers[index],
-                focusNode: _otpFocusNodes[index],
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                maxLength: 1,
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-                decoration: InputDecoration(
-                  counterText: '',
-                  filled: true,
-                  fillColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7FA),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide.none,
+        AutofillGroup(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(4, (index) {
+              return SizedBox(
+                width: 65.w,
+                height: 70.h,
+                child: TextFormField(
+                  controller: _otpControllers[index],
+                  focusNode: _otpFocusNodes[index],
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  textInputAction: TextInputAction.next,
+                  style: TextStyle(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
+                    height: 1.2, // Perfect for centering with Inter font
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: const BorderSide(color: AppColors.deepGreen, width: 2),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    filled: true,
+                    fillColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7FA),
+                    contentPadding: EdgeInsets.zero,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                      borderSide: const BorderSide(color: AppColors.deepGreen, width: 2),
+                    ),
                   ),
+                  onChanged: (value) {
+                    if (value.length > 1) {
+                      // Handle iOS Quick Fill / Paste
+                      final cleanDigits = value.replaceAll(RegExp(r'\D'), '').split('').take(4).toList();
+                      for (int i = 0; i < cleanDigits.length; i++) {
+                        if (index + i < 4) {
+                          _otpControllers[index + i].text = cleanDigits[i];
+                        }
+                      }
+                      // Update logic state
+                      setState(() {});
+                      
+                      // Focus last filled or next empty
+                      int nextFocus = index + cleanDigits.length;
+                      if (nextFocus > 3) nextFocus = 3;
+                      _otpFocusNodes[nextFocus].requestFocus();
+                    } else if (value.isNotEmpty && index < 3) {
+                      _otpFocusNodes[index + 1].requestFocus();
+                    } else if (value.isEmpty && index > 0) {
+                      _otpFocusNodes[index - 1].requestFocus();
+                    }
+                    
+                    if (_otpControllers.every((c) => c.text.isNotEmpty)) {
+                      _handleOtpSubmit();
+                    }
+                  },
                 ),
-                onChanged: (value) {
-                  if (value.isNotEmpty && index < 3) {
-                    _otpFocusNodes[index + 1].requestFocus();
-                  } else if (value.isEmpty && index > 0) {
-                    _otpFocusNodes[index - 1].requestFocus();
-                  }
-                  if (_otpControllers.every((c) => c.text.isNotEmpty)) {
-                    _handleOtpSubmit();
-                  }
-                },
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ),
         SizedBox(height: 24.h),
         Center(

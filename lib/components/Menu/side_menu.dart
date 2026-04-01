@@ -91,7 +91,7 @@ class _SideMenuState extends State<SideMenu> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    double drawerWidth = isTablet ? 260 : screenWidth * 0.65;
+    double drawerWidth = isTablet ? 280 : screenWidth * 0.78;
 
     return Drawer(
       backgroundColor: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
@@ -104,7 +104,7 @@ class _SideMenuState extends State<SideMenu> {
           _buildProfileHeader(context),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 16.h),
               children: [
                 _buildMenuSection(
                   'Үндсэн цэс',
@@ -212,7 +212,7 @@ class _SideMenuState extends State<SideMenu> {
   Widget _buildProfileHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 16.h),
+      padding: EdgeInsets.fromLTRB(20.w, 32.h, 20.w, 24.h),
       decoration: BoxDecoration(
         color: AppColors.deepGreen,
         borderRadius: BorderRadius.only(
@@ -220,33 +220,33 @@ class _SideMenuState extends State<SideMenu> {
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(12.w),
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withOpacity(0.12),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
             ),
-            child: const SelectableLogoImage(width: 40, height: 40),
+            child: const SelectableLogoImage(width: 44, height: 44),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 16.h),
           Text(
-            'АМАРХОУМ',
+            'Амархоум',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18.sp,
-              letterSpacing: 2.0,
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.5,
             ),
           ),
-          SizedBox(height: 4.h),
+          SizedBox(height: 8.h),
           Container(
-            height: 2,
-            width: 30.w,
+            height: 3,
+            width: 24.w,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(1),
+              color: Colors.white.withOpacity(0.4),
+              borderRadius: BorderRadius.circular(1.5),
             ),
           ),
         ],
@@ -264,8 +264,9 @@ class _SideMenuState extends State<SideMenu> {
             title.toUpperCase(),
             style: TextStyle(
               color: context.textSecondaryColor.withOpacity(0.5),
-              fontSize: 11.sp,
-              letterSpacing: 1.2,
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w400,
+              letterSpacing: 1.1,
             ),
           ),
         ),
@@ -296,7 +297,8 @@ class _SideMenuState extends State<SideMenu> {
                   title,
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 15.sp,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -314,7 +316,7 @@ class _SideMenuState extends State<SideMenu> {
 
   Widget _buildLogoutSection(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: context.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.grey[50],
         border: Border(
@@ -343,10 +345,11 @@ class _SideMenuState extends State<SideMenu> {
                     SizedBox(width: 12.w),
                     Text(
                       'Системээс гарах',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 15.sp,
-                      ),
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w400,
+                        ),
                     ),
                   ],
                 ),

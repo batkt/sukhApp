@@ -1025,137 +1025,137 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             veryNarrow: 10,
           )),
           // Details section
-          Container(
-            padding: EdgeInsets.all(context.responsiveSpacing(
-              small: 12,
-              medium: 13,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 10,
-            )),
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? const Color(0xFF252525)
-                  : const Color(0xFFF8F8F8),
-              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                small: 10,
-                medium: 11,
-                large: 12,
-                tablet: 14,
-                veryNarrow: 8,
-              )),
-              border: Border.all(
-                color: _isStatusDone(_notification)
-                    ? AppColors.success.withOpacity(0.2)
-                    : AppColors.deepGreen.withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: AppColors.deepGreen,
-                      size: context.responsiveFontSize(
-                        small: 14,
-                        medium: 15,
-                        large: 16,
-                        tablet: 18,
-                        veryNarrow: 12,
-                      ),
-                    ),
-                    SizedBox(width: context.responsiveSpacing(
-                      small: 6,
-                      medium: 7,
-                      large: 8,
-                      tablet: 10,
-                      veryNarrow: 4,
-                    )),
-                    Text(
-                      'Дэлгэрэнгүй',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: context.responsiveFontSize(
-                          small: 12,
-                          medium: 13,
-                          large: 14,
-                          tablet: 16,
-                          veryNarrow: 10,
-                        ),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: context.responsiveSpacing(
-                  small: 12,
-                  medium: 13,
-                  large: 14,
-                  tablet: 16,
-                  veryNarrow: 10,
-                )),
-                _buildDetailRow(
-                  'Огноо',
-                  _notification.formattedDateTime,
-                  Icons.calendar_today,
-                ),
-                if (_notification.gereeniiDugaar != null &&
-                    _notification.gereeniiDugaar!.isNotEmpty)
-                  _buildDetailRow(
-                    'Гэрээний дугаар',
-                    _notification.gereeniiDugaar!,
-                    Icons.description,
-                  ),
-                if (_notification.orshinSuugchGereeniiDugaar != null &&
-                    _notification.orshinSuugchGereeniiDugaar!.isNotEmpty)
-                  _buildDetailRow(
-                    'Оршин суугчийн гэрээний дугаар',
-                    _notification.orshinSuugchGereeniiDugaar!,
-                    Icons.person_outline,
-                  ),
-                if (_notification.orshinSuugchNer != null &&
-                    _notification.orshinSuugchNer!.isNotEmpty)
-                  _buildDetailRow(
-                    'Оршин суугчийн нэр',
-                    _notification.orshinSuugchNer!,
-                    Icons.person,
-                  ),
-                if (_notification.orshinSuugchUtas != null &&
-                    _notification.orshinSuugchUtas!.isNotEmpty)
-                  _buildDetailRow(
-                    'Утасны дугаар',
-                    _notification.orshinSuugchUtas!,
-                    Icons.phone,
-                  ),
-                if (_showStatusForNotification(_notification))
-                  _buildDetailRow(
-                    'Төлөв',
-                    _getStatusText(_notification),
-                    _isStatusDone(_notification)
-                        ? Icons.check_circle_outline
-                        : _isStatusRejected(_notification)
-                        ? Icons.cancel_outlined
-                        : _notification.hasReply
-                        ? Icons.check_circle_outline
-                        : Icons.schedule,
-                  ),
-                _buildDetailRow(
-                  'Үүсгэсэн огноо',
-                  _formatDate(_notification.createdAt),
-                  Icons.access_time,
-                ),
-                if (_notification.updatedAt != _notification.createdAt)
-                  _buildDetailRow(
-                    'Шинэчлэгдсэн огноо',
-                    _formatDate(_notification.updatedAt),
-                    Icons.update,
-                  ),
-              ],
-            ),
-          ),
+          // Container(
+          //   padding: EdgeInsets.all(context.responsiveSpacing(
+          //     small: 12,
+          //     medium: 13,
+          //     large: 14,
+          //     tablet: 16,
+          //     veryNarrow: 10,
+          //   )),
+          //   decoration: BoxDecoration(
+          //     color: context.isDarkMode
+          //         ? const Color(0xFF252525)
+          //         : const Color(0xFFF8F8F8),
+          //     borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+          //       small: 10,
+          //       medium: 11,
+          //       large: 12,
+          //       tablet: 14,
+          //       veryNarrow: 8,
+          //     )),
+          //     border: Border.all(
+          //       color: _isStatusDone(_notification)
+          //           ? AppColors.success.withOpacity(0.2)
+          //           : AppColors.deepGreen.withOpacity(0.1),
+          //       width: 1,
+          //     ),
+          //   ),
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       Row(
+          //         children: [
+          //           Icon(
+          //             Icons.info_outline,
+          //             color: AppColors.deepGreen,
+          //             size: context.responsiveFontSize(
+          //               small: 14,
+          //               medium: 15,
+          //               large: 16,
+          //               tablet: 18,
+          //               veryNarrow: 12,
+          //             ),
+          //           ),
+          //           SizedBox(width: context.responsiveSpacing(
+          //             small: 6,
+          //             medium: 7,
+          //             large: 8,
+          //             tablet: 10,
+          //             veryNarrow: 4,
+          //           )),
+          //           Text(
+          //             'Дэлгэрэнгүй',
+          //             style: TextStyle(
+          //               color: context.textPrimaryColor,
+          //               fontSize: context.responsiveFontSize(
+          //                 small: 12,
+          //                 medium: 13,
+          //                 large: 14,
+          //                 tablet: 16,
+          //                 veryNarrow: 10,
+          //               ),
+          //               fontWeight: FontWeight.w600,
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //       SizedBox(height: context.responsiveSpacing(
+          //         small: 12,
+          //         medium: 13,
+          //         large: 14,
+          //         tablet: 16,
+          //         veryNarrow: 10,
+          //       )),
+          //       _buildDetailRow(
+          //         'Огноо',
+          //         _notification.formattedDateTime,
+          //         Icons.calendar_today,
+          //       ),
+          //       if (_notification.gereeniiDugaar != null &&
+          //           _notification.gereeniiDugaar!.isNotEmpty)
+          //         _buildDetailRow(
+          //           'Гэрээний дугаар',
+          //           _notification.gereeniiDugaar!,
+          //           Icons.description,
+          //         ),
+          //       if (_notification.orshinSuugchGereeniiDugaar != null &&
+          //           _notification.orshinSuugchGereeniiDugaar!.isNotEmpty)
+          //         _buildDetailRow(
+          //           'Оршин суугчийн гэрээний дугаар',
+          //           _notification.orshinSuugchGereeniiDugaar!,
+          //           Icons.person_outline,
+          //         ),
+          //       if (_notification.orshinSuugchNer != null &&
+          //           _notification.orshinSuugchNer!.isNotEmpty)
+          //         _buildDetailRow(
+          //           'Оршин суугчийн нэр',
+          //           _notification.orshinSuugchNer!,
+          //           Icons.person,
+          //         ),
+          //       if (_notification.orshinSuugchUtas != null &&
+          //           _notification.orshinSuugchUtas!.isNotEmpty)
+          //         _buildDetailRow(
+          //           'Утасны дугаар',
+          //           _notification.orshinSuugchUtas!,
+          //           Icons.phone,
+          //         ),
+          //       if (_showStatusForNotification(_notification))
+          //         _buildDetailRow(
+          //           'Төлөв',
+          //           _getStatusText(_notification),
+          //           _isStatusDone(_notification)
+          //               ? Icons.check_circle_outline
+          //               : _isStatusRejected(_notification)
+          //               ? Icons.cancel_outlined
+          //               : _notification.hasReply
+          //               ? Icons.check_circle_outline
+          //               : Icons.schedule,
+          //         ),
+          //       _buildDetailRow(
+          //         'Үүсгэсэн огноо',
+          //         _formatDate(_notification.createdAt),
+          //         Icons.access_time,
+          //       ),
+          //       if (_notification.updatedAt != _notification.createdAt)
+          //         _buildDetailRow(
+          //           'Шинэчлэгдсэн огноо',
+          //           _formatDate(_notification.updatedAt),
+          //           Icons.update,
+          //         ),
+          //     ],
+          //   ),
+          // ),
           SizedBox(height: context.responsiveSpacing(
             small: 16,
             medium: 17,
@@ -1313,15 +1313,18 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                         runSpacing: 6,
                         children: _zuragPaths(msg.zurag).map((path) {
                           final url = '${ApiService.baseUrl}/medegdel/$path';
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
-                              child: Image.network(
-                                url,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
-                                errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                          return GestureDetector(
+                            onTap: () => _showImageZoom(url),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                                child: Image.network(
+                                  url,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
+                                  errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                                ),
                               ),
                             ),
                           );
@@ -1707,6 +1710,56 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     } catch (e) {
       return dateString;
     }
+  }
+
+  void _showImageZoom(String url) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black.withOpacity(0.9),
+              ),
+            ),
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (_, child, progress) => progress == null 
+                  ? child 
+                  : const Center(child: CircularProgressIndicator(color: Colors.white)),
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 48),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -2496,15 +2549,18 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                               runSpacing: 8,
                               children: _zuragPaths(_notification.zurag).map((path) {
                                 final url = '${ApiService.baseUrl}/medegdel/$path';
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 300, maxHeight: 240),
-                                    child: Image.network(
-                                      url,
-                                      fit: BoxFit.cover,
-                                      loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 160, width: 220, child: Center(child: CircularProgressIndicator())),
-                                      errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined, size: 56),
+                                return GestureDetector(
+                                  onTap: () => _showImageZoom(url),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 300, maxHeight: 240),
+                                      child: Image.network(
+                                        url,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 160, width: 220, child: Center(child: CircularProgressIndicator())),
+                                        errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined, size: 56),
+                                      ),
                                     ),
                                   ),
                                 );
@@ -2696,7 +2752,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                             tablet: 18,
                                             veryNarrow: 12,
                                           ),
-                                          color: context.inputGrayColor,
+                                          color: context.textPrimaryColor,
                                         ),
                                         SizedBox(
                                           width: context.responsiveSpacing(
@@ -2710,7 +2766,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                         Text(
                                           'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
                                           style: TextStyle(
-                                            color: context.inputGrayColor,
+                                            color: context.textPrimaryColor,
                                             fontSize: context.responsiveFontSize(
                                               small: 12,
                                               medium: 13,
@@ -2737,141 +2793,141 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                             veryNarrow: 14,
                           ),
                         ),
-                        Container(
-                          padding: EdgeInsets.all(context.responsiveSpacing(
-                            small: 18,
-                            medium: 19,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 14,
-                          )),
-                          decoration: BoxDecoration(
-                            color: context.textPrimaryColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(
-                              context.responsiveBorderRadius(
-                                small: 16,
-                                medium: 18,
-                                large: 20,
-                                tablet: 22,
-                                veryNarrow: 12,
-                              ),
-                            ),
-                            border: Border.all(
-                              color: _isStatusDone(_notification)
-                                  ? AppColors.success.withOpacity(0.3)
-                                  : context.textPrimaryColor.withOpacity(0.15),
-                              width: _isStatusDone(_notification) ? 1.5 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: context.textPrimaryColor,
-                                    size: context.responsiveFontSize(
-                                      small: 20,
-                                      medium: 21,
-                                      large: 22,
-                                      tablet: 24,
-                                      veryNarrow: 16,
-                                    ),
-                                  ),
-                                  SizedBox(width: context.responsiveSpacing(
-                                    small: 8,
-                                    medium: 9,
-                                    large: 10,
-                                    tablet: 12,
-                                    veryNarrow: 6,
-                                  )),
-                                  Text(
-                                    'Дэлгэрэнгүй',
-                                    style: TextStyle(
-                                      color: context.textPrimaryColor,
-                                      fontSize: context.responsiveFontSize(
-                                        small: 17,
-                                        medium: 18,
-                                        large: 19,
-                                        tablet: 21,
-                                        veryNarrow: 14,
-                                      ),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: context.responsiveSpacing(
-                                small: 18,
-                                medium: 19,
-                                large: 20,
-                                tablet: 22,
-                                veryNarrow: 14,
-                              )),
-                              _buildDetailRow(
-                                'Огноо',
-                                _notification.formattedDateTime,
-                                Icons.calendar_today,
-                              ),
-                              if (_notification.gereeniiDugaar != null &&
-                                  _notification.gereeniiDugaar!.isNotEmpty)
-                                _buildDetailRow(
-                                  'Гэрээний дугаар',
-                                  _notification.gereeniiDugaar!,
-                                  Icons.description,
-                                ),
-                              if (_notification.orshinSuugchGereeniiDugaar !=
-                                      null &&
-                                  _notification
-                                      .orshinSuugchGereeniiDugaar!
-                                      .isNotEmpty)
-                                _buildDetailRow(
-                                  'Оршин суугчийн гэрээний дугаар',
-                                  _notification.orshinSuugchGereeniiDugaar!,
-                                  Icons.person_outline,
-                                ),
-                              if (_notification.orshinSuugchNer != null &&
-                                  _notification.orshinSuugchNer!.isNotEmpty)
-                                _buildDetailRow(
-                                  'Оршин суугчийн нэр',
-                                  _notification.orshinSuugchNer!,
-                                  Icons.person,
-                                ),
-                              if (_notification.orshinSuugchUtas != null &&
-                                  _notification.orshinSuugchUtas!.isNotEmpty)
-                                _buildDetailRow(
-                                  'Утасны дугаар',
-                                  _notification.orshinSuugchUtas!,
-                                  Icons.phone,
-                                ),
-                              if (_showStatusForNotification(_notification))
-                                _buildDetailRow(
-                                  'Төлөв',
-                                  _getStatusText(_notification),
-                                  _isStatusDone(_notification)
-                                      ? Icons.check_circle
-                                      : _isStatusRejected(_notification)
-                                      ? Icons.cancel
-                                      : _notification.hasReply
-                                      ? Icons.check_circle
-                                      : Icons.pending,
-                                ),
-                              _buildDetailRow(
-                                'Үүсгэсэн огноо',
-                                _formatDate(_notification.createdAt),
-                                Icons.access_time,
-                              ),
-                              if (_notification.updatedAt !=
-                                  _notification.createdAt)
-                                _buildDetailRow(
-                                  'Шинэчлэгдсэн огноо',
-                                  _formatDate(_notification.updatedAt),
-                                  Icons.update,
-                                ),
-                            ],
-                          ),
-                        ),
+                        // Container(
+                        //   padding: EdgeInsets.all(context.responsiveSpacing(
+                        //     small: 18,
+                        //     medium: 19,
+                        //     large: 20,
+                        //     tablet: 22,
+                        //     veryNarrow: 14,
+                        //   )),
+                        //   decoration: BoxDecoration(
+                        //     color: context.textPrimaryColor.withOpacity(0.08),
+                        //     borderRadius: BorderRadius.circular(
+                        //       context.responsiveBorderRadius(
+                        //         small: 16,
+                        //         medium: 18,
+                        //         large: 20,
+                        //         tablet: 22,
+                        //         veryNarrow: 12,
+                        //       ),
+                        //     ),
+                        //     border: Border.all(
+                        //       color: _isStatusDone(_notification)
+                        //           ? AppColors.success.withOpacity(0.3)
+                        //           : context.textPrimaryColor.withOpacity(0.15),
+                        //       width: _isStatusDone(_notification) ? 1.5 : 1,
+                        //     ),
+                        //   ),
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.start,
+                        //     children: [
+                        //       Row(
+                        //         children: [
+                        //           Icon(
+                        //             Icons.info_outline,
+                        //             color: context.textPrimaryColor,
+                        //             size: context.responsiveFontSize(
+                        //               small: 20,
+                        //               medium: 21,
+                        //               large: 22,
+                        //               tablet: 24,
+                        //               veryNarrow: 16,
+                        //             ),
+                        //           ),
+                        //           SizedBox(width: context.responsiveSpacing(
+                        //             small: 8,
+                        //             medium: 9,
+                        //             large: 10,
+                        //             tablet: 12,
+                        //             veryNarrow: 6,
+                        //           )),
+                        //           Text(
+                        //             'Дэлгэрэнгүй',
+                        //             style: TextStyle(
+                        //               color: context.textPrimaryColor,
+                        //               fontSize: context.responsiveFontSize(
+                        //                 small: 17,
+                        //                 medium: 18,
+                        //                 large: 19,
+                        //                 tablet: 21,
+                        //                 veryNarrow: 14,
+                        //               ),
+                        //               fontWeight: FontWeight.bold,
+                        //             ),
+                        //           ),
+                        //         ],
+                        //       ),
+                        //       SizedBox(height: context.responsiveSpacing(
+                        //         small: 18,
+                        //         medium: 19,
+                        //         large: 20,
+                        //         tablet: 22,
+                        //         veryNarrow: 14,
+                        //       )),
+                        //       _buildDetailRow(
+                        //         'Огноо',
+                        //         _notification.formattedDateTime,
+                        //         Icons.calendar_today,
+                        //       ),
+                        //       if (_notification.gereeniiDugaar != null &&
+                        //           _notification.gereeniiDugaar!.isNotEmpty)
+                        //         _buildDetailRow(
+                        //           'Гэрээний дугаар',
+                        //           _notification.gereeniiDugaar!,
+                        //           Icons.description,
+                        //         ),
+                        //       if (_notification.orshinSuugchGereeniiDugaar !=
+                        //               null &&
+                        //           _notification
+                        //               .orshinSuugchGereeniiDugaar!
+                        //               .isNotEmpty)
+                        //         _buildDetailRow(
+                        //           'Оршин суугчийн гэрээний дугаар',
+                        //           _notification.orshinSuugchGereeniiDugaar!,
+                        //           Icons.person_outline,
+                        //         ),
+                        //       if (_notification.orshinSuugchNer != null &&
+                        //           _notification.orshinSuugchNer!.isNotEmpty)
+                        //         _buildDetailRow(
+                        //           'Оршин суугчийн нэр',
+                        //           _notification.orshinSuugchNer!,
+                        //           Icons.person,
+                        //         ),
+                        //       if (_notification.orshinSuugchUtas != null &&
+                        //           _notification.orshinSuugchUtas!.isNotEmpty)
+                        //         _buildDetailRow(
+                        //           'Утасны дугаар',
+                        //           _notification.orshinSuugchUtas!,
+                        //           Icons.phone,
+                        //         ),
+                        //       if (_showStatusForNotification(_notification))
+                        //         _buildDetailRow(
+                        //           'Төлөв',
+                        //           _getStatusText(_notification),
+                        //           _isStatusDone(_notification)
+                        //               ? Icons.check_circle
+                        //               : _isStatusRejected(_notification)
+                        //               ? Icons.cancel
+                        //               : _notification.hasReply
+                        //               ? Icons.check_circle
+                        //               : Icons.pending,
+                        //         ),
+                        //       _buildDetailRow(
+                        //         'Үүсгэсэн огноо',
+                        //         _formatDate(_notification.createdAt),
+                        //         Icons.access_time,
+                        //       ),
+                        //       if (_notification.updatedAt !=
+                        //           _notification.createdAt)
+                        //         _buildDetailRow(
+                        //           'Шинэчлэгдсэн огноо',
+                        //           _formatDate(_notification.updatedAt),
+                        //           Icons.update,
+                        //         ),
+                        //     ],
+                        //   ),
+                        // ),
                         _buildChatSectionScreen(),
                       ],
                     ),
@@ -2995,15 +3051,18 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                         runSpacing: 6,
                         children: _zuragPaths(msg.zurag).map((path) {
                           final url = '${ApiService.baseUrl}/medegdel/$path';
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
-                              child: Image.network(
-                                url,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
-                                errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                          return GestureDetector(
+                            onTap: () => _showImageZoom(url),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                                child: Image.network(
+                                  url,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
+                                  errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                                ),
                               ),
                             ),
                           );
@@ -3318,5 +3377,55 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     } catch (e) {
       return dateString;
     }
+  }
+
+  void _showImageZoom(String url) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black.withOpacity(0.9),
+              ),
+            ),
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                loadingBuilder: (_, child, progress) => progress == null 
+                  ? child 
+                  : const Center(child: CircularProgressIndicator(color: Colors.white)),
+                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 48),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
