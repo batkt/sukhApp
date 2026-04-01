@@ -176,8 +176,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
       final list = (res['data'] as List?)
           ?.map((e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList() ?? [];
+      if (!mounted) return;
       setState(() {
-        _threadItems = list;
+        _threadItems = list.where((item) => item.id != rootId).toList();
         _threadLoading = false;
       });
     } catch (_) {
@@ -575,7 +576,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                 width: 1,
               ),
             ),
-            child: Row(
+            child: Wrap(
+              spacing: context.responsiveSpacing(small: 8, veryNarrow: 4),
+              runSpacing: context.responsiveSpacing(small: 8, veryNarrow: 4),
               children: [
                 Container(
                   padding: EdgeInsets.symmetric(
@@ -654,14 +657,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     ],
                   ),
                 ),
-                if (isGomdol || isSanal) ...[
-                  SizedBox(width: context.responsiveSpacing(
-                    small: 8,
-                    medium: 9,
-                    large: 10,
-                    tablet: 12,
-                    veryNarrow: 6,
-                  )),
+                if (isGomdol || isSanal)
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: context.responsiveSpacing(
@@ -751,9 +747,8 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                       ],
                     ),
                   ),
-                ],
-              ],
-            ),
+            ],
+          ),
           ),
           SizedBox(height: context.responsiveSpacing(
             small: 14,
@@ -785,70 +780,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             tablet: 14,
             veryNarrow: 8,
           )),
-          // Message
-          Container(
-            padding: EdgeInsets.all(context.responsiveSpacing(
-              small: 12,
-              medium: 13,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 10,
-            )),
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? const Color(0xFF252525)
-                  : const Color(0xFFF8F8F8),
-              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                small: 10,
-                medium: 11,
-                large: 12,
-                tablet: 14,
-                veryNarrow: 8,
-              )),
-              border: Border.all(
-                color: AppColors.deepGreen.withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              _notification.message,
-              textAlign: TextAlign.justify,
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 14,
-                  medium: 15,
-                  large: 16,
-                  tablet: 18,
-                  veryNarrow: 12,
-                ),
-                height: 1.5,
-              ),
-            ),
-          ),
-          if (_notification.zurag != null && _notification.zurag!.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.only(top: context.responsiveSpacing(small: 10, medium: 12, large: 14, tablet: 16, veryNarrow: 8)),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: _zuragPaths(_notification.zurag).map((path) {
-                  final url = '${ApiService.baseUrl}/medegdel/$path';
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 280, maxHeight: 220),
-                      child: Image.network(
-                        url,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 140, width: 200, child: Center(child: CircularProgressIndicator())),
-                        errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined, size: 48),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
+          // Message and Images are now part of the chat thread as bubbles to show authorship alignment
           if (_notification.hasReply && (isGomdol || isSanal)) ...[
             SizedBox(height: context.responsiveSpacing(
               small: 14,
@@ -1219,6 +1151,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
           tablet: 12,
           veryNarrow: 6,
         )),
+        _buildChatBubble(_notification), // Prepend root notification as first bubble!
         ..._threadItems.map((msg) => _buildChatBubble(msg)),
         SizedBox(height: context.responsiveSpacing(
           small: 12,
@@ -1959,8 +1892,10 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
       final list = (res['data'] as List?)
           ?.map((e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList() ?? [];
+      if (!mounted) return;
       setState(() {
-        _threadItems = list;
+        // Filter out the root message to avoid duplication
+        _threadItems = list.where((item) => item.id != rootId).toList();
         _threadLoading = false;
       });
     } catch (_) {
@@ -2266,7 +2201,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                               width: _isStatusDone(_notification) ? 1.5 : 1,
                             ),
                           ),
-                          child: Row(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 10,
                             children: [
                               Container(
                                 padding: EdgeInsets.symmetric(
@@ -2355,14 +2292,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                   ],
                                 ),
                               ),
-                              if (isGomdol || isSanal) ...[
-                                SizedBox(width: context.responsiveSpacing(
-                                  small: 10,
-                                  medium: 11,
-                                  large: 12,
-                                  tablet: 14,
-                                  veryNarrow: 8,
-                                )),
+                              if (isGomdol || isSanal)
                                 Container(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: context.responsiveSpacing(
@@ -2456,7 +2386,6 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                                     ],
                                   ),
                                 ),
-                              ],
                             ],
                           ),
                         ),
@@ -2500,73 +2429,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                           tablet: 20,
                           veryNarrow: 12,
                         )),
-                        Container(
-                          padding: EdgeInsets.all(context.responsiveSpacing(
-                            small: 18,
-                            medium: 19,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 14,
-                          )),
-                          decoration: BoxDecoration(
-                            color: context.textPrimaryColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(
-                              context.responsiveBorderRadius(
-                                small: 16,
-                                medium: 18,
-                                large: 20,
-                                tablet: 22,
-                                veryNarrow: 12,
-                              ),
-                            ),
-                            border: Border.all(
-                              color: context.textPrimaryColor.withOpacity(0.15),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            _notification.message,
-                            textAlign: TextAlign.justify,
-                            style: TextStyle(
-                              color: context.textSecondaryColor,
-                              fontSize: context.responsiveFontSize(
-                                small: 15,
-                                medium: 16,
-                                large: 17,
-                                tablet: 19,
-                                veryNarrow: 13,
-                              ),
-                              height: 1.6,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ),
-                        if (_notification.zurag != null && _notification.zurag!.isNotEmpty)
-                          Padding(
-                            padding: EdgeInsets.only(top: context.responsiveSpacing(small: 14, medium: 16, large: 18, tablet: 20, veryNarrow: 10)),
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _zuragPaths(_notification.zurag).map((path) {
-                                final url = '${ApiService.baseUrl}/medegdel/$path';
-                                return GestureDetector(
-                                  onTap: () => _showImageZoom(url),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(maxWidth: 300, maxHeight: 240),
-                                      child: Image.network(
-                                        url,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 160, width: 220, child: Center(child: CircularProgressIndicator())),
-                                        errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined, size: 56),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
+                        // Root message and images are now displayed in the chat section as bubbles
                         if (_notification.hasReply &&
                             (isGomdol || isSanal)) ...[
                           SizedBox(
@@ -2983,6 +2846,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
           tablet: 18,
           veryNarrow: 8,
         )),
+        _buildChatBubbleScreen(_notification), // Prepend root!
         ..._threadItems.map((msg) => _buildChatBubbleScreen(msg)),
         SizedBox(height: context.responsiveSpacing(
           small: 16,

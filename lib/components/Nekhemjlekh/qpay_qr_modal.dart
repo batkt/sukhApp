@@ -95,6 +95,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
   }
 
   Future<void> _handleCheckPayment() async {
+    print('🖱️ [QPayModal] Check Payment button clicked');
     if (_isChecking) return;
 
     setState(() {
@@ -106,13 +107,17 @@ class _QPayQRModalState extends State<QPayQRModal> {
     bool? result;
     try {
       if (widget.onCheckPaymentAsync != null) {
+        print('⏳ [QPayModal] Calling onCheckPaymentAsync callback');
         result = await widget.onCheckPaymentAsync!.call();
+        print('📊 [QPayModal] result from callback: $result');
       } else {
         // Legacy
+        print('⚠️ [QPayModal] No onCheckPaymentAsync callback, calling legacy onCheckPayment');
         widget.onCheckPayment?.call();
         result = null;
       }
-    } catch (_) {
+    } catch (e) {
+      print('❌ [QPayModal] Error in _handleCheckPayment logic: $e');
       result = null;
     }
 
@@ -129,6 +134,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
       }
       _isChecking = false;
     });
+    print('💬 [QPayModal] Status update: _paidResult=$_paidResult, _resultMessage=$_resultMessage');
 
     if (result == true && widget.closeOnSuccess) {
       await Future.delayed(const Duration(milliseconds: 600));

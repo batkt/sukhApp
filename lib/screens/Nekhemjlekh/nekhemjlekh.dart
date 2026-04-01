@@ -1700,34 +1700,45 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     );
 
     try {
-      // Reload invoice data to get latest status
+      bool isPaidFromQpayCheck = false;
+
+      // First check QPay status directly from backend if we have an invoice ID
+      if (qpayInvoiceId != null) {
+        try {
+          final statusResponse = await ApiService.checkPaymentStatus(
+            invoiceId: qpayInvoiceId!,
+          );
+          if (statusResponse['paid_amount'] != null &&
+              statusResponse['paid_amount'] > 0) {
+            isPaidFromQpayCheck = true;
+          }
+        } catch (e) {
+          print('QPay status direct check failed, falling back to local list: $e');
+        }
+      }
+
+      // Reload invoice data to get latest status (if QPay check didn't update backend yet, this might still show unpaid)
       await _loadNekhemjlekh();
 
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-
-      // Check if the selected invoice(s) are paid
+      // Check if the selected invoice(s) are paid (fallback)
       final selectedInvoices = invoices
           .where((inv) => selectedInvoiceIds.contains(inv.id))
           .toList();
 
-      if (selectedInvoices.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Сонгосон нэхэмжлэл олдсонгүй'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          _showBankInfoModal();
+      final allPaid = selectedInvoices.isNotEmpty &&
+          selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн' || inv.uldegdel <= 0);
+
+      if (isPaidFromQpayCheck || allPaid) {
+        // Close loading dialog
+        if (mounted) Navigator.of(context).pop();
+
+        // If backend verified but DB was not updated yet, manually trigger success update
+        if (isPaidFromQpayCheck && !allPaid) {
+          await _handlePaymentSuccess();
+          // Reload again to get updated view
+          await _loadNekhemjlekh();
         }
-        return;
-      }
 
-      // Check if all selected invoices are paid
-      final allPaid = selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн');
-
-      if (allPaid) {
         // Payment successful - show success snackbar
         if (mounted) {
           showGlassSnackBar(
@@ -1803,33 +1814,57 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     );
 
     try {
+      bool isPaidFromQpayCheck = false;
+
+      // First check QPay status directly from backend if we have an invoice ID
+      if (qpayInvoiceId != null) {
+        print('🔍 [Nekhemjlekh] Checking invoice status for ID: $qpayInvoiceId');
+        try {
+          // Pass specific IDs for context if available, otherwise StorageService will be used
+          final statusResponse = await ApiService.checkPaymentStatus(
+            invoiceId: qpayInvoiceId!,
+            baiguullagiinId: await StorageService.getBaiguullagiinId(),
+            tukhainBaaziinKholbolt: await StorageService.getBarilgiinId(),
+          );
+          print('🔍 [Nekhemjlekh] Received backend response: $statusResponse');
+          
+          final state = statusResponse['tuluv']?.toString();
+          final payStatus = statusResponse['status']?.toString().toUpperCase() ?? statusResponse['pay_status']?.toString().toUpperCase();
+          final paidAmt = statusResponse['paid_amount'] ?? (statusResponse['payments'] is List && (statusResponse['payments'] as List).isNotEmpty ? statusResponse['payments'][0]['amount'] : 0);
+          
+          print('🔍 [Nekhemjlekh] Parsed: state=$state, payStatus=$payStatus, paidAmt=$paidAmt');
+
+          if (state == 'Төлсөн' || payStatus == 'PAID' || (paidAmt != null && num.tryParse(paidAmt.toString()) != null && num.parse(paidAmt.toString()) > 0)) {
+            print('✅ [Nekhemjlekh] Payment confirmed PAID from QPay');
+            isPaidFromQpayCheck = true;
+          }
+        } catch (e) {
+          print('❌ [Nekhemjlekh] QPay status direct check failed: $e');
+        }
+      }
+
       // Reload invoice data to get latest status
       await _loadNekhemjlekh();
 
-      // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
-
-      // Check if the selected invoice(s) are paid
+      // Check if the selected invoice(s) are paid (fallback)
       final selectedInvoices = invoices
           .where((inv) => selectedInvoiceIds.contains(inv.id))
           .toList();
 
-      if (selectedInvoices.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Сонгосон нэхэмжлэл олдсонгүй'),
-              backgroundColor: Colors.red,
-            ),
-          );
+      final allPaid = selectedInvoices.isNotEmpty &&
+          selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн' || inv.uldegdel <= 0);
+
+      if (isPaidFromQpayCheck || allPaid) {
+        // Close loading dialog
+        if (mounted) Navigator.of(context).pop();
+
+        // If backend verified but DB was not updated yet, manually trigger success update
+        if (isPaidFromQpayCheck && !allPaid) {
+          await _handlePaymentSuccess();
+          // Reload again to get updated view
+          await _loadNekhemjlekh();
         }
-        return;
-      }
 
-      // Check if all selected invoices are paid
-      final allPaid = selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн');
-
-      if (allPaid) {
         // Payment successful - show success snackbar
         if (mounted) {
           showGlassSnackBar(

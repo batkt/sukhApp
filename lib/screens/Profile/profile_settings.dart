@@ -1552,14 +1552,15 @@ class _ProfileSettingsState extends State<ProfileSettings>
       backgroundColor: Colors.transparent,
       builder: (context) {
         final isDark = context.isDarkMode;
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85,
-            ),
+        final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final isKeyboardOpen = bottomInset > 0;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          height: isKeyboardOpen ? screenHeight * 0.9 : screenHeight * 0.7,
+          padding: EdgeInsets.only(bottom: bottomInset),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF161618) : Colors.white,
               borderRadius: BorderRadius.only(
@@ -1776,7 +1777,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
               ),
             ],
           ),
-        ));
+        );
       },
     );
   }
@@ -3209,8 +3210,8 @@ class PlateNumberFormatter extends TextInputFormatter {
           result += char;
         }
       } else {
-        // Last 3 characters must be Cyrillic letters
-        if (RegExp(r'[А-ЯӨҮЁ]').hasMatch(char)) {
+        // Last 3 characters must be letters (Cyrillic or Latin)
+        if (RegExp(r'[А-ЯӨҮЁA-Z]').hasMatch(char)) {
           result += char;
         }
       }

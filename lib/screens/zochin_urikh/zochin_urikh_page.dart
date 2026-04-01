@@ -1279,8 +1279,8 @@ class PlateNumberFormatter extends TextInputFormatter {
           result += char;
         }
       } else {
-        // Last 3 characters must be Cyrillic letters
-        if (RegExp(r'[А-ЯӨҮЁ]').hasMatch(char)) {
+        // Last 3 characters must be letters (Cyrillic or Latin)
+        if (RegExp(r'[А-ЯӨҮЁA-Z]').hasMatch(char)) {
           result += char;
         }
       }

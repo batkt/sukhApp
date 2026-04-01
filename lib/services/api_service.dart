@@ -688,15 +688,18 @@ class ApiService {
         }
         return [];
       } else if (response.statusCode == 401) {
-        await handleUnauthorized();
-        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+        // Wallet session expired — do NOT log out of main app, just clear wallet cache
+        _cachedWalletHeaders = null;
+        _lastWalletHeadersFetch = null;
+        print('⚠️ [WALLET] Billing list 401 - clearing wallet cache, returning empty list');
+        return [];
       } else {
-        throw Exception(
-          'Биллингийн жагсаалт авахад алдаа гарлаа: ${response.statusCode}',
-        );
+        print('⚠️ [WALLET] Billing list error ${response.statusCode} - returning empty list');
+        return [];
       }
     } catch (e) {
-      throw Exception('Биллингийн жагсаалт авахад алдаа гарлаа: $e');
+      print('⚠️ [WALLET] getWalletBillingList error: $e');
+      return [];
     }
   }
 
@@ -758,13 +761,18 @@ class ApiService {
 
         return result;
       } else if (response.statusCode == 401) {
-        await handleUnauthorized();
-        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+        // Wallet session expired — do NOT log out of main app
+        _cachedWalletHeaders = null;
+        _lastWalletHeadersFetch = null;
+        print('⚠️ [WALLET] Billing bills 401 - clearing wallet cache, returning empty');
+        return {};
       } else {
-        throw Exception('Биллүүд авахад алдаа гарлаа: ${response.statusCode}');
+        print('⚠️ [WALLET] Billing bills error ${response.statusCode} - returning empty');
+        return {};
       }
     } catch (e) {
-      throw Exception('Биллүүд авахад алдаа гарлаа: $e');
+      print('⚠️ [WALLET] getWalletBillingBills error: $e');
+      return {};
     }
   }
 
@@ -2741,15 +2749,29 @@ class ApiService {
         'Pragma': 'no-cache',
       };
 
+      // Include baiguullagiinId so backend can find the correct DB connection
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final tukhainBaaziinKholbolt =
+          await StorageService.getTukhainBaaziinKholbolt();
+
       final queryJson = json.encode({'gereeniiDugaar': gereeniiDugaar});
-      final uri = Uri.parse('$baseUrl/nekhemjlekhiinTuukh').replace(
-        queryParameters: {
-          'query': queryJson,
-          'khuudasniiDugaar': khuudasniiDugaar.toString(),
-          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
-          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-        },
-      );
+      final queryParams = <String, String>{
+        'query': queryJson,
+        'khuudasniiDugaar': khuudasniiDugaar.toString(),
+        'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+        '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+      if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+        queryParams['baiguullagiinId'] = baiguullagiinId;
+      }
+      if (tukhainBaaziinKholbolt != null &&
+          tukhainBaaziinKholbolt.isNotEmpty &&
+          tukhainBaaziinKholbolt != 'amarSukh') {
+        queryParams['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
+      }
+
+      final uri = Uri.parse('$baseUrl/nekhemjlekhiinTuukh')
+          .replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
 
@@ -3032,15 +3054,25 @@ class ApiService {
 
   static Future<Map<String, dynamic>> checkPaymentStatus({
     required String invoiceId,
+    String? baiguullagiinId,
+    String? tukhainBaaziinKholbolt,
   }) async {
     try {
       final headers = await getAuthHeaders();
+      
+      // Use provided IDs or fall back to StorageService
+      final orgId = baiguullagiinId ?? await StorageService.getBaiguullagiinId();
+      final dbKholbolt = tukhainBaaziinKholbolt ?? await StorageService.getTukhainBaaziinKholbolt();
 
-      final uri = Uri.parse(
-        '$baseUrl/qpayTuluviinShalgakh',
-      ).replace(queryParameters: {'invoiceId': invoiceId});
+      final uri = Uri.parse('$baseUrl/qpayShalgay');
+      
+      final body = json.encode({
+        'invoice_id': invoiceId,
+        'baiguullagiinId': orgId,
+        'tukhainBaaziinKholbolt': dbKholbolt,
+      });
 
-      final response = await http.get(uri, headers: headers);
+      final response = await http.post(uri, headers: headers, body: body);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3237,16 +3269,22 @@ class ApiService {
         // For Wallet QPay: { "success": true, "data": { "qpayInvoiceId": "...", "qrText": "..." } }
         if (responseData['success'] == true && responseData['data'] != null) {
           final data = responseData['data'];
+          print('🔍 [QPAY] Success with data wrapper. invoice_id=${data['invoice_id']}, qpayInvoiceId=${data['qpayInvoiceId']}');
           return {
             'invoice_id':
                 data['invoice_id']?.toString() ??
-                data['qpayInvoiceId']?.toString(),
+                data['qpayInvoiceId']?.toString() ??
+                data['id']?.toString(), // Map id to invoice_id
             'qr_image': data['qr_image']?.toString(),
             'qrText': data['qrText']?.toString(), // For Wallet QPay
             'urls': responseData['urls'], // Keep URLs if present
           };
         }
-        // Handle legacy format: { "invoice_id": "...", "qr_image": "..." }
+        print('🔍 [QPAY] Success with legacy format: $responseData');
+        // Standardize legacy format to also include invoice_id
+        if (responseData.containsKey('id') && !responseData.containsKey('invoice_id')) {
+          responseData['invoice_id'] = responseData['id'];
+        }
         return responseData;
       } else {
         // Try to parse error response

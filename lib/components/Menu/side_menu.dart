@@ -236,7 +236,7 @@ class _SideMenuState extends State<SideMenu> {
             style: TextStyle(
               color: Colors.white,
               fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w400,
               letterSpacing: -0.5,
             ),
           ),
@@ -378,11 +378,11 @@ class _SideMenuState extends State<SideMenu> {
         surfaceTintColor: Colors.white,
         title: const Text(
           'Гарах',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.black),
         ),
         content: const Text(
           'Та системээс гарахдаа итгэлтэй байна уу?',
-          style: TextStyle(color: Colors.black87),
+          style: TextStyle(color: Colors.black87, fontSize: 13),
         ),
         actions: [
           TextButton(
@@ -391,7 +391,7 @@ class _SideMenuState extends State<SideMenu> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Тийм', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text('Тийм', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

@@ -169,10 +169,18 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       final specificBillingId = widget.billing['billingId']?.toString();
       List<Map<String, dynamic>> targetBillingList = [];
 
+      // Fetch fresh list from API to get latest tuluv/uldegdel
+      final fullList = await ApiService.getWalletBillingList(forceRefresh: true);
+      
       if (specificBillingId != null && specificBillingId.isNotEmpty) {
-        targetBillingList = [widget.billing];
+        // Find the updated version of this specific billing in the fresh list
+        final updatedOne = fullList.firstWhere(
+          (b) => b['billingId']?.toString() == specificBillingId,
+          orElse: () => widget.billing, // Fallback to current if not found (unlikely)
+        );
+        targetBillingList = [updatedOne];
       } else {
-        targetBillingList = await ApiService.getWalletBillingList();
+        targetBillingList = fullList;
       }
 
       if (targetBillingList.isEmpty) {
@@ -329,6 +337,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     return total;
   }
 
+  double? _toSafeDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   Future<void> _processPayment() async {
     if (_selectedBillIds.isEmpty) {
       showGlassSnackBar(
@@ -385,14 +400,17 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       Map<String, dynamic>? qpayResponse;
 
+      String? baiguullagiinId;
+      String? barilgiinId;
+
       if (source == 'OWN_ORG') {
         // Find the original billing entry to get baiguullagiinId/barilgiinId
         final billingEntry = _allBillingsData.firstWhere(
           (b) => b['billingId']?.toString() == firstBillingId,
           orElse: () => widget.billing,
         );
-        final baiguullagiinId = billingEntry['baiguullagiinId']?.toString();
-        final barilgiinId =
+        baiguullagiinId = billingEntry['baiguullagiinId']?.toString();
+        barilgiinId =
             billingEntry['barilgiinId']?.toString() ??
             billingEntry['walletBairId']?.toString();
 
@@ -427,12 +445,15 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       if (!mounted) return;
 
       if (qpayResponse['success'] == true) {
+        print('🔍 [BillingDetail] QPay creation response: $qpayResponse');
         final walletPaymentId = qpayResponse['walletPaymentId']?.toString();
         final qpayInvoiceId =
             qpayResponse['invoice_id']?.toString() ??
-            qpayResponse['invoiceId']?.toString();
-        final paymentAmount =
-            (qpayResponse['paymentAmount'] as num?)?.toDouble() ?? totalAmount;
+            qpayResponse['invoiceId']?.toString() ??
+            qpayResponse['id']?.toString(); // Legacy/v2 field
+        final paymentAmount = _toSafeDouble(qpayResponse['paymentAmount']) ??
+            _toSafeDouble(qpayResponse['amount']) ??
+            totalAmount;
         final qrText =
             qpayResponse['qrText']?.toString() ??
             qpayResponse['qr_text']?.toString();
@@ -451,6 +472,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               invoiceNumber: qpayInvoiceId,
               closeOnSuccess: true,
               onCheckPaymentAsync: () async {
+                print('🚀 [BillingDetail] onCheckPaymentAsync started. source=$source, qpayInvoiceId=$qpayInvoiceId, walletPaymentId=$walletPaymentId');
+                
                 if (source == 'WALLET_API' && walletPaymentId != null) {
                   try {
                     final status = await ApiService.walletQpayCheckStatus(
@@ -463,17 +486,53 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                   } catch (_) {
                     return null;
                   }
-                } else if (source == 'OWN_ORG' && qpayInvoiceId != null) {
-                  try {
-                    final status = await ApiService.checkPaymentStatus(
-                      invoiceId: qpayInvoiceId,
-                    );
-                    final state = status['tuluv']?.toString();
-                    if (state == 'Төлсөн') return true;
-                    return null;
-                  } catch (_) {
-                    return null;
+                } else if (source == 'OWN_ORG') {
+                  print('🔍 [QPay] Checking OWN_ORG status. invoiceId=$qpayInvoiceId');
+                  bool confirmed = false;
+                  
+                  // 1. Direct QPay API check (if ID exists)
+                  if (qpayInvoiceId != null) {
+                    try {
+                      final status = await ApiService.checkPaymentStatus(
+                        invoiceId: qpayInvoiceId,
+                        baiguullagiinId: baiguullagiinId,
+                        tukhainBaaziinKholbolt: barilgiinId,
+                      );
+                      print('🔍 [QPay] Backend response: $status');
+
+                      final state = status['tuluv']?.toString();
+                      final payStatus = status['status']?.toString().toUpperCase() ??
+                                       status['pay_status']?.toString().toUpperCase();
+                      final paidAmount = status['paid_amount'] ?? 
+                                        (status['payments'] is List && (status['payments'] as List).isNotEmpty ? status['payments'][0]['amount'] : null);
+
+                      if (state == 'Төлсөн' || payStatus == 'PAID' || (paidAmount != null && num.tryParse(paidAmount.toString()) != null && num.parse(paidAmount.toString()) > 0)) {
+                        print('✅ [QPay] Payment confirmed PAID via QPay Check');
+                        confirmed = true;
+                      }
+                    } catch (e) {
+                      print('⚠️ [QPay] direct API status check failed (usually okay if fallback works): $e');
+                    }
                   }
+
+                  // 2. Fallback: Always refresh the billing list to see if the database is updated (mirrors web history logic)
+                  try {
+                    print('⏳ [QPay] Refreshing billing list (Web-sync fallback)...');
+                    await _loadAllBillingsData();
+                    final refreshedBilling = _allBillingsData.firstWhere(
+                      (b) => b['billingId']?.toString() == firstBillingId,
+                      orElse: () => {},
+                    );
+                    
+                    if (refreshedBilling['tuluv'] == 'Төлсөн' || (refreshedBilling['uldegdel'] ?? 1) <= 0) {
+                      print('✅ [QPay] Payment confirmed via list refresh (Web-sync successful)');
+                      confirmed = true;
+                    }
+                  } catch (e) {
+                    print('❌ [QPay] Error refreshing billing list: $e');
+                  }
+
+                  if (confirmed) return true;
                 }
                 return null;
               },
