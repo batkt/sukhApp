@@ -201,6 +201,7 @@ class StorageService {
       }
 
       // Save tukhainBaaziinKholbolt - check multiple possible locations
+      String? tukhainBaaziinKholbolt;
 
       // Check in result object first
       if (user?['tukhainBaaziinKholbolt'] != null) {
