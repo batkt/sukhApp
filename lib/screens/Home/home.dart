@@ -542,6 +542,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         _refreshBillingInfo(forceRefresh: true),
         _loadAllBillingPayments(),
         _loadNotificationCount(), // Also refresh notifications
+        ApiService.getUserProfile(forceRefresh: true), // Sync user profile from web changes
       ]);
 
       // Force UI update
