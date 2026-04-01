@@ -722,7 +722,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         Map<String, dynamic> result = {};
 
         if (data['responseCode'] == true && data['data'] != null) {
@@ -755,7 +755,7 @@ class ApiService {
           _cachedWalletBillingBills[billingId] = result;
           _lastWalletBillingBillsFetch[billingId] = DateTime.now();
         }
-        
+
         return result;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
@@ -937,7 +937,8 @@ class ApiService {
 
       dynamic data;
       try {
-        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+        if (response.body.isNotEmpty &&
+            !response.body.contains('<!doctype html>')) {
           data = json.decode(response.body);
         }
       } catch (_) {}
@@ -950,7 +951,9 @@ class ApiService {
           return data;
         } else {
           throw Exception(
-            data?['aldaa'] ?? data?['message'] ?? 'Биллинг устгахад алдаа гарлаа',
+            data?['aldaa'] ??
+                data?['message'] ??
+                'Биллинг устгахад алдаа гарлаа',
           );
         }
       } else if (response.statusCode == 401) {
@@ -982,7 +985,8 @@ class ApiService {
 
       dynamic data;
       try {
-        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+        if (response.body.isNotEmpty &&
+            !response.body.contains('<!doctype html>')) {
           data = json.decode(response.body);
         }
       } catch (_) {}
@@ -2110,12 +2114,15 @@ class ApiService {
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
-      print('🔍 [API] easyRegisterGetSavedUsers Status: ${response.statusCode}');
+      print(
+        '🔍 [API] easyRegisterGetSavedUsers Status: ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
         dynamic data;
         try {
-          if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+          if (response.body.isNotEmpty &&
+              !response.body.contains('<!doctype html>')) {
             data = json.decode(response.body);
           }
         } catch (_) {}
@@ -2126,14 +2133,18 @@ class ApiService {
             orshinSuugchiinId != null &&
             orshinSuugchiinId.isNotEmpty) {
           final List<dynamic> fullList = data['jagsaalt'];
-          print('🔍 [API] easyRegisterGetSavedUsers: Filtering ${fullList.length} items by orshinSuugchiinId: $orshinSuugchiinId');
-          
+          print(
+            '🔍 [API] easyRegisterGetSavedUsers: Filtering ${fullList.length} items by orshinSuugchiinId: $orshinSuugchiinId',
+          );
+
           final filteredList = fullList.where((u) {
             final id = u['orshinSuugchiinId']?.toString();
             return id == orshinSuugchiinId;
           }).toList();
-          
-          print('✅ [API] easyRegisterGetSavedUsers: Found ${filteredList.length} matching items');
+
+          print(
+            '✅ [API] easyRegisterGetSavedUsers: Found ${filteredList.length} matching items',
+          );
           data['jagsaalt'] = filteredList;
           if (data['niitMur'] != null) data['niitMur'] = filteredList.length;
         }
@@ -2388,14 +2399,16 @@ class ApiService {
 
   static Map<String, dynamic>? _cachedUserProfile;
   static DateTime? _lastProfileFetch;
-  static const Duration _profileCacheDuration = Duration(seconds: 90); // Reduced for web-to-app sync
+  static const Duration _profileCacheDuration = Duration(
+    seconds: 90,
+  ); // Reduced for web-to-app sync
 
   static void clearProfileCache() {
     _cachedUserProfile = null;
     _lastProfileFetch = null;
     _cachedWalletHeaders = null;
     _lastWalletHeadersFetch = null;
-    
+
     // Also clear other related data caches
     _cachedWalletBillingList = null;
     _lastWalletBillingListFetch = null;
@@ -2454,8 +2467,9 @@ class ApiService {
           final phone = user['utas'] is List
               ? user['utas'][0].toString()
               : user['utas'].toString();
-          
-          if (phone.isNotEmpty && !user['mail'].toString().endsWith('@amarhome.mn')) {
+
+          if (phone.isNotEmpty &&
+              !user['mail'].toString().endsWith('@amarhome.mn')) {
             _autoRegisterWallet(phone, user['mail'].toString());
           }
         }
@@ -2600,7 +2614,9 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
-      print('📝 [API] updateOrshinSuugchAddress - Response status: ${response.statusCode}');
+      print(
+        '📝 [API] updateOrshinSuugchAddress - Response status: ${response.statusCode}',
+      );
       return json.decode(response.body);
     } catch (e) {
       print('Error in updateOrshinSuugchAddress: $e');
@@ -2633,14 +2649,15 @@ class ApiService {
         }
         return data;
       } else {
-        throw Exception('Мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}');
+        throw Exception(
+          'Мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('Error updating user profile: $e');
       throw Exception('Мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
     }
   }
-
 
   static Future<Map<String, dynamic>> fetchGeree(String orshinSuugchId) async {
     try {
@@ -3564,12 +3581,25 @@ class ApiService {
 
   static Future<Map<String, dynamic>> fetchNekhemjlekhCron({
     required String barilgiinId,
+    String? baiguullagiinId,
   }) async {
     try {
       final headers = await getAuthHeaders();
+      
+      // Try to get baiguullagiinId if not provided
+      final orgId = baiguullagiinId ?? await StorageService.getBaiguullagiinId();
+      
+      final queryParams = <String, String>{
+        'barilgiinId': barilgiinId,
+      };
+      
+      if (orgId != null) {
+        queryParams['baiguullagiinId'] = orgId;
+      }
+
       final uri = Uri.parse(
         '$baseUrl/nekhemjlekhCron',
-      ).replace(queryParameters: {'barilgiinId': barilgiinId});
+      ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
 
@@ -4352,7 +4382,7 @@ class ApiService {
       };
 
       final response = await http.post(
-        Uri.parse('$baseUrl/ezenUrisanMashin'),
+        Uri.parse('$baseUrl/zochinHadgalya'),
         headers: headers,
         body: json.encode(requestBody),
       );
@@ -4584,7 +4614,8 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+        if (response.body.isNotEmpty &&
+            !response.body.contains('<!doctype html>')) {
           try {
             return json.decode(response.body);
           } catch (_) {}
@@ -4609,7 +4640,8 @@ class ApiService {
 
       final responseBody = response.body.trim();
       if (response.statusCode == 200) {
-        if (response.body.isNotEmpty && !response.body.contains('<!doctype html>')) {
+        if (response.body.isNotEmpty &&
+            !response.body.contains('<!doctype html>')) {
           try {
             return json.decode(responseBody);
           } catch (e) {

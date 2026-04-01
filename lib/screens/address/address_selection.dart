@@ -558,7 +558,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14.sp,
-            color: isDark ? Colors.white54 : Colors.black54,
+            color: isDark ? Colors.white54 : Colors.black87,
           ),
         ),
       ],

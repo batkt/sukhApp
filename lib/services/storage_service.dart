@@ -158,25 +158,38 @@ class StorageService {
         await prefs.setString(_userMailKey, user!['mail'].toString());
       }
 
-      // Save baiguullagiinId
-      if (user?['baiguullagiinId'] != null) {
-        await prefs.setString(
-          _baiguullagiinIdKey,
-          user!['baiguullagiinId'].toString(),
-        );
+      // Save baiguullagiinId (with fallback to toots)
+      String? baiguullagiinId = user?['baiguullagiinId']?.toString();
+      String? barilgiinId = user?['barilgiinId']?.toString();
+      String? baiguullagiinNer = user?['baiguullagiinNer']?.toString();
+
+      // Final sanity check for Lite/Multi-unit residents: 
+      // If we still have no ID (e.g. resident was updated via PUT and server returned null fields),
+      // search within the 'toots' array as a last resort to find the first valid association.
+      if ((baiguullagiinId == null || baiguullagiinId == "null") && user?['toots'] != null && (user!['toots'] as List).isNotEmpty) {
+        final firstToot = user['toots'][0] as Map<String, dynamic>;
+        final tootOrgId = firstToot['baiguullagiinId']?.toString();
+        if (tootOrgId != null && tootOrgId != "null" && tootOrgId.isNotEmpty) {
+           baiguullagiinId = tootOrgId;
+        }
+        
+        final tootBarilgaId = firstToot['barilgiinId']?.toString();
+        if (tootBarilgaId != null && tootBarilgaId != "null" && tootBarilgaId.isNotEmpty) {
+           barilgiinId = tootBarilgaId;
+        }
+        baiguullagiinNer ??= firstToot['baiguullagiinNer']?.toString();
       }
 
-      // Save baiguullagiinNer
-      if (user?['baiguullagiinNer'] != null) {
-        await prefs.setString(
-          _baiguullagiinNerKey,
-          user!['baiguullagiinNer'].toString(),
-        );
+      if (baiguullagiinId != null && baiguullagiinId != "null" && baiguullagiinId.isNotEmpty) {
+        await prefs.setString(_baiguullagiinIdKey, baiguullagiinId);
       }
 
-      // Save barilgiinId
-      if (user?['barilgiinId'] != null) {
-        await prefs.setString(_barilgiinIdKey, user!['barilgiinId'].toString());
+      if (baiguullagiinNer != null) {
+        await prefs.setString(_baiguullagiinNerKey, baiguullagiinNer);
+      }
+
+      if (barilgiinId != null && barilgiinId != "null" && barilgiinId.isNotEmpty) {
+        await prefs.setString(_barilgiinIdKey, barilgiinId);
       }
 
       // Save walletUserId from root level
@@ -188,7 +201,6 @@ class StorageService {
       }
 
       // Save tukhainBaaziinKholbolt - check multiple possible locations
-      String? tukhainBaaziinKholbolt;
 
       // Check in result object first
       if (user?['tukhainBaaziinKholbolt'] != null) {

@@ -474,6 +474,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
           _isLoading = false;
         });
+        _loadOrganizationInfo(); // Sync IDs after profile load
         _animationController.forward();
       }
     } catch (e) {
@@ -715,8 +716,26 @@ class _ProfileSettingsState extends State<ProfileSettings>
     });
 
     try {
-      final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      final barilgiinId = await StorageService.getBarilgiinId();
+      String? baiguullagiinId = await StorageService.getBaiguullagiinId();
+      String? barilgiinId = await StorageService.getBarilgiinId();
+
+      // Fallback to class variables or userData if storage is null
+      baiguullagiinId ??= _baiguullagiinId;
+      barilgiinId ??= _barilgiinId;
+
+      if (baiguullagiinId == null && _userData != null) {
+        baiguullagiinId = _userData!['baiguullagiinId']?.toString();
+        barilgiinId ??= _userData!['barilgiinId']?.toString();
+
+        // If still null, try to find it in the toots array
+        if (baiguullagiinId == null &&
+            _userData!['toots'] != null &&
+            (_userData!['toots'] as List).isNotEmpty) {
+          final firstToot = _userData!['toots'][0] as Map<String, dynamic>;
+          baiguullagiinId = firstToot['baiguullagiinId']?.toString();
+          barilgiinId ??= firstToot['barilgiinId']?.toString();
+        }
+      }
 
       if (baiguullagiinId == null) {
         throw Exception('Байгууллагын мэдээлэл олдсонгүй');
@@ -1616,8 +1635,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         controller: _phoneController,
                         label: 'Утасны дугаар',
                         icon: Icons.phone_android_rounded,
-                        enabled: false,
+                        enabled: true,
                         hint: 'Утасны дугаар хоосон байна',
+                        keyboardType: TextInputType.phone,
                       ),
                       SizedBox(height: 16.h),
                       _buildModernTextField(
@@ -1640,6 +1660,14 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               );
                               return;
                             }
+                            if (_phoneController.text.trim().isEmpty) {
+                              showGlassSnackBar(
+                                context,
+                                message: 'Утасны дугаараа оруулна уу',
+                                icon: Icons.warning,
+                              );
+                              return;
+                            }
                             if (_emailController.text.isNotEmpty) {
                               if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                   .hasMatch(_emailController.text)) {
@@ -1656,6 +1684,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               final response = await ApiService.updateUserProfile({
                                 'ner': _nameController.text.trim(),
                                 'mail': _emailController.text.trim(),
+                                'utas': _phoneController.text.trim(),
                               });
                               if (response['success'] == true || response['_id'] != null) {
                                 showGlassSnackBar(
