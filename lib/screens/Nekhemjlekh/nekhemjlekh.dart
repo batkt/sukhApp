@@ -1707,9 +1707,24 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         try {
           final statusResponse = await ApiService.checkPaymentStatus(
             invoiceId: qpayInvoiceId!,
+            baiguullagiinId: await StorageService.getBaiguullagiinId(),
+            tukhainBaaziinKholbolt: await StorageService.getBarilgiinId(),
           );
-          if (statusResponse['paid_amount'] != null &&
-              statusResponse['paid_amount'] > 0) {
+
+          final state = statusResponse['tuluv']?.toString();
+          final payStatus = statusResponse['status']?.toString().toUpperCase()
+              ?? statusResponse['pay_status']?.toString().toUpperCase();
+          final paidAmt = statusResponse['paid_amount']
+              ?? (statusResponse['payments'] is List &&
+                      (statusResponse['payments'] as List).isNotEmpty
+                  ? statusResponse['payments'][0]['amount']
+                  : 0);
+
+          if (state == 'Төлсөн' ||
+              payStatus == 'PAID' ||
+              (paidAmt != null &&
+                  num.tryParse(paidAmt.toString()) != null &&
+                  num.parse(paidAmt.toString()) > 0)) {
             isPaidFromQpayCheck = true;
           }
         } catch (e) {
@@ -1717,7 +1732,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         }
       }
 
-      // Reload invoice data to get latest status (if QPay check didn't update backend yet, this might still show unpaid)
+      // Reload invoice data to get latest status
       await _loadNekhemjlekh();
 
       // Check if the selected invoice(s) are paid (fallback)
@@ -1735,11 +1750,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         // If backend verified but DB was not updated yet, manually trigger success update
         if (isPaidFromQpayCheck && !allPaid) {
           await _handlePaymentSuccess();
-          // Reload again to get updated view
           await _loadNekhemjlekh();
         }
 
-        // Payment successful - show success snackbar
         if (mounted) {
           showGlassSnackBar(
             context,
@@ -1751,10 +1764,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
             blur: 15,
           );
 
-          // Wait a bit then reload invoice data to refresh the list
           await Future.delayed(const Duration(seconds: 2));
-
-          // Reload invoice data to get the latest status from server
           await _loadNekhemjlekh();
 
           // Show VAT receipts for all paid invoices
@@ -1762,11 +1772,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
             await _showVATReceiptModal(invoice.id);
           }
 
-          // Navigate back to home page to refresh the data
-          context.go('/nuur');
+          // Navigate to Төлбөрийн түүх so user sees paid status
+          context.go('/nekhemjlekh');
         }
       } else {
-        // Payment not completed - show error snackbar and return to bank list
+        if (mounted) Navigator.of(context).pop();
         if (mounted) {
           showGlassSnackBar(
             context,
@@ -1778,17 +1788,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
             blur: 15,
           );
 
-          // Wait a bit then show bank list again
           await Future.delayed(const Duration(seconds: 2));
           _showBankInfoModal();
         }
       }
     } catch (e) {
       print('Error checking payment status: $e');
-
-      // Close loading dialog if still open
       if (mounted) Navigator.of(context).pop();
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1796,8 +1802,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
             backgroundColor: Colors.red,
           ),
         );
-
-        // Show bank list again
         _showBankInfoModal();
       }
     }

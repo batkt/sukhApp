@@ -8,12 +8,14 @@ class BillingBox extends StatelessWidget {
   final VoidCallback onTap;
   final String totalBalance;
   final String totalAldangi;
+  final bool isMerged;
 
   const BillingBox({
     super.key,
     required this.onTap,
     required this.totalBalance,
     required this.totalAldangi,
+    this.isMerged = false,
   });
 
   @override
@@ -35,17 +37,16 @@ class BillingBox extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1F26) : Colors.white,
+          color: isMerged ? Colors.white : (isDark ? const Color(0xFF1A1F26) : Colors.white),
           borderRadius: BorderRadius.circular(24.r),
-          boxShadow: [
+          boxShadow: isMerged ? [] : [
             BoxShadow(
-              color: (isDark ? Colors.black : AppColors.deepGreen)
-                  .withOpacity(0.06),
+              color: (isDark ? Colors.black : AppColors.deepGreen).withOpacity(0.06),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
           ],
-          border: Border.all(
+          border: isMerged ? null : Border.all(
             color: isDark
                 ? Colors.white.withOpacity(0.05)
                 : AppColors.deepGreen.withOpacity(0.05),
@@ -91,12 +92,17 @@ class BillingBox extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Байрны төлбөр',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      color: context.textPrimaryColor,
-                      letterSpacing: -0.2,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Байрны төлбөр',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        color: context.textPrimaryColor,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
                     ),
                   ),
                   SizedBox(height: 4.h),
@@ -120,12 +126,16 @@ class BillingBox extends StatelessWidget {
                               size: 12.sp,
                             ),
                             SizedBox(width: 4.w),
-                            Text(
-                              '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт',
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.green[600],
+                            Flexible(
+                              child: Text(
+                                '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт',
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.green[600],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -134,12 +144,18 @@ class BillingBox extends StatelessWidget {
                     ] else ...[
                       Row(
                         children: [
-                          Text(
-                            '$totalBalance₮',
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.error,
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '$totalBalance₮',
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.error,
+                                ),
+                              ),
                             ),
                           ),
                           if (hasAldangi) ...[

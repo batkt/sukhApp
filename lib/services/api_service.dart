@@ -1999,9 +1999,11 @@ class ApiService {
       var tukhainBaaziinKholbolt =
           await StorageService.getTukhainBaaziinKholbolt();
 
+      final isLoggedIn = await StorageService.isLoggedIn();
+
       // If default value, try to fetch from user profile
-      if (tukhainBaaziinKholbolt == 'amarSukh' ||
-          tukhainBaaziinKholbolt == null) {
+      if (isLoggedIn && (tukhainBaaziinKholbolt == 'amarSukh' ||
+          tukhainBaaziinKholbolt == null)) {
         try {
           final userProfile = await getUserProfile();
           if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
@@ -3060,17 +3062,29 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
       
-      // Use provided IDs or fall back to StorageService
-      final orgId = baiguullagiinId ?? await StorageService.getBaiguullagiinId();
+      // Multiple fallbacks for orgId
+      String? orgId = baiguullagiinId;
+      if (orgId == null || orgId.isEmpty || orgId == "null") {
+        orgId = await StorageService.getBaiguullagiinId();
+      }
+      
+      // Additional fallback check for safety
+      if (orgId == null || orgId == "null") {
+        print('⚠️ [API] checkPaymentStatus: baiguullagiinId is missing from both parameter and storage');
+      }
+
       final dbKholbolt = tukhainBaaziinKholbolt ?? await StorageService.getTukhainBaaziinKholbolt();
 
       final uri = Uri.parse('$baseUrl/qpayShalgay');
       
-      final body = json.encode({
+      final bodyMap = {
         'invoice_id': invoiceId,
         'baiguullagiinId': orgId,
         'tukhainBaaziinKholbolt': dbKholbolt,
-      });
+      };
+      
+      print('🔍 [API] Calling qpayShalgay: $bodyMap');
+      final body = json.encode(bodyMap);
 
       final response = await http.post(uri, headers: headers, body: body);
 

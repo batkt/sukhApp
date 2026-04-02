@@ -104,17 +104,28 @@ class BurtguulekhSignup extends StatefulWidget {
 }
 
 class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
-  final _formKey = GlobalKey<FormState>();
+  // Step: 0 = phone, 1 = OTP, 2 = password+register
+  int _step = 0;
+
+  // Form keys per step
+  final _phoneFormKey = GlobalKey<FormState>();
+  final _passwordFormKey = GlobalKey<FormState>();
 
   // Controllers
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
-  // Hidden fields
+  // OTP / PIN
+  final List<TextEditingController> _pinControllers = List.generate(4, (_) => TextEditingController());
+  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
+  int _resendSeconds = 30;
+  bool _canResend = false;
+  Timer? _resendTimer;
+
+  // Org info
   String? _baiguullagiinId;
-  int _tsahilgaaniiZaalt = 200; // Default value
+  final int _tsahilgaaniiZaalt = 200;
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -136,246 +147,163 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+
+    if (widget.prefillPhone != null && widget.prefillPhone!.trim().isNotEmpty) {
+      _phoneController.text = widget.prefillPhone!.trim();
+    }
+
+    if (widget.forceNoOrg) {
+      _baiguullagiinId = null;
+      return;
+    }
+
+    final providedId = (widget.baiguullagiinId ?? '').trim();
+    if (providedId.isNotEmpty && providedId.toLowerCase() != 'null') {
+      _baiguullagiinId = providedId;
+      return;
+    }
+
+    _loadAutoFillData();
   }
 
-  Future<void> _initializeApp() async {
-    setState(() => _isLoading = true);
-    try {
-      // 1. Check for app updates (Standard health check)
-      await UpdateService.checkForUpdate();
+  Future<void> _loadAutoFillData() async {
+    final savedBaiguullagiinId =
+        await StorageService.getWalletBairBaiguullagiinId();
 
-      // 2. Load orgId/baiguullagiinId
-      if (!widget.forceNoOrg) {
-        final providedId = (widget.baiguullagiinId ?? '').trim();
-        if (providedId.isNotEmpty && providedId.toLowerCase() != 'null') {
-          _baiguullagiinId = providedId;
-        } else {
-          _baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId();
-        }
-      }
+    final normalizedBaiguullagiinId = (savedBaiguullagiinId ?? '').trim();
+    final baiguullagiinId =
+        normalizedBaiguullagiinId.isEmpty ||
+            normalizedBaiguullagiinId.toLowerCase() == 'null'
+        ? null
+        : normalizedBaiguullagiinId;
 
-      // 3. If user is potentially logged in (completing profile), fetch their profile
-      final isLoggedIn = await StorageService.isLoggedIn();
-      if (isLoggedIn) {
-        final profile = await ApiService.getUserProfile();
-        if (profile['success'] == true && profile['result'] != null) {
-          final userData = profile['result'];
-          if (_phoneController.text.isEmpty && userData['utas'] != null) {
-            final phone = userData['utas'] is List
-                ? userData['utas'][0].toString()
-                : userData['utas'].toString();
-            _phoneController.text = phone;
-          }
-          // If already logged in, they already verified their number. Skip to password.
-          _currentStep = SignupStep.password;
-        }
-      }
-    } catch (e) {
-      debugPrint('Error during signup initialization: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() {
+        _baiguullagiinId = baiguullagiinId;
+      });
     }
   }
 
-  bool get _hasBaiguullagiinId {
-    final id = (_baiguullagiinId ?? '').trim();
+  bool get _hasOrg {
+    final id = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim();
     return id.isNotEmpty && id.toLowerCase() != 'null';
   }
 
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  // ─── Timer ───────────────────────────────────────────
   void _startResendTimer() {
-    setState(() {
-      _canResend = false;
-      _resendSeconds = 30;
-    });
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
+    _canResend = false;
+    _resendSeconds = 30;
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
       setState(() {
-        if (_resendSeconds > 0) {
-          _resendSeconds--;
-        } else {
-          _canResend = true;
-          timer.cancel();
-        }
+        if (_resendSeconds > 0) { _resendSeconds--; } else { _canResend = true; t.cancel(); }
       });
     });
   }
 
-  Future<void> _handleSendOtp() async {
-    final phone = _phoneController.text.trim();
-    if (phone.isEmpty || phone.length != 8) {
-      showGlassSnackBar(
-        context,
-        message: 'Утасны дугаар оруулна уу',
-        icon: Icons.error,
-        iconColor: Colors.red,
-      );
-      return;
-    }
-
-    if (!_hasBaiguullagiinId) {
-      showGlassSnackBar(
-        context,
-        message: 'Байгууллагын мэдээлэл олдсонгүй. Хаягаа дахин сонгоно уу.',
-        icon: Icons.error,
-        iconColor: Colors.red,
-      );
-      return;
-    }
-
+  // ─── Step 0 → 1: Send OTP ────────────────────────────
+  Future<void> _sendOtp() async {
+    if (!_phoneFormKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
-    try {
-      // Standard duplicate resident check before sending OTP (Only for new registrations)
-      final isLoggedIn = await StorageService.isLoggedIn();
-      if (!isLoggedIn) {
-        final exists = await ApiService.checkPhoneExists(utas: phone);
-        if (exists != null) {
-          if (mounted) {
-            showGlassSnackBar(
-              context,
-              message: 'Энэ дугаар аль хэдийн бүртгэгдсэн байна',
-              icon: Icons.error,
-              iconColor: Colors.red,
-            );
-          }
-          setState(() => _isLoading = false);
-          return;
-        }
+    if (_hasOrg) {
+      try {
+        await ApiService.verifyPhoneNumber(
+          baiguullagiinId: _orgId,
+          purpose: 'signup',
+          utas: _phoneController.text.trim(),
+          duureg: '',
+          horoo: '',
+          soh: '',
+        );
+      } catch (e) {
+        debugPrint('OTP send warning (still advancing): $e');
       }
+      if (mounted) {
+        setState(() { _isLoading = false; _step = 1; });
+        _startResendTimer();
+        Future.delayed(Duration.zero, () => _pinFocusNodes[0].requestFocus());
+      }
+    } else {
+      // No org — skip OTP and go straight to password step
+      if (mounted) setState(() { _isLoading = false; _step = 2; });
+    }
+  }
 
-      final response = await ApiService.verifyPhoneNumber(
-        baiguullagiinId: _baiguullagiinId!,
-        purpose: 'registration',
-        utas: phone,
-        duureg: '', // Backend handles these if needed, but not strictly required for sending OTP
+  // ─── Resend OTP ───────────────────────────────────────
+  Future<void> _resendOtp() async {
+    setState(() => _isLoading = true);
+    try {
+      await ApiService.verifyPhoneNumber(
+        baiguullagiinId: _orgId,
+        purpose: 'signup',
+        utas: _phoneController.text.trim(),
+        duureg: '',
         horoo: '',
         soh: '',
       );
-
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _currentStep = SignupStep.otp;
-        });
+        setState(() => _isLoading = false);
+        for (var c in _pinControllers) c.clear();
         _startResendTimer();
-        
-        // Focus first PIN box
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) _pinFocusNodes[0].requestFocus();
-        });
-
-        showGlassSnackBar(
-          context,
-          message: response['message'] ?? 'Баталгаажуулах код илгээгдлээ',
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
+        _pinFocusNodes[0].requestFocus();
+        showGlassSnackBar(context, message: 'Код дахин илгээлээ', icon: Icons.check_circle, iconColor: Colors.green);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        String msg = e.toString();
-        if (msg.contains('409') || msg.contains('бүртгэгдсэн')) {
-          msg = 'Энэ утасны дугаар аль хэдийн бүртгэгдсэн байна!';
-        } else if (msg.startsWith('Exception: ')) {
-          msg = msg.substring(11);
-        }
-        
-        showGlassSnackBar(
-          context,
-          message: msg,
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
+        showGlassSnackBar(context, message: 'Алдаа гарлаа', icon: Icons.error, iconColor: Colors.red);
       }
     }
   }
 
-  Future<void> _handleVerifyOtp() async {
+  // ─── Step 1 → 2: Verify OTP ──────────────────────────
+  Future<void> _verifyOtp() async {
     final pin = _pinControllers.map((c) => c.text).join();
     if (pin.length != 4) {
-      showGlassSnackBar(
-        context,
-        message: '4 оронтой код оруулна уу',
-        icon: Icons.error,
-        iconColor: Colors.red,
-      );
+      showGlassSnackBar(context, message: '4 оронтой код оруулна уу', icon: Icons.error, iconColor: Colors.red);
       return;
     }
-
     setState(() => _isLoading = true);
-
     try {
-      final response = await ApiService.verifySecretCode(
+      await ApiService.verifySecretCode(
         utas: _phoneController.text.trim(),
         code: pin,
-        baiguullagiinId: _baiguullagiinId!,
-        purpose: 'registration',
+        baiguullagiinId: _orgId.isNotEmpty ? _orgId : 'default',
+        purpose: 'signup',
       );
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _currentStep = SignupStep.password;
-          _verifiedCode = pin;
-        });
-
-        showGlassSnackBar(
-          context,
-          message: response['message'] ?? 'Дугаар амжилттай баталгаажлаа!',
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
-      }
+      if (mounted) setState(() { _isLoading = false; _step = 2; });
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         String msg = e.toString();
         if (msg.startsWith('Exception: ')) msg = msg.substring(11);
-        
-        showGlassSnackBar(
-          context,
-          message: msg,
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-        // Clear PIN on error
-        for (var c in _pinControllers) {
-          c.clear();
-        }
+        showGlassSnackBar(context, message: msg.isNotEmpty ? msg : 'Баталгаажуулах код буруу байна', icon: Icons.error, iconColor: Colors.red);
+        for (var c in _pinControllers) c.clear();
         _pinFocusNodes[0].requestFocus();
       }
     }
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    for (var c in _pinControllers) {
-      c.dispose();
-    }
-    for (var f in _pinFocusNodes) {
-      f.dispose();
-    }
-    super.dispose();
+  void _handlePinChange(String value, int index) {
+    if (value.length == 1 && index < 3) _pinFocusNodes[index + 1].requestFocus();
+    else if (value.isEmpty && index > 0) _pinFocusNodes[index - 1].requestFocus();
+    if (_pinControllers.map((c) => c.text).join().length == 4) _verifyOtp();
   }
 
-  Future<void> _handleRegistration() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
+  // ─── Step 2: Register ─────────────────────────────────
+  Future<void> _register() async {
+    if (!_passwordFormKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
 
     try {
       final registrationData = <String, dynamic>{
@@ -388,107 +316,70 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
       if (savedCustomerId != null && savedCustomerId.isNotEmpty) {
         registrationData['customerId'] = savedCustomerId;
       }
-
-      final id = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim();
-      if (id.isNotEmpty && id.toLowerCase() != 'null') {
-        registrationData['baiguullagiinId'] = id;
+      if (_hasOrg) {
+        registrationData['baiguullagiinId'] = _orgId;
         registrationData['tsahilgaaniiZaalt'] = _tsahilgaaniiZaalt;
       }
 
       final response = await ApiService.registerUser(registrationData);
 
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
 
         if (response['success'] == false) {
-          final errorMessage =
-              response['message'] ??
-              response['aldaa'] ??
-              'Бүртгэл үүсгэхэд алдаа гарлаа';
-
           showGlassSnackBar(
             context,
-            message: errorMessage,
+            message: response['message'] ?? response['aldaa'] ?? 'Бүртгэл үүсгэхэд алдаа гарлаа',
             icon: Icons.error,
             iconColor: Colors.red,
           );
           return;
         }
 
-        showGlassSnackBar(
-          context,
-          message: 'Бүртгэл амжилттай үүслээ! Нэвтэрч байна...',
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
+        showGlassSnackBar(context, message: 'Бүртгэл амжилттай үүслээ! Нэвтэрч байна...', icon: Icons.check_circle, iconColor: Colors.green);
 
         bool loginSuccess = false;
         try {
-          await ApiService.loginUser(
-            utas: _phoneController.text.trim(),
-            nuutsUg: _passwordController.text.trim(),
-          );
+          await ApiService.loginUser(utas: _phoneController.text.trim(), nuutsUg: _passwordController.text.trim());
           await StorageService.savePhoneNumber(_phoneController.text.trim());
           loginSuccess = true;
         } catch (e) {
-          debugPrint('Автоматаар нэвтрэх үед алдаа гарлаа: $e');
+          debugPrint('Auto-login failed: $e');
         }
 
         await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
-          final hasOrgId = (_baiguullagiinId ?? widget.baiguullagiinId ?? '')
-              .trim()
-              .isNotEmpty;
-              
-          if (!hasOrgId && loginSuccess) {
+          if (!_hasOrg && loginSuccess) {
             context.go('/address_selection');
           } else if (loginSuccess) {
-            // Check taniltsuulga dynamically based on user
-            final taniltsuulgaKharakhEsekh =
-                await StorageService.getTaniltsuulgaKharakhEsekh();
-            final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
-            context.go(targetRoute);
+            final showIntro = await StorageService.getTaniltsuulgaKharakhEsekh();
+            context.go(showIntro ? '/ekhniikh' : '/nuur');
           } else {
-            // Fallback to login screen if auto login fails
             context.go('/newtrekh');
           }
         }
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        String errorMessage = e.toString();
-        if (errorMessage.startsWith('Exception: ')) {
-          errorMessage = errorMessage.substring(11);
-        }
-
-        showGlassSnackBar(
-          context,
-          message: errorMessage,
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
+        setState(() => _isLoading = false);
+        String msg = e.toString();
+        if (msg.startsWith('Exception: ')) msg = msg.substring(11);
+        showGlassSnackBar(context, message: msg, icon: Icons.error, iconColor: Colors.red);
       }
     }
   }
 
+  // ─── Build ────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    bool isTablet = ScreenUtil().screenWidth > 700;
+    final isTablet = ScreenUtil().screenWidth > 700;
     final isDark = context.isDarkMode;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: isDark
-            ? const Color(0xFF0A0E14)
-            : const Color(0xFFF8FAFB),
+        backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF8FAFB),
         resizeToAvoidBottomInset: true,
         body: AppBackground(
           child: SafeArea(
@@ -560,7 +451,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
                                     ),
                                     SizedBox(height: 4.h),
                                     Text(
-                                      'Шинээр бүртгүүлж үйлчилгээ авах боломжтой.',
+                                      'Бүртгүүлээд үйлчилгээ авах боломжтой.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: isDark
@@ -574,155 +465,89 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
 
                                     SizedBox(height: 32.h),
 
-                                    if (_currentStep == SignupStep.phone) ...[
-                                      _buildInputField(
-                                        controller: _phoneController,
-                                        labelText: 'Утасны дугаар',
-                                        hintText: '8888****',
-                                        keyboardType: TextInputType.phone,
-                                        icon: Icons.phone_iphone_rounded,
-                                        isDark: isDark,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
-                                          LengthLimitingTextInputFormatter(8),
-                                        ],
-                                        validator: (value) {
-                                          if (value == null || value.trim().isEmpty) return 'Утасны дугаар оруулна уу';
-                                          if (value.length != 8) return 'Дугаар 8 оронтой байх ёстой';
-                                          return null;
-                                        },
-                                      ),
-                                      SizedBox(height: 16.h),
-                                      _buildButton(
-                                        onTap: _isLoading ? null : _handleSendOtp,
-                                        label: 'Үргэлжлүүлэх',
-                                        isLoading: _isLoading,
-                                        isDark: isDark,
-                                      ),
-                                    ] else if (_currentStep == SignupStep.otp) ...[
-                                      Text(
-                                        '${_phoneController.text} дугаарт илгээсэн\n4 оронтой кодыг оруулна уу',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: isDark ? Colors.white70 : Colors.black54,
-                                          fontSize: 14.sp,
-                                        ),
-                                      ),
-                                      SizedBox(height: 24.h),
-                                      _buildPinInputRow(isDark),
-                                      SizedBox(height: 16.h),
-                                      TextButton(
-                                        onPressed: _canResend && !_isLoading ? _handleSendOtp : null,
-                                        child: Text(
-                                          _canResend ? 'Код дахин илгээх' : 'Код дахин илгээх ($_resendSeconds сек)',
-                                          style: TextStyle(
-                                            color: _canResend ? AppColors.deepGreen : Colors.grey,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: 16.h),
-                                      _buildButton(
-                                        onTap: _isLoading ? null : _handleVerifyOtp,
-                                        label: 'Баталгаажуулах',
-                                        isLoading: _isLoading,
-                                        isDark: isDark,
-                                      ),
-                                      SizedBox(height: 8.h),
-                                      TextButton(
-                                        onPressed: () => setState(() => _currentStep = SignupStep.phone),
-                                        child: Text(
-                                          'Дугаараа солих',
-                                          style: TextStyle(
-                                            color: isDark ? Colors.white38 : Colors.black38,
-                                            fontSize: 13.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ] else if (_currentStep == SignupStep.password) ...[
-                                      _buildInputField(
-                                        controller: _phoneController,
-                                        labelText: 'Утасны дугаар',
-                                        hintText: '8888****',
-                                        keyboardType: TextInputType.phone,
-                                        icon: Icons.phone_iphone_rounded,
-                                        isDark: isDark,
-                                        enabled: false,
-                                      ),
-                                      _buildInputField(
-                                        controller: _passwordController,
-                                        labelText: 'Шинэ нууц код (4 оронтой)',
-                                        hintText: 'xxxx',
-                                        keyboardType: TextInputType.number,
-                                        obscureText: _obscurePassword,
-                                        icon: Icons.lock_rounded,
-                                        isDark: isDark,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
-                                          LengthLimitingTextInputFormatter(4),
-                                        ],
-                                        suffixIcon: IconButton(
-                                          icon: Icon(
-                                            _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                            color: AppColors.deepGreen.withOpacity(0.6),
-                                            size: 20.sp,
-                                          ),
-                                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                        ),
-                                        validator: (value) {
-                                          if (value == null || value.trim().isEmpty) return 'Нууц код оруулна уу';
-                                          if (value.length != 4) return 'Нууц код 4 оронтой байх ёстой';
-                                          return null;
-                                        },
-                                      ),
+                                    _buildInputField(
+                                      controller: _phoneController,
+                                      labelText: 'Утасны дугаар',
+                                      hintText: '8888****',
+                                      keyboardType: TextInputType.phone,
+                                      icon: Icons.phone_iphone_rounded,
+                                      isDark: isDark,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(8),
+                                      ],
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) return 'Утасны дугаар оруулна уу';
+                                        if (value.length != 8) return 'Дугаар 8 оронтой байх ёстой';
+                                        return null;
+                                      },
+                                    ),
 
-                                      _buildInputField(
-                                        controller: _confirmPasswordController,
-                                        labelText: 'Нууц код давтах',
-                                        hintText: '****',
-                                        keyboardType: TextInputType.number,
-                                        obscureText: _obscureConfirmPassword,
-                                        icon: Icons.lock_rounded,
-                                        isDark: isDark,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
-                                          LengthLimitingTextInputFormatter(4),
-                                        ],
-                                        suffixIcon: IconButton(
-                                          icon: Icon(
-                                            _obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                            color: AppColors.deepGreen.withOpacity(0.6),
-                                            size: 20.sp,
-                                          ),
-                                          onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                                    _buildInputField(
+                                      controller: _passwordController,
+                                      labelText: 'Нууц код (4 оронтой)',
+                                      hintText: '****',
+                                      keyboardType: TextInputType.number,
+                                      obscureText: _obscurePassword,
+                                      icon: Icons.lock_rounded,
+                                      isDark: isDark,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(4),
+                                      ],
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                          color: AppColors.deepGreen.withOpacity(0.6),
+                                          size: 20.sp,
                                         ),
-                                        validator: (value) {
-                                          if (value == null || value.trim().isEmpty) return 'Нууц кодыг давтаж оруулна уу';
-                                          if (value != _passwordController.text) return 'Нууц код таарахгүй байна';
-                                          return null;
-                                        },
+                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                                       ),
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) return 'Нууц код оруулна уу';
+                                        if (value.length != 4) return 'Нууц код 4 оронтой байх ёстой';
+                                        return null;
+                                      },
+                                    ),
 
-                                      SizedBox(height: 32.h),
-
-                                      _buildButton(
-                                        onTap: _isLoading ? null : _handleRegistration,
-                                        label: 'Бүртгэл дуусгах',
-                                        isLoading: _isLoading,
-                                        isDark: isDark,
+                                    _buildInputField(
+                                      controller: _confirmPasswordController,
+                                      labelText: 'Нууц код давтах',
+                                      hintText: '****',
+                                      keyboardType: TextInputType.number,
+                                      obscureText: _obscureConfirmPassword,
+                                      icon: Icons.lock_rounded,
+                                      isDark: isDark,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                        LengthLimitingTextInputFormatter(4),
+                                      ],
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscureConfirmPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                          color: AppColors.deepGreen.withOpacity(0.6),
+                                          size: 20.sp,
+                                        ),
+                                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                                       ),
-                                    ],
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) return 'Нууц кодыг давтаж оруулна уу';
+                                        if (value != _passwordController.text) return 'Нууц код таарахгүй байна';
+                                        return null;
+                                      },
+                                    ),
+
+                                    SizedBox(height: 32.h),
+                                    
+                                    _buildButton(
+                                      onTap: _isLoading ? null : _handleRegistration,
+                                      label: 'Бүртгүүлэх',
+                                      isLoading: _isLoading,
+                                      isDark: isDark,
+                                    ),
                                     SizedBox(height: 16.h),
                                     _buildTransparentButton(
-                                      onTap: () {
-                                        if (_currentStep == SignupStep.phone) {
-                                          context.go('/newtrekh');
-                                        } else if (_currentStep == SignupStep.otp) {
-                                          setState(() => _currentStep = SignupStep.phone);
-                                        } else {
-                                          setState(() => _currentStep = SignupStep.otp);
-                                        }
-                                      },
+                                      onTap: () => context.go('/newtrekh'),
                                       label: 'Буцах',
                                       isDark: isDark,
                                     ),
@@ -764,41 +589,28 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          labelText,
-          style: TextStyle(
-            color: isDark ? Colors.white.withOpacity(0.7) : AppColors.lightTextSecondary,
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text(labelText, style: TextStyle(color: isDark ? Colors.white.withOpacity(0.7) : AppColors.lightTextSecondary, fontSize: 13.sp, fontWeight: FontWeight.w500)),
         SizedBox(height: 8.h),
         Container(
           margin: EdgeInsets.only(bottom: 20.h),
           decoration: BoxDecoration(
             color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF5F7FA),
             borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.transparent,
-              width: 1,
-            ),
+            border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.transparent, width: 1),
           ),
           child: TextFormField(
             controller: controller,
             obscureText: obscureText,
             keyboardType: keyboardType,
             inputFormatters: inputFormatters,
-            enabled: enabled,
             style: TextStyle(
-              color: isDark ? Colors.white : (enabled ? Colors.black : Colors.black38),
+              color: isDark ? Colors.white : Colors.black,
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: TextStyle(
-                color: isDark ? Colors.white24 : Colors.black26,
-              ),
+              hintStyle: TextStyle(color: isDark ? Colors.white24 : Colors.black26),
               contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
               border: InputBorder.none,
               filled: false, // Prevent theme from causing double-box look
@@ -887,63 +699,27 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     );
   }
 
-  Widget _buildButton({
-    required VoidCallback? onTap,
-    required String label,
-    bool isLoading = false,
-    required bool isDark,
-  }) {
+  // ─── Primary button ───────────────────────────────────
+  Widget _buildButton({required VoidCallback? onTap, required String label, bool isLoading = false, required bool isDark}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 18.h),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: (onTap == null || isLoading)
-                ? [Colors.grey.withOpacity(0.5), Colors.grey.withOpacity(0.5)]
-                : [AppColors.deepGreen, AppColors.deepGreen.withOpacity(0.8)],
-          ),
+          gradient: LinearGradient(colors: (onTap == null || isLoading) ? [Colors.grey.withOpacity(0.5), Colors.grey.withOpacity(0.5)] : [AppColors.deepGreen, AppColors.deepGreen.withOpacity(0.8)]),
           borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            if (onTap != null && !isLoading)
-              BoxShadow(
-                color: AppColors.deepGreen.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-          ],
+          boxShadow: [if (onTap != null && !isLoading) BoxShadow(color: AppColors.deepGreen.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
         ),
         child: isLoading
-            ? Center(
-                child: SizedBox(
-                  width: 22.r,
-                  height: 22.r,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-              )
-            : Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
+            ? Center(child: SizedBox(width: 22.r, height: 22.r, child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))))
+            : Text(label, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
       ),
     );
   }
 
-  Widget _buildTransparentButton({
-    required VoidCallback onTap,
-    required String label,
-    required bool isDark,
-  }) {
+  // ─── Ghost button ─────────────────────────────────────
+  Widget _buildTransparentButton({required VoidCallback onTap, required String label, required bool isDark}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -952,20 +728,11 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
-          ),
+          border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isDark ? Colors.white70 : Colors.black54,
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 15.sp, fontWeight: FontWeight.w600)),
       ),
     );
   }
 }
+

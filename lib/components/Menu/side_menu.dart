@@ -297,9 +297,11 @@ class _SideMenuState extends State<SideMenu> {
                   title,
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 14.sp,
+                    fontSize: 13.sp, // Slightly smaller to fit gracefully on small iPhone screens
                     fontWeight: FontWeight.w400,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Icon(
@@ -343,13 +345,17 @@ class _SideMenuState extends State<SideMenu> {
                   children: [
                     Icon(Icons.logout_rounded, color: Colors.red, size: 20.sp),
                     SizedBox(width: 12.w),
-                    Text(
-                      'Системээс гарах',
+                    Flexible(
+                      child: Text(
+                        'Системээс гарах',
                         style: TextStyle(
                           color: Colors.red,
-                          fontSize: 14.sp,
+                          fontSize: 13.sp,
                           fontWeight: FontWeight.w400,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),

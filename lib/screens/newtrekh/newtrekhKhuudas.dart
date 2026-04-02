@@ -143,28 +143,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         });
         passwordFocusNode.requestFocus();
       } else {
-        // Not in primary, check if linked via Easy Register
-        try {
-          final easyData = await ApiService.easyRegisterUserSearch(
-            identity: phone,
-            phoneNum: phone,
-          );
-
-          // If this record is already linked to a resident ID, treat as existing user
-          if (easyData != null &&
-              (easyData['orshinSuugchiinId'] != null ||
-                  easyData['orshinSuugchiid'] != null)) {
-            setState(() {
-              _showPasswordInput = true;
-              _isCheckingPhone = false;
-            });
-            passwordFocusNode.requestFocus();
-            return;
-          }
-        } catch (e) {
-          debugPrint('EasyRegister pre-check error: $e');
-        }
-
         setState(() => _isCheckingPhone = false);
         _showRegistrationModal();
       }

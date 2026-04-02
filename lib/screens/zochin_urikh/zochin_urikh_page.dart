@@ -737,7 +737,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: Color(0xFF3B82F6), // Active Color
-                  unselectedLabelColor: context.textSecondaryColor, // Inactive Color
+                  unselectedLabelColor: context.textPrimaryColor, // Inactive Color
                   labelStyle: TextStyle(
                     fontSize: 12.sp, 
                     fontWeight: FontWeight.bold,
@@ -746,13 +746,15 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                     fontSize: 12.sp, 
                     fontWeight: FontWeight.w500,
                   ),
+                  padding: EdgeInsets.zero,
+                  labelPadding: EdgeInsets.symmetric(horizontal: 4.w),
                   dividerColor: Colors.transparent, // Remove default divider
                   tabs: [
                     Tab(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Хүлээлгэ'),
+                          Text('Хүлээлгийн'),
                           if (_pendingGuests.isNotEmpty) ...[
                             SizedBox(width: 4.w),
                             Container(
@@ -845,7 +847,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
           children: [
             Icon(Icons.history, size: 40.sp, color: Colors.grey.withOpacity(0.5)),
             SizedBox(height: 10.h),
-            Text('$type машин байхгүй', style: TextStyle(color: Colors.grey)),
+            Text('Машин байхгүй', style: TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -1058,7 +1060,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     if (createdAt != null) {
       try {
         final createdDate = DateTime.parse(createdAt.toString()).toLocal();
-        dateStr = DateFormat('dd/MM/yyyy HH:mm').format(createdDate);
+        dateStr = DateFormat('dd/MM/yyyy').format(createdDate);
         
         // If active (1), show duration since entry
         // For Exited (2), we could show duration if we find exit time (updateAt or tuukh)
@@ -1117,8 +1119,10 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // Blue Dot if Active
               if (tuluv == 1)
                 Padding(
@@ -1133,18 +1137,20 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                   ),
                 ),
               
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mashiniiDugaar,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mashiniiDugaar,
+                          style: TextStyle(
+                            color: context.textPrimaryColor,
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 8.h),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                     decoration: BoxDecoration(
@@ -1169,9 +1175,11 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                       ],
                     ),
                   ),
-                ],
-              ),
-            ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           
           Column(

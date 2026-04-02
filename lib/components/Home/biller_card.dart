@@ -68,50 +68,33 @@ class BillerCard extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(22.r),
-                  child: Stack(
-                    children: [
-                      // Subtle background accent/glow
-                      Positioned(
-                        right: -10,
-                        top: -10,
-                        child: Container(
-                          width: 40.w,
-                          height: 40.w,
-                          decoration: BoxDecoration(
-                            color: AppColors.deepGreen.withOpacity(0.05),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8.w),
+                      child: BillerUtils.buildBillerLogo(
+                        rawBillerName,
+                        transformedName: billerName,
                       ),
-                      
-                      // Logo content
-                      Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.w),
-                          child: BillerUtils.buildBillerLogo(
-                            rawBillerName,
-                            transformedName: billerName,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
             SizedBox(height: 10.h),
             // Title with improved typography
-            Text(
-              billerName,
-              style: TextStyle(
-                color: context.textPrimaryColor,
-                fontSize: 13.sp,
-                height: 1.2,
-                letterSpacing: -0.2,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Text(
+                billerName,
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 13.sp,
+                  height: 1.2,
+                  letterSpacing: -0.2,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

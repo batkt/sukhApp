@@ -35,6 +35,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
   );
   final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
   int _resendSeconds = 30;
+  bool _canResend = false;
   Timer? _timer;
 
   bool _enableBiometric = false;
@@ -47,7 +48,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
   bool _biometricAvailable = false;
   IconData _biometricIcon = Icons.fingerprint;
 
-  Map<String, dynamic>? _easyRegisterData;
+
 
   @override
   void initState() {
@@ -95,6 +96,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
 
   void _startTimer() {
     _resendSeconds = 30;
+    _canResend = false;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
@@ -102,6 +104,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
         if (_resendSeconds > 0) {
           _resendSeconds--;
         } else {
+          _canResend = true;
           _timer?.cancel();
         }
       });
@@ -113,7 +116,11 @@ class _RegistrationModalState extends State<RegistrationModal> {
 
     setState(() => _isLoading = true);
     try {
+<<<<<<< HEAD
       // 1. Check if phone is already registered
+=======
+      // Check if phone already registered
+>>>>>>> 2ae09eb (a)
       final exists = await ApiService.checkPhoneExists(
         utas: _phoneController.text.trim(),
       );
@@ -121,6 +128,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
         throw Exception('Энэ дугаар аль хэдийн бүртгэгдсэн байна');
       }
 
+<<<<<<< HEAD
       // 2. Load baiguullagiinId for OTP request
       final baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId() 
           ?? '698e7fd3b6dd386b6c56a808'; // Default Pure Wallet Org ID
@@ -129,6 +137,15 @@ class _RegistrationModalState extends State<RegistrationModal> {
       await ApiService.verifyPhoneNumber(
         baiguullagiinId: baiguullagiinId,
         purpose: 'registration',
+=======
+      // Get org id for OTP
+      final baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId() ?? '698e7fd3b6dd386b6c56a808';
+
+      // Send OTP
+      await ApiService.verifyPhoneNumber(
+        baiguullagiinId: baiguullagiinId,
+        purpose: 'signup',
+>>>>>>> 2ae09eb (a)
         utas: _phoneController.text.trim(),
         duureg: '',
         horoo: '',
@@ -141,6 +158,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
           _isLoading = false;
         });
         _startTimer();
+<<<<<<< HEAD
         
         // Auto-focus first PIN box
         Future.delayed(const Duration(milliseconds: 300), () {
@@ -152,6 +170,9 @@ class _RegistrationModalState extends State<RegistrationModal> {
           message: 'Баталгаажуулах код илгээлээ',
           icon: Icons.check_circle,
         );
+=======
+        Future.delayed(Duration.zero, () => _otpFocusNodes[0].requestFocus());
+>>>>>>> 2ae09eb (a)
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -165,6 +186,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
 
   Future<void> _handleOtpSubmit() async {
     final pin = _otpControllers.map((c) => c.text).join();
+<<<<<<< HEAD
     if (pin.length != 4) return;
 
     setState(() => _isLoading = true);
@@ -172,18 +194,33 @@ class _RegistrationModalState extends State<RegistrationModal> {
       final baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId()
           ?? '698e7fd3b6dd386b6c56a808';
 
+=======
+    if (pin.length != 4) {
+      showGlassSnackBar(context, message: '4 оронтой код оруулна уу', icon: Icons.error);
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId() ?? '698e7fd3b6dd386b6c56a808';
+>>>>>>> 2ae09eb (a)
       await ApiService.verifySecretCode(
         utas: _phoneController.text.trim(),
         code: pin,
         baiguullagiinId: baiguullagiinId,
+<<<<<<< HEAD
         purpose: 'registration',
       );
 
+=======
+        purpose: 'signup',
+      );
+>>>>>>> 2ae09eb (a)
       if (mounted) {
         setState(() {
           _currentStep = RegistrationStep.password;
           _isLoading = false;
         });
+<<<<<<< HEAD
         showGlassSnackBar(
           context,
           message: 'Баталгаажуулалт амжилттай',
@@ -200,6 +237,56 @@ class _RegistrationModalState extends State<RegistrationModal> {
     }
   }
 
+=======
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        showGlassSnackBar(
+          context,
+          message: e.toString().replaceFirst('Exception: ', ''),
+          icon: Icons.error,
+        );
+        for (var c in _otpControllers) c.clear();
+        _otpFocusNodes[0].requestFocus();
+      }
+    }
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() => _isLoading = true);
+    try {
+      final baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId() ?? '698e7fd3b6dd386b6c56a808';
+      await ApiService.verifyPhoneNumber(
+        baiguullagiinId: baiguullagiinId,
+        purpose: 'signup',
+        utas: _phoneController.text.trim(),
+        duureg: '',
+        horoo: '',
+        soh: '',
+      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        for (var c in _otpControllers) c.clear();
+        _startTimer();
+        _otpFocusNodes[0].requestFocus();
+        showGlassSnackBar(context, message: 'Код дахин илгээлээ', icon: Icons.check_circle, iconColor: Colors.green);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        showGlassSnackBar(context, message: 'Алдаа гарлаа', icon: Icons.error);
+      }
+    }
+  }
+
+  void _handleOtpChange(String value, int index) {
+    if (value.length == 1 && index < 3) _otpFocusNodes[index + 1].requestFocus();
+    else if (value.isEmpty && index > 0) _otpFocusNodes[index - 1].requestFocus();
+    if (_otpControllers.map((c) => c.text).join().length == 4) _handleOtpSubmit();
+  }
+
+>>>>>>> 2ae09eb (a)
   Future<void> _handlePasswordSubmit() async {
     if (_passwordController.text.length != 4 ||
         _passwordController.text != _confirmPasswordController.text) {
@@ -359,7 +446,11 @@ class _RegistrationModalState extends State<RegistrationModal> {
         ),
         SizedBox(height: 8.h),
         Text(
+<<<<<<< HEAD
           'Бүртгүүлж үйлчилгээ авахын тулд утасны дугаараа баталгаажуулна уу.',
+=======
+          'Утасны дугаараа оруулна уу. Баталгаажуулах код илгээж бүртгэлийг баталгаажуулна.',
+>>>>>>> 2ae09eb (a)
           style: TextStyle(
             fontSize: 14.sp,
             color: isDark ? Colors.white54 : Colors.black54,
@@ -517,7 +608,11 @@ class _RegistrationModalState extends State<RegistrationModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
+<<<<<<< HEAD
           'Баталгаажуулах',
+=======
+          'Утас баталгаажуулах',
+>>>>>>> 2ae09eb (a)
           style: TextStyle(
             fontSize: 24.sp,
             fontWeight: FontWeight.bold,
@@ -525,6 +620,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
           ),
         ),
         SizedBox(height: 8.h),
+<<<<<<< HEAD
         Text(
           '${_phoneController.text} дугаарт илгээсэн 4 оронтой кодыг оруулна уу.',
           style: TextStyle(
@@ -638,6 +734,79 @@ class _RegistrationModalState extends State<RegistrationModal> {
               ),
             ),
           ],
+=======
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: _phoneController.text.trim(),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black),
+              ),
+              TextSpan(
+                text: ' дугаарт илгээсэн 4 оронтой кодыг оруулна уу.',
+                style: TextStyle(fontSize: 14.sp, color: isDark ? Colors.white54 : Colors.black54),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 28.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(4, (i) => SizedBox(
+            width: 60.w,
+            child: TextField(
+              controller: _otpControllers[i],
+              focusNode: _otpFocusNodes[i],
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              maxLength: 1,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black,
+                fontSize: 24.sp,
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: InputDecoration(
+                counterText: '',
+                filled: true,
+                fillColor: isDark ? Colors.white.withOpacity(0.07) : const Color(0xFFF0F2F5),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide(color: AppColors.deepGreen, width: 2.5),
+                ),
+              ),
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (v) => _handleOtpChange(v, i),
+            ),
+          )),
+        ),
+        SizedBox(height: 16.h),
+        Center(
+          child: TextButton(
+            onPressed: _canResend && !_isLoading ? _resendOtp : null,
+            child: Text(
+              _canResend ? 'Код дахин илгээх' : 'Дахин илгээх ($_resendSeconds с)',
+              style: TextStyle(
+                color: _canResend && !_isLoading ? AppColors.deepGreen : (isDark ? Colors.white38 : Colors.black38),
+                fontSize: 13.sp,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        _buildPrimaryButton(
+          onTap: _isLoading ? null : _handleOtpSubmit,
+          label: 'Баталгаажуулах',
+          isLoading: _isLoading,
+        ),
+        SizedBox(height: 12.h),
+        _buildSecondaryButton(
+          onTap: () => setState(() => _currentStep = RegistrationStep.phone),
+          label: 'Буцах',
+>>>>>>> 2ae09eb (a)
         ),
       ],
     );

@@ -1123,7 +1123,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         ),
       );
     }
-    if (_threadItems.isEmpty) return const SizedBox.shrink();
+    // Show root message bubble even if there are no replies yet
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1134,25 +1134,17 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
           tablet: 18,
           veryNarrow: 8,
         )),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: context.responsiveSpacing(
-            small: 2,
-            medium: 3,
-            large: 4,
-            tablet: 6,
-            veryNarrow: 0,
-          )),
-          
-        ),
-        SizedBox(height: context.responsiveSpacing(
-          small: 8,
-          medium: 9,
-          large: 10,
-          tablet: 12,
-          veryNarrow: 6,
-        )),
         _buildChatBubble(_notification), // Prepend root notification as first bubble!
-        ..._threadItems.map((msg) => _buildChatBubble(msg)),
+        if (_threadItems.isNotEmpty) ...[
+          SizedBox(height: context.responsiveSpacing(
+            small: 8,
+            medium: 9,
+            large: 10,
+            tablet: 12,
+            veryNarrow: 6,
+          )),
+          ..._threadItems.map((msg) => _buildChatBubble(msg)),
+        ],
         SizedBox(height: context.responsiveSpacing(
           small: 12,
           medium: 14,

@@ -895,7 +895,12 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
-  Widget _buildRemainingDaysWidget(Geree geree) {
+  Widget _buildRemainingDaysWidget(
+    Geree geree, {
+    required VoidCallback onTapBilling,
+    required String totalBalance,
+    required String totalAldangi,
+  }) {
     // Determine next invoice date from nekhemjlekhCron (if available)
     DateTime? nextInvoiceDate;
     if (_nekhemjlekhCronData != null &&
@@ -1098,12 +1103,12 @@ class _BookingScreenState extends State<NuurKhuudas>
               ],
             ),
           ),
-          SizedBox(height: 24.h),
-          // Thicker, modern progress indicator
+          SizedBox(height: 16.h),
+          // Progress bar
           Stack(
             children: [
               Container(
-                height: 10.h,
+                height: 6.h,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
@@ -1116,17 +1121,10 @@ class _BookingScreenState extends State<NuurKhuudas>
                   return FractionallySizedBox(
                     widthFactor: targetProgress * _progressAnimation.value,
                     child: Container(
-                      height: 10.h,
+                      height: 6.h,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
                     ),
                   );
@@ -1134,7 +1132,7 @@ class _BookingScreenState extends State<NuurKhuudas>
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: 6.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1142,19 +1140,67 @@ class _BookingScreenState extends State<NuurKhuudas>
                 'Мөчлөгийн явц',
                 style: TextStyle(
                   fontSize: 10.sp,
-                  fontWeight: FontWeight.w600,
                   color: Colors.white.withOpacity(0.5),
                 ),
               ),
               Text(
                 '${(targetProgress * 100).toInt()}%',
                 style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
             ],
+          ),
+          SizedBox(height: 16.h),
+          // Inline billing row - compact strip
+          GestureDetector(
+            onTap: onTapBilling,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 16.sp),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Байрны төлбөр',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 11.sp,
+                          ),
+                        ),
+                        Text(
+                          () {
+                            final numBalance = double.tryParse(
+                              totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
+                            ) ?? 0.0;
+                            if (numBalance < 0) return '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт';
+                            if (numBalance == 0) return 'Төлбөр байхгүй';
+                            return '$totalBalance₮';
+                          }(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withOpacity(0.6), size: 12.sp),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -1232,21 +1278,15 @@ class _BookingScreenState extends State<NuurKhuudas>
                     children: [
                       SizedBox(height: 4.h),
 
-                      // 1. Remaining Days & Next Payment (Moved to Top)
+                      // 1. Merged Remaining Days & Billing Box
                       if (_gereeResponse != null &&
                           _gereeResponse!.jagsaalt.isNotEmpty)
                         _buildRemainingDaysWidget(
                           _gereeResponse!.jagsaalt.first,
+                          onTapBilling: _navigateToBillingList,
+                          totalBalance: _formatNumberWithComma(totalNiitTulbur),
+                          totalAldangi: _formatNumberWithComma(totalNiitAldangi),
                         ),
-
-                      SizedBox(height: 12.h),
-
-                      // 2. "Төлбөр" Box
-                      BillingBox(
-                        onTap: _navigateToBillingList,
-                        totalBalance: _formatNumberWithComma(totalNiitTulbur),
-                        totalAldangi: _formatNumberWithComma(totalNiitAldangi),
-                      ),
 
                       SizedBox(height: 16.h),
 

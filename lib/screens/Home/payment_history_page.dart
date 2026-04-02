@@ -53,85 +53,107 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         
         if (res['jagsaalt'] != null && res['jagsaalt'] is List) {
           final List<dynamic> list = res['jagsaalt'];
-          history = list.map((item) {
-            // Priority: tulsunDun (actual paid) > niitTulburOriginal (original total) > niitTulbur
-            final double tulsun = (item['tulsunDun'] as num?)?.toDouble() ?? 0.0;
-            final double niitOriginal = (item['niitTulburOriginal'] as num?)?.toDouble() ?? 0.0;
-            final double niit = (item['niitTulbur'] as num?)?.toDouble() ?? 0.0;
+          List<PaymentHistory> flattenedHistory = [];
+          
+          for (var item in list) {
+            final paymentTxList = item['paymentHistory'] as List?;
             
-            // For a "Paid" history view, we want to show what was actually paid or what the total was
-            double displayAmount = tulsun;
-            if (displayAmount <= 0) displayAmount = niitOriginal;
-            if (displayAmount <= 0) displayAmount = niit;
+            if (paymentTxList != null && paymentTxList.isNotEmpty) {
+              // Iterate through each payment transaction in the invoice
+              for (var tx in paymentTxList) {
+                final String txType = tx['turul']?.toString().toLowerCase() ?? '';
+                // Only include actual payments, not adjustments like 'system_sync'
+                if (txType == 'төлөлт' || txType == 'qpay') {
+                  double txAmount = (tx['dun'] as num?)?.toDouble() ?? 0.0;
+                  if (txAmount < 0) continue; // Skip sync/negative adjustments
 
-            // Extract breakdown (zardluud) if available
-            final List<Bill> childBills = [];
-            final medeelel = item['medeelel'];
-            if (medeelel != null && medeelel['zardluud'] != null && medeelel['zardluud'] is List) {
-              final List<dynamic> zardluud = medeelel['zardluud'];
-              for (var z in zardluud) {
-                 final zardal = Zardal.fromJson(Map<String, dynamic>.from(z));
-                 if (zardal.isDisplayable && zardal.displayAmount != 0) {
-                    childBills.add(Bill(
+                  flattenedHistory.add(PaymentHistory(
+                    paymentId: tx['_id']?.toString() ?? '',
+                    invoiceNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
+                    paymentAmount: txAmount,
+                    paymentStatus: 'PAID',
+                    paymentStatusText: 'Төлсөн',
+                    paymentStatusDate: DateTime.tryParse(tx['ognoo']?.toString() ?? '') ?? 
+                                      DateTime.tryParse(item['ognoo']?.toString() ?? '') ?? 
+                                      DateTime.now(),
+                    bills: [
+                      Bill(
+                        billerName: widget.billingName,
+                        billType: tx['tailbar']?.toString() ?? 'Орон сууцны төлбөр',
+                        billNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
+                        hasVat: true,
+                        billTotalAmount: txAmount,
+                        billPeriod: tx['ognoo']?.toString().substring(0, 7) ?? '', // YYYY-MM
+                        billLateFee: 0.0,
+                      )
+                    ],
+                  ));
+                }
+              }
+            } else {
+              // Backward compatibility: If no paymentHistory, show the invoice if it's marked as paid
+              final String status = item['tuluv']?.toString() ?? '';
+              if (status.contains('Төлсөн')) {
+                double displayAmount = (item['tulsunDun'] as num?)?.toDouble() ?? 0.0;
+                if (displayAmount <= 0) displayAmount = (item['niitTulburOriginal'] as num?)?.toDouble() ?? 0.0;
+                
+                flattenedHistory.add(PaymentHistory(
+                  paymentId: item['_id']?.toString() ?? '',
+                  invoiceNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
+                  paymentAmount: displayAmount,
+                  paymentStatus: 'PAID',
+                  paymentStatusText: 'Төлсөн',
+                  paymentStatusDate: DateTime.tryParse(item['updatedAt']?.toString() ?? '') ?? 
+                                    DateTime.tryParse(item['ognoo']?.toString() ?? '') ?? 
+                                    DateTime.now(),
+                  bills: [
+                    Bill(
                       billerName: widget.billingName,
-                      billType: zardal.ner,
+                      billType: 'Орон сууцны төлбөр',
                       billNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
                       hasVat: true,
-                      billTotalAmount: zardal.displayAmount,
-                      billPeriod: item['ognoo']?.toString() ?? '',
-                      billLateFee: 0.0,
-                    ));
-                 }
+                      billTotalAmount: displayAmount,
+                      billPeriod: item['ognoo']?.toString().substring(0, 7) ?? '',
+                      billLateFee: (item['aldangi'] as num?)?.toDouble() ?? 0.0,
+                    )
+                  ],
+                ));
               }
             }
-
-            // Fallback if no breakdown found
-            if (childBills.isEmpty) {
-              childBills.add(Bill(
-                billerName: widget.billingName,
-                billType: item['tailbar']?.toString() ?? 'Орон сууцны төлбөр',
-                billNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
-                hasVat: true,
-                billTotalAmount: displayAmount,
-                billPeriod: item['ognoo']?.toString() ?? '',
-                billLateFee: (item['aldangi'] as num?)?.toDouble() ?? 0.0,
-              ));
-            }
-            
-            // Map MON data structure to the expected Unified History Model
-            return PaymentHistory(
-              paymentId: item['_id']?.toString() ?? '',
-              invoiceNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
-              paymentAmount: displayAmount,
-              paymentStatus: item['tuluv']?.toString().toUpperCase() ?? 'PAID',
-              paymentStatusText: item['tuluv']?.toString() ?? 'Төлсөн',
-              paymentStatusDate: DateTime.tryParse(item['ognoo']?.toString() ?? '') ?? 
-                                DateTime.tryParse(item['burttgesenOgnoo']?.toString() ?? '') ?? 
-                                DateTime.now(),
-              bills: childBills,
-            );
-          }).toList();
+          }
           
-          // Only show 'Төлсөн' status in this history view
-          history = history.where((h) => h.paymentStatusText.contains('Төлсөн')).toList();
+          // Sort by date descending (latest first)
+          flattenedHistory.sort((a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate));
+          history = flattenedHistory;
         }
       } else {
         // Original Wallet API history fetcher
-        final historyData = await ApiService.getWalletBillingPayments(
+        final List<Map<String, dynamic>> rawData = await ApiService.getWalletBillingPayments(
           billingId: widget.billingId,
         );
         
-        if (historyData.isNotEmpty &&
-            historyData.first.containsKey('payments')) {
-          final payments = historyData.first['payments'] as List;
-          history = payments
-              .map((e) => PaymentHistory.fromJson(e))
-              .toList();
-        } else {
-          history = historyData
-              .map((e) => PaymentHistory.fromJson(e))
-              .toList();
+        List<PaymentHistory> flattenedWalletHistory = [];
+
+        // Distinguish between a direct list of payments vs a list of bills containing payments
+        for (var item in rawData) {
+          if (item.containsKey('payments') && item['payments'] is List) {
+            final List<dynamic> payments = item['payments'];
+            flattenedWalletHistory.addAll(
+              payments.map((e) => PaymentHistory.fromJson(Map<String, dynamic>.from(e)))
+            );
+          } else {
+            // Assume the item itself is a payment object matching the model
+            try {
+              flattenedWalletHistory.add(PaymentHistory.fromJson(item));
+            } catch (e) {
+              print('⚠️ [History] Skipping invalid Wallet payment item: $e');
+            }
+          }
         }
+        
+        // Sort by date descending
+        flattenedWalletHistory.sort((a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate));
+        history = flattenedWalletHistory;
       }
 
       if (mounted) {
