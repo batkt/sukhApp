@@ -179,6 +179,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     final isDark = context.isDarkMode;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
       appBar: buildStandardAppBar(context, title: 'Төлбөрийн түүх'),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

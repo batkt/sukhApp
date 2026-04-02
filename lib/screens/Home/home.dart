@@ -1286,7 +1286,9 @@ class _BookingScreenState extends State<NuurKhuudas>
                           onTapBilling: _navigateToBillingList,
                           totalBalance: _formatNumberWithComma(totalNiitTulbur),
                           totalAldangi: _formatNumberWithComma(totalNiitAldangi),
-                        ),
+                        )
+                      else if (_billingList.isNotEmpty)
+                        _buildBillingBox(),
 
                       SizedBox(height: 16.h),
 
@@ -1428,7 +1430,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     String expanded = address;
 
-    expanded = expanded.replaceAll(RegExp(r'\bБГД\b'), 'Баянгол дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\b\b'), 'Баянгол дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bБЗД\b'), 'Баянзүрх дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bСБД\b'), 'Сүхбаатар дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bХД\b'), 'Хан-Уул дүүрэг');
@@ -1527,14 +1529,24 @@ class _BookingScreenState extends State<NuurKhuudas>
                       fontSize: 15.sp,
                       color: context.textPrimaryColor,
                       letterSpacing: -0.2,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(height: 2.h),
+                  SizedBox(height: 4.h),
                   Text(
-                    'Төлбөрийн дэлгэрэнгүй харах',
+                    () {
+                      if (totalNiitTulbur < 0) {
+                        return '+${_formatNumberWithComma(totalNiitTulbur.abs())}₮ Илүү төлөлт';
+                      }
+                      if (totalNiitTulbur == 0) {
+                        return 'Төлбөрийн үлдэгдэлгүй';
+                      }
+                      return '${_formatNumberWithComma(totalNiitTulbur)}₮';
+                    }(),
                     style: TextStyle(
-                      fontSize: 11.sp,
-                      color: context.textSecondaryColor.withOpacity(0.6),
+                      fontSize: 13.sp,
+                      color: totalNiitTulbur > 0 ? const Color(0xFFFF6B6B) : AppColors.deepGreen,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],

@@ -593,7 +593,9 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                 ),
                               )
                             : Text(
-                                'Хадгалах',
+                                (_consumerInfo != null || _foreignerInfo != null)
+                                    ? 'Засах'
+                                    : 'Хадгалах',
                                 style: TextStyle(
                                   fontSize: 16.sp,
                                   fontWeight: FontWeight.bold,

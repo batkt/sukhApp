@@ -107,7 +107,8 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   // Step: 0 = phone, 1 = OTP, 2 = password+register
   int _step = 0;
 
-  // Form keys per step
+  // Form keys
+  final _formKey = GlobalKey<FormState>();
   final _phoneFormKey = GlobalKey<FormState>();
   final _passwordFormKey = GlobalKey<FormState>();
 
@@ -135,15 +136,11 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   SignupStep _currentStep = SignupStep.phone;
   String _verifiedCode = '';
 
-  // PIN Controllers & FocusNodes
-  final List<TextEditingController> _pinControllers =
-      List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
-
-  // Timer for resend
-  int _resendSeconds = 30;
-  bool _canResend = false;
-  Timer? _timer;
+  String get _orgId {
+    final id = (_baiguullagiinId ?? widget.baiguullagiinId ?? '').trim();
+    if (id.isEmpty || id.toLowerCase() == 'null') return '';
+    return id;
+  }
   @override
   void initState() {
     super.initState();
@@ -267,7 +264,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   }
 
   // ─── Step 1 → 2: Verify OTP ──────────────────────────
-  Future<void> _verifyOtp() async {
+  Future<void> _handleVerifyOtp() async {
     final pin = _pinControllers.map((c) => c.text).join();
     if (pin.length != 4) {
       showGlassSnackBar(context, message: '4 оронтой код оруулна уу', icon: Icons.error, iconColor: Colors.red);
@@ -297,11 +294,11 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   void _handlePinChange(String value, int index) {
     if (value.length == 1 && index < 3) _pinFocusNodes[index + 1].requestFocus();
     else if (value.isEmpty && index > 0) _pinFocusNodes[index - 1].requestFocus();
-    if (_pinControllers.map((c) => c.text).join().length == 4) _verifyOtp();
+    if (_pinControllers.map((c) => c.text).join().length == 4) _handleVerifyOtp();
   }
 
   // ─── Step 2: Register ─────────────────────────────────
-  Future<void> _register() async {
+  Future<void> _handleRegistration() async {
     if (!_passwordFormKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
