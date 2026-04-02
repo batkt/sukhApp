@@ -271,88 +271,101 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
           ),
         ),
         SizedBox(height: 32.h),
-        AutofillGroup(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(4, (index) {
-              return SizedBox(
-                width: 65.w,
-                height: 70.h,
-                child: TextFormField(
-                  controller: _otpControllers[index],
-                  focusNode: _otpFocusNodes[index],
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.number,
-                  autofillHints: const [AutofillHints.oneTimeCode],
-                  textInputAction: TextInputAction.next,
-                  style: TextStyle(
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black,
-                    height: 1.2, // Perfect for centering with Inter font
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(4, (index) {
+            return SizedBox(
+              width: 55.w,
+              child: Container(
+                constraints: BoxConstraints(minHeight: 65.h),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7FA),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: _otpFocusNodes[index].hasFocus 
+                        ? AppColors.deepGreen 
+                        : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                    width: 1.5,
                   ),
-                  decoration: InputDecoration(
-                    counterText: '',
-                    filled: true,
-                    fillColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7FA),
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16.r),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16.r),
-                      borderSide: const BorderSide(color: AppColors.deepGreen, width: 2),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    if (value.length > 1) {
-                      // Handle iOS Quick Fill / Paste
-                      final cleanDigits = value.replaceAll(RegExp(r'\D'), '').split('').take(4).toList();
-                      for (int i = 0; i < cleanDigits.length; i++) {
-                        if (index + i < 4) {
-                          _otpControllers[index + i].text = cleanDigits[i];
-                        }
+                ),
+                child: KeyboardListener(
+                  focusNode: FocusNode(),
+                  onKeyEvent: (event) {
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.backspace) {
+                      if (_otpControllers[index].text.isEmpty && index > 0) {
+                        _otpControllers[index - 1].clear();
+                        _otpFocusNodes[index - 1].requestFocus();
+                        setState(() {});
                       }
-                      // Update logic state
-                      setState(() {});
-                      
-                      // Focus last filled or next empty
-                      int nextFocus = index + cleanDigits.length;
-                      if (nextFocus > 3) nextFocus = 3;
-                      _otpFocusNodes[nextFocus].requestFocus();
-                    } else if (value.isNotEmpty && index < 3) {
-                      _otpFocusNodes[index + 1].requestFocus();
-                    } else if (value.isEmpty && index > 0) {
-                      _otpFocusNodes[index - 1].requestFocus();
-                    }
-                    
-                    if (_otpControllers.every((c) => c.text.isNotEmpty)) {
-                      _handleOtpSubmit();
                     }
                   },
+                  child: TextField(
+                    controller: _otpControllers[index],
+                    focusNode: _otpFocusNodes[index],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
+                      height: 1.0,
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(1),
+                    ],
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(vertical: 15.h),
+                      counterText: '',
+                    ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty && index < 3) {
+                        _otpFocusNodes[index + 1].requestFocus();
+                      } else if (value.isEmpty && index > 0) {
+                        _otpFocusNodes[index - 1].requestFocus();
+                      }
+                      
+                      if (_otpControllers.every((c) => c.text.isNotEmpty)) {
+                        _handleOtpSubmit();
+                      }
+                      setState(() {});
+                    },
+                  ),
                 ),
-              );
-            }),
-          ),
-        ),
-        SizedBox(height: 24.h),
-        Center(
-          child: TextButton(
-            onPressed: _resendSeconds == 0 ? _handlePhoneSubmit : null,
-            child: Text(
-              _resendSeconds == 0 ? 'Дахин код авах' : 'Дахин код авах ($_resendSeconds)',
-              style: TextStyle(
-                color: _resendSeconds == 0 ? AppColors.deepGreen : Colors.grey,
-                fontWeight: FontWeight.bold,
               ),
-            ),
-          ),
+            );
+          }),
+        ),
+        SizedBox(height: 32.h),
+        Center(
+          child: _resendSeconds > 0
+              ? Text(
+                  'Дахин илгээх (${_resendSeconds}с)',
+                  style: TextStyle(fontSize: 13.sp, color: Colors.grey),
+                )
+              : TextButton(
+                  onPressed: _isLoading ? null : _handlePhoneSubmit,
+                  child: Text(
+                    'Дахин илгээх',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: AppColors.deepGreen,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
         ),
         SizedBox(height: 12.h),
         _buildSecondaryButton(
           onTap: () => setState(() => _currentStep = ForgotPasswordStep.phone),
-          label: 'Утасны дугаар солих',
+          label: 'Дугаар солих',
         ),
       ],
     );
@@ -459,6 +472,7 @@ class _ForgotPasswordModalState extends State<ForgotPasswordModal> {
               prefixIcon: Icon(icon, color: AppColors.deepGreen, size: 20.sp),
               suffixIcon: suffixIcon,
               border: InputBorder.none,
+              filled: false,
               contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             ),
           ),

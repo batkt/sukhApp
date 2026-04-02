@@ -6,6 +6,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/biometric_service.dart';
+import 'package:sukh_app/services/update_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 
@@ -51,9 +52,29 @@ class _RegistrationModalState extends State<RegistrationModal> {
   @override
   void initState() {
     super.initState();
+    _initializeApp();
     // Pre-fill phone number if provided from login
     if (widget.initialPhone != null) {
       _phoneController.text = widget.initialPhone!;
+    }
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      // Standard health check
+      await UpdateService.checkForUpdate();
+      
+      // Load biometric availability
+      final isAvailable = await BiometricService.isAvailable();
+      final icon = await BiometricService.getBiometricIcon();
+      if (mounted) {
+        setState(() {
+          _biometricAvailable = isAvailable;
+          _biometricIcon = icon;
+        });
+      }
+    } catch (e) {
+      debugPrint('Registration init error: $e');
     }
   }
 
@@ -92,27 +113,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
 
     setState(() => _isLoading = true);
     try {
-      // For general registration (without specific SOH yet), we might need a default baiguullagiinId
-      // or the API should handle it. Based on burtguulekh_signup.dart, it just sends phone and password directly to registerUser.
-      // But for OTP, we usually need verifyPhoneNumber.
-
-      // Since burtguulekh_signup didn't seem to require OTP, but the user wants a modern flow,
-      // I'll check if a general OTP endpoint exists.
-      // verifyPhoneNumber in ApiService requires baiguullagiinId, duureg, etc.
-
-      // If we are doing "No Org" registration, maybe we skip OTP or use a general one?
-      // Actually, looking at ApiService, verifyPhoneNumber is the only one.
-
-      // Let's assume for now we go straight to password if no OTP is possible without Org,
-      // OR we fetch a default org.
-
-      // Wait, burtguulekh_neg had a wallet registration.
-
-      // Let's stick to the simplest flow that works with existing APIs.
-      // If the user is on the login screen and clicks "Sign Up", they probably just need Phone + Password.
-
-      // Transition to password step directly for now as per burtguulekh_signup logic,
-      // but I'll make it LOOK multi-step.
+      // 1. Check if phone is already registered
       final exists = await ApiService.checkPhoneExists(
         utas: _phoneController.text.trim(),
       );
@@ -120,16 +121,80 @@ class _RegistrationModalState extends State<RegistrationModal> {
         throw Exception('Энэ дугаар аль хэдийн бүртгэгдсэн байна');
       }
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      setState(() {
-        _currentStep = RegistrationStep.password;
-        _isLoading = false;
-      });
+      // 2. Load baiguullagiinId for OTP request
+      final baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId() 
+          ?? '698e7fd3b6dd386b6c56a808'; // Default Pure Wallet Org ID
+
+      // 3. Send OTP
+      await ApiService.verifyPhoneNumber(
+        baiguullagiinId: baiguullagiinId,
+        purpose: 'registration',
+        utas: _phoneController.text.trim(),
+        duureg: '',
+        horoo: '',
+        soh: '',
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentStep = RegistrationStep.otp;
+          _isLoading = false;
+        });
+        _startTimer();
+        
+        // Auto-focus first PIN box
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _otpFocusNodes[0].requestFocus();
+        });
+        
+        showGlassSnackBar(
+          context,
+          message: 'Баталгаажуулах код илгээлээ',
+          icon: Icons.check_circle,
+        );
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       showGlassSnackBar(
         context,
         message: e.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error,
+      );
+    }
+  }
+
+  Future<void> _handleOtpSubmit() async {
+    final pin = _otpControllers.map((c) => c.text).join();
+    if (pin.length != 4) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final baiguullagiinId = await StorageService.getWalletBairBaiguullagiinId()
+          ?? '698e7fd3b6dd386b6c56a808';
+
+      await ApiService.verifySecretCode(
+        utas: _phoneController.text.trim(),
+        code: pin,
+        baiguullagiinId: baiguullagiinId,
+        purpose: 'registration',
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentStep = RegistrationStep.password;
+          _isLoading = false;
+        });
+        showGlassSnackBar(
+          context,
+          message: 'Баталгаажуулалт амжилттай',
+          icon: Icons.check_circle,
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      showGlassSnackBar(
+        context,
+        message: 'Баталгаажуулах код буруу байна',
         icon: Icons.error,
       );
     }
@@ -294,7 +359,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
         ),
         SizedBox(height: 8.h),
         Text(
-          'Таны утасны дугаарт баталгаажуулах код очихгүй, шууд нууц код тохируулна уу.',
+          'Бүртгүүлж үйлчилгээ авахын тулд утасны дугаараа баталгаажуулна уу.',
           style: TextStyle(
             fontSize: 14.sp,
             color: isDark ? Colors.white54 : Colors.black54,
@@ -447,7 +512,135 @@ class _RegistrationModalState extends State<RegistrationModal> {
   }
 
   Widget _buildOtpStep(bool isDark) {
-    return const SizedBox.shrink(); // Integrated if needed later
+    return Column(
+      key: const ValueKey('otp'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Баталгаажуулах',
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Text(
+          '${_phoneController.text} дугаарт илгээсэн 4 оронтой кодыг оруулна уу.',
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: isDark ? Colors.white54 : Colors.black54,
+          ),
+        ),
+        SizedBox(height: 32.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(4, (index) {
+            return SizedBox(
+              width: 55.w,
+              child: Container(
+                constraints: BoxConstraints(minHeight: 65.h),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7FA),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: _otpFocusNodes[index].hasFocus 
+                        ? AppColors.deepGreen 
+                        : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                    width: 1.5,
+                  ),
+                ),
+                child: KeyboardListener(
+                  focusNode: FocusNode(),
+                  onKeyEvent: (event) {
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.backspace) {
+                      if (_otpControllers[index].text.isEmpty && index > 0) {
+                        _otpControllers[index - 1].clear();
+                        _otpFocusNodes[index - 1].requestFocus();
+                        setState(() {});
+                      }
+                    }
+                  },
+                  child: TextField(
+                    controller: _otpControllers[index],
+                    focusNode: _otpFocusNodes[index],
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black,
+                      height: 1.0, // Prevent vertical displacement
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(1),
+                    ],
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(vertical: 15.h),
+                      counterText: '',
+                    ),
+                    onChanged: (value) {
+                      if (value.isNotEmpty && index < 3) {
+                        _otpFocusNodes[index + 1].requestFocus();
+                      } else if (value.isEmpty && index > 0) {
+                        // This case is also covered by KeyboardListener but keeps it consistent
+                        _otpFocusNodes[index - 1].requestFocus();
+                      }
+                      
+                      if (_otpControllers.every((c) => c.text.isNotEmpty)) {
+                        _handleOtpSubmit();
+                      }
+                      setState(() {});
+                    },
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+        SizedBox(height: 32.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _resendSeconds > 0
+                ? Text(
+                    'Дахин илгээх (${_resendSeconds}с)',
+                    style: TextStyle(fontSize: 13.sp, color: Colors.grey),
+                  )
+                : TextButton(
+                    onPressed: _isLoading ? null : _handlePhoneSubmit,
+                    child: Text(
+                      'Дахин илгээх',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: AppColors.deepGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+            TextButton(
+              onPressed: () => setState(() => _currentStep = RegistrationStep.phone),
+              child: Text(
+                'Дугаар солих',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildInputField({
@@ -504,6 +697,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
               prefixIcon: Icon(icon, color: AppColors.deepGreen, size: 20.sp),
               suffixIcon: suffixIcon,
               border: InputBorder.none,
+              filled: false, // Ensure we don't have double filling
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
                 vertical: 16.h,
