@@ -462,6 +462,50 @@ class _BookingScreenState extends State<NuurKhuudas>
       // 2. Fetch data from Wallet API
       final rawBillingList = await ApiService.getWalletBillingList(forceRefresh: forceRefresh);
       
+      // Fetch recent wallet history to filter out already paid bills
+      List<Map<String, dynamic>> walletHistory = [];
+      try {
+        walletHistory = await ApiService.fetchWalletQpayList();
+      } catch(_) {}
+      
+      // Identify billIds that have recent successful or pending payments
+      final Set<String> recentlyPaidBillIds = {};
+      for (var h in walletHistory.take(10)) {
+        final isPaidLocally = h['tulsunEsekh'] == true;
+        final billIds = h['billIds'] as List?;
+        
+        if (billIds != null) {
+          if (isPaidLocally) {
+            // Priority 1: Our DB says it's paid - hide these bills immediately!
+            for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
+            continue;
+          }
+          
+          // Priority 2: One-time check for external status
+          final walletPaymentId = h['walletPaymentId']?.toString();
+          final zakhialgiinDugaar = h['zakhialgiinDugaar']?.toString();
+          final checkId = (walletPaymentId != null && walletPaymentId.isNotEmpty) ? walletPaymentId : zakhialgiinDugaar;
+
+          if (checkId != null && checkId.isNotEmpty) {
+            try {
+              final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+              if (st['success'] == true && st['data'] != null) {
+                final walletData = st['data'];
+                final state = walletData['paymentStatus']?.toString().toUpperCase();
+                final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) => 
+                  (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
+                  (trx['trxStatusName']?.toString() == 'Амжилттай')
+                ) ?? false;
+
+                if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx) {
+                  for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
+                }
+              }
+            } catch(_) {}
+          }
+        }
+      }
+
       // Fetch details for each wallet billing concurrently
       final walletFutures = rawBillingList.map((billing) async {
         Map<String, dynamic> updatedBilling = Map<String, dynamic>.from(billing);
@@ -479,6 +523,11 @@ class _BookingScreenState extends State<NuurKhuudas>
             if (billingData.isNotEmpty && billingData['billingId'] != null) {
               final newBills = billingData['newBills'] as List? ?? [];
               for (var bill in newBills) {
+                final billId = bill['billId']?.toString();
+                // Exclude already paid bills
+                if (billId != null && recentlyPaidBillIds.contains(billId)) {
+                   continue;
+                }
                 billingTotal += _parseNum(bill['billTotalAmount']);
                 billingAldangi += _parseNum(bill['billLateFee'] ?? bill['billLateFeeAmount']);
               }
@@ -811,18 +860,38 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (history.isNotEmpty) {
         // Find latest pending or recently paid payment
         final latest = history.first;
-        final status = latest['status']?.toString().toUpperCase();
+        final statusStr = latest['status']?.toString().toUpperCase();
         final walletPaymentId = latest['walletPaymentId']?.toString();
 
-        if (walletPaymentId != null && status == 'PENDING') {
-          print(
-            '🔎 [HOME] Checking latest pending wallet payment: $walletPaymentId',
-          );
-          final checkRes = await ApiService.walletQpayCheckStatus(
+        if (walletPaymentId != null && statusStr == 'PENDING') {
+          print('🔎 [HOME] Checking latest pending wallet payment: $walletPaymentId');
+          
+          final statusRes = await ApiService.walletQpayWalletCheck(
             walletPaymentId: walletPaymentId,
           );
-          if (checkRes['status']?.toString().toUpperCase() == 'PAID') {
-            print('✅ [HOME] Latest payment became PAID. Refreshing balance.');
+          
+          bool isPaid = false;
+          if (statusRes['success'] == true && statusRes['data'] != null) {
+            final walletData = statusRes['data'];
+            final state = walletData['paymentStatus']?.toString().toUpperCase();
+            
+            // Check for success transactions
+            final transactions = walletData['paymentTransactions'] as List?;
+            bool hasSuccessfulTrx = false;
+            if (transactions != null) {
+              hasSuccessfulTrx = transactions.any((trx) => 
+                (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                (trx['trxStatusName']?.toString() == 'Амжилттай')
+              );
+            }
+
+            if (state == 'PAID' || hasSuccessfulTrx) {
+              isPaid = true;
+            }
+          }
+
+          if (isPaid) {
+            print('✅ [HOME] Latest payment confirmed PAID. Refreshing balance.');
             _loadAllBillingPayments();
           }
         }
@@ -1430,12 +1499,12 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     String expanded = address;
 
-    expanded = expanded.replaceAll(RegExp(r'\b\b'), 'Баянгол дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\bБГД\b'), 'Баянгол дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bБЗД\b'), 'Баянзүрх дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bСБД\b'), 'Сүхбаатар дүүрэг');
-    expanded = expanded.replaceAll(RegExp(r'\bХД\b'), 'Хан-Уул дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\bХУД\b'), 'Хан-Уул дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bЧД\b'), 'Чингэлтэй дүүрэг');
-    expanded = expanded.replaceAll(RegExp(r'\bСД\b'), 'Сонгинохайрхан дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\bСХД\b'), 'Сонгинохайрхан дүүрэг');
 
     return expanded;
   }
@@ -1524,7 +1593,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Хэрэглээний төлбөр',
+                    'Байрны төлбөр',
                     style: TextStyle(
                       fontSize: 15.sp,
                       color: context.textPrimaryColor,

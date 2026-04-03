@@ -11,6 +11,7 @@ import 'package:sukh_app/widgets/shake_hint_overlay.dart';
 import 'package:sukh_app/widgets/snow_effect.dart';
 import 'package:sukh_app/widgets/update_modal.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:sukh_app/utils/restore_app_icon.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +20,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await initializeDateFormatting('mn_MN', null);
   await NotificationService.initialize();
 
   await SessionService.checkAndHandleSession();

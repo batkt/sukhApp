@@ -11,6 +11,7 @@ import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 
 class EbarimtPage extends StatefulWidget {
   const EbarimtPage({super.key});
@@ -109,8 +110,10 @@ class _EbarimtPageState extends State<EbarimtPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+        showGlassSnackBar(
+          context,
+          message: 'Алдаа: ${e.toString().replaceAll('Exception: ', '')}',
+          icon: Icons.error_outline,
         );
       }
     }
@@ -266,10 +269,33 @@ class _EbarimtPageState extends State<EbarimtPage> {
             if (paymentId == null) return null;
             
             // Otherwise check status to get vatInformation
-            final checkRes = await ApiService.walletQpayCheckStatus(walletPaymentId: paymentId);
+            final statusRes = await ApiService.walletQpayWalletCheck(walletPaymentId: paymentId);
             
-            if (checkRes['status']?.toString().toUpperCase() == 'PAID' && checkRes['vatInformation'] != null) {
-              return VATReceipt.fromWalletPayment(checkRes);
+            if (statusRes['success'] == true && statusRes['data'] != null) {
+              final walletData = statusRes['data'];
+              final state = walletData['paymentStatus']?.toString().toUpperCase();
+              
+              // Check for success transactions
+              final transactions = walletData['paymentTransactions'] as List?;
+              bool hasSuccessfulTrx = false;
+              if (transactions != null) {
+                hasSuccessfulTrx = transactions.any((trx) => 
+                  (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                  (trx['trxStatusName']?.toString() == 'Амжилттай')
+                );
+              }
+
+              if ((state == 'PAID' || hasSuccessfulTrx) && walletData['vatInformation'] != null) {
+                return VATReceipt.fromWalletPayment(walletData);
+              } else {
+                if (mounted) {
+                  showGlassSnackBar(
+                    context,
+                    message: 'Энэ төлбөрт И-Баримт үүсээгүй байна',
+                    icon: Icons.info_outline,
+                  );
+                }
+              }
             }
           } catch (e) {
             print('Error fetching wallet receipt for ${item['paymentId'] ?? item['walletPaymentId']}: $e');
@@ -301,6 +327,16 @@ class _EbarimtPageState extends State<EbarimtPage> {
   void dispose() {
     _citizenCodeController.dispose();
     super.dispose();
+  }
+
+  String _cleanErrorMessage(String error) {
+    var msg = error.replaceAll("Exception: ", "").trim();
+    if (msg.contains("Оршин суугчийн мэдээлэл олдсонгүй") || 
+        msg.contains("СӨХ-өөс мэдээлэлээ шалгуулна уу") ||
+        msg.contains("Мэдээлэл авахад алдаа гарлаа")) {
+      return "Мэдээлэл олдсонгүй. СӨХ-өөс мэдээлэлээ шалгуулна уу.";
+    }
+    return msg;
   }
 
   Future<void> _searchConsumerInfo() async {
@@ -367,9 +403,11 @@ class _EbarimtPageState extends State<EbarimtPage> {
           _foreignerInfo = null;
           _infoType = null;
         });
+        
+        final cleanMsg = _cleanErrorMessage(e.toString());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll("Exception: ", "")),
+            content: Text(cleanMsg),
             backgroundColor: Colors.red,
           ),
         );
@@ -388,34 +426,34 @@ class _EbarimtPageState extends State<EbarimtPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Citizen Code Input Section
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              padding: EdgeInsets.all(20.w),
-              decoration: BoxDecoration(
-                color: context.cardBackgroundColor,
-                borderRadius: BorderRadius.circular(24.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                    spreadRadius: 0,
+            if (_consumerInfo == null && _foreignerInfo == null)
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                padding: EdgeInsets.all(20.w),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(24.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.4 : 0.06),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
                   ),
-                ],
-              ),
-              child: Form(
-                key: _formKey,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(8.w),
+                          padding: EdgeInsets.all(10.w),
                           decoration: BoxDecoration(
                             color: AppColors.deepGreen.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10.r),
+                            shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.person_search_rounded,
@@ -424,195 +462,190 @@ class _EbarimtPageState extends State<EbarimtPage> {
                           ),
                         ),
                         SizedBox(width: 12.w),
-                        Text(
-                          'Иргэний мэдээлэл',
-                          style: TextStyle(
-                            color: context.textPrimaryColor,
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w700,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Иргэний мэдээлэл',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                                ),
+                              ),
+                              Text(
+                                'И-Баримт авах иргэн эсвэл ААН-ийн хайлтыг энд хийнэ үү',
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  color: isDark ? Colors.blueGrey.shade400 : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 20.h),
-                    TextFormField(
-                      controller: _citizenCodeController,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: [
-                        TextInputFormatter.withFunction((oldValue, newValue) {
-                          return newValue.copyWith(
-                            text: newValue.text.toUpperCase(),
-                          );
-                        }),
-                      ],
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        color: context.textPrimaryColor,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Регистр, утасны дугаар',
-                        hintStyle: TextStyle(
-                          color: context.textSecondaryColor.withOpacity(0.7),
-                          fontSize: 14.sp,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.badge_outlined,
-                          color: context.textSecondaryColor,
-                          size: 22.sp,
-                        ),
-                        suffixIcon: _savedUsers.isEmpty
-                            ? null
-                            : PopupMenuButton<dynamic>(
-                                icon: Icon(
-                                  Icons.arrow_drop_down_circle_outlined,
-                                  color: AppColors.deepGreen,
-                                  size: 24.sp,
-                                ),
-                                onSelected: (user) {
-                                  setState(() {
-                                    final identity =
-                                        (user['regNo']?.toString().isNotEmpty == true
-                                                ? user['regNo']
-                                                : user['loginName']) ??
-                                            '';
-                                    _citizenCodeController.text = identity.toString();
-                                    
-                                    // Auto-trigger search with selection
-                                    _searchConsumerInfo();
-                                  });
-                                },
-                                itemBuilder: (context) => _savedUsers
-                                    .map((user) => PopupMenuItem<dynamic>(
-                                          value: user,
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                user['turul'] == 'foreigner'
-                                                    ? Icons.public_rounded
-                                                    : Icons.person_rounded,
-                                                size: 18.sp,
-                                                color: AppColors.deepGreen,
-                                              ),
-                                              SizedBox(width: 12.w),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
+                    SizedBox(height: 24.h),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            controller: _citizenCodeController,
+                            keyboardType: TextInputType.text,
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : const Color(0xFF334155),
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Иргэний код эсвэл Утасны дугаар',
+                              hintText: 'Жишээ: 88... эсвэл Иргэний код',
+                              prefixIcon: Icon(Icons.qr_code_scanner_rounded, size: 20.sp, color: AppColors.deepGreen),
+                              suffixIcon: _savedUsers.isEmpty
+                                  ? null
+                                  : PopupMenuButton<dynamic>(
+                                      icon: Icon(
+                                        Icons.arrow_drop_down_circle_outlined,
+                                        color: AppColors.deepGreen,
+                                        size: 24.sp,
+                                      ),
+                                      onSelected: (user) {
+                                        setState(() {
+                                          final identity =
+                                              (user['regNo']?.toString().isNotEmpty == true
+                                                      ? user['regNo']
+                                                      : user['loginName']) ??
+                                                  '';
+                                          _citizenCodeController.text = identity.toString();
+                                          
+                                          // Auto-trigger search with selection
+                                          _searchConsumerInfo();
+                                        });
+                                      },
+                                      itemBuilder: (context) => _savedUsers
+                                          .map((user) => PopupMenuItem<dynamic>(
+                                                value: user,
+                                                child: Row(
                                                   children: [
-                                                    Text(
-                                                      '${user['givenName'] ?? ''} ${user['familyName'] ?? ''}'
-                                                          .toUpperCase(),
-                                                      style: TextStyle(
-                                                        fontSize: 14.sp,
-                                                        fontWeight:
-                                                            FontWeight.w600,
+                                                    Icon(
+                                                      user['turul'] == 'foreigner'
+                                                          ? Icons.public_rounded
+                                                          : Icons.person_rounded,
+                                                      size: 18.sp,
+                                                      color: AppColors.deepGreen,
+                                                    ),
+                                                    SizedBox(width: 12.w),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            '${user['givenName'] ?? ''} ${user['familyName'] ?? ''}'
+                                                                .toUpperCase(),
+                                                            style: const TextStyle(fontWeight: FontWeight.w600),
+                                                          ),
+                                                          Text(
+                                                            (user['regNo'] ?? user['loginName'] ?? '').toString(),
+                                                            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
-                                                    Text(
-                                                      ((user['regNo'] ??
-                                                              user['loginName'] ??
-                                                              '') as String)
-                                                          .toUpperCase(),
-                                                      style: TextStyle(
-                                                        fontSize: 12.sp,
-                                                        color: context
-                                                            .textSecondaryColor,
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        Navigator.pop(context);
+                                                        _deleteEasyRegisterUser(user);
+                                                      },
+                                                      child: Padding(
+                                                        padding: EdgeInsets.all(4.w),
+                                                        child: Icon(
+                                                          Icons.delete_outline_rounded,
+                                                          size: 18.sp,
+                                                          color: Colors.red.withOpacity(0.7),
+                                                        ),
                                                       ),
                                                     ),
                                                   ],
                                                 ),
-                                              ),
-                                              GestureDetector(
-                                                onTap: () {
-                                                  Navigator.pop(context);
-                                                  _deleteEasyRegisterUser(user);
-                                                },
-                                                child: Padding(
-                                                  padding: EdgeInsets.all(4.w),
-                                                  child: Icon(
-                                                    Icons.delete_outline_rounded,
-                                                    size: 18.sp,
-                                                    color: Colors.red.withOpacity(0.7),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ))
-                                    .toList(),
+                                              ))
+                                          .toList(),
+                                    ),
+                              filled: true,
+                              fillColor: isDark ? Colors.black26 : Colors.grey.shade50,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide.none,
                               ),
-                        filled: true,
-                        fillColor: isDark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.grey.withOpacity(0.05),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.r),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.r),
-                          borderSide: BorderSide(
-                            color: AppColors.deepGreen,
-                            width: 1.5,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16.r),
+                                borderSide: const BorderSide(color: AppColors.deepGreen, width: 1.5),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+                            ),
+                            validator: (val) => val == null || val.isEmpty ? 'Мэдээлэл оруулна уу' : null,
                           ),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: 16.h,
-                          horizontal: 16.w,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Хоосон байж болохгүй';
-                        }
-                        return null;
-                      },
-                    ),
-                    SizedBox(height: 16.h),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isSearching ? null : _searchConsumerInfo,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.deepGreen,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 16.h),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.r),
+                          SizedBox(height: 16.h),
+                          
+                          // Type selection for more accurate search
+                          Row(
+                            children: [
+                              _buildTypeChip('Иргэн', 'consumer', isDark),
+                              SizedBox(width: 8.w),
+                              _buildTypeChip('Бизнес', 'foreigner', isDark),
+                            ],
                           ),
-                        ),
-                        child: _isSearching
-                            ? SizedBox(
-                                width: 22.sp,
-                                height: 22.sp,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                (_consumerInfo != null || _foreignerInfo != null)
-                                    ? 'Засах'
-                                    : 'Хадгалах',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.3,
+                          
+                          SizedBox(height: 20.h),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52.h,
+                            child: ElevatedButton(
+                              onPressed: _isSearching ? null : _searchConsumerInfo,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.deepGreen,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16.r),
                                 ),
                               ),
+                              child: _isSearching
+                                  ? SizedBox(
+                                      height: 20.h,
+                                      width: 20.h,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'БҮРТГЭЛ ХАЙХ',
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    // Display consumer/foreigner info
-                    if (_consumerInfo != null || _foreignerInfo != null) ...[
-                      SizedBox(height: 20.h),
-                      _buildInfoCard(),
-                    ],
                   ],
                 ),
+              )
+            else
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
+                child: _buildInfoCard(),
               ),
-            ),
 
             // Ebarimt Receipts List Header
             Padding(
@@ -998,6 +1031,36 @@ class _EbarimtPageState extends State<EbarimtPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTypeChip(String label, String type, bool isDark) {
+    final isSelected = _infoType == type;
+    return GestureDetector(
+      onTap: () => setState(() => _infoType = type),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? AppColors.deepGreen.withOpacity(0.15) 
+              : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isSelected ? AppColors.deepGreen : Colors.transparent,
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected 
+                ? AppColors.deepGreen 
+                : (isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade600),
+          ),
+        ),
       ),
     );
   }

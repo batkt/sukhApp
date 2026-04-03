@@ -101,7 +101,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             // Even if success is true, if remaining is 0 we should disable
             final remaining = _quotaStatus!['remaining'] as int;
             final total = _quotaStatus!['total'] as int;
-            _hasQuota = total == 0 || remaining > 0;
+            final freeMinutes = _quotaStatus!['freeMinutesPerGuest'] as int? ?? 0;
+            _hasQuota = total == 0 || remaining > 0 || freeMinutes > 0;
           }
           
           _isLoadingQuota = false;

@@ -5,6 +5,8 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:intl/intl.dart';
 import 'package:sukh_app/models/payment_history_model.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
@@ -174,309 +176,414 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     }
   }
 
+  Map<String, List<PaymentHistory>> _groupHistoryByMonth() {
+    final Map<String, List<PaymentHistory>> groups = {};
+    for (var payment in _paymentHistory) {
+      final month = DateFormat('yyyy оны MM сар', 'mn_MN').format(payment.paymentStatusDate);
+      if (!groups.containsKey(month)) {
+        groups[month] = [];
+      }
+      groups[month]!.add(payment);
+    }
+    return groups;
+  }
+
+  double _calculateMonthTotal(List<PaymentHistory> monthPayments) {
+    return monthPayments.fold(0.0, (sum, p) => sum + p.paymentAmount);
+  }
+
+  Future<void> _showEbarimtModal(String paymentId) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final response = await ApiService.walletQpayWalletCheck(walletPaymentId: paymentId);
+      
+      if (mounted) Navigator.pop(context); // Close loading
+
+      if (response['success'] == true && response['data'] != null) {
+        final walletData = response['data'];
+        if (walletData['vatInformation'] != null) {
+          final receipt = VATReceipt.fromWalletPayment(walletData);
+          if (mounted) {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => VATReceiptModal(receipt: receipt),
+            );
+          }
+        } else {
+          if (mounted) {
+            showGlassSnackBar(
+              context,
+              message: 'Энэ төлбөрт И-Баримт үүсээгүй байна',
+              icon: Icons.info_outline,
+            );
+          }
+        }
+      } else {
+        throw Exception(response['message'] ?? 'Мэдээлэл авахад алдаа гарлаа');
+      }
+    } catch (e) {
+      if (mounted) {
+        if (Navigator.canPop(context)) Navigator.pop(context);
+        showGlassSnackBar(
+          context,
+          message: 'Алдаа: ${e.toString().replaceAll('Exception: ', '')}',
+          icon: Icons.error_outline,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
+    final grouped = _groupHistoryByMonth();
+    final months = grouped.keys.toList();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
-      appBar: buildStandardAppBar(context, title: 'Төлбөрийн түүх'),
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadPaymentHistory,
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.w),
+          : CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // ── PREMIIUM HEADER ──
+                SliverAppBar(
+                  expandedHeight: 240.h,
+                  pinned: true,
+                  stretch: true,
+                  backgroundColor: AppColors.deepGreen,
+                  elevation: 0,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: FlexibleSpaceBar(
+                    stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Background decoration
+                        Positioned(
+                          right: -50.w,
+                          top: -50.h,
+                          child: CircleAvatar(
+                            radius: 120.r,
+                            backgroundColor: Colors.white.withOpacity(0.05),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(24.w, 80.h, 24.w, 24.h),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.billingName,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                '${_paymentHistory.length} удаа төлөлт хийсэн',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24.sp,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: EdgeInsets.all(16.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(16.r),
+                                  border: Border.all(color: Colors.white10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.location_on_rounded, color: Colors.white70, size: 16.sp),
+                                    SizedBox(width: 8.w),
+                                    Expanded(
+                                      child: Text(
+                                        widget.customerAddress,
+                                        style: TextStyle(color: Colors.white, fontSize: 12.sp, height: 1.2),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(20),
+                    child: Container(
+                      height: 20.h,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30.r),
+                          topRight: Radius.circular(30.r),
+                        ),
+                      ),
+                    ),
+                  ),
+                  leading: Padding(
+                    padding: EdgeInsets.only(left: 12.w),
+                    child: Center(
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    'Төлбөрийн түүх',
+                    style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
+                  ),
+                  centerTitle: true,
+                ),
+
+                // ── PAYMENT LIST ──
+                if (_paymentHistory.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          Icon(Icons.history_rounded, size: 100.sp, color: Colors.grey.withOpacity(0.2)),
+                          SizedBox(height: 24.h),
                           Text(
-                            widget.billingName,
-                            style: TextStyle(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
+                            'Төлбөрийн түүх одоогоор алга байна',
+                            style: TextStyle(color: Colors.grey, fontSize: 14.sp),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...months.map((month) {
+                    final payments = grouped[month]!;
+                    final monthTotal = _calculateMonthTotal(payments);
+
+                    return SliverPadding(
+                      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
+                      sliver: SliverMainAxisGroup(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: 16.h, left: 4.w),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                textBaseline: TextBaseline.alphabetic,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                children: [
+                                  Text(
+                                    month.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${NumberFormat('#,##0').format(monthTotal)} ₮',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white70 : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          SizedBox(height: 8.h),
-                          Text(
-                            widget.customerName,
-                            style: TextStyle(fontSize: 14.sp),
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) => _buildModernHistoryCard(payments[index], isDark),
+                              childCount: payments.length,
+                            ),
                           ),
-                          SizedBox(height: 4.h),
+                        ],
+                      ),
+                    );
+                  }),
+                SliverToBoxAdapter(child: SizedBox(height: 50.h)),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildModernHistoryCard(PaymentHistory payment, bool isDark) {
+    final dayStr = DateFormat('dd').format(payment.paymentStatusDate);
+    final weekdayStr = DateFormat('EEE', 'mn_MN').format(payment.paymentStatusDate);
+    final timeStr = DateFormat('HH:mm').format(payment.paymentStatusDate);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Date Column
+                Container(
+                  width: 50.w,
+                  height: 50.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen.withOpacity(isDark ? 0.15 : 0.08),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        dayStr,
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.deepGreen,
+                          height: 1,
+                        ),
+                      ),
+                      Text(
+                        weekdayStr.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.deepGreen.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                // Info Section
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        payment.bills.length > 1 
+                            ? '${payment.bills.length} нэхэмжлэх'
+                            : payment.bills.first.billType,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF334155),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4.h),
+                      Row(
+                        children: [
                           Text(
-                            widget.customerAddress,
+                            timeStr,
+                            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                          ),
+                          SizedBox(width: 8.w),
+                          Container(
+                            width: 3.w,
+                            height: 3.w,
+                            decoration: const BoxDecoration(color: Colors.grey, shape: BoxShape.circle),
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Төлөгдсөн',
                             style: TextStyle(
-                              fontSize: 12.sp,
-                              color: context.textSecondaryColor,
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.deepGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                // Amount Section
+                Text(
+                  '${NumberFormat('#,##0').format(payment.paymentAmount)} ₮',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? Colors.white : const Color(0xFF334155),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Action Button - Always visible and easy to use
+          Padding(
+            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _showEbarimtModal(payment.paymentId),
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Container(
+                      height: 42.h,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.r),
+                        color: AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.08),
+                        border: Border.all(color: AppColors.deepGreen.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.receipt_long_rounded, color: AppColors.deepGreen, size: 18.sp),
+                          SizedBox(width: 10.w),
+                          Text(
+                            'ЦАХИМ ТӨЛБӨРИЙН БАРИМТ ХАРАХ',
+                            style: TextStyle(
+                              color: AppColors.deepGreen,
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  SliverPadding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final payment = _paymentHistory[index];
-                        final currentMonth = DateFormat(
-                          'yyyy-MM',
-                        ).format(payment.paymentStatusDate);
-                        final paymentDate = DateFormat(
-                          'yyyy-MM-dd',
-                        ).format(payment.paymentStatusDate);
-
-                        return Container(
-                          margin: EdgeInsets.only(bottom: 12.h),
-                          padding: EdgeInsets.all(16.w),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF1C2229)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    currentMonth,
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: context.textPrimaryColor,
-                                    ),
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        paymentDate,
-                                        style: TextStyle(
-                                          fontSize: 12.sp,
-                                          fontWeight: FontWeight.w400,
-                                          color: context.textSecondaryColor,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4.h),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 10.w,
-                                          vertical: 4.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF4CAF50),
-                                          borderRadius: BorderRadius.circular(
-                                            8.r,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "Төлсөн",
-                                          style: TextStyle(
-                                            fontSize: 11.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              // Replaced the original bill mapping with the new conditional logic
-                              ...payment.bills.length > 1 ? [
-                                Divider(
-                                  height: 24.h,
-                                  thickness: 1,
-                                  color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      if (_expandedPaymentIds.contains(payment.paymentId)) {
-                                        _expandedPaymentIds.remove(payment.paymentId);
-                                      } else {
-                                        _expandedPaymentIds.add(payment.paymentId);
-                                      }
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 4.h),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Төлбөрийн задаргаа',
-                                          style: TextStyle(
-                                            fontSize: 13.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: context.textPrimaryColor.withOpacity(0.7),
-                                          ),
-                                        ),
-                                        Icon(
-                                          _expandedPaymentIds.contains(payment.paymentId)
-                                              ? Icons.keyboard_arrow_up
-                                              : Icons.keyboard_arrow_down,
-                                          size: 20.sp,
-                                          color: context.textPrimaryColor.withOpacity(0.7),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                if (_expandedPaymentIds.contains(payment.paymentId)) ...[
-                                  SizedBox(height: 12.h),
-                                  ...payment.bills.asMap().entries.map((entry) {
-                                    final index = entry.key;
-                                    final bill = entry.value;
-                                    return Column(
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(vertical: 8.h),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  bill.billType,
-                                                  style: TextStyle(
-                                                    fontSize: 14.sp,
-                                                    color: context.textPrimaryColor.withOpacity(0.7),
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(width: 8.w),
-                                              Text(
-                                                '${NumberFormat('#,##0.00').format(bill.billTotalAmount)} ₮',
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: context.textPrimaryColor,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        if (index < payment.bills.length - 1)
-                                          Divider(
-                                            height: 1,
-                                            thickness: 0.5,
-                                            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                                          ),
-                                      ],
-                                    );
-                                  }).toList(),
-                                ],
-                              ] : [
-                                SizedBox(height: 16.h),
-                                ...payment.bills.map((bill) {
-                                  return Padding(
-                                    padding: EdgeInsets.only(bottom: 12.h),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            bill.billType,
-                                            style: TextStyle(
-                                              fontSize: 14.sp,
-                                              color: context.textPrimaryColor
-                                                  .withOpacity(0.8),
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(width: 16.w),
-                                        Text(
-                                          '${NumberFormat('#,##0.00').format(bill.billTotalAmount)} ₮', // Added ₮
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: context.textPrimaryColor,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8.w),
-                                        Text(
-                                          '${NumberFormat('#,##0.00').format(bill.billLateFee)}',
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.error,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
-                              Divider(
-                                height: 24.h,
-                                thickness: 1,
-                                color: isDark
-                                    ? Colors.white10
-                                    : Colors.black.withOpacity(0.05),
-                              ),
-                              SizedBox(
-                                width: double.infinity,
-                                child: TextButton(
-                                  onPressed: () {
-                                    context.push('/ebarimt');
-                                  },
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: 8.h,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8.r),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.receipt_long_rounded,
-                                        size: 16.sp,
-                                        color: AppColors.deepGreen,
-                                      ),
-                                      SizedBox(width: 8.w),
-                                      Text(
-                                        'Баримт харах',
-                                        style: TextStyle(
-                                          fontSize: 13.sp,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.deepGreen,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }, childCount: _paymentHistory.length),
-                    ),
-                  ),
-                  SliverToBoxAdapter(child: SizedBox(height: 32.h)),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
     );
   }
-
-  // Grouping method is no longer used for the requested "not unified" design
 }

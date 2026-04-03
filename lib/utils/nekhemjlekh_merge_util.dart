@@ -41,7 +41,8 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
     final rawTurul = (rec['turul'] ?? 'avlaga').toString().toLowerCase();
     final turul = (rawTurul == 'авлага' || rawTurul == 'avlaga') ? 'avlaga' : rawTurul;
 
-    final matchesContract = (gereeniiId != null && itemGid == gereeniiId) ||
+    final matchesContract = (gereeniiId == null && gereeniiDugaar == '' && orshinSuugchId == null) ||
+        (gereeniiId != null && itemGid == gereeniiId) ||
         itemDugaar == gereeniiDugaar ||
         (orshinSuugchId != null && itemRid == orshinSuugchId);
     if (!matchesContract) continue;
@@ -67,17 +68,18 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
         }
       }
     }
-    if (targetIndex < 0 && ekhniiUldegdelEsekh) {
-      targetIndex = latestUnpaidIndex;
-    } else if (targetIndex < 0) {
-      targetIndex = latestUnpaidIndex;
-    }
 
     if (targetIndex >= 0 && targetIndex < invoices.length) {
+      // LINKED: Merge into existing invoice and update its total
       final inv = invoices[targetIndex];
       var medeelel = inv['medeelel'];
       if (medeelel == null) {
-        medeelel = {'zardluud': [], 'guilgeenuud': [], 'toot': '', 'temdeglel': ''};
+        medeelel = {
+          'zardluud': [],
+          'guilgeenuud': [],
+          'toot': '',
+          'temdeglel': ''
+        };
         inv['medeelel'] = medeelel;
       }
       if (medeelel is! Map<String, dynamic>) {
@@ -91,10 +93,51 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
       }
       if (guilgeenuud is! List) guilgeenuud = List.from(guilgeenuud);
       medeelel['guilgeenuud'] = guilgeenuud;
+
       final existingId = guilgeeEntry['_id']?.toString();
       final alreadyHas = existingId != null &&
-          guilgeenuud.any((g) => (g['_id'] ?? g['id'])?.toString() == existingId);
-      if (!alreadyHas) guilgeenuud.add(guilgeeEntry);
+          guilgeenuud
+              .any((g) => (g['_id'] ?? g['id'])?.toString() == existingId);
+
+      if (!alreadyHas) {
+        guilgeenuud.add(guilgeeEntry);
+
+        // Update invoice totals with this receivable amount
+        final remaining = guilgeeEntry['undsenDun'] - guilgeeEntry['tulsunDun'];
+        if (remaining > 0) {
+          inv['niitTulbur'] = (inv['niitTulbur'] ?? 0.0).toDouble() + remaining;
+          inv['uldegdel'] = (inv['uldegdel'] ?? 0.0).toDouble() + remaining;
+        }
+      }
+    } else {
+      // UNLINKED: Add as a standalone item if not already in the list
+      final existingId = rec['_id']?.toString();
+      final alreadyHas = existingId != null &&
+          invoices.any((inv) => (inv['_id'] ?? inv['id'])?.toString() == existingId);
+
+      if (!alreadyHas) {
+        final amount = _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0) - _toNum(rec['tulsunDun'] ?? 0);
+        if (amount > 0) {
+          invoices.add({
+            '_id': rec['_id']?.toString(),
+            'baiguullagiinNer': 'СӨХ / Ашиглалтын зардал',
+            'ovog': rec['ovog'] ?? '',
+            'ner': rec['ner'] ?? '',
+            'register': rec['register'] ?? '',
+            'khayag': rec['khayag'] ?? '',
+            'toot': rec['toot'] ?? '',
+            'gereeniiDugaar': itemDugaar,
+            'ognoo': rec['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
+            'nekhemjlekhiinOgnoo': rec['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
+            'niitTulbur': amount,
+            'uldegdel': amount,
+            'tuluv': 'Төлөөгүй',
+            'turul': turul,
+            'guilgeenuud': [guilgeeEntry], // Include self in breakdown
+            'isStandaloneAvlaga': true,
+          });
+        }
+      }
     }
   }
 

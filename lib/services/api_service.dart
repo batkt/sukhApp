@@ -3523,6 +3523,43 @@ class ApiService {
     }
   }
 
+  /// New Debug Endpoint: GET /api/walletQpay/wallet-check/:baiguullagiinId/:walletPaymentId
+  /// This returns the full Wallet API response including transactions
+  static Future<Map<String, dynamic>> walletQpayWalletCheck({
+    required String walletPaymentId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      if (baiguullagiinId == null) {
+        throw Exception('Байгууллагын мэдээлэл олдсонгүй');
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/walletQpay/wallet-check/$baiguullagiinId/$walletPaymentId',
+      );
+      print('🔍 [WALLET QPAY] Checking full wallet status: $uri');
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return data;
+      } else if (response.statusCode == 401) {
+        await handleUnauthorized();
+        throw Exception('Нэвтрэлтийн хугацаа дууссан');
+      } else {
+        throw Exception(
+          'Төлбөрийн статус шалгахад алдаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Төлбөрийн статус шалгахад алдаа: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> walletQpayGetPayment({
     required String walletPaymentId,
   }) async {

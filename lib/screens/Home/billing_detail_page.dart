@@ -12,6 +12,7 @@ import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 
 class BillingDetailPage extends StatefulWidget {
   final Map<String, dynamic> billing;
@@ -42,6 +43,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
   String _vatReceiveType = 'CITIZEN';
   final TextEditingController _vatCompanyRegController =
       TextEditingController();
+
+  // Track real-time status of bills from recent wallet transactions
+  final Map<String, String> _billStatuses = {};
+  final Map<String, String> _billStatusTexts = {};
+  final Map<String, Color> _billStatusColors = {};
 
   @override
   void initState() {
@@ -157,6 +163,12 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               count++;
             }
           }
+        });
+        
+        // Even if using passed data, check for recent wallet statuses
+        await _checkRecentWalletStatuses();
+        
+        setState(() {
           _isLoading = false;
         });
         return;
@@ -231,11 +243,18 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                         .cast<Map<String, dynamic>>()
                   : <Map<String, dynamic>>[];
 
-              // Use the shared utility to merge if available, or just map manually
-              // Since this is becoming standard, we map to the Bill structure expected by this page
-              // Standard OWN_ORG logic: use official invoices as the primary source of truth for debts.
+              // Use the shared utility to merge gereeniiTulukhAvlaga into invoices (ekhniiUldegdel, avlaga)
+              final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
+                rawInvoices,
+                tulukhAvlagaList,
+                null, // No gereeniiId check since we are already filtered by billingId
+                '', // No gereeniiDugaar check since we are already filtered by billingId
+                null, // No orshinSuugchId check since we are already filtered by billingId
+              );
+
+              // Standard OWN_ORG logic: use official merged invoices
               final Set<String> seenIds = {};
-              for (var inv in rawInvoices) {
+              for (var inv in mergedInvoices) {
                 if (inv['tuluv'] == 'Төлсөн')
                   continue; // Skip historical payments
 
@@ -314,6 +333,12 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             count++;
           }
         }
+      });
+      
+      // After loading bills, check for any recent wallet statuses to override display
+      await _checkRecentWalletStatuses();
+      
+      setState(() {
         _isLoading = false;
       });
     } catch (e) {
@@ -323,6 +348,87 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           _errorMessage = 'Мэдээлэл ачаалахад алдаа гарлаа: $e';
         });
       }
+    }
+  }
+
+  Future<void> _checkRecentWalletStatuses() async {
+    try {
+      // 1. Fetch recent wallet payment attempts
+      final history = await ApiService.fetchWalletQpayList();
+      if (history.isEmpty) return;
+
+      // 2. Identify payments from the last hour or so that might be relevant
+      final recentPayments = history.take(10).toList();
+
+      for (var payment in recentPayments) {
+        // Try walletPaymentId first, then fallback to zakhialgiinDugaar for the check
+        final walletPaymentId = payment['walletPaymentId']?.toString();
+        final zakhialgiinDugaar = payment['zakhialgiinDugaar']?.toString();
+        final checkId = (walletPaymentId != null && walletPaymentId.isNotEmpty) ? walletPaymentId : zakhialgiinDugaar;
+        
+        final billIds = payment['billIds'] as List?;
+        
+        if (checkId == null || checkId.isEmpty || billIds == null || billIds.isEmpty) continue;
+
+        // Check if any of these billIds are in our current list
+        final hasMatch = billIds.any((bid) => _allBills.any((b) => b['billId']?.toString() == bid.toString()));
+        if (!hasMatch) continue;
+
+        // 3. Fetch detailed status for this payment
+        try {
+          final statusRes = await ApiService.walletQpayWalletCheck(
+            walletPaymentId: checkId,
+          );
+
+          if (statusRes['success'] == true && statusRes['data'] != null) {
+            final walletData = statusRes['data'];
+            final state = walletData['paymentStatus']?.toString().toUpperCase();
+            final stateText = walletData['paymentStatusText']?.toString();
+            
+            // Prioritize local settlement field (tulsunEsekh) if provided by backend
+            final bool isLocallyPaid = statusRes['tulsunEsekh'] == true;
+            
+            // Checks for success transactions inside transactions list
+            final transactions = walletData['paymentTransactions'] as List?;
+            bool hasSuccessfulTrx = false;
+            if (transactions != null) {
+              hasSuccessfulTrx = transactions.any((trx) => 
+                (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                (trx['trxStatusName']?.toString() == 'Амжилттай')
+              );
+            }
+
+            String finalStatus = '';
+            String finalStatusText = '';
+            Color statusColor = Colors.grey;
+
+            if (isLocallyPaid || state == 'PAID' || hasSuccessfulTrx) {
+              finalStatus = 'PAID';
+              finalStatusText = 'Төлөгдсөн';
+              statusColor = Colors.green;
+            } else if (state == 'PENDING') {
+              finalStatus = 'PENDING';
+              finalStatusText = stateText ?? 'Төлбөр төлөгдөж буй';
+              statusColor = Colors.orange;
+            }
+
+            if (finalStatus.isNotEmpty) {
+              setState(() {
+                for (var bid in billIds) {
+                  final idStr = bid.toString();
+                  _billStatuses[idStr] = finalStatus;
+                  _billStatusTexts[idStr] = finalStatusText;
+                  _billStatusColors[idStr] = statusColor;
+                }
+              });
+            }
+          }
+        } catch (e) {
+          print('Error checking status for $walletPaymentId: $e');
+        }
+      }
+    } catch (e) {
+      print('Error in _checkRecentWalletStatuses: $e');
     }
   }
 
@@ -476,14 +582,31 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                 
                 if (source == 'WALLET_API' && walletPaymentId != null) {
                   try {
-                    final status = await ApiService.walletQpayCheckStatus(
+                    // Check the full wallet status including transactions
+                    final statusRes = await ApiService.walletQpayWalletCheck(
                       walletPaymentId: walletPaymentId,
                     );
-                    final state = status['status']?.toString().toUpperCase();
-                    if (state == 'PAID') return true;
-                    if (state == 'PENDING') return null;
+                    
+                    if (statusRes['success'] == true && statusRes['data'] != null) {
+                      final walletData = statusRes['data'];
+                      final state = walletData['paymentStatus']?.toString().toUpperCase();
+                      
+                      // Check for success transactions in paymentTransactions list
+                      final transactions = walletData['paymentTransactions'] as List?;
+                      bool hasSuccessfulTrx = false;
+                      if (transactions != null) {
+                        hasSuccessfulTrx = transactions.any((trx) => 
+                          (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                          (trx['trxStatusName']?.toString() == 'Амжилттай')
+                        );
+                      }
+
+                      if (state == 'PAID' || hasSuccessfulTrx) return true;
+                      if (state == 'PENDING') return null;
+                    }
                     return false;
-                  } catch (_) {
+                  } catch (e) {
+                    print('❌ [WALLET-CHECK] Error: $e');
                     return null;
                   }
                 } else if (source == 'OWN_ORG') {
@@ -961,8 +1084,22 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                               padding: EdgeInsets.only(bottom: 12.h),
                               child: GestureDetector(
                                 onTap: () {
+                                  if (id == null) return;
+                                  
+                                  // Prevent selecting already paid or pending bills
+                                  if (_billStatuses[id] == 'PAID' || _billStatuses[id] == 'PENDING') {
+                                    showGlassSnackBar(
+                                      context,
+                                      message: _billStatuses[id] == 'PAID' 
+                                        ? 'Энэ нэхэмжлэх аль хэдийн төлөгдсөн байна.' 
+                                        : 'Энэ нэхэмжлэх төлөгдөж (хүлээгдэж) байна.',
+                                      icon: Icons.info_outline,
+                                      iconColor: _billStatusColors[id] ?? Colors.orange,
+                                    );
+                                    return;
+                                  }
+
                                   setState(() {
-                                    if (id == null) return;
                                     if (isSelected) {
                                       _selectedBillIds.remove(id);
                                     } else {
@@ -1003,36 +1140,65 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                   ),
                                   child: Row(
                                     children: [
-                                      AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 200,
-                                        ),
-                                        width: 22.w,
-                                        height: 22.w,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
+                                      if (_billStatuses[id] == 'PAID')
+                                        Container(
+                                          width: 22.w,
+                                          height: 22.w,
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.check_circle,
+                                            size: 16.sp,
+                                            color: Colors.green,
+                                          ),
+                                        )
+                                      else if (_billStatuses[id] == 'PENDING')
+                                        Container(
+                                          width: 22.w,
+                                          height: 22.w,
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withOpacity(0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.hourglass_empty_rounded,
+                                            size: 16.sp,
+                                            color: Colors.orange,
+                                          ),
+                                        )
+                                      else
+                                        AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          width: 22.w,
+                                          height: 22.w,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? primaryColor
+                                                  : textSecondary.withOpacity(
+                                                      0.2,
+                                                    ),
+                                              width: 1.5,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8.r,
+                                            ),
                                             color: isSelected
                                                 ? primaryColor
-                                                : textSecondary.withOpacity(
-                                                    0.2,
-                                                  ),
-                                            width: 1.5,
+                                                : Colors.transparent,
                                           ),
-                                          borderRadius: BorderRadius.circular(
-                                            8.r,
-                                          ),
-                                          color: isSelected
-                                              ? primaryColor
-                                              : Colors.transparent,
+                                          child: isSelected
+                                              ? Icon(
+                                                  Icons.check,
+                                                  size: 14.sp,
+                                                  color: Colors.white,
+                                                )
+                                              : null,
                                         ),
-                                        child: isSelected
-                                            ? Icon(
-                                                Icons.check,
-                                                size: 14.sp,
-                                                color: Colors.white,
-                                              )
-                                            : null,
-                                      ),
                                       SizedBox(width: 16.w),
                                       Expanded(
                                         child: Column(
