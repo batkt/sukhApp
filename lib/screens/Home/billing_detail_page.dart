@@ -255,16 +255,24 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               // Standard OWN_ORG logic: use official merged invoices
               final Set<String> seenIds = {};
               for (var inv in mergedInvoices) {
-                if (inv['tuluv'] == 'Төлсөн')
+                if (inv['tuluv'] == 'Төлсөн') {
                   continue; // Skip historical payments
+                }
+
+                // FIX: Avoid double-counting standalone avlaga that are already in the main invoice balance (uldegdel)
+                if (inv['isStandaloneAvlaga'] == true && rawInvoices.isNotEmpty) {
+                  print(' [DEBUG] Skipping standalone avlaga to prevent double-counting: ${inv['tailbar']}');
+                  continue;
+                }
 
                 final invoiceId =
                     inv['_id']?.toString() ?? inv['id']?.toString() ?? '';
-                if (invoiceId.isNotEmpty && seenIds.contains(invoiceId))
+                if (invoiceId.isNotEmpty && seenIds.contains(invoiceId)) {
                   continue;
+                }
                 if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
 
-                // IMPORTANT: Prioritize niitTulbur over uldegdel to avoid the 887k global total bug
+                // IMPORTANT: Prioritize niitTulbur over uldegdel
                 final amt = (inv['niitTulbur'] as num?)?.toDouble() ?? 0.0;
                 final uld = (inv['uldegdel'] as num?)?.toDouble() ?? 0.0;
 
