@@ -70,6 +70,17 @@ class _EbarimtPageState extends State<EbarimtPage> {
         setState(() {
           _savedUsers = response['jagsaalt'] ?? [];
           _isLoadingSavedUsers = false;
+          
+          if (_consumerInfo == null && _foreignerInfo == null && _savedUsers.length == 1) {
+            final user = _savedUsers[0];
+            final identity = (user['regNo']?.toString().isNotEmpty == true 
+                ? user['regNo'] 
+                : user['loginName']) ?? '';
+            if (identity.isNotEmpty) {
+              _citizenCodeController.text = identity;
+              _searchConsumerInfo();
+            }
+          }
         });
       }
     } catch (e) {
@@ -503,7 +514,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                               labelText: 'Иргэний код эсвэл Утасны дугаар',
                               hintText: 'Жишээ: 88... эсвэл Иргэний код',
                               prefixIcon: Icon(Icons.qr_code_scanner_rounded, size: 20.sp, color: AppColors.deepGreen),
-                              suffixIcon: _savedUsers.isEmpty
+                              suffixIcon: (_savedUsers.isEmpty || _consumerInfo != null || _foreignerInfo != null)
                                   ? null
                                   : PopupMenuButton<dynamic>(
                                       icon: Icon(
@@ -824,9 +835,10 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     children: [
                       Text(
                         'ЦАХИМ ТӨЛБӨРИЙН БАРИМТ',
+                        textAlign: TextAlign.left,
                         style: TextStyle(
                           color: context.textPrimaryColor,
-                          fontSize: 14.sp,
+                          fontSize: 13.sp,
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
@@ -841,12 +853,16 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             color: context.textSecondaryColor,
                           ),
                           SizedBox(width: 4.w),
-                          Text(
-                            receipt.formattedDate,
-                            style: TextStyle(
-                              color: context.textSecondaryColor,
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Text(
+                              receipt.formattedDate,
+                              style: TextStyle(
+                                color: context.textSecondaryColor,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -911,91 +927,80 @@ class _EbarimtPageState extends State<EbarimtPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            onTap: () => setState(() => _isInfoCardExpanded = !_isInfoCardExpanded),
-            borderRadius: BorderRadius.circular(8.r),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(6.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.deepGreen,
-                    borderRadius: BorderRadius.circular(8.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.deepGreen.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    _infoType == 'consumer'
-                        ? Icons.person_rounded
-                        : Icons.public_rounded,
-                    color: Colors.white,
-                    size: 16.sp,
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Text(
-                    _infoType == 'consumer'
-                        ? 'Иргэний мэдээлэл'
-                        : 'Гадаадын иргэний мэдээлэл',
-                    style: TextStyle(
-                      color: context.textPrimaryColor,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(6.w),
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen,
+                  borderRadius: BorderRadius.circular(8.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.deepGreen.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
+                  ],
+                ),
+                child: Icon(
+                  _infoType == 'consumer'
+                      ? Icons.person_rounded
+                      : Icons.public_rounded,
+                  color: Colors.white,
+                  size: 16.sp,
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  _infoType == 'consumer'
+                      ? 'Иргэний мэдээлэл'
+                      : 'Гадаадын иргэний мэдээлэл',
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.logout_rounded,
-                    color: Colors.red.withOpacity(0.7),
-                    size: 18.sp,
-                  ),
-                  onPressed: () => _disconnectCurrentUser(),
-                  tooltip: 'Салгах',
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.logout_rounded,
+                  color: Colors.red.withOpacity(0.7),
+                  size: 18.sp,
                 ),
-                Icon(
-                  _isInfoCardExpanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  color: context.textSecondaryColor,
-                  size: 20.sp,
-                ),
-              ],
-            ),
-          ),
-          if (_isInfoCardExpanded) ...[
-            SizedBox(height: 16.h),
-            if (_infoType == 'consumer') ...[
-              _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
-              _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
-              _buildInfoRow(
-                'Регистр',
-                info['register']?.toString() ??
-                    info['customerNo']?.toString() ??
-                    '-',
+                onPressed: () => _disconnectCurrentUser(),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Салгах',
               ),
-              _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
-              _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
-            ] else ...[
-              _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
-              _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
-              _buildInfoRow(
-                'Паспорт',
-                info['passportNo']?.toString() ?? '-',
-              ),
-              _buildInfoRow(
-                'Харилцагч №',
-                info['customerNo']?.toString() ?? '-',
-              ),
-              _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
-              _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
             ],
+          ),
+          SizedBox(height: 16.h),
+          if (_infoType == 'consumer') ...[
+            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
+            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
+            _buildInfoRow(
+              'Регистр',
+              info['register']?.toString() ??
+                  info['customerNo']?.toString() ??
+                  '-',
+            ),
+            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
+            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
+          ] else ...[
+            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
+            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
+            _buildInfoRow(
+              'Паспорт',
+              info['passportNo']?.toString() ?? '-',
+            ),
+            _buildInfoRow(
+              'Харилцагч №',
+              info['customerNo']?.toString() ?? '-',
+            ),
+            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
+            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
           ],
         ],
       ),

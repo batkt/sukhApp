@@ -152,11 +152,13 @@ class NekhemjlekhItem {
   /// Often the backend returns niitTulbur: 0 for paid invoices, making it look like 0₮ 
   /// in the history view.
   double get effectiveNiitTulbur {
+    final ekhniiAmt = ekhniiUldegdel ?? 0.0;
     if (niitTulbur == 0) {
-      if (niitTulburOriginal > 0) return niitTulburOriginal;
-      if (uldegdel > 0) return uldegdel;
+      if (niitTulburOriginal > 0) return niitTulburOriginal + ekhniiAmt;
+      if (uldegdel > 0) return uldegdel + ekhniiAmt;
+      return ekhniiAmt;
     }
-    return niitTulbur;
+    return niitTulbur + ekhniiAmt;
   }
 
   String get formattedAmount {
@@ -520,7 +522,7 @@ class VATReceipt {
   String get formattedDate {
     try {
       final dateTime = DateTime.parse(date.replaceAll(' ', 'T')).toLocal();
-      return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+      return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')}';
     } catch (e) {
       return date;
     }
