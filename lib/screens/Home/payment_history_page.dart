@@ -52,62 +52,52 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           khuudasniiDugaar: 1,
           khuudasniiKhemjee: 200,
         );
-        
+
         if (res['jagsaalt'] != null && res['jagsaalt'] is List) {
           final List<dynamic> list = res['jagsaalt'];
           List<PaymentHistory> flattenedHistory = [];
-          
-          for (var item in list) {
-            final paymentTxList = item['paymentHistory'] as List?;
-            
-            if (paymentTxList != null && paymentTxList.isNotEmpty) {
-              // Iterate through each payment transaction in the invoice
-              for (var tx in paymentTxList) {
-                final String txType = tx['turul']?.toString().toLowerCase() ?? '';
-                // Only include actual payments, not adjustments like 'system_sync'
-                if (txType == 'төлөлт' || txType == 'qpay') {
-                  double txAmount = (tx['dun'] as num?)?.toDouble() ?? 0.0;
-                  if (txAmount < 0) continue; // Skip sync/negative adjustments
 
-                  flattenedHistory.add(PaymentHistory(
-                    paymentId: tx['_id']?.toString() ?? '',
-                    invoiceNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
-                    paymentAmount: txAmount,
-                    paymentStatus: 'PAID',
-                    paymentStatusText: 'Төлсөн',
-                    paymentStatusDate: DateTime.tryParse(tx['ognoo']?.toString() ?? '') ?? 
-                                      DateTime.tryParse(item['ognoo']?.toString() ?? '') ?? 
-                                      DateTime.now(),
-                    bills: [
-                      Bill(
-                        billerName: widget.billingName,
-                        billType: tx['tailbar']?.toString() ?? 'Орон сууцны төлбөр',
-                        billNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
-                        hasVat: true,
-                        billTotalAmount: txAmount,
-                        billPeriod: tx['ognoo']?.toString().substring(0, 7) ?? '', // YYYY-MM
-                        billLateFee: 0.0,
-                      )
-                    ],
-                  ));
+          for (var item in list) {
+            final String status = item['tuluv']?.toString() ?? '';
+
+            // Only show paid invoices with their total paid amount
+            if (status.contains('Төлсөн')) {
+              // Calculate total paid amount from paymentHistory
+              double displayAmount = 0.0;
+              bool hasSystemSyncOnly = true;
+              final paymentHistory = item['paymentHistory'] as List?;
+              if (paymentHistory != null) {
+                for (var tx in paymentHistory) {
+                  final txType = tx['turul']?.toString().toLowerCase() ?? '';
+                  final dun = (tx['dun'] as num?)?.toDouble() ?? 0.0;
+                  // Check if there's any non-system_sync payment
+                  if (txType != 'system_sync' && dun > 0) {
+                    hasSystemSyncOnly = false;
+                    displayAmount += dun;
+                  }
                 }
               }
-            } else {
-              // Backward compatibility: If no paymentHistory, show the invoice if it's marked as paid
-              final String status = item['tuluv']?.toString() ?? '';
-              if (status.contains('Төлсөн')) {
-                double displayAmount = (item['tulsunDun'] as num?)?.toDouble() ?? 0.0;
-                if (displayAmount <= 0) displayAmount = (item['niitTulburOriginal'] as num?)?.toDouble() ?? 0.0;
-                
-                flattenedHistory.add(PaymentHistory(
+
+              // Skip if only system_sync payments (no actual user payments)
+              if (hasSystemSyncOnly) continue;
+
+              // Skip if no valid amount
+              if (displayAmount <= 0) continue;
+
+              flattenedHistory.add(
+                PaymentHistory(
                   paymentId: item['_id']?.toString() ?? '',
                   invoiceNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
                   paymentAmount: displayAmount,
                   paymentStatus: 'PAID',
                   paymentStatusText: 'Төлсөн',
-                  paymentStatusDate: DateTime.tryParse(item['updatedAt']?.toString() ?? '') ?? 
-                                    DateTime.tryParse(item['ognoo']?.toString() ?? '') ?? 
-                                    DateTime.now(),
+                  paymentStatusDate:
+                      DateTime.tryParse(
+                        item['tulsunOgnoo']?.toString() ?? '',
+                      ) ??
+                      DateTime.tryParse(item['updatedAt']?.toString() ?? '') ??
+                      DateTime.tryParse(item['ognoo']?.toString() ?? '') ??
+                      DateTime.now(),
                   bills: [
                     Bill(
                       billerName: widget.billingName,
@@ -115,25 +105,29 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       billNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
                       hasVat: true,
                       billTotalAmount: displayAmount,
-                      billPeriod: item['ognoo']?.toString().substring(0, 7) ?? '',
+                      billPeriod:
+                          item['ognoo']?.toString().substring(0, 7) ?? '',
                       billLateFee: (item['aldangi'] as num?)?.toDouble() ?? 0.0,
-                    )
+                    ),
                   ],
-                ));
-              }
+                ),
+              );
             }
           }
-          
+
           // Sort by date descending (latest first)
-          flattenedHistory.sort((a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate));
+          flattenedHistory.sort(
+            (a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate),
+          );
           history = flattenedHistory;
         }
       } else {
         // Original Wallet API history fetcher
-        final List<Map<String, dynamic>> rawData = await ApiService.getWalletBillingPayments(
-          billingId: widget.billingId,
-        );
-        
+        final List<Map<String, dynamic>> rawData =
+            await ApiService.getWalletBillingPayments(
+              billingId: widget.billingId,
+            );
+
         List<PaymentHistory> flattenedWalletHistory = [];
 
         // Distinguish between a direct list of payments vs a list of bills containing payments
@@ -141,7 +135,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           if (item.containsKey('payments') && item['payments'] is List) {
             final List<dynamic> payments = item['payments'];
             flattenedWalletHistory.addAll(
-              payments.map((e) => PaymentHistory.fromJson(Map<String, dynamic>.from(e)))
+              payments.map(
+                (e) => PaymentHistory.fromJson(Map<String, dynamic>.from(e)),
+              ),
             );
           } else {
             // Assume the item itself is a payment object matching the model
@@ -152,9 +148,11 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
             }
           }
         }
-        
+
         // Sort by date descending
-        flattenedWalletHistory.sort((a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate));
+        flattenedWalletHistory.sort(
+          (a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate),
+        );
         history = flattenedWalletHistory;
       }
 
@@ -179,7 +177,10 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   Map<String, List<PaymentHistory>> _groupHistoryByMonth() {
     final Map<String, List<PaymentHistory>> groups = {};
     for (var payment in _paymentHistory) {
-      final month = DateFormat('yyyy оны MM сар', 'mn_MN').format(payment.paymentStatusDate);
+      final month = DateFormat(
+        'yyyy оны MM сар',
+        'mn_MN',
+      ).format(payment.paymentStatusDate);
       if (!groups.containsKey(month)) {
         groups[month] = [];
       }
@@ -193,6 +194,16 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   }
 
   Future<void> _showEbarimtModal(String paymentId) async {
+    // E-Barimt is only available for WALLET_API payments, not OWN_ORG
+    if (widget.source?.toUpperCase() == 'OWN_ORG') {
+      showGlassSnackBar(
+        context,
+        message: 'И-Баримт үүсээгүй байна.',
+        icon: Icons.info_outline,
+      );
+      return;
+    }
+
     try {
       showDialog(
         context: context,
@@ -200,8 +211,10 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      final response = await ApiService.walletQpayWalletCheck(walletPaymentId: paymentId);
-      
+      final response = await ApiService.walletQpayWalletCheck(
+        walletPaymentId: paymentId,
+      );
+
       if (mounted) Navigator.pop(context); // Close loading
 
       if (response['success'] == true && response['data'] != null) {
@@ -247,7 +260,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     final months = grouped.keys.toList();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF1F5F9),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : CustomScrollView(
@@ -262,7 +277,10 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                   elevation: 0,
                   automaticallyImplyLeading: false,
                   flexibleSpace: FlexibleSpaceBar(
-                    stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
+                    stretchModes: const [
+                      StretchMode.zoomBackground,
+                      StretchMode.blurBackground,
+                    ],
                     background: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -308,12 +326,20 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                 ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.location_on_rounded, color: Colors.white70, size: 16.sp),
+                                    Icon(
+                                      Icons.location_on_rounded,
+                                      color: Colors.white70,
+                                      size: 16.sp,
+                                    ),
                                     SizedBox(width: 8.w),
                                     Expanded(
                                       child: Text(
                                         widget.customerAddress,
-                                        style: TextStyle(color: Colors.white, fontSize: 12.sp, height: 1.2),
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12.sp,
+                                          height: 1.2,
+                                        ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -332,7 +358,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     child: Container(
                       height: 20.h,
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(30.r),
                           topRight: Radius.circular(30.r),
@@ -344,14 +372,21 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     padding: EdgeInsets.only(left: 12.w),
                     child: Center(
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
                   ),
                   title: Text(
                     'Төлбөрийн түүх',
-                    style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   centerTitle: true,
                 ),
@@ -364,11 +399,18 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history_rounded, size: 100.sp, color: Colors.grey.withOpacity(0.2)),
+                          Icon(
+                            Icons.history_rounded,
+                            size: 100.sp,
+                            color: Colors.grey.withOpacity(0.2),
+                          ),
                           SizedBox(height: 24.h),
                           Text(
                             'Төлбөрийн түүх одоогоор алга байна',
-                            style: TextStyle(color: Colors.grey, fontSize: 14.sp),
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14.sp,
+                            ),
                           ),
                         ],
                       ),
@@ -387,7 +429,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             child: Padding(
                               padding: EdgeInsets.only(bottom: 16.h, left: 4.w),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 textBaseline: TextBaseline.alphabetic,
                                 crossAxisAlignment: CrossAxisAlignment.baseline,
                                 children: [
@@ -396,7 +439,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                     style: TextStyle(
                                       fontSize: 13.sp,
                                       fontWeight: FontWeight.w800,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                      color: isDark
+                                          ? const Color(0xFF94A3B8)
+                                          : const Color(0xFF475569),
                                       letterSpacing: 1.2,
                                     ),
                                   ),
@@ -405,7 +450,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                     style: TextStyle(
                                       fontSize: 14.sp,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white70 : Colors.black87,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black87,
                                     ),
                                   ),
                                 ],
@@ -414,7 +461,10 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           ),
                           SliverList(
                             delegate: SliverChildBuilderDelegate(
-                              (context, index) => _buildModernHistoryCard(payments[index], isDark),
+                              (context, index) => _buildModernHistoryCard(
+                                payments[index],
+                                isDark,
+                              ),
                               childCount: payments.length,
                             ),
                           ),
@@ -430,7 +480,10 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
 
   Widget _buildModernHistoryCard(PaymentHistory payment, bool isDark) {
     final dayStr = DateFormat('dd').format(payment.paymentStatusDate);
-    final weekdayStr = DateFormat('EEE', 'mn_MN').format(payment.paymentStatusDate);
+    final weekdayStr = DateFormat(
+      'EEE',
+      'mn_MN',
+    ).format(payment.paymentStatusDate);
     final timeStr = DateFormat('HH:mm').format(payment.paymentStatusDate);
 
     return Container(
@@ -459,7 +512,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                   width: 50.w,
                   height: 50.w,
                   decoration: BoxDecoration(
-                    color: AppColors.deepGreen.withOpacity(isDark ? 0.15 : 0.08),
+                    color: AppColors.deepGreen.withOpacity(
+                      isDark ? 0.15 : 0.08,
+                    ),
                     borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Column(
@@ -492,13 +547,15 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        payment.bills.length > 1 
+                        payment.bills.length > 1
                             ? '${payment.bills.length} нэхэмжлэх'
                             : payment.bills.first.billType,
                         style: TextStyle(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : const Color(0xFF334155),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF334155),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -508,13 +565,19 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                         children: [
                           Text(
                             timeStr,
-                            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey,
+                            ),
                           ),
                           SizedBox(width: 8.w),
                           Container(
                             width: 3.w,
                             height: 3.w,
-                            decoration: const BoxDecoration(color: Colors.grey, shape: BoxShape.circle),
+                            decoration: const BoxDecoration(
+                              color: Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                           SizedBox(width: 8.w),
                           Text(
@@ -543,7 +606,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               ],
             ),
           ),
-          
+
           // Action Button - Always visible and easy to use
           Padding(
             padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
@@ -557,13 +620,21 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       height: 42.h,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12.r),
-                        color: AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.08),
-                        border: Border.all(color: AppColors.deepGreen.withOpacity(0.2)),
+                        color: AppColors.deepGreen.withOpacity(
+                          isDark ? 0.2 : 0.08,
+                        ),
+                        border: Border.all(
+                          color: AppColors.deepGreen.withOpacity(0.2),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.receipt_long_rounded, color: AppColors.deepGreen, size: 18.sp),
+                          Icon(
+                            Icons.receipt_long_rounded,
+                            color: AppColors.deepGreen,
+                            size: 18.sp,
+                          ),
                           SizedBox(width: 10.w),
                           Text(
                             'ЦАХИМ ТӨЛБӨРИЙН БАРИМТ ХАРАХ',

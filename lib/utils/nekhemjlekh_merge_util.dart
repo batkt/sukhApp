@@ -8,7 +8,9 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
   String? orshinSuugchId,
 ) {
   final invoices = rawInvoices.map((e) {
-    final m = e is Map<String, dynamic> ? e : Map<String, dynamic>.from(e as Map);
+    final m = e is Map<String, dynamic>
+        ? e
+        : Map<String, dynamic>.from(e as Map);
     return Map<String, dynamic>.from(m);
   }).toList();
 
@@ -19,6 +21,7 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
     if (v is num) return v.toDouble();
     return (double.tryParse(v.toString()) ?? 0.0);
   }
+
   String _toId(dynamic v) {
     if (v == null) return '';
     if (v is String) return v.trim();
@@ -39,9 +42,14 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
     final nekhemjlekhId = _toId(rec['nekhemjlekhId']);
     final ekhniiUldegdelEsekh = rec['ekhniiUldegdelEsekh'] == true;
     final rawTurul = (rec['turul'] ?? 'avlaga').toString().toLowerCase();
-    final turul = (rawTurul == 'авлага' || rawTurul == 'avlaga') ? 'avlaga' : rawTurul;
+    final turul = (rawTurul == 'авлага' || rawTurul == 'avlaga')
+        ? 'avlaga'
+        : rawTurul;
 
-    final matchesContract = (gereeniiId == null && gereeniiDugaar == '' && orshinSuugchId == null) ||
+    final matchesContract =
+        (gereeniiId == null &&
+            gereeniiDugaar == '' &&
+            orshinSuugchId == null) ||
         (gereeniiId != null && itemGid == gereeniiId) ||
         itemDugaar == gereeniiDugaar ||
         (orshinSuugchId != null && itemRid == orshinSuugchId);
@@ -52,7 +60,10 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
       'tulukhDun': _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0),
       'undsenDun': _toNum(rec['undsenDun'] ?? rec['tulukhDun'] ?? 0),
       'tulsunDun': _toNum(rec['tulsunDun'] ?? 0),
-      'tailbar': rec['zardliinNer'] ?? rec['tailbar'] ?? (ekhniiUldegdelEsekh ? 'Эхний үлдэгдэл' : 'Авлага'),
+      'tailbar':
+          rec['zardliinNer'] ??
+          rec['tailbar'] ??
+          (ekhniiUldegdelEsekh ? 'Эхний үлдэгдэл' : 'Авлага'),
       'turul': turul,
       'ekhniiUldegdelEsekh': ekhniiUldegdelEsekh,
       'isLinked': nekhemjlekhId.isNotEmpty,
@@ -78,7 +89,7 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
           'zardluud': [],
           'guilgeenuud': [],
           'toot': '',
-          'temdeglel': ''
+          'temdeglel': '',
         };
         inv['medeelel'] = medeelel;
       }
@@ -95,9 +106,11 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
       medeelel['guilgeenuud'] = guilgeenuud;
 
       final existingId = guilgeeEntry['_id']?.toString();
-      final alreadyHas = existingId != null &&
-          guilgeenuud
-              .any((g) => (g['_id'] ?? g['id'])?.toString() == existingId);
+      final alreadyHas =
+          existingId != null &&
+          guilgeenuud.any(
+            (g) => (g['_id'] ?? g['id'])?.toString() == existingId,
+          );
 
       if (!alreadyHas) {
         guilgeenuud.add(guilgeeEntry);
@@ -110,13 +123,19 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
         }
       }
     } else {
-      // UNLINKED: Add as a standalone item if not already in the list
+      if (ekhniiUldegdelEsekh) continue;
+
       final existingId = rec['_id']?.toString();
-      final alreadyHas = existingId != null &&
-          invoices.any((inv) => (inv['_id'] ?? inv['id'])?.toString() == existingId);
+      final alreadyHas =
+          existingId != null &&
+          invoices.any(
+            (inv) => (inv['_id'] ?? inv['id'])?.toString() == existingId,
+          );
 
       if (!alreadyHas) {
-        final amount = _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0) - _toNum(rec['tulsunDun'] ?? 0);
+        final amount =
+            _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0) -
+            _toNum(rec['tulsunDun'] ?? 0);
         if (amount > 0) {
           invoices.add({
             '_id': rec['_id']?.toString(),
@@ -127,8 +146,10 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
             'khayag': rec['khayag'] ?? '',
             'toot': rec['toot'] ?? '',
             'gereeniiDugaar': itemDugaar,
-            'ognoo': rec['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
-            'nekhemjlekhiinOgnoo': rec['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
+            'ognoo':
+                rec['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
+            'nekhemjlekhiinOgnoo':
+                rec['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
             'niitTulbur': amount,
             'uldegdel': amount,
             'tuluv': 'Төлөөгүй',
