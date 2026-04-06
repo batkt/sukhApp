@@ -299,7 +299,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           ),
                           
                           Padding(
-                            padding: EdgeInsets.fromLTRB(20.w, 80.h, 20.w, 50.h),
+                            padding: EdgeInsets.fromLTRB(20.w, MediaQuery.of(context).padding.top + 80.h, 20.w, 50.h),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -328,7 +328,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                               '${_paymentHistory.length}',
                                               style: TextStyle(
                                                 color: Colors.white,
-                                                fontSize: 52.sp,
+                                                fontSize: 48.sp,
                                                 fontWeight: FontWeight.w900,
                                                 height: 1.1,
                                                 letterSpacing: -1.5,
@@ -364,7 +364,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                             '${NumberFormat('#,##0').format(grandTotal)} ₮',
                                             style: TextStyle(
                                               color: Colors.white,
-                                              fontSize: 22.sp,
+                                              fontSize: 20.sp,
                                               fontWeight: FontWeight.w900,
                                               letterSpacing: -0.5,
                                             ),
