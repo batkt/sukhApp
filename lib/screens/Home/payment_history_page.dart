@@ -259,6 +259,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     final grouped = _groupHistoryByMonth();
     final months = grouped.keys.toList();
 
+    final double grandTotal = _paymentHistory.fold(0.0, (sum, p) => sum + p.paymentAmount);
+
     return Scaffold(
       backgroundColor: isDark
           ? const Color(0xFF0F172A)
@@ -268,9 +270,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           : CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // ── PREMIIUM HEADER ──
+                // ── PREMIUM HEADER REDESIGN ──
                 SliverAppBar(
-                  expandedHeight: 240.h,
+                  expandedHeight: 280.h,
                   pinned: true,
                   stretch: true,
                   backgroundColor: AppColors.deepGreen,
@@ -281,76 +283,147 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       StretchMode.zoomBackground,
                       StretchMode.blurBackground,
                     ],
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Background decoration
-                        Positioned(
-                          right: -50.w,
-                          top: -50.h,
-                          child: CircleAvatar(
-                            radius: 120.r,
-                            backgroundColor: Colors.white.withOpacity(0.05),
+                    background: Container(
+                      color: AppColors.deepGreen,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Abstract Background Decoration
+                          Positioned(
+                            right: -30.w,
+                            top: -20.h,
+                            child: CircleAvatar(
+                              radius: 100.r,
+                              backgroundColor: Colors.white.withOpacity(0.03),
+                            ),
                           ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(24.w, 80.h, 24.w, 24.h),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.billingName,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              SizedBox(height: 8.h),
-                              Text(
-                                '${_paymentHistory.length} удаа төлөлт хийсэн',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24.sp,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: EdgeInsets.all(16.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                  border: Border.all(color: Colors.white10),
-                                ),
-                                child: Row(
+                          
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(20.w, 80.h, 20.w, 50.h),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Stats Row: Usage with Pill Total
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      Icons.location_on_rounded,
-                                      color: Colors.white70,
-                                      size: 16.sp,
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Expanded(
-                                      child: Text(
-                                        widget.customerAddress,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12.sp,
-                                          height: 1.2,
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Нийт төлөлт',
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.5),
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.2,
+                                          ),
                                         ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                        SizedBox(height: 2.h),
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                                          textBaseline: TextBaseline.alphabetic,
+                                          children: [
+                                            Text(
+                                              '${_paymentHistory.length}',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 52.sp,
+                                                fontWeight: FontWeight.w900,
+                                                height: 1.1,
+                                                letterSpacing: -1.5,
+                                              ),
+                                            ),
+                                            SizedBox(width: 8.w),
+                                            Text(
+                                              'удаа',
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.4),
+                                                fontSize: 20.sp,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const Spacer(),
+                                    // Total Amount Pill Box
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.06),
+                                        borderRadius: BorderRadius.circular(22.r),
+                                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            '${NumberFormat('#,##0').format(grandTotal)} ₮',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 22.sp,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: -0.5,
+                                            ),
+                                          ),
+                                          SizedBox(height: 1.h),
+                                          Text(
+                                            'Нийт дүн',
+                                            style: TextStyle(
+                                              color: Colors.white.withOpacity(0.35),
+                                              fontSize: 11.sp,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
+                                
+                                const Spacer(),
+                                
+                                // Address Bar
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(22.r),
+                                    border: Border.all(color: Colors.white.withOpacity(0.04)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_rounded,
+                                        color: Colors.white.withOpacity(0.3),
+                                        size: 18.sp,
+                                      ),
+                                      SizedBox(width: 12.w),
+                                      Expanded(
+                                        child: Text(
+                                          widget.customerAddress.isEmpty ? widget.billingName : widget.customerAddress,
+                                          style: TextStyle(
+                                            color: Colors.white.withOpacity(0.6),
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 0.1,
+                                            height: 1.2,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   bottom: PreferredSize(
@@ -369,23 +442,37 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     ),
                   ),
                   leading: Padding(
-                    padding: EdgeInsets.only(left: 12.w),
+                    padding: EdgeInsets.only(left: 16.w, top: 8.h),
                     child: Center(
                       child: IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white,
+                        icon: Container(
+                          width: 42.w,
+                          height: 42.w,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.chevron_left_rounded,
+                            color: Colors.white,
+                            size: 24.sp,
+                          ),
                         ),
                         onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
                   ),
-                  title: Text(
-                    'Төлбөрийн түүх',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
+                  title: Padding(
+                    padding: EdgeInsets.only(top: 8.h),
+                    child: Text(
+                      'Төлбөрийн түүх',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                   centerTitle: true,
@@ -445,16 +532,16 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                       letterSpacing: 1.2,
                                     ),
                                   ),
-                                  Text(
-                                    '${NumberFormat('#,##0').format(monthTotal)} ₮',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.black87,
-                                    ),
-                                  ),
+                                  // Text(
+                                  //   '${NumberFormat('#,##0').format(monthTotal)} ₮',
+                                  //   style: TextStyle(
+                                  //     fontSize: 14.sp,
+                                  //     fontWeight: FontWeight.w600,
+                                  //     color: isDark
+                                  //         ? Colors.white70
+                                  //         : Colors.black87,
+                                  //   ),
+                                  // ),
                                 ],
                               ),
                             ),
@@ -486,6 +573,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     ).format(payment.paymentStatusDate);
     final timeStr = DateFormat('HH:mm').format(payment.paymentStatusDate);
 
+    final accentColor = isDark ? const Color(0xFF10B981) : AppColors.deepGreen;
+
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
@@ -512,8 +601,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                   width: 50.w,
                   height: 50.w,
                   decoration: BoxDecoration(
-                    color: AppColors.deepGreen.withOpacity(
-                      isDark ? 0.15 : 0.08,
+                    color: accentColor.withOpacity(
+                      isDark ? 0.2 : 0.08,
                     ),
                     borderRadius: BorderRadius.circular(12.r),
                   ),
@@ -525,7 +614,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.deepGreen,
+                          color: isDark ? Colors.white : accentColor,
                           height: 1,
                         ),
                       ),
@@ -534,7 +623,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                         style: TextStyle(
                           fontSize: 10.sp,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.deepGreen.withOpacity(0.6),
+                          color: isDark ? Colors.white70 : accentColor.withOpacity(0.6),
                         ),
                       ),
                     ],
@@ -567,15 +656,15 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             timeStr,
                             style: TextStyle(
                               fontSize: 12.sp,
-                              color: Colors.grey,
+                              color: isDark ? Colors.white60 : Colors.grey,
                             ),
                           ),
                           SizedBox(width: 8.w),
                           Container(
                             width: 3.w,
                             height: 3.w,
-                            decoration: const BoxDecoration(
-                              color: Colors.grey,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white30 : Colors.grey,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -585,7 +674,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             style: TextStyle(
                               fontSize: 11.sp,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.deepGreen,
+                              color: isDark ? accentColor : accentColor,
                             ),
                           ),
                         ],
@@ -620,11 +709,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       height: 42.h,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12.r),
-                        color: AppColors.deepGreen.withOpacity(
-                          isDark ? 0.2 : 0.08,
-                        ),
+                        color: isDark ? Colors.white.withOpacity(0.08) : accentColor.withOpacity(0.08),
                         border: Border.all(
-                          color: AppColors.deepGreen.withOpacity(0.2),
+                          color: isDark ? Colors.white.withOpacity(0.1) : accentColor.withOpacity(0.2),
                         ),
                       ),
                       child: Row(
@@ -632,14 +719,14 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                         children: [
                           Icon(
                             Icons.receipt_long_rounded,
-                            color: AppColors.deepGreen,
+                            color: isDark ? Colors.white : accentColor,
                             size: 18.sp,
                           ),
                           SizedBox(width: 10.w),
                           Text(
                             'ЦАХИМ ТӨЛБӨРИЙН БАРИМТ ХАРАХ',
                             style: TextStyle(
-                              color: AppColors.deepGreen,
+                              color: isDark ? Colors.white : accentColor,
                               fontSize: 11.sp,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.5,
