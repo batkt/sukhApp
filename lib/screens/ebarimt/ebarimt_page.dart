@@ -360,10 +360,25 @@ class _EbarimtPageState extends State<EbarimtPage> {
       _infoType = null;
     });
 
-    try {
-      final identity = _citizenCodeController.text.trim();
-      print('🔍 [EBARIMT] Starting search for identity: $identity');
+    final identity = _citizenCodeController.text.trim();
+    
+    // Organization RD must be exactly 7 digits
+    if (_infoType == 'foreigner') {
+       final isNumeric = RegExp(r'^[0-9]+$').hasMatch(identity);
+       if (identity.length != 7 || !isNumeric) {
+         setState(() => _isSearching = false);
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(
+             content: Text('Байгууллагын РД алдаатай байна'),
+             backgroundColor: Colors.red,
+           ),
+         );
+         return;
+       }
+    }
 
+    try {
+      print('🔍 [EBARIMT] Starting search for identity: $identity');
       // Fetch current user ID to link with ITC profile
       final userId = await StorageService.getUserId();
 
@@ -371,29 +386,25 @@ class _EbarimtPageState extends State<EbarimtPage> {
       final data = await ApiService.easyRegisterUserSearch(
         identity: identity,
         orshinSuugchiinId: userId,
+        turul: _infoType,
       );
       print('✅ [EBARIMT] Easy Register data received: $data');
 
       if (mounted) {
         setState(() {
-          // The backend returns infoType or turul
-          final turul = data['turul']?.toString().toLowerCase();
-          
           // Map backend fields to UI fields if necessary
-          final mappedInfo = {
+          final mappedInfo = Map<String, dynamic>.from({
             ...data,
             'name': data['givenName'] ?? data['name'],
             'surname': data['familyName'] ?? data['surname'],
             'register': data['regNo'] ?? data['register'] ?? data['identity'],
             'phone': data['phoneNum'] ?? data['phone'],
-          };
+          });
 
-          if (turul == 'foreigner') {
+          if (_infoType == 'foreigner') {
             _foreignerInfo = mappedInfo;
-            _infoType = 'foreigner';
           } else {
             _consumerInfo = mappedInfo;
-            _infoType = 'consumer';
           }
           _isSearching = false;
           
@@ -403,7 +414,6 @@ class _EbarimtPageState extends State<EbarimtPage> {
             'turul': _infoType,
           });
         });
-        print('✅ [EBARIMT] Search result set. _infoType: $_infoType');
       }
     } catch (e) {
       print('❌ [EBARIMT] Final error in search: $e');
@@ -412,7 +422,6 @@ class _EbarimtPageState extends State<EbarimtPage> {
           _isSearching = false;
           _consumerInfo = null;
           _foreignerInfo = null;
-          _infoType = null;
         });
         
         final cleanMsg = _cleanErrorMessage(e.toString());
@@ -609,7 +618,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             children: [
                               _buildTypeChip('Иргэн', 'consumer', isDark),
                               SizedBox(width: 8.w),
-                              _buildTypeChip('Бизнес', 'foreigner', isDark),
+                              _buildTypeChip('Байгууллага', 'foreigner', isDark),
                             ],
                           ),
                           
@@ -637,7 +646,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                       ),
                                     )
                                   : Text(
-                                      'БҮРТГЭЛ ХАЙХ',
+                                      'БҮРТГЭГДСЭН БАРИМТ',
                                       style: TextStyle(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w900,
@@ -883,21 +892,27 @@ class _EbarimtPageState extends State<EbarimtPage> {
                       ),
                     ),
                     SizedBox(height: 6.h),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.deepGreen.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      child: Text(
-                        'И-БАРИМТ',
-                        style: TextStyle(
-                          color: AppColors.deepGreen,
-                          fontSize: 9.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final isScanned = receipt.status?.toUpperCase() == 'SCANNED' || receipt.status == '3';
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: isScanned 
+                                ? Colors.orange.withOpacity(0.08) 
+                                : AppColors.deepGreen.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          child: Text(
+                            isScanned ? 'БҮРТГЭГДСЭН' : 'И-БАРИМТ',
+                            style: TextStyle(
+                              color: isScanned ? Colors.orange : AppColors.deepGreen,
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        );
+                      }
                     ),
                   ],
                 ),

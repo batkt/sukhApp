@@ -85,24 +85,30 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             data = status;
           }
           
-          // Map potential different key names for robustness
+          // Map potential different key names for robustness 
           _quotaStatus = {
             'total': data['total'] ?? data['zochinErkhiinToo'] ?? 0,
             'used': data['used'] ?? data['ashiglasanToo'] ?? 0,
             'remaining': data['remaining'] ?? data['uldsenToo'] ?? 0,
             'period': data['period'] ?? 'saraar',
             'freeMinutesPerGuest': data['freeMinutesPerGuest'] ?? data['zochinTusBurUneguiMinut'] ?? 0,
+            'hasRight': data['hasRight'] ?? data['zochinUrikhEsekh'] ?? true,
           };
           
-          // Check success flag to determine if user can invite
-          if (status['success'] == false) {
+          // Check success flag and primary permission flag
+          final hasRight = _quotaStatus!['hasRight'] as bool;
+          if (status['success'] == false || !hasRight) {
             _hasQuota = false;
           } else {
-            // Even if success is true, if remaining is 0 we should disable
+            // If they have the right:
+            // they can invite if they have remaining count,
+            // OR if it's unlimited (total == 0),
+            // OR if every guest has free minutes (freeMinutes > 0)
             final remaining = _quotaStatus!['remaining'] as int;
             final total = _quotaStatus!['total'] as int;
             final freeMinutes = _quotaStatus!['freeMinutesPerGuest'] as int? ?? 0;
-            _hasQuota = total == 0 || remaining > 0 || freeMinutes > 0;
+            
+            _hasQuota = (total == 0) || (remaining > 0) || (freeMinutes > 0);
           }
           
           _isLoadingQuota = false;
@@ -926,7 +932,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '$remaining/$total үлдсэн',
+                  (total == 0 || total > 999) ? 'Хязгааргүй' : '$remaining/$total үлдсэн',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,

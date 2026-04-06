@@ -148,17 +148,48 @@ class NekhemjlekhItem {
     }
   }
 
-  /// Use niitTulbur by default, but fallback to niitTulburOriginal or uldegdel if it's 0.
-  /// Often the backend returns niitTulbur: 0 for paid invoices, making it look like 0₮ 
-  /// in the history view.
+  /// Calculate the total amount to be paid for this invoice.
+  /// 1. Current Monthly Charge (niitTulbur).
+  /// 2. All detailed unpaid transactions (guilgeenuud).
+  /// 3. Fallback to summarized balance (uldegdel) ONLY if no details exist.
   double get effectiveNiitTulbur {
-    final ekhniiAmt = ekhniiUldegdel ?? 0.0;
-    if (niitTulbur == 0) {
-      if (niitTulburOriginal > 0) return niitTulburOriginal + ekhniiAmt;
-      if (uldegdel > 0) return uldegdel + ekhniiAmt;
-      return ekhniiAmt;
+    // If fully paid, we only show the original amount for reference
+    if (tuluv == 'Төлсөн') {
+      return niitTulburOriginal > 0 ? niitTulburOriginal : niitTulbur;
     }
-    return niitTulbur + ekhniiAmt;
+
+    // 1. Authoritative Total: niitTulbur is usually the total payable amount from the backend.
+    // It already includes current charges, past dues, and starting balances.
+    if (niitTulbur > 0) {
+      return niitTulbur;
+    }
+    
+    // 2. Fallback for standalone receivables or invoices with no niitTulbur
+    double total = uldegdel != 0 ? uldegdel : 0.0;
+    
+    // If we have detailed transactions, they represent the balance
+    if (medeelel?.guilgeenuud != null && medeelel!.guilgeenuud!.isNotEmpty) {
+      double avlagaTotal = 0;
+      bool foundEkhniiInList = false;
+      for (final g in medeelel!.guilgeenuud!) {
+        final amt = (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
+        if (amt > 0) avlagaTotal += amt;
+        if (g.ekhniiUldegdelEsekh) foundEkhniiInList = true;
+      }
+      
+      // If we have items that sum up, use that sum. 
+      // But check if it's missing the starting balance.
+      if (avlagaTotal > 0) {
+        total = avlagaTotal;
+        if (!foundEkhniiInList) total += (ekhniiUldegdel ?? 0.0);
+      } else {
+        total += (ekhniiUldegdel ?? 0.0);
+      }
+    } else {
+      total += (ekhniiUldegdel ?? 0.0);
+    }
+
+    return total;
   }
 
   String get formattedAmount {
@@ -267,15 +298,18 @@ class Zardal {
     );
   }
 
-  /// Whether this zardal should be shown in invoice breakdown (Тогтмол, Дурын, Эхний үлдэгдэл, цахилгаан)
+  /// Whether this zardal should be shown in invoice breakdown (Show everything with an amount)
   bool get isDisplayable {
+    // Show everything that has a positive amount, unless it's a zero-sum system field
+    if (displayAmount != 0) return true;
+
+    // Fallback for names we know should be shown
     final t = turul.toLowerCase();
     if (t == 'тогтмол' || t == 'дурын') return true;
     if (isEkhniiUldegdel) return true;
     if (zaalt) return true;
-    if (ner.toLowerCase().contains('цахилгаан') &&
-        !ner.toLowerCase().contains('дундын өмчлөл'))
-      return true;
+    if (ner.toLowerCase().contains('цахилгаан')) return true;
+    
     return false;
   }
 
@@ -407,6 +441,7 @@ class VATReceipt {
   final String gereeniiDugaar;
   final int utas;
   final String? receiptId;
+  final String? status;
 
   VATReceipt({
     required this.id,
@@ -427,6 +462,7 @@ class VATReceipt {
     required this.gereeniiDugaar,
     required this.utas,
     this.receiptId,
+    this.status,
   });
 
   factory VATReceipt.fromJson(Map<String, dynamic> json) {
@@ -479,6 +515,7 @@ class VATReceipt {
       gereeniiDugaar: json['gereeniiDugaar'] ?? '',
       utas: safeToInt(json['utas']),
       receiptId: json['receiptId'],
+      status: json['status']?.toString(),
     );
   }
 
@@ -512,6 +549,7 @@ class VATReceipt {
       gereeniiDugaar: json['invoiceNo'] ?? '',
       utas: 0,
       receiptId: vat?['vatDdtd'] ?? '',
+      status: vat?['vatStatus']?.toString() ?? vat?['status']?.toString(),
     );
   }
 

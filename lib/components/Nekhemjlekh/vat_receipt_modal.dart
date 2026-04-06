@@ -133,6 +133,33 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                           padding: EdgeInsets.symmetric(horizontal: 14.w),
                           child: Column(
                             children: [
+                              // Scanned Status Indicator
+                              if (widget.receipt.status?.toUpperCase() == 'SCANNED' || widget.receipt.status == '3')
+                                Container(
+                                  width: double.infinity,
+                                  margin: EdgeInsets.only(bottom: 12.h),
+                                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.check_circle_outline, color: Colors.green, size: 16.sp),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'ИБаримт бүртгэгдсэн байна',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               // QR Code
                               if (widget.receipt.qrData.isNotEmpty) ...[
                                 Container(
@@ -225,7 +252,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
           ),
           // Minimal Copied Pill
           Positioned(
-            top: 20.h,
+            bottom: 40.h,
             left: 0,
             right: 0,
             child: AnimatedOpacity(

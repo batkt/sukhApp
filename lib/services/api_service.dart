@@ -490,7 +490,12 @@ class ApiService {
         }
         return [];
       } else if (response.statusCode == 401) {
-        await handleUnauthorized();
+        String? errorMsg;
+        try {
+           final decoded = json.decode(response.body);
+           errorMsg = decoded['message'] ?? decoded['aldaa'];
+        } catch (_) {}
+        await handleUnauthorized(errorMsg);
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else if (response.statusCode == 404) {
         print(
@@ -509,9 +514,9 @@ class ApiService {
         }
       } else {
         final errorData = json.decode(response.body);
-        final errorMessage =
-            errorData['message'] ??
-            'Биллерүүд авахад алдаа гарлаа: ${response.statusCode}';
+        final errorMessage = (response.statusCode == 500) 
+            ? '1 эрхээр давхар орж байна'
+            : (errorData['message'] ?? 'Биллерүүд авахад алдаа гарлаа: ${response.statusCode}');
         throw Exception(errorMessage);
       }
     } catch (e) {
@@ -1660,16 +1665,19 @@ class ApiService {
     };
   }
 
-  static Future<void> handleUnauthorized() async {
+  static Future<void> handleUnauthorized([String? message]) async {
     print('🔒 [API] 401 Unauthorized - Token expired, logging out...');
 
     final isLoggedIn = await StorageService.isLoggedIn();
     if (!isLoggedIn) {
       print('🔒 [API] Already logged out, skipping...');
+      if (message != null && message.contains('өөр төхөөрөмж')) {
+         await NotificationService.showSessionExpiredNotification(message);
+      }
       return;
     }
 
-    await NotificationService.showSessionExpiredNotification();
+    await NotificationService.showSessionExpiredNotification(message);
 
     await SessionService.logout();
 
@@ -2803,6 +2811,30 @@ class ApiService {
 
   /// Fetch gereeniiTulukhAvlaga (avlaga + ekhniiUldegdel) for merging with invoices.
   /// Matches web "Үйлчилгээний нэхэмжлэх" which merges this data for display.
+  static Future<Map<String, dynamic>> fetchGereeniiHistoryLedger({
+    required String gereeniiId,
+    required String baiguullagiinId,
+    String? barilgiinId,
+  }) async {
+    try {
+      final authHeaders = await getAuthHeaders();
+      final uri = Uri.parse('$baseUrl/geree/$gereeniiId/history-ledger').replace(
+        queryParameters: {
+          'baiguullagiinId': baiguullagiinId,
+          if (barilgiinId != null) 'barilgiinId': barilgiinId,
+          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      );
+      final response = await http.get(uri, headers: authHeaders);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      throw Exception('Ledger fetch failed: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Ledger fetch failed: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>> fetchGereeniiTulukhAvlaga({
     required String baiguullagiinId,
     String? gereeniiDugaar,
@@ -4722,10 +4754,18 @@ class ApiService {
   static Future<Map<String, dynamic>> fetchZochinQuotaStatus() async {
     try {
       final headers = await getAuthHeaders();
-      final response = await http.get(
-        Uri.parse('$baseUrl/zochinQuotaStatus'),
-        headers: headers,
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+      
+      final uri = Uri.parse('$baseUrl/zochinQuotaStatus').replace(
+        queryParameters: {
+          if (baiguullagiinId != null) 'baiguullagiinId': baiguullagiinId,
+          if (barilgiinId != null) 'barilgiinId': barilgiinId,
+          '_': DateTime.now().millisecondsSinceEpoch.toString(),
+        }
       );
+
+      final response = await http.get(uri, headers: headers);
 
       final responseBody = response.body.trim();
       if (response.statusCode == 200) {

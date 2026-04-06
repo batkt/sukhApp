@@ -10,6 +10,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:intl/intl.dart';
 import 'package:sukh_app/models/payment_history_model.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
   final String billingId;
@@ -114,6 +115,58 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               );
             }
           }
+          // Fetch standalone receivables (paid ones)
+          final baiguullagiinId = await StorageService.getBaiguullagiinId();
+          final gereeResponse = await ApiService.fetchGeree(await StorageService.getUserId() ?? '');
+          String? gereeniiId;
+          if (gereeResponse['jagsaalt'] != null && (gereeResponse['jagsaalt'] as List).isNotEmpty) {
+            final myGeree = (gereeResponse['jagsaalt'] as List).firstWhere(
+              (g) => g['gereeniiDugaar'] == widget.billingId,
+              orElse: () => null,
+            );
+            if (myGeree != null) gereeniiId = myGeree['_id']?.toString();
+          }
+
+          if (baiguullagiinId != null) {
+            final avlagaRes = await ApiService.fetchGereeniiTulukhAvlaga(
+              baiguullagiinId: baiguullagiinId,
+              gereeniiId: gereeniiId,
+            );
+            if (avlagaRes['jagsaalt'] != null && avlagaRes['jagsaalt'] is List) {
+              final avlagaList = avlagaRes['jagsaalt'] as List;
+              for (var item in avlagaList) {
+                // If paid, show in history
+                if (item['tuluv'] == 'Төлсөн' || ((item['tulsunDun'] ?? 0) > 0)) {
+                  final amt = (item['tulsunDun'] as num?)?.toDouble() ?? (item['undsenDun'] as num?)?.toDouble() ?? 0.0;
+                  if (amt <= 0) continue;
+
+                  flattenedHistory.add(
+                    PaymentHistory(
+                      paymentId: item['_id']?.toString() ?? '',
+                      invoiceNo: item['tailbar']?.toString() ?? 'Нэмэлт авлага',
+                      paymentAmount: amt,
+                      paymentStatus: 'PAID',
+                      paymentStatusText: 'Төлсөн',
+                      paymentStatusDate:
+                          DateTime.tryParse(item['guilgeeKhiisenOgnoo']?.toString() ?? '') ??
+                          DateTime.now(),
+                      bills: [
+                        Bill(
+                          billerName: widget.billingName,
+                          billType: 'Нэмэлт үйлчилгээ',
+                          billNo: item['tailbar']?.toString() ?? '',
+                          hasVat: false,
+                          billTotalAmount: amt,
+                          billPeriod: '',
+                          billLateFee: 0.0,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              }
+            }
+          }
 
           // Sort by date descending (latest first)
           flattenedHistory.sort(
@@ -136,13 +189,34 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
             final List<dynamic> payments = item['payments'];
             flattenedWalletHistory.addAll(
               payments.map(
-                (e) => PaymentHistory.fromJson(Map<String, dynamic>.from(e)),
+                (e) {
+                  final pay = PaymentHistory.fromJson(Map<String, dynamic>.from(e));
+                  // Optimistic: show PENDING or NEW as PAID in the and list
+                  if (pay.paymentStatus == 'PENDING' || pay.paymentStatus == 'NEW') {
+                    return pay.copyWith(
+                      paymentStatus: 'PAID',
+                      paymentStatusText: 'Төлөгдсөн',
+                    );
+                  }
+                  return pay;
+                }
               ),
             );
           } else {
             // Assume the item itself is a payment object matching the model
             try {
-              flattenedWalletHistory.add(PaymentHistory.fromJson(item));
+              final pay = PaymentHistory.fromJson(item);
+              // Optimistic: show PENDING or NEW as PAID in the and list
+              if (pay.paymentStatus == 'PENDING' || pay.paymentStatus == 'NEW') {
+                flattenedWalletHistory.add(
+                  pay.copyWith(
+                    paymentStatus: 'PAID',
+                    paymentStatusText: 'Төлөгдсөн',
+                  ),
+                );
+              } else {
+                flattenedWalletHistory.add(pay);
+              }
             } catch (e) {
               print('⚠️ [History] Skipping invalid Wallet payment item: $e');
             }
@@ -493,7 +567,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           ),
                           SizedBox(height: 24.h),
                           Text(
-                            'Төлбөрийн түүх одоогоор алга байна',
+                            'Төлөлт хийгдээгүй байна',
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 14.sp,
@@ -575,6 +649,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
 
     final accentColor = isDark ? const Color(0xFF10B981) : AppColors.deepGreen;
 
+    final isExpanded = _expandedPaymentIds.contains(payment.paymentId);
+
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
@@ -589,14 +665,27 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Date Column
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              if (isExpanded) {
+                _expandedPaymentIds.remove(payment.paymentId);
+              } else {
+                _expandedPaymentIds.add(payment.paymentId);
+              }
+            });
+          },
+          borderRadius: BorderRadius.circular(20.r),
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Date Column
                 Container(
                   width: 50.w,
                   height: 50.w,
@@ -606,28 +695,28 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     ),
                     borderRadius: BorderRadius.circular(12.r),
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        dayStr,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : accentColor,
-                          height: 1,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          DateFormat('MMM', 'mn_MN').format(payment.paymentStatusDate).toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white70 : accentColor.withOpacity(0.6),
+                          ),
                         ),
-                      ),
-                      Text(
-                        weekdayStr.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white70 : accentColor.withOpacity(0.6),
+                        Text(
+                          dayStr,
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.white : accentColor,
+                            height: 1,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                 ),
                 SizedBox(width: 16.w),
                 // Info Section
@@ -692,9 +781,51 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     color: isDark ? Colors.white : const Color(0xFF334155),
                   ),
                 ),
+                SizedBox(width: 8.w),
+                Icon(
+                  isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: isDark ? Colors.white54 : Colors.grey,
+                  size: 20.sp,
+                ),
               ],
             ),
           ),
+
+          if (isExpanded) ...[
+            Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+            Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                children: payment.bills.map((bill) {
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: 8.h),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            bill.billNo.isNotEmpty ? '${bill.billType} (${bill.billNo})' : bill.billType,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${NumberFormat('#,##0').format(bill.billTotalAmount)} ₮',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
 
           // Action Button - Always visible and easy to use
           Padding(
@@ -740,7 +871,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               ],
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

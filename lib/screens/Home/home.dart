@@ -382,38 +382,112 @@ class _BookingScreenState extends State<NuurKhuudas>
               final processedResults = await Future.wait(contracts.map((c) async {
                 final contract = c is Map<String, dynamic> ? c : Map<String, dynamic>.from(c as Map);
                 final dugaar = contract['gereeniiDugaar']?.toString();
+                final gereeniiId = contract['_id']?.toString();
+                final baiguullagiinId = contract['baiguullagiinId']?.toString();
                 
                 double invoiceSum = 0.0;
                 double aldangiSum = 0.0;
-                bool foundInvoices = false;
+                bool hasData = false;
 
                 if (dugaar != null) {
                   try {
-                    final res = await ApiService.fetchNekhemjlekhiinTuukh(
-                      gereeniiDugaar: dugaar,
-                      khuudasniiDugaar: 1,
-                      khuudasniiKhemjee: 200,
-                    );
-                    if (res['jagsaalt'] != null && res['jagsaalt'] is List) {
-                      final items = res['jagsaalt'] as List;
-                      for (var item in items) {
-                        if (item['tuluv'] != 'Төлсөн') {
-                          // IMPORTANT: Prioritize niitTulbur over uldegdel to avoid the polluted 887k global total.
-                          double amt = _parseNum(item['niitTulbur'] ?? item['uldegdel'] ?? item['niitTulburOriginal']);
-                          double ald = _parseNum(item['aldangi'] ?? 0);
-                          invoiceSum += amt;
-                          aldangiSum += ald;
-                          foundInvoices = true;
+                    // Fetch both Invoices, standalone Receivables (Avlaga), and the Authoritative Ledger Balance
+                    final results = await Future.wait([
+                      ApiService.fetchNekhemjlekhiinTuukh(
+                        gereeniiDugaar: dugaar,
+                        khuudasniiDugaar: 1,
+                        khuudasniiKhemjee: 200,
+                      ),
+                      baiguullagiinId != null
+                          ? ApiService.fetchGereeniiTulukhAvlaga(
+                              baiguullagiinId: baiguullagiinId,
+                              gereeniiId: gereeniiId,
+                            )
+                          : Future.value({'jagsaalt': []}),
+                      (gereeniiId != null && baiguullagiinId != null)
+                          ? ApiService.fetchGereeniiHistoryLedger(
+                              gereeniiId: gereeniiId,
+                              baiguullagiinId: baiguullagiinId,
+                            )
+                          : Future.value({}),
+                    ]);
+
+                    final invoiceResponse = results[0] as Map<String, dynamic>;
+                    final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
+                    final ledgerResponse = results[2] as Map<String, dynamic>;
+
+                    // Try to extract the definitive balance from the ledger (last row) first
+                    final ledgerJagsaalt = ledgerResponse['jagsaalt'] ?? ledgerResponse['ledger'] ?? [];
+                    if (ledgerJagsaalt is List && ledgerJagsaalt.isNotEmpty) {
+                       final latestRow = ledgerJagsaalt.last;
+                       final latestUld = _parseNum(latestRow['uldegdel'] ?? latestRow['balance']);
+                       invoiceSum = latestUld;
+                       hasData = true;
+                    }
+
+                    if (invoiceResponse['jagsaalt'] != null && invoiceResponse['jagsaalt'] is List) {
+                      final rawInvoices = invoiceResponse['jagsaalt'] as List;
+                      final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
+                          ? (tulukhAvlagaResponse['jagsaalt'] as List).cast<Map<String, dynamic>>()
+                          : <Map<String, dynamic>>[];
+
+                      // Use shared utility to merge them correctly
+                      final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
+                        rawInvoices,
+                        tulukhAvlagaList,
+                        null,
+                        '',
+                        null,
+                      );
+
+                      // Even if we got a ledger balance for the TOTAL, we still process the cards for 
+                      // individual counts, but we only calculate summations if we DIDN'T get a ledger.
+                      double manualsSum = 0.0;
+                      double tTotalAldangi = 0.0;
+                      
+                      // Get recent wallet history to filter out just-paid bills (reactive UI)
+                      List<Map<String, dynamic>> walletHistory = [];
+                      try {
+                        walletHistory = await ApiService.fetchWalletQpayList();
+                      } catch(_) {}
+                      final Set<String> recentlyPaidBillIds = {};
+                      // Increased depth to 100 to catch older payments from days ago
+                      for (var h in walletHistory.take(100)) {
+                        final billIds = h['billIds'] as List?;
+                        // If it's in our recent list, we hide it from the home screen balance
+                        if (billIds != null) {
+                          for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
                         }
                       }
+
+                      for (var inv in mergedInvoices) {
+                        final invId = inv['_id']?.toString() ?? inv['id']?.toString();
+                        if (inv['tuluv'] == 'Төлсөн' || (invId != null && recentlyPaidBillIds.contains(invId))) continue;
+
+                        // Avoid double-counting avlaga already in main balance
+                        if (inv['isStandaloneAvlaga'] == true && rawInvoices.isNotEmpty) {
+                          continue;
+                        }
+
+                        final item = NekhemjlekhItem.fromJson(inv);
+                        manualsSum += item.effectiveNiitTulbur;
+                        tTotalAldangi += _parseNum(inv['aldangi'] ?? 0);
+                        hasData = true;
+                      }
+                      
+                      // Priority: Authoritative Ledger Balance > Manual Summation
+                      if (!invoiceSum.isFinite || invoiceSum == 0) {
+                        invoiceSum = manualsSum;
+                      }
+                      aldangiSum = tTotalAldangi;
                     }
                   } catch (e) {
-                    print('❌ [ERROR] Accuracy check failed for $dugaar: $e');
+                    print('❌ [ERROR] Home accuracy sync failed for $dugaar: $e');
                   }
                 }
 
-                // Final fallback only if no invoices were found or processed
-                if (!foundInvoices) {
+                // Final fallback if NO invoices/avlagas/ledger were found
+                if (!hasData || (!invoiceSum.isFinite && invoiceSum == 0)) {
                   invoiceSum = _parseNum(contract['uldegdel'] ?? contract['globalUldegdel'] ?? contract['balance']);
                   aldangiSum = _parseNum(contract['aldangi'] ?? 0);
                 }
@@ -492,10 +566,27 @@ class _BookingScreenState extends State<NuurKhuudas>
               if (st['success'] == true && st['data'] != null) {
                 final walletData = st['data'];
                 final state = walletData['paymentStatus']?.toString().toUpperCase();
-                final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) => 
+                final hasSuccessfulTrxInList = (walletData['paymentTransactions'] as List?)?.any((trx) => 
                   (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
                   (trx['trxStatusName']?.toString() == 'Амжилттай')
                 ) ?? false;
+                
+                // Deep Check: Search within individual lines for Housing/OWN_ORG payments
+                bool hasSuccessfulTrxInLines = false;
+                final lines = walletData['lines'] as List?;
+                if (lines != null) {
+                   for (var line in lines) {
+                     final lineTrx = line['billTransactions'] as List?;
+                     if (lineTrx != null && lineTrx.any((trx) => 
+                       (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
+                       (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
+                       hasSuccessfulTrxInLines = true;
+                       break;
+                     }
+                   }
+                }
+
+                final hasSuccessfulTrx = hasSuccessfulTrxInList || hasSuccessfulTrxInLines;
 
                 if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx) {
                   for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
@@ -839,7 +930,9 @@ class _BookingScreenState extends State<NuurKhuudas>
           displayMessage =
               'Биллерүүд авах endpoint олдсонгүй. Backend дээр /wallet/billers route-ийг шалгана уу.';
         } else {
-          displayMessage = 'Биллерүүд авахад алдаа гарлаа: $e';
+          displayMessage = e.toString().contains('500') 
+            ? '1 эрхээр давхар орж байна'
+            : 'Биллерүүд авахад алдаа гарлаа: $e';
         }
 
         showGlassSnackBar(
@@ -873,9 +966,11 @@ class _BookingScreenState extends State<NuurKhuudas>
           bool isPaid = false;
           if (statusRes['success'] == true && statusRes['data'] != null) {
             final walletData = statusRes['data'];
+            
+            // 1. Check top-level payment status
             final state = walletData['paymentStatus']?.toString().toUpperCase();
             
-            // Check for success transactions
+            // 2. Check for success in top-level transactions list
             final transactions = walletData['paymentTransactions'] as List?;
             bool hasSuccessfulTrx = false;
             if (transactions != null) {
@@ -883,6 +978,22 @@ class _BookingScreenState extends State<NuurKhuudas>
                 (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
                 (trx['trxStatusName']?.toString() == 'Амжилттай')
               );
+            }
+
+            // 3. Deep Check: Search within individual lines for line-level transactions (e.g. Housing)
+            if (!hasSuccessfulTrx) {
+              final lines = walletData['lines'] as List?;
+              if (lines != null) {
+                for (var line in lines) {
+                  final lineTrx = line['billTransactions'] as List?;
+                  if (lineTrx != null && lineTrx.any((trx) => 
+                    (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                    (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
+                    hasSuccessfulTrx = true;
+                    break;
+                  }
+                }
+              }
             }
 
             if (state == 'PAID' || hasSuccessfulTrx) {

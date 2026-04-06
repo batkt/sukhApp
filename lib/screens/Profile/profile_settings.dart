@@ -1631,14 +1631,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       _buildSubSectionTitle('Үндсэн мэдээлэл'),
                       SizedBox(height: 12.h),
                       _buildModernTextField(
-                        controller: _nameController,
-                        label: 'Нэр',
-                        icon: Icons.person_outline_rounded,
-                        enabled: true,
-                        hint: 'Нэр оруулах',
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildModernTextField(
                         controller: _phoneController,
                         label: 'Утасны дугаар',
                         icon: Icons.phone_android_rounded,

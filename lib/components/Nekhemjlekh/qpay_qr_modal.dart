@@ -289,13 +289,13 @@ class _QPayQRModalState extends State<QPayQRModal> {
         child: Column(
           children: [
             _buildAmountHeader(context, textPrimary, textSecondary, primaryColor),
+            if (_resultMessage != null) _buildStatusFeedback(context, textPrimary),
             SizedBox(height: 24.h),
             _buildQRSection(context, hasOwnOrg, hasWallet, hasQrText, textPrimary, textSecondary, primaryColor),
             SizedBox(height: 32.h),
             _buildBankAppSection(context, textPrimary, textSecondary, primaryColor),
             SizedBox(height: 24.h),
             _buildTransferDetails(context, textPrimary, textSecondary, primaryColor),
-            if (_resultMessage != null) _buildStatusFeedback(context, textPrimary),
             SizedBox(height: 100.h),
           ],
         ),

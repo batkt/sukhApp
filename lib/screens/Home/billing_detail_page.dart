@@ -217,7 +217,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             final baiguullagiinId = billing['baiguullagiinId']?.toString();
             final gereeniiId = billing['gereeniiId']?.toString();
 
-            // Fetch local invoices
+            // Fetch local invoices and ledger
             final results = await Future.wait([
               ApiService.fetchNekhemjlekhiinTuukh(
                 gereeniiDugaar: gereeniiDugaar,
@@ -230,10 +230,25 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                       gereeniiId: gereeniiId,
                     )
                   : Future.value({'jagsaalt': []}),
+              (gereeniiId != null && baiguullagiinId != null)
+                  ? ApiService.fetchGereeniiHistoryLedger(
+                      gereeniiId: gereeniiId,
+                      baiguullagiinId: baiguullagiinId,
+                    )
+                  : Future.value({}),
             ]);
 
             final invoiceResponse = results[0] as Map<String, dynamic>;
             final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
+            final ledgerResponse = results[2] as Map<String, dynamic>;
+
+            // Use the ledger balance as the authoritative total if available
+            double authoritativeUldegdel = -1.0;
+            final ledgerJagsaalt = ledgerResponse['jagsaalt'] ?? ledgerResponse['ledger'] ?? [];
+            if (ledgerJagsaalt is List && ledgerJagsaalt.isNotEmpty) {
+              final latestRow = ledgerJagsaalt.last;
+              authoritativeUldegdel = (latestRow['uldegdel'] ?? latestRow['balance'] ?? 0.0).toDouble();
+            }
 
             if (invoiceResponse['jagsaalt'] != null &&
                 invoiceResponse['jagsaalt'] is List) {
@@ -243,25 +258,36 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                         .cast<Map<String, dynamic>>()
                   : <Map<String, dynamic>>[];
 
-              // Use the shared utility to merge gereeniiTulukhAvlaga into invoices (ekhniiUldegdel, avlaga)
+              // Use the shared utility to merge gereeniiTulukhAvlaga into invoices
               final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
                 rawInvoices,
                 tulukhAvlagaList,
-                null, // No gereeniiId check since we are already filtered by billingId
-                '', // No gereeniiDugaar check since we are already filtered by billingId
-                null, // No orshinSuugchId check since we are already filtered by billingId
+                null,
+                '',
+                null,
               );
 
               // Standard OWN_ORG logic: use official merged invoices
               final Set<String> seenIds = {};
+              double runningSum = 0.0;
+
               for (var inv in mergedInvoices) {
-                if (inv['tuluv'] == 'Төлсөн') {
-                  continue; // Skip historical payments
+                final invId = inv['_id']?.toString() ?? inv['id']?.toString();
+                
+                // Authoritative check: if we already identified this bill as paid/pending in recent cache, skip!
+                if (invId != null && _billStatuses.containsKey(invId)) {
+                   continue;
+                }
+                
+                if (invId != null && inv['tuluv'] == 'Төлсөн') {
+                  _billStatuses[invId] = 'PAID';
+                  _billStatusTexts[invId] = 'Төлөгдсөн';
+                  _billStatusColors[invId] = Colors.green;
+                  continue; // Hide from outstanding list
                 }
 
-                // FIX: Avoid double-counting standalone avlaga that are already in the main invoice balance (uldegdel)
+                // Avoid double-counting standalone avlaga
                 if (inv['isStandaloneAvlaga'] == true && rawInvoices.isNotEmpty) {
-                  print(' [DEBUG] Skipping standalone avlaga to prevent double-counting: ${inv['tailbar']}');
                   continue;
                 }
 
@@ -270,15 +296,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                 if (invoiceId.isNotEmpty && seenIds.contains(invoiceId)) {
                   continue;
                 }
-                if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
-
-                // IMPORTANT: Prioritize niitTulbur over uldegdel
-                final amt = (inv['niitTulbur'] as num?)?.toDouble() ?? 0.0;
-                final uld = (inv['uldegdel'] as num?)?.toDouble() ?? 0.0;
-
-                final paymentAmt = amt != 0 ? amt : uld;
-
+                
+                final item = NekhemjlekhItem.fromJson(inv);
+                final paymentAmt = item.effectiveNiitTulbur;
                 if (paymentAmt == 0) continue;
+
+                if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
+                runningSum += paymentAmt;
 
                 collectedBills.add({
                   'billId': invoiceId,
@@ -297,6 +321,15 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                       billing['billingName'] ?? 'Орон сууцны төлбөр',
                   'source': 'OWN_ORG',
                 });
+              }
+
+              // If ledger balance is present and differs from runningSum, we might need a corrective entry 
+              // or just update the billing model which is used for the summary display.
+              if (authoritativeUldegdel >= 0 && (authoritativeUldegdel - runningSum).abs() > 10) {
+                 print(' [DEBUG] Ledger balance ($authoritativeUldegdel) differs from sum ($runningSum). Using ledger as authority.');
+                 // Update the billing map itself so parent gets the correct total for summary
+                 billing['uldegdel'] = authoritativeUldegdel;
+                 billing['perItemTotal'] = authoritativeUldegdel;
               }
             }
           } else {
@@ -365,8 +398,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       final history = await ApiService.fetchWalletQpayList();
       if (history.isEmpty) return;
 
-      // 2. Identify payments from the last hour or so that might be relevant
-      final recentPayments = history.take(10).toList();
+      // 2. Identify payments from the depth (increased to 100) that might be relevant
+      final recentPayments = history.take(100).toList();
 
       for (var payment in recentPayments) {
         // Try walletPaymentId first, then fallback to zakhialgiinDugaar for the check
@@ -390,13 +423,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
           if (statusRes['success'] == true && statusRes['data'] != null) {
             final walletData = statusRes['data'];
+            // 1. Check top-level payment status
             final state = walletData['paymentStatus']?.toString().toUpperCase();
             final stateText = walletData['paymentStatusText']?.toString();
             
-            // Prioritize local settlement field (tulsunEsekh) if provided by backend
-            final bool isLocallyPaid = statusRes['tulsunEsekh'] == true;
-            
-            // Checks for success transactions inside transactions list
+            // 2. Check for success in top-level transactions list
             final transactions = walletData['paymentTransactions'] as List?;
             bool hasSuccessfulTrx = false;
             if (transactions != null) {
@@ -406,18 +437,32 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               );
             }
 
+            // 3. Deep Check: Search within individual lines for Housing/OWN_ORG payments
+            if (!hasSuccessfulTrx) {
+              final lines = walletData['lines'] as List?;
+              if (lines != null) {
+                for (var line in lines) {
+                  final lineTrx = line['billTransactions'] as List?;
+                  if (lineTrx != null && lineTrx.any((trx) => 
+                    (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                    (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
+                    hasSuccessfulTrx = true;
+                    break;
+                  }
+                }
+              }
+            }
+
+            // Prioritize local settlement field (tulsunEsekh) if provided by backend
+            final bool isLocallyPaid = statusRes['tulsunEsekh'] == true;
+
             String finalStatus = '';
             String finalStatusText = '';
             Color statusColor = Colors.grey;
 
-            if (isLocallyPaid || state == 'PAID' || hasSuccessfulTrx) {
-              finalStatus = 'PAID';
-              finalStatusText = 'Төлөгдсөн';
-              statusColor = Colors.green;
-            } else if (state == 'PENDING') {
-              finalStatus = 'PENDING';
-              finalStatusText = stateText ?? 'Төлбөр төлөгдөж буй';
-              statusColor = Colors.orange;
+            if (isLocallyPaid || state == 'PAID' || state == 'PENDING' || state == 'NEW' || hasSuccessfulTrx) {
+              // Mark as handled so we don't show it in the outstanding list
+              _billStatuses[checkId] = state ?? 'PAID';
             }
 
             if (finalStatus.isNotEmpty) {
@@ -560,6 +605,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       if (qpayResponse['success'] == true) {
         print('🔍 [BillingDetail] QPay creation response: $qpayResponse');
+        // Register these IDs as PENDING immediately to skip double-payment risks
+        for(var bid in selectedBillIds) {
+           _billStatuses[bid] = 'PENDING';
+           _billStatusTexts[bid] = 'Төлбөр хүлээгдэж байна';
+           _billStatusColors[bid] = Colors.orange;
+        }
+        
         final walletPaymentId = qpayResponse['walletPaymentId']?.toString();
         final qpayInvoiceId =
             qpayResponse['invoice_id']?.toString() ??
@@ -880,10 +932,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               ),
             )
           : _allBills.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
-                'Төлөх төлбөр олдсонгүй',
-                style: TextStyle(color: Colors.white),
+                'Төлөлт хийгдээгүй байна',
+                style: TextStyle(
+                  color: context.textSecondaryColor.withOpacity(0.5),
+                  fontSize: 14.sp,
+                ),
               ),
             )
           : Column(

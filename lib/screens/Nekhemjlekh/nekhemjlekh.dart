@@ -409,7 +409,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         final barilgiinId = gereeToUse['barilgiinId']?.toString();
         final gereeniiId = gereeToUse['_id']?.toString();
 
-        // Fetch both nekhemjlekhiinTuukh and gereeniiTulukhAvlaga in parallel (matches web Үйлчилгээний нэхэмжлэх)
+        // Fetch both nekhemjlekhiinTuukh, gereeniiTulukhAvlaga AND history-ledger in parallel (matches web)
         final results = await Future.wait([
           ApiService.fetchNekhemjlekhiinTuukh(
             gereeniiDugaar: gereeniiDugaar,
@@ -422,10 +422,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   gereeniiId: gereeniiId,
                 )
               : Future.value({'jagsaalt': []}),
+          (gereeniiId != null && baiguullagiinId != null)
+              ? ApiService.fetchGereeniiHistoryLedger(
+                  gereeniiId: gereeniiId,
+                  baiguullagiinId: baiguullagiinId,
+                )
+              : Future.value({}),
         ]);
 
         final response = results[0] as Map<String, dynamic>;
         final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
+        final ledgerResponse = results[2] as Map<String, dynamic>;
+
+        // Authoritative Ledger Balance
+        final ledgerJagsaalt = ledgerResponse['jagsaalt'] ?? ledgerResponse['ledger'] ?? [];
+        if (ledgerJagsaalt is List && ledgerJagsaalt.isNotEmpty) {
+           final latestRow = ledgerJagsaalt.last;
+           final latestUld = (latestRow['uldegdel'] ?? latestRow['balance'] ?? 0.0).toDouble();
+           _contractUldegdel = latestUld;
+        }
 
         if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
           final rawInvoices = response['jagsaalt'] as List;
@@ -514,19 +529,19 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   int get selectedCount =>
       invoices.where((invoice) => invoice.isSelected).length;
 
-  /// Effective total: Sum up the balance (uldegdel) of each individual unpaid invoice.
-  /// We avoid using the contract-level globalUldegdel (which currently shows an incorrect sum).
+  /// Effective total: Use authoritative ledger balance as primary source.
+  /// Matches home screen and web dashboard authoritative values.
   double get _effectiveTotalAmount {
-    // Sum unique unpaid invoices as the primary source of truth
+    // 1. Authoritative Ledger Priority
+    if (_contractUldegdel != null) {
+      return _contractUldegdel!;
+    }
+
+    // 2. Sum unique unpaid invoices as fallback
     final unpaid = invoices.where((i) => i.tuluv != 'Төлсөн').toList();
     if (unpaid.isNotEmpty) {
       final sum = unpaid.fold<double>(0, (s, i) => s + i.effectiveNiitTulbur);
       return sum;
-    }
-
-    // Remote fallback: Only if no invoices exist but we have a building balance.
-    if (_contractUldegdel != null && _contractUldegdel! > 0) {
-      return _contractUldegdel!;
     }
 
     return 0;

@@ -32,6 +32,26 @@ class PaymentHistory {
           .toList(),
     );
   }
+
+  PaymentHistory copyWith({
+    String? paymentId,
+    String? invoiceNo,
+    double? paymentAmount,
+    String? paymentStatus,
+    String? paymentStatusText,
+    DateTime? paymentStatusDate,
+    List<Bill>? bills,
+  }) {
+    return PaymentHistory(
+      paymentId: paymentId ?? this.paymentId,
+      invoiceNo: invoiceNo ?? this.invoiceNo,
+      paymentAmount: paymentAmount ?? this.paymentAmount,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentStatusText: paymentStatusText ?? this.paymentStatusText,
+      paymentStatusDate: paymentStatusDate ?? this.paymentStatusDate,
+      bills: bills ?? this.bills,
+    );
+  }
 }
 
 class Bill {

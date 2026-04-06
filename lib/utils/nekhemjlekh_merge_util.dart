@@ -70,6 +70,28 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
       '_id': rec['_id']?.toString(),
     };
 
+    // Deep check: Is this transaction (by ID) already nested in ANY existing invoice?
+    // The backend provides guilgeenuudForNekhemjlekh nested, while fetchGereeniiTulukhAvlaga 
+    // provides them standalone. If we have both, we MUST not double count.
+    final existingId = rec['_id']?.toString() ?? rec['id']?.toString();
+    bool alreadyNested = false;
+    if (existingId != null && existingId.isNotEmpty) {
+      for (final inv in invoices) {
+        final nested = inv['guilgeenuudForNekhemjlekh'] ?? inv['medeelel']?['guilgeenuud'];
+        if (nested is List) {
+           if (nested.any((g) => (g['_id'] ?? g['id'])?.toString() == existingId)) {
+             alreadyNested = true;
+             break;
+           }
+        }
+      }
+    }
+
+    if (alreadyNested) {
+      print(' [DEBUG] Skipping nested receiver $existingId');
+      continue;
+    }
+
     int targetIndex = -1;
     if (nekhemjlekhId.isNotEmpty) {
       for (var i = 0; i < invoices.length; i++) {
@@ -80,8 +102,15 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
       }
     }
 
+    if (targetIndex == -1 && !ekhniiUldegdelEsekh) {
+      if (latestUnpaidIndex >= 0 && latestUnpaidIndex < invoices.length) {
+        // AGGRESSIVE MERGE: Bundle into the first unpaid invoice card instead of creating new cards.
+        targetIndex = latestUnpaidIndex;
+      }
+    }
+
     if (targetIndex >= 0 && targetIndex < invoices.length) {
-      // LINKED: Merge into existing invoice and update its total
+      // LINKED or AGGRESSIVE MERGE: Merge into existing invoice and update its total
       final inv = invoices[targetIndex];
       var medeelel = inv['medeelel'];
       if (medeelel == null) {
@@ -115,11 +144,37 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
       if (!alreadyHas) {
         guilgeenuud.add(guilgeeEntry);
 
-        // Update invoice totals with this receivable amount
+        // Update invoice totals with this receivable amount ONLY if it was previously zero,
+        // OR if it's an aggressive merge of a non-authoritative item (Top-Up).
         final remaining = guilgeeEntry['undsenDun'] - guilgeeEntry['tulsunDun'];
         if (remaining > 0) {
-          inv['niitTulbur'] = (inv['niitTulbur'] ?? 0.0).toDouble() + remaining;
-          inv['uldegdel'] = (inv['uldegdel'] ?? 0.0).toDouble() + remaining;
+          final amt = _toNum(guilgeeEntry['undsenDun']);
+          final currentTulbur = _toNum(inv['niitTulbur'] ?? 0.0);
+          final currentUldegdel = _toNum(inv['uldegdel'] ?? 0.0);
+
+          // Stricter Check: If the current total ALREADY matches this amount exactly (5₮ tolerance), 
+          // it means this Receivable is just a summary representation of the SAME bill.
+          final alreadyRepresented = (currentTulbur - amt).abs() < 5 || (currentUldegdel - amt).abs() < 5;
+
+          // Also check if this amount exactly matches another line item within this invoice to prevent double-counting same-day edits
+          bool existsInNested = false;
+          final nested = inv['guilgeenuudForNekhemjlekh'] ?? inv['medeelel']?['guilgeenuud'];
+          if (nested is List) {
+            existsInNested = nested.any((g) => (_toNum(g['undsenDun']) - amt).abs() < 1);
+          }
+
+          if (currentTulbur == 0) {
+             inv['niitTulbur'] = remaining;
+          } else if (!alreadyRepresented && !existsInNested && currentTulbur > 0) {
+             // Only add if it's clearly a separate charge (e.g. top-up, late fee)
+             inv['niitTulbur'] = currentTulbur + remaining;
+          }
+          
+          if (currentUldegdel == 0) {
+            inv['uldegdel'] = remaining;
+          } else if (!alreadyRepresented && !existsInNested && currentUldegdel > 0) {
+            inv['uldegdel'] = currentUldegdel + remaining;
+          }
         }
       }
     } else {
@@ -131,8 +186,12 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
           invoices.any(
             (inv) => (inv['_id'] ?? inv['id'])?.toString() == existingId,
           );
+          
+      // Extra safety: Check for summary cards by amount deduplication
+      final amt = _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0);
+      final alreadyRepresentedByAmount = invoices.any((inv) => (_toNum(inv['niitTulbur']) - amt).abs() < 5);
 
-      if (!alreadyHas) {
+      if (!alreadyHas && !alreadyRepresentedByAmount) {
         final amount =
             _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0) -
             _toNum(rec['tulsunDun'] ?? 0);

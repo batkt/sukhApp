@@ -643,17 +643,50 @@ class InvoiceCard extends StatelessWidget {
               veryNarrow: 8,
             ),
           ),
+          // Starting Balance (Эхний үлдэгдэл)
+          if ((invoice.ekhniiUldegdel ?? 0) != 0) ...[
+            _buildPriceRow(
+              context,
+              'Эхний үлдэгдэл',
+              '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮',
+            ),
+            SizedBox(
+              height: context.responsiveSpacing(
+                small: 6,
+                medium: 8,
+                large: 10,
+                tablet: 12,
+                veryNarrow: 4,
+              ),
+            ),
+          ],
           // Avlaga items from guilgeenuud (exclude ekhniiUldegdel - shown above)
           // Match both "avlaga" and "Авлага" (API may return either)
           if (invoice.medeelel != null &&
               invoice.medeelel!.guilgeenuud != null) ...[
             ...invoice.medeelel!.guilgeenuud!
                 .where((guilgee) {
-                  final t = guilgee.turul?.toLowerCase() ?? '';
-                  return (t == 'avlaga' || t == 'авлага') &&
-                      !guilgee.ekhniiUldegdelEsekh;
+                  // Only show transactions that represent an unpaid balance or charge
+                  // Use tulukhDun or undsenDun to see if any amount is still due
+                  final baseAmt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0);
+                  final tulsun = (guilgee.tulsunDun ?? 0.0);
+                  
+                  // Filter out fully paid transactions if needed, but for breakdown 
+                  // usually we show the full charge (baseAmt) or the remaining due (baseAmt - tulsun).
+                  // Match web behavior: show anything with non-zero baseAmt, and skip system payments
+                  // Match web behavior: show anything with non-zero baseAmt, skip starting balance (shown in separate row), and skip system payments
+                  return baseAmt != 0 && 
+                         !guilgee.ekhniiUldegdelEsekh && 
+                         (guilgee.turul?.toLowerCase() != 'system_sync');
                 })
                 .map((guilgee) {
+                  // Use either 'tailbar' or 'turul' for the label, fallback to 'Авлага'
+                  final String label = (guilgee.tailbar != null && guilgee.tailbar!.isNotEmpty)
+                      ? guilgee.tailbar!
+                      : (guilgee.turul != null && guilgee.turul!.isNotEmpty)
+                          ? guilgee.turul!
+                          : 'Нэмэлт авлага';
+                  
                   // Use tulukhDun or undsenDun (API may use either for avlaga amount)
                   final amt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0);
 
@@ -672,7 +705,7 @@ class InvoiceCard extends StatelessWidget {
                         ),
                         _buildPriceRow(
                           context,
-                          'Авлага',
+                          label,
                           '${formatNumber(amt, 2)}₮',
                         ),
                       ],
@@ -794,8 +827,7 @@ class InvoiceCard extends StatelessWidget {
             if (invoice.medeelel!.zardluud.isNotEmpty) ...[
               ...invoice.medeelel!.zardluud
                   .where(
-                    (zardal) =>
-                        zardal.isDisplayable && !zardal.isEkhniiUldegdel,
+                    (zardal) => zardal.isDisplayable,
                   )
                   .map((zardal) {
                     return Column(

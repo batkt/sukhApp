@@ -101,7 +101,7 @@ class NotificationService {
   }
 
   /// Show session expired notification
-  static Future<void> showSessionExpiredNotification() async {
+  static Future<void> showSessionExpiredNotification([String? message]) async {
     const androidDetails = AndroidNotificationDetails(
       'session_channel',
       'Нэвтрэлтийн мэдэгдэл',
@@ -125,7 +125,7 @@ class NotificationService {
     await _notifications.show(
       0,
       'Нэвтрэлтийн хугацаа дууссан',
-      'Таны нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.',
+      message ?? 'Таны нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.',
       notificationDetails,
       payload: 'session_expired',
     );
