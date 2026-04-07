@@ -2504,6 +2504,10 @@ class ApiService {
 
         return result;
       } else {
+        if (response.statusCode == 401 || response.statusCode == 404) {
+          await handleUnauthorized('Нэвтрэлтийн мэдээлэл хүчингүй байна. Дахин нэвтэрнэ үү');
+          throw Exception('Дахин нэвтэрнэ үү');
+        }
         throw Exception(
           'Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
         );

@@ -548,8 +548,8 @@ class _EbarimtPageState extends State<EbarimtPage> {
                               color: isDark ? Colors.white : const Color(0xFF334155),
                             ),
                             decoration: InputDecoration(
-                              labelText: 'Иргэний код эсвэл Утасны дугаар',
-                              hintText: 'Жишээ: 88... эсвэл Иргэний код',
+                              labelText: _infoType == 'foreigner' ? 'Байгууллагын РД' : 'Иргэний код / Утас',
+                              hintText: _infoType == 'foreigner' ? 'Байгууллагын код' : '88... эсвэл Иргэний код',
                               prefixIcon: Icon(Icons.qr_code_scanner_rounded, size: 20.sp, color: AppColors.deepGreen),
                               suffixIcon: (_savedUsers.isEmpty || _consumerInfo != null || _foreignerInfo != null)
                                   ? null
