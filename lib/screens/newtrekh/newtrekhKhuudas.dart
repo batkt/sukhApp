@@ -226,21 +226,43 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             loginOrgId.trim().isNotEmpty &&
             loginOrgId.trim().toLowerCase() != 'null';
 
-        // Address check
-        bool hasAddress = await StorageService.hasSavedAddress();
-        if (!hasAddress && userData != null) {
-          final wBairId = userData['walletBairId']?.toString();
-          final wDoorNo = userData['walletDoorNo']?.toString();
-          if (wBairId != null &&
+        // Address check (server truth first, clear stale local address if missing)
+        bool hasAddress = false;
+        if (userData != null) {
+          String? wBairId = userData['walletBairId']?.toString();
+          String? wDoorNo = userData['walletDoorNo']?.toString();
+          final toots = userData['toots'];
+          if ((wBairId == null || wBairId.isEmpty || wDoorNo == null || wDoorNo.isEmpty) &&
+              toots is List) {
+            final tootWithWalletAddress = toots.cast<dynamic>().firstWhere(
+              (item) =>
+                  item is Map &&
+                  item['walletBairId']?.toString().isNotEmpty == true &&
+                  item['walletDoorNo']?.toString().isNotEmpty == true,
+              orElse: () => null,
+            );
+            if (tootWithWalletAddress is Map) {
+              wBairId = tootWithWalletAddress['walletBairId']?.toString();
+              wDoorNo = tootWithWalletAddress['walletDoorNo']?.toString();
+            }
+          }
+          final hasServerAddress =
+              wBairId != null &&
               wBairId.isNotEmpty &&
               wDoorNo != null &&
-              wDoorNo.isNotEmpty) {
+              wDoorNo.isNotEmpty;
+
+          if (hasServerAddress) {
             await StorageService.saveWalletAddress(
               bairId: wBairId,
               doorNo: wDoorNo,
             );
             hasAddress = true;
+          } else {
+            await StorageService.clearWalletAddress();
           }
+        } else {
+          await StorageService.clearWalletAddress();
         }
 
         // Profile check
@@ -292,7 +314,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
         final taniltsuulgaKharakhEsekh =
             await StorageService.getTaniltsuulgaKharakhEsekh();
-        final targetRoute = taniltsuulgaKharakhEsekh ? '/ekhniikh' : '/nuur';
+        final targetRoute = taniltsuulgaKharakhEsekh
+            ? '/ekhniikh'
+            : (hasAddress ? '/nuur' : '/address_selection');
 
         await Future.delayed(const Duration(milliseconds: 300));
         if (mounted) context.go(targetRoute);

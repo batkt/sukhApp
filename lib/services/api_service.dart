@@ -675,14 +675,7 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getWalletBillingList({
     bool forceRefresh = false,
   }) async {
-    // Check cache
-    if (!forceRefresh &&
-        _cachedWalletBillingList != null &&
-        _lastWalletBillingListFetch != null &&
-        DateTime.now().difference(_lastWalletBillingListFetch!) <
-            _shortCacheDuration) {
-      return _cachedWalletBillingList!;
-    }
+    // User-specific billing data must always be fetched fresh.
 
     try {
       final headers = await getWalletApiHeaders();
@@ -696,8 +689,6 @@ class ApiService {
         if (data['success'] == true && data['data'] != null) {
           if (data['data'] is List) {
             final list = List<Map<String, dynamic>>.from(data['data']);
-            _cachedWalletBillingList = list;
-            _lastWalletBillingListFetch = DateTime.now();
             return list;
           }
         }
@@ -722,14 +713,7 @@ class ApiService {
     required String billingId,
     bool forceRefresh = false,
   }) async {
-    // Check cache
-    if (!forceRefresh &&
-        _cachedWalletBillingBills.containsKey(billingId) &&
-        _lastWalletBillingBillsFetch.containsKey(billingId) &&
-        DateTime.now().difference(_lastWalletBillingBillsFetch[billingId]!) <
-            _shortCacheDuration) {
-      return _cachedWalletBillingBills[billingId]!;
-    }
+    // User-specific billing details must always be fetched fresh.
 
     try {
       final headers = await getWalletApiHeaders();
@@ -767,11 +751,6 @@ class ApiService {
             );
             result = Map<String, dynamic>.from(matched);
           }
-        }
-
-        if (result.isNotEmpty) {
-          _cachedWalletBillingBills[billingId] = result;
-          _lastWalletBillingBillsFetch[billingId] = DateTime.now();
         }
 
         return result;
@@ -1719,19 +1698,13 @@ class ApiService {
   static const Duration _walletHeadersCacheDuration = Duration(minutes: 5);
 
   static Future<Map<String, String>> getWalletApiHeaders() async {
-    // Check cache first
-    if (_cachedWalletHeaders != null &&
-        _lastWalletHeadersFetch != null &&
-        DateTime.now().difference(_lastWalletHeadersFetch!) <
-            _walletHeadersCacheDuration) {
-      return _cachedWalletHeaders!;
-    }
+    // Never reuse cached auth headers across sessions/users.
 
     final token = await StorageService.getToken();
 
     String? userId;
     try {
-      final userProfile = await getUserProfile();
+      final userProfile = await getUserProfile(forceRefresh: true);
       if (userProfile['result']?['walletUserId'] != null) {
         userId = userProfile['result']['walletUserId'].toString();
       } else if (userProfile['result']?['utas'] != null) {
@@ -1758,10 +1731,6 @@ class ApiService {
       );
       print('   This may cause Wallet API calls to fail');
     }
-
-    // Cache the headers
-    _cachedWalletHeaders = headers;
-    _lastWalletHeadersFetch = DateTime.now();
 
     return headers;
   }
@@ -2448,13 +2417,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getUserProfile({
     bool forceRefresh = false,
   }) async {
-    // Check cache first
-    if (!forceRefresh &&
-        _cachedUserProfile != null &&
-        _lastProfileFetch != null &&
-        DateTime.now().difference(_lastProfileFetch!) < _profileCacheDuration) {
-      return _cachedUserProfile!;
-    }
+    // User profile is session/user specific. Always fetch fresh.
 
     try {
       final headers = await getAuthHeaders();
@@ -2477,10 +2440,6 @@ class ApiService {
         } else {
           throw Exception(data['message'] ?? 'Хэрэглэгчийн мэдээлэл олдсонгүй');
         }
-
-        // Cache the result
-        _cachedUserProfile = result;
-        _lastProfileFetch = DateTime.now();
 
         // Persist user data locally so the app is always up to date with web changes
         await StorageService.saveUserData(result);
@@ -3503,13 +3462,7 @@ class ApiService {
 
   /// Fetch Wallet QPay payment history list (with 15s cache)
   static Future<List<Map<String, dynamic>>> fetchWalletQpayList() async {
-    // Return cached result if fresh
-    if (_cachedWalletQpayList != null && _lastWalletQpayListFetch != null) {
-      final age = DateTime.now().difference(_lastWalletQpayListFetch!);
-      if (age < _walletQpayListCacheDuration) {
-        return _cachedWalletQpayList!;
-      }
-    }
+    // Payment history is user-specific. Always fetch fresh.
     try {
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/walletQpay/list');
@@ -3525,8 +3478,6 @@ class ApiService {
         } else if (data is Map && data['data'] is List) {
           result = List<Map<String, dynamic>>.from(data['data']);
         }
-        _cachedWalletQpayList = result;
-        _lastWalletQpayListFetch = DateTime.now();
         return result;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
@@ -3583,15 +3534,7 @@ class ApiService {
   static Future<Map<String, dynamic>> walletQpayWalletCheck({
     required String walletPaymentId,
   }) async {
-    // Return cached result if fresh
-    if (_walletCheckCache.containsKey(walletPaymentId) &&
-        _walletCheckCacheTime.containsKey(walletPaymentId)) {
-      final age = DateTime.now().difference(_walletCheckCacheTime[walletPaymentId]!);
-      if (age < _walletCheckCacheDuration) {
-        print('⚡ [WALLET QPAY] Cache hit for $walletPaymentId (${age.inSeconds}s old)');
-        return _walletCheckCache[walletPaymentId]!;
-      }
-    }
+    // Payment status is user-specific. Always fetch fresh.
 
     try {
       final headers = await getAuthHeaders();
@@ -3610,9 +3553,6 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
-        // Cache successful responses
-        _walletCheckCache[walletPaymentId] = data;
-        _walletCheckCacheTime[walletPaymentId] = DateTime.now();
         return data;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();

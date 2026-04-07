@@ -336,9 +336,49 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         showGlassSnackBar(context, message: 'Бүртгэл амжилттай үүслээ! Нэвтэрч байна...', icon: Icons.check_circle, iconColor: Colors.green);
 
         bool loginSuccess = false;
+        bool hasAddress = false;
         try {
-          await ApiService.loginUser(utas: _phoneController.text.trim(), nuutsUg: _passwordController.text.trim());
+          final loginResponse = await ApiService.loginUser(
+            utas: _phoneController.text.trim(),
+            nuutsUg: _passwordController.text.trim(),
+          );
           await StorageService.savePhoneNumber(_phoneController.text.trim());
+          final userDataDynamic =
+              loginResponse['result'] ?? loginResponse['orshinSuugch'];
+          final userData = userDataDynamic is Map<String, dynamic>
+              ? userDataDynamic
+              : null;
+          String? wBairId = userData?['walletBairId']?.toString();
+          String? wDoorNo = userData?['walletDoorNo']?.toString();
+          final toots = userData?['toots'];
+          if ((wBairId == null || wBairId.isEmpty || wDoorNo == null || wDoorNo.isEmpty) &&
+              toots is List) {
+            final tootWithWalletAddress = toots.cast<dynamic>().firstWhere(
+              (item) =>
+                  item is Map &&
+                  item['walletBairId']?.toString().isNotEmpty == true &&
+                  item['walletDoorNo']?.toString().isNotEmpty == true,
+              orElse: () => null,
+            );
+            if (tootWithWalletAddress is Map) {
+              wBairId = tootWithWalletAddress['walletBairId']?.toString();
+              wDoorNo = tootWithWalletAddress['walletDoorNo']?.toString();
+            }
+          }
+          final hasServerAddress =
+              wBairId != null &&
+              wBairId.isNotEmpty &&
+              wDoorNo != null &&
+              wDoorNo.isNotEmpty;
+          if (hasServerAddress) {
+            await StorageService.saveWalletAddress(
+              bairId: wBairId,
+              doorNo: wDoorNo,
+            );
+            hasAddress = true;
+          } else {
+            await StorageService.clearWalletAddress();
+          }
           loginSuccess = true;
         } catch (e) {
           debugPrint('Auto-login failed: $e');
@@ -347,11 +387,16 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
-          if (!_hasOrg && loginSuccess) {
-            context.go('/address_selection');
-          } else if (loginSuccess) {
-            final showIntro = await StorageService.getTaniltsuulgaKharakhEsekh();
-            context.go(showIntro ? '/ekhniikh' : '/nuur');
+          if (loginSuccess) {
+            final showIntro =
+                await StorageService.getTaniltsuulgaKharakhEsekh();
+            if (showIntro) {
+              context.go('/ekhniikh');
+            } else if (!hasAddress) {
+              context.go('/address_selection');
+            } else {
+              context.go('/nuur');
+            }
           } else {
             context.go('/newtrekh');
           }

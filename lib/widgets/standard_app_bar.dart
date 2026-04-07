@@ -30,10 +30,18 @@ PreferredSizeWidget buildStandardAppBar(
               Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
-                  onTap: onBackPressed ?? () => context.pop(),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onBackPressed ??
+                      () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/nuur');
+                        }
+                      },
                   child: Container(
-                    width: 34.w,
-                    height: 34.w,
+                    width: 44.w,
+                    height: 44.w,
                     decoration: BoxDecoration(
                       color: backButtonColor ?? AppColors.deepGreen,
                       shape: BoxShape.circle,
@@ -57,14 +65,17 @@ PreferredSizeWidget buildStandardAppBar(
               ),
             
             // Title
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: titleColor ?? (context.isDarkMode ? Colors.white : context.textPrimaryColor),
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
+            IgnorePointer(
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: titleColor ??
+                      (context.isDarkMode ? Colors.white : context.textPrimaryColor),
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
               ),
             ),
             

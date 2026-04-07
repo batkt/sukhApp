@@ -332,8 +332,8 @@ class _BookingScreenState extends State<NuurKhuudas>
   @override
   void didUpdateWidget(NuurKhuudas oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _loadBillers();
-    _refreshBillingInfo();
+    // Avoid duplicate heavy billing refreshes on widget updates.
+    // Billing data already refreshes via initState, lifecycle, pull-to-refresh, and socket events.
   }
 
   double _parseNum(dynamic val) {
@@ -700,7 +700,6 @@ class _BookingScreenState extends State<NuurKhuudas>
       // Force refresh all billing-related data immediately
       await Future.wait([
         _refreshBillingInfo(forceRefresh: true),
-        _loadAllBillingPayments(),
         _loadNotificationCount(), // Also refresh notifications
         ApiService.getUserProfile(forceRefresh: true), // Sync user profile from web changes
       ]);

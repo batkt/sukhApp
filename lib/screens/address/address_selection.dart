@@ -381,6 +381,29 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       print('🔍 [DEBUG] Response from fetchWalletBilling:');
       print('   - billingInfo: ${response['billingInfo']}');
 
+      // Persist locally so hasSavedAddress() and router guards match the server.
+      // saveUserData from API does not write wallet_bair_id / wallet_door_no.
+      final bairNameForStorage =
+          (_selectedBuilding!['name'] ?? _selectedBuilding!['ner'])
+              ?.toString();
+      final barilgiinForStorage =
+          _selectedBuilding!['barilgiinId']?.toString();
+      await StorageService.saveWalletAddress(
+        bairId: bairId,
+        doorNo: doorNo,
+        bairName: (bairNameForStorage != null && bairNameForStorage.isNotEmpty)
+            ? bairNameForStorage
+            : null,
+        source: source,
+        baiguullagiinId: _selectedBuilding!['baiguullagiinId']?.toString(),
+        barilgiinId: (barilgiinForStorage != null &&
+                barilgiinForStorage.isNotEmpty)
+            ? barilgiinForStorage
+            : (source == 'OWN_ORG' ? bairId : null),
+        customerId: _selectedWalletCustomer?['customerId']?.toString(),
+        customerName: _selectedWalletCustomer?['customerName']?.toString(),
+      );
+
       if (mounted) {
         showGlassSnackBar(
           context,
@@ -782,7 +805,11 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: buildStandardAppBar(context, title: 'Хаяг тохируулах'),
+      appBar: buildStandardAppBar(
+        context,
+        title: 'Хаяг тохируулах',
+        onBackPressed: () => context.go('/nuur?allowNoAddress=true'),
+      ),
       body: CustomPaint(
         painter: SharedBgPainter(
           isDark: isDark,

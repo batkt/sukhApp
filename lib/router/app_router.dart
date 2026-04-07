@@ -44,14 +44,29 @@ final GoRouter appRouter = GoRouter(
     final isLoggedIn = await StorageService.isLoggedIn();
     final taniltsuulgaKharakhEsekh =
         await StorageService.getTaniltsuulgaKharakhEsekh();
-    final isGoingToLogin =
-        state.matchedLocation == '/newtrekh' || state.matchedLocation == '/';
-    final isGoingToRegister = state.matchedLocation.startsWith('/burtguulekh');
-    final isGoingToOnboarding = state.matchedLocation == '/ekhniikh';
-    final isGoingToBiometricOnboarding = state.matchedLocation == '/hoyrdah';
-    final isGoingToPasswordReset =
-        state.matchedLocation == '/nuuts-ug-sergeekh';
+    final hasSavedAddress = await StorageService.hasSavedAddress();
+    final loc = state.matchedLocation;
+    final isGoingToLogin = loc == '/newtrekh' || loc == '/';
+    final isGoingToRegister = loc.startsWith('/burtguulekh');
+    final isGoingToOnboarding = loc == '/ekhniikh';
+    final isGoingToBiometricOnboarding = loc == '/hoyrdah';
+    final isGoingToPasswordReset = loc == '/nuuts-ug-sergeekh';
+    final isGoingToNuur = loc == '/nuur';
+    final allowNoAddress = state.uri.queryParameters['allowNoAddress'] == 'true';
+
+    // Logged-in users cannot use home without a saved address (intro/biometric may finish first).
+    if (isLoggedIn && isGoingToNuur && !hasSavedAddress && !allowNoAddress) {
+      return '/address_selection';
+    }
+
+    // Logged in but still on entry routes → match signup/login flow (intro → address → home).
     if (isLoggedIn && (isGoingToLogin || isGoingToRegister)) {
+      if (taniltsuulgaKharakhEsekh) {
+        return '/ekhniikh';
+      }
+      if (!hasSavedAddress) {
+        return '/address_selection';
+      }
       return '/nuur';
     }
 
