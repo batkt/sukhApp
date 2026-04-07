@@ -13,6 +13,7 @@ class BillingListSection extends StatefulWidget {
   // Passing a BuildContext through callbacks and storing/reusing it after
   // navigation causes stale context errors — the card becomes untappable
   // after returning from the detail page.
+  // Refined callback for tapping on billings.
   final Function(Map<String, dynamic>) onBillingTap;
   final String Function(String) expandAddressAbbreviations;
   final VoidCallback? onShowEmptyMessage;

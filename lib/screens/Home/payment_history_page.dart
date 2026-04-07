@@ -175,7 +175,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
           history = flattenedHistory;
         }
       } else {
-        // Original Wallet API history fetcher
+        // Original Wallet API history fetcher — from wallet/billing/bills
         final List<Map<String, dynamic>> rawData =
             await ApiService.getWalletBillingPayments(
               billingId: widget.billingId,
@@ -191,11 +191,11 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               payments.map(
                 (e) {
                   final pay = PaymentHistory.fromJson(Map<String, dynamic>.from(e));
-                  // Optimistic: show PENDING or NEW as PAID in the and list
-                  if (pay.paymentStatus == 'PENDING' || pay.paymentStatus == 'NEW') {
+                  // Show PENDING as paid optimistically (bank is processing)
+                  if (pay.paymentStatus == 'PENDING') {
                     return pay.copyWith(
-                      paymentStatus: 'PAID',
-                      paymentStatusText: 'Төлөгдсөн',
+                      paymentStatus: 'PENDING',
+                      paymentStatusText: 'Хүлээгдэж байна',
                     );
                   }
                   return pay;
@@ -203,25 +203,110 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
               ),
             );
           } else {
-            // Assume the item itself is a payment object matching the model
             try {
               final pay = PaymentHistory.fromJson(item);
-              // Optimistic: show PENDING or NEW as PAID in the and list
-              if (pay.paymentStatus == 'PENDING' || pay.paymentStatus == 'NEW') {
-                flattenedWalletHistory.add(
-                  pay.copyWith(
-                    paymentStatus: 'PAID',
-                    paymentStatusText: 'Төлөгдсөн',
-                  ),
-                );
-              } else {
-                flattenedWalletHistory.add(pay);
-              }
+              flattenedWalletHistory.add(pay);
             } catch (e) {
               print('⚠️ [History] Skipping invalid Wallet payment item: $e');
             }
           }
         }
+
+        // Deduplicate by composite key (amount + time) to merge identical wallet transactions spanning multiple bills
+        final Map<String, PaymentHistory> uniqueWalletAuth = {};
+        for (var p in flattenedWalletHistory) {
+          // Create a composite key: amount + YYYYMMDDHHmm (down to minute precision)
+          final dateStr = DateFormat('yyyyMMddHHmm').format(p.paymentStatusDate);
+          final compositeKey = '${p.paymentAmount}_$dateStr';
+          
+          if (!uniqueWalletAuth.containsKey(compositeKey)) {
+            uniqueWalletAuth[compositeKey] = p;
+          } else {
+            // Transaction already exists, but might have different bills attached. Merge them!
+            final existing = uniqueWalletAuth[compositeKey]!;
+            final existingBillNos = existing.bills.map((b) => b.billNo).toSet();
+            final newBills = List<Bill>.from(existing.bills);
+            
+            for (var b in p.bills) {
+              if (!existingBillNos.contains(b.billNo)) {
+                newBills.add(b);
+              }
+            }
+            
+            uniqueWalletAuth[compositeKey] = existing.copyWith(bills: newBills);
+          }
+        }
+        flattenedWalletHistory = uniqueWalletAuth.values.toList();
+
+        // Also pull directly from WQ list to catch PENDING payments not yet in billing/bills
+        try {
+          final wqList = await ApiService.fetchWalletQpayList();
+          final existingIds = flattenedWalletHistory.map((p) => p.paymentId).toSet();
+
+          for (var h in wqList.take(10)) {
+            final wId = h['walletPaymentId']?.toString() ?? '';
+            final zakhNo = h['zakhialgiinDugaar']?.toString() ?? '';
+            final checkId = wId.isNotEmpty ? wId : zakhNo;
+            if (checkId.isEmpty || existingIds.contains(checkId)) continue;
+
+            try {
+              final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+              if (st['success'] != true || st['data'] == null) continue;
+
+              final walletData = st['data'];
+              final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
+              if (state != 'PAID' && state != 'PENDING') continue;
+
+              // Check if this WQ payment is for our billingId by matching billingName
+              final lines = walletData['lines'] as List?;
+              // Try to identify if it's for this billing by amount presence
+              final amount = (walletData['totalAmount'] ?? walletData['amount'] ?? 0);
+              if ((amount as num) <= 0) continue;
+
+              final stateText = state == 'PAID' ? 'Төлөгдсөн' : 'Хүлээгдэж байна';
+              final payDate = DateTime.tryParse(h['createdAt']?.toString() ?? '') ??
+                  DateTime.tryParse(walletData['createdAt']?.toString() ?? '') ?? DateTime.now();
+
+              // Build bills from lines
+              List<Bill> bills = [];
+              if (lines != null && lines.isNotEmpty) {
+                for (var line in lines) {
+                  bills.add(Bill(
+                    billerName: line['billerName']?.toString() ?? widget.billingName,
+                    billType: line['billtype']?.toString() ?? 'Төлбөр',
+                    billNo: line['billNo']?.toString() ?? '',
+                    hasVat: line['hasVat'] == true,
+                    billTotalAmount: ((line['billTotalAmount'] ?? line['billAmount'] ?? 0) as num).toDouble(),
+                    billPeriod: line['billPeriod']?.toString() ?? '',
+                    billLateFee: ((line['billLateFee'] ?? 0) as num).toDouble(),
+                  ));
+                }
+              }
+              if (bills.isEmpty) {
+                bills = [Bill(
+                  billerName: widget.billingName,
+                  billType: 'Төлбөр',
+                  billNo: walletData['invoiceNo']?.toString() ?? checkId,
+                  hasVat: false,
+                  billTotalAmount: (amount as num).toDouble(),
+                  billPeriod: '',
+                  billLateFee: 0,
+                )];
+              }
+
+              flattenedWalletHistory.add(PaymentHistory(
+                paymentId: checkId,
+                invoiceNo: walletData['invoiceNo']?.toString() ?? zakhNo,
+                paymentAmount: (amount as num).toDouble(),
+                paymentStatus: state,
+                paymentStatusText: stateText,
+                paymentStatusDate: payDate,
+                bills: bills,
+              ));
+              existingIds.add(checkId);
+            } catch (_) {}
+          }
+        } catch (_) {}
 
         // Sort by date descending
         flattenedWalletHistory.sort(
@@ -741,29 +826,20 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       SizedBox(height: 4.h),
                       Row(
                         children: [
-                          Text(
-                            timeStr,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: isDark ? Colors.white60 : Colors.grey,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Container(
-                            width: 3.w,
-                            height: 3.w,
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white30 : Colors.grey,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Төлөгдсөн',
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? accentColor : accentColor,
+                          Flexible(
+                            child: Text(
+                              payment.paymentStatus == 'PENDING'
+                                  ? 'Хүлээгдэж байна'
+                                  : 'Төлөгдсөн',
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600,
+                                color: payment.paymentStatus == 'PENDING'
+                                    ? Colors.orange
+                                    : (isDark ? accentColor : accentColor),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

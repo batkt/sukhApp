@@ -536,65 +536,72 @@ class _BookingScreenState extends State<NuurKhuudas>
       // 2. Fetch data from Wallet API
       final rawBillingList = await ApiService.getWalletBillingList(forceRefresh: forceRefresh);
       
-      // Fetch recent wallet history to filter out already paid bills
+      // Fetch recent wallet history to filter out already paid/pending bills
       List<Map<String, dynamic>> walletHistory = [];
       try {
         walletHistory = await ApiService.fetchWalletQpayList();
       } catch(_) {}
       
-      // Identify billIds that have recent successful or pending payments
-      final Set<String> recentlyPaidBillIds = {};
-      for (var h in walletHistory.take(10)) {
-        final isPaidLocally = h['tulsunEsekh'] == true;
-        final billIds = h['billIds'] as List?;
-        
-        if (billIds != null) {
-          if (isPaidLocally) {
-            // Priority 1: Our DB says it's paid - hide these bills immediately!
-            for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
-            continue;
-          }
-          
-          // Priority 2: One-time check for external status
-          final walletPaymentId = h['walletPaymentId']?.toString();
-          final zakhialgiinDugaar = h['zakhialgiinDugaar']?.toString();
-          final checkId = (walletPaymentId != null && walletPaymentId.isNotEmpty) ? walletPaymentId : zakhialgiinDugaar;
+      // Identify bill numbers that have recent successful or pending payments
+      // KEY: We match by billNo (string) not billId (UUID), since wallet API returns billNo in lines
+      final Set<String> recentlyPaidBillNos = {};
+      for (var h in walletHistory.take(5)) {
+        // Get the walletPaymentId to call wallet-check
+        final walletPaymentId = h['walletPaymentId']?.toString() ?? '';
+        final zakhialgiinDugaar = h['zakhialgiinDugaar']?.toString() ?? '';
+        final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
 
-          if (checkId != null && checkId.isNotEmpty) {
-            try {
-              final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
-              if (st['success'] == true && st['data'] != null) {
-                final walletData = st['data'];
-                final state = walletData['paymentStatus']?.toString().toUpperCase();
-                final hasSuccessfulTrxInList = (walletData['paymentTransactions'] as List?)?.any((trx) => 
+        if (checkId.isEmpty) continue;
+
+        try {
+          // walletQpayWalletCheck has 30s cache - won't spam the API
+          final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+          if (st['success'] == true && st['data'] != null) {
+            final walletData = st['data'];
+            final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
+            
+            // Check for successful transactions at the top level
+            final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) => 
+              (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
+              (trx['trxStatusName']?.toString() == 'Амжилттай')
+            ) ?? false;
+            
+            // Check within lines for bundled payments
+            bool hasSuccessfulTrxInLines = false;
+            final lines = walletData['lines'] as List?;
+            if (lines != null) {
+              for (var line in lines) {
+                final lineTrx = line['billTransactions'] as List?;
+                if (lineTrx != null && lineTrx.any((trx) => 
                   (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
-                  (trx['trxStatusName']?.toString() == 'Амжилттай')
-                ) ?? false;
-                
-                // Deep Check: Search within individual lines for Housing/OWN_ORG payments
-                bool hasSuccessfulTrxInLines = false;
-                final lines = walletData['lines'] as List?;
-                if (lines != null) {
-                   for (var line in lines) {
-                     final lineTrx = line['billTransactions'] as List?;
-                     if (lineTrx != null && lineTrx.any((trx) => 
-                       (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
-                       (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
-                       hasSuccessfulTrxInLines = true;
-                       break;
-                     }
-                   }
-                }
-
-                final hasSuccessfulTrx = hasSuccessfulTrxInList || hasSuccessfulTrxInLines;
-
-                if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx) {
-                  for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
+                  (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
+                  hasSuccessfulTrxInLines = true;
+                  break;
                 }
               }
-            } catch(_) {}
+            }
+
+            // If PAID, PENDING, or has a successful transaction — mark associated bills as paid
+            if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx || hasSuccessfulTrxInLines) {
+              // Extract billNo from each line (this is the primary identifier)
+              if (lines != null) {
+                for (var line in lines) {
+                  final billNo = line['billNo']?.toString();
+                  final billId = line['billId']?.toString();
+                  if (billNo != null && billNo.isNotEmpty) recentlyPaidBillNos.add(billNo);
+                  if (billId != null && billId.isNotEmpty) recentlyPaidBillNos.add(billId);
+                }
+              }
+              // Also add the invoice-level billNo if present
+              final topLevelBillNo = walletData['billNo']?.toString();
+              final topLevelInvoiceNo = walletData['invoiceNo']?.toString();
+              if (topLevelBillNo != null && topLevelBillNo.isNotEmpty) recentlyPaidBillNos.add(topLevelBillNo);
+              if (topLevelInvoiceNo != null && topLevelInvoiceNo.isNotEmpty) recentlyPaidBillNos.add(topLevelInvoiceNo);
+              
+              print('✅ [WQ SYNC] $checkId is $state — hiding billNos: $recentlyPaidBillNos');
+            }
           }
-        }
+        } catch(_) {}
       }
 
       // Fetch details for each wallet billing concurrently
@@ -612,15 +619,28 @@ class _BookingScreenState extends State<NuurKhuudas>
             );
             
             if (billingData.isNotEmpty && billingData['billingId'] != null) {
-              final newBills = billingData['newBills'] as List? ?? [];
-              for (var bill in newBills) {
-                final billId = bill['billId']?.toString();
-                // Exclude already paid bills
-                if (billId != null && recentlyPaidBillIds.contains(billId)) {
-                   continue;
+              // PRIORITY 1: Trust the server's pre-computed amount.
+              // The server sets newBillsAmount=0 when bills are PENDING/PAID.
+              final serverAmount = billingData['newBillsAmount'];
+              final serverAldangi = billingData['newBillsAldangi'];
+              if (serverAmount != null) {
+                billingTotal = _parseNum(serverAmount);
+                billingAldangi = serverAldangi != null ? _parseNum(serverAldangi) : 0.0;
+              } else {
+                // FALLBACK: Manual sum — skip bills marked isNew=false or in paid set
+                final newBills = billingData['newBills'] as List? ?? [];
+                for (var bill in newBills) {
+                  // Skip bills the server already considers not-new
+                  if (bill['isNew'] == false) continue;
+                  final billId = bill['billId']?.toString();
+                  final billNo = bill['billNo']?.toString();
+                  if ((billId != null && recentlyPaidBillNos.contains(billId)) ||
+                      (billNo != null && recentlyPaidBillNos.contains(billNo))) {
+                    continue;
+                  }
+                  billingTotal += _parseNum(bill['billTotalAmount']);
+                  billingAldangi += _parseNum(bill['billLateFee'] ?? bill['billLateFeeAmount']);
                 }
-                billingTotal += _parseNum(bill['billTotalAmount']);
-                billingAldangi += _parseNum(bill['billLateFee'] ?? bill['billLateFeeAmount']);
               }
               updatedBilling['billingDetails'] = billingData;
             }
@@ -1608,7 +1628,7 @@ class _BookingScreenState extends State<NuurKhuudas>
   String _expandAddressAbbreviations(String address) {
     if (address.isEmpty) return address;
 
-    String expanded = address;
+    String expanded = address.trim();
 
     expanded = expanded.replaceAll(RegExp(r'\bБГД\b'), 'Баянгол дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bБЗД\b'), 'Баянзүрх дүүрэг');
@@ -1616,6 +1636,20 @@ class _BookingScreenState extends State<NuurKhuudas>
     expanded = expanded.replaceAll(RegExp(r'\bХУД\b'), 'Хан-Уул дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bЧД\b'), 'Чингэлтэй дүүрэг');
     expanded = expanded.replaceAll(RegExp(r'\bСХД\b'), 'Сонгинохайрхан дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\bНЛ\b'), 'Налайх дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\bНЛД\b'), 'Налайх дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\bБНД\b'), 'Багануур дүүрэг');
+    expanded = expanded.replaceAll(RegExp(r'\bБХД\b'), 'Багахангай дүүрэг');
+
+    // Add comma after district if missing before something like "хороо"
+    expanded = expanded.replaceAllMapped(RegExp(r'(дүүрэг)\s+(\d+-р хороо)'), (match) => '${match[1]}, ${match[2]}');
+    // Add comma after khoroo if missing before something like "байр"
+    expanded = expanded.replaceAllMapped(RegExp(r'(хороо)\s+(\d+-р\s+байр)'), (match) => '${match[1]}, ${match[2]}');
+
+    // If it ends with a number (like door no), add "тоот"
+    if (RegExp(r'\d+$').hasMatch(expanded) && !expanded.contains('тоот')) {
+      expanded = '$expanded тоот';
+    }
 
     return expanded;
   }

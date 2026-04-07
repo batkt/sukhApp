@@ -242,17 +242,17 @@ class _BillingCardState extends State<BillingCard>
                                       cleanExpanded.endsWith('-$cleanDoor')) {
                                     return cleanExpanded;
                                   }
-                                  return '$cleanExpanded, $cleanDoor';
+                                  return '$cleanExpanded, $cleanDoor тоот';
                                 }
-                                return expanded;
+                                return expanded.endsWith('тоот') ? expanded : (expanded.isNotEmpty ? '$expanded тоот' : expanded);
                               }(),
                               style: TextStyle(
                                 color: context.textSecondaryColor,
                                 fontSize: 13.sp,
                                 height: 1.3,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              maxLines: 3,
+                              overflow: TextOverflow.visible,
                             ),
 
                             // Biller name

@@ -27,6 +27,16 @@ class ApiService {
   static final Map<String, DateTime> _lastWalletBillingBillsFetch = {};
   static const Duration _shortCacheDuration = Duration(seconds: 5);
 
+  // Cache for walletQpayWalletCheck (30s TTL per payment ID)
+  static final Map<String, Map<String, dynamic>> _walletCheckCache = {};
+  static final Map<String, DateTime> _walletCheckCacheTime = {};
+  static const Duration _walletCheckCacheDuration = Duration(seconds: 30);
+
+  // Cache for fetchWalletQpayList (15s TTL)
+  static List<Map<String, dynamic>>? _cachedWalletQpayList;
+  static DateTime? _lastWalletQpayListFetch;
+  static const Duration _walletQpayListCacheDuration = Duration(seconds: 15);
+
   static Future<List<Map<String, dynamic>>> fetchLocationData() async {
     if (_cachedLocationData != null) {
       return _cachedLocationData!;
@@ -2070,7 +2080,7 @@ class ApiService {
       try {
         data = json.decode(response.body);
       } catch (e) {
-        throw Exception('Хариуг уншихад алдаа гарлаа (Invalid JSON)');
+        throw Exception('Илэрц олдсонгүй (invalid json)');
       }
 
       if (response.statusCode == 200) {
@@ -3487,9 +3497,15 @@ class ApiService {
     }
   }
 
-  /// Check Wallet QPay payment status (polling)
-  /// Endpoint: GET /api/walletQpay/check/:baiguullagiinId/:walletPaymentId
+  /// Fetch Wallet QPay payment history list (with 15s cache)
   static Future<List<Map<String, dynamic>>> fetchWalletQpayList() async {
+    // Return cached result if fresh
+    if (_cachedWalletQpayList != null && _lastWalletQpayListFetch != null) {
+      final age = DateTime.now().difference(_lastWalletQpayListFetch!);
+      if (age < _walletQpayListCacheDuration) {
+        return _cachedWalletQpayList!;
+      }
+    }
     try {
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/walletQpay/list');
@@ -3499,12 +3515,15 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        List<Map<String, dynamic>> result = [];
         if (data is List) {
-          return List<Map<String, dynamic>>.from(data);
+          result = List<Map<String, dynamic>>.from(data);
         } else if (data is Map && data['data'] is List) {
-          return List<Map<String, dynamic>>.from(data['data']);
+          result = List<Map<String, dynamic>>.from(data['data']);
         }
-        return [];
+        _cachedWalletQpayList = result;
+        _lastWalletQpayListFetch = DateTime.now();
+        return result;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
@@ -3555,11 +3574,21 @@ class ApiService {
     }
   }
 
-  /// New Debug Endpoint: GET /api/walletQpay/wallet-check/:baiguullagiinId/:walletPaymentId
-  /// This returns the full Wallet API response including transactions
+  /// Wallet Check: GET /api/walletQpay/wallet-check/:baiguullagiinId/:walletPaymentId
+  /// Returns full Wallet API response including transactions. Has 30s in-memory cache.
   static Future<Map<String, dynamic>> walletQpayWalletCheck({
     required String walletPaymentId,
   }) async {
+    // Return cached result if fresh
+    if (_walletCheckCache.containsKey(walletPaymentId) &&
+        _walletCheckCacheTime.containsKey(walletPaymentId)) {
+      final age = DateTime.now().difference(_walletCheckCacheTime[walletPaymentId]!);
+      if (age < _walletCheckCacheDuration) {
+        print('⚡ [WALLET QPAY] Cache hit for $walletPaymentId (${age.inSeconds}s old)');
+        return _walletCheckCache[walletPaymentId]!;
+      }
+    }
+
     try {
       final headers = await getAuthHeaders();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -3577,6 +3606,9 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
+        // Cache successful responses
+        _walletCheckCache[walletPaymentId] = data;
+        _walletCheckCacheTime[walletPaymentId] = DateTime.now();
         return data;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();

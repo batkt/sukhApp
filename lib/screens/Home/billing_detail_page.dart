@@ -136,11 +136,15 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         final billingId = widget.billing['billingId']?.toString();
 
         final extracted = _extractBillingData(billingData, billingId);
-        final bills = extracted['bills'] as List<Map<String, dynamic>>;
+        var bills = extracted['bills'] as List<Map<String, dynamic>>;
         final bName =
             extracted['billingName']?.toString() ??
             billingData['billingName']?.toString() ??
             'Хэрэглээний төлбөр';
+
+        // KEY FIX: Filter out bills the server already considers not-new (isNew=false)
+        // This handles PENDING/PAID states where server sets isNew=false
+        bills = bills.where((bill) => bill['isNew'] != false).toList();
 
         // Add metadata to each bill
         for (var bill in bills) {
@@ -394,90 +398,86 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
   Future<void> _checkRecentWalletStatuses() async {
     try {
-      // 1. Fetch recent wallet payment attempts
+      // Collect all billNos currently shown in detail view for quick lookup
+      final Set<String> shownBillNos = {};
+      final Set<String> shownBillIds = {};
+      for (var bill in _allBills) {
+        final bNo = bill['billNo']?.toString();
+        final bId = bill['billId']?.toString();
+        if (bNo != null && bNo.isNotEmpty) shownBillNos.add(bNo);
+        if (bId != null && bId.isNotEmpty) shownBillIds.add(bId);
+      }
+      if (shownBillNos.isEmpty && shownBillIds.isEmpty) return;
+
       final history = await ApiService.fetchWalletQpayList();
       if (history.isEmpty) return;
 
-      // 2. Identify payments from the depth (increased to 100) that might be relevant
-      final recentPayments = history.take(100).toList();
+      for (var payment in history.take(10)) {
+        final walletPaymentId = payment['walletPaymentId']?.toString() ?? '';
+        final zakhialgiinDugaar = payment['zakhialgiinDugaar']?.toString() ?? '';
+        final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
+        if (checkId.isEmpty) continue;
 
-      for (var payment in recentPayments) {
-        // Try walletPaymentId first, then fallback to zakhialgiinDugaar for the check
-        final walletPaymentId = payment['walletPaymentId']?.toString();
-        final zakhialgiinDugaar = payment['zakhialgiinDugaar']?.toString();
-        final checkId = (walletPaymentId != null && walletPaymentId.isNotEmpty) ? walletPaymentId : zakhialgiinDugaar;
-        
-        final billIds = payment['billIds'] as List?;
-        
-        if (checkId == null || checkId.isEmpty || billIds == null || billIds.isEmpty) continue;
-
-        // Check if any of these billIds are in our current list
-        final hasMatch = billIds.any((bid) => _allBills.any((b) => b['billId']?.toString() == bid.toString()));
-        if (!hasMatch) continue;
-
-        // 3. Fetch detailed status for this payment
         try {
-          final statusRes = await ApiService.walletQpayWalletCheck(
-            walletPaymentId: checkId,
-          );
+          final statusRes = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+          if (statusRes['success'] != true || statusRes['data'] == null) continue;
 
-          if (statusRes['success'] == true && statusRes['data'] != null) {
-            final walletData = statusRes['data'];
-            // 1. Check top-level payment status
-            final state = walletData['paymentStatus']?.toString().toUpperCase();
-            final stateText = walletData['paymentStatusText']?.toString();
-            
-            // 2. Check for success in top-level transactions list
-            final transactions = walletData['paymentTransactions'] as List?;
-            bool hasSuccessfulTrx = false;
-            if (transactions != null) {
-              hasSuccessfulTrx = transactions.any((trx) => 
+          final walletData = statusRes['data'];
+          final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
+
+          final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) =>
+            (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+            (trx['trxStatusName']?.toString() == 'Амжилттай')
+          ) ?? false;
+
+          bool hasSuccessfulTrxInLines = false;
+          final lines = walletData['lines'] as List?;
+          if (lines != null) {
+            for (var line in lines) {
+              final lineTrx = line['billTransactions'] as List?;
+              if (lineTrx != null && lineTrx.any((trx) =>
                 (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                (trx['trxStatusName']?.toString() == 'Амжилттай')
-              );
-            }
-
-            // 3. Deep Check: Search within individual lines for Housing/OWN_ORG payments
-            if (!hasSuccessfulTrx) {
-              final lines = walletData['lines'] as List?;
-              if (lines != null) {
-                for (var line in lines) {
-                  final lineTrx = line['billTransactions'] as List?;
-                  if (lineTrx != null && lineTrx.any((trx) => 
-                    (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                    (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
-                    hasSuccessfulTrx = true;
-                    break;
-                  }
-                }
+                (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
+                hasSuccessfulTrxInLines = true;
+                break;
               }
             }
+          }
 
-            // Prioritize local settlement field (tulsunEsekh) if provided by backend
-            final bool isLocallyPaid = statusRes['tulsunEsekh'] == true;
+          if (state != 'PAID' && state != 'PENDING' && !hasSuccessfulTrx && !hasSuccessfulTrxInLines) continue;
 
-            String finalStatus = '';
-            String finalStatusText = '';
-            Color statusColor = Colors.grey;
-
-            if (isLocallyPaid || state == 'PAID' || state == 'PENDING' || state == 'NEW' || hasSuccessfulTrx) {
-              // Mark as handled so we don't show it in the outstanding list
-              _billStatuses[checkId] = state ?? 'PAID';
-            }
-
-            if (finalStatus.isNotEmpty) {
-              setState(() {
-                for (var bid in billIds) {
-                  final idStr = bid.toString();
-                  _billStatuses[idStr] = finalStatus;
-                  _billStatusTexts[idStr] = finalStatusText;
-                  _billStatusColors[idStr] = statusColor;
-                }
-              });
+          // Extract billNos from lines — check if any match shown bills
+          final Set<String> paymentBillNos = {};
+          if (lines != null) {
+            for (var line in lines) {
+              final lBillNo = line['billNo']?.toString();
+              final lBillId = line['billId']?.toString();
+              if (lBillNo != null && lBillNo.isNotEmpty) paymentBillNos.add(lBillNo);
+              if (lBillId != null && lBillId.isNotEmpty) paymentBillNos.add(lBillId);
             }
           }
+
+          // Check if this payment covers any bills in our view
+          final hasMatch = paymentBillNos.any((no) =>
+            shownBillNos.contains(no) || shownBillIds.contains(no));
+          if (!hasMatch) continue;
+
+          // Mark matched bills as paid/pending — remove them from the view
+          if (mounted) {
+            setState(() {
+              _allBills.removeWhere((bill) {
+                final bNo = bill['billNo']?.toString() ?? '';
+                final bId = bill['billId']?.toString() ?? '';
+                return paymentBillNos.contains(bNo) || paymentBillNos.contains(bId);
+              });
+              // Also deselect them
+              for (var no in paymentBillNos) {
+                _selectedBillIds.remove(no);
+              }
+            });
+          }
         } catch (e) {
-          print('Error checking status for $walletPaymentId: $e');
+          print('Error checking WQ status for $checkId: $e');
         }
       }
     } catch (e) {
@@ -934,7 +934,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           : _allBills.isEmpty
           ? Center(
               child: Text(
-                'Төлөлт хийгдээгүй байна',
+                'Төлбөрийн мэдээлэл байхгүй байна',
                 style: TextStyle(
                   color: context.textSecondaryColor.withOpacity(0.5),
                   fontSize: 14.sp,

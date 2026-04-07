@@ -134,7 +134,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                           child: Column(
                             children: [
                               // Scanned Status Indicator
-                              if (widget.receipt.status?.toUpperCase() == 'SCANNED' || widget.receipt.status == '3')
+                               if (widget.receipt.id.isNotEmpty || (widget.receipt.receiptId?.isNotEmpty ?? false))
                                 Container(
                                   width: double.infinity,
                                   margin: EdgeInsets.only(bottom: 12.h),
@@ -237,6 +237,31 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                                         '${widget.receipt.totalCityTax.toStringAsFixed(2)}₮',
                                       ),
                                   ],
+                                ),
+                              ),
+                              SizedBox(height: 16.h),
+                              // Print Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48.h,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    // Mock print action for now as requested
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Баримтыг хэвлэхэд бэлдэж байна...')),
+                                    );
+                                  },
+                                  icon: Icon(Icons.print_rounded, size: 18.sp),
+                                  label: Text(
+                                    'ХЭВЛЭХ / ХАДГАЛАХ',
+                                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.deepGreen,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                    elevation: 0,
+                                  ),
                                 ),
                               ),
                               SizedBox(height: 16.h),

@@ -132,21 +132,111 @@ class _BillingListPageState extends State<BillingListPage> {
         // or just rely on the new list for the display
         double newTotal = 0.0;
         double newAldangi = 0.0;
-        
-        // Parallel fetch for details to get totals (consistent with home.dart logic)
+
+        // Fetch recent wallet history to filter out already paid/pending bills
+        List<Map<String, dynamic>> walletHistory = [];
+        try {
+          walletHistory = await ApiService.fetchWalletQpayList();
+        } catch(_) {}
+
+        // Match by billNo — wallet-check returns billNo in lines[], not billIds
+        final Set<String> recentlyPaidBillNos = {};
+        for (var h in walletHistory.take(5)) {
+          final walletPaymentId = h['walletPaymentId']?.toString() ?? '';
+          final zakhialgiinDugaar = h['zakhialgiinDugaar']?.toString() ?? '';
+          final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
+
+          if (checkId.isEmpty) continue;
+
+          try {
+            // 30s cache in ApiService — won't spam the API
+            final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+            if (st['success'] == true && st['data'] != null) {
+              final walletData = st['data'];
+              final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
+
+              final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) =>
+                (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                (trx['trxStatusName']?.toString() == 'Амжилттай')
+              ) ?? false;
+
+              bool hasSuccessfulTrxInLines = false;
+              final lines = walletData['lines'] as List?;
+              if (lines != null) {
+                for (var line in lines) {
+                  final lineTrx = line['billTransactions'] as List?;
+                  if (lineTrx != null && lineTrx.any((trx) =>
+                    (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
+                    (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
+                    hasSuccessfulTrxInLines = true;
+                    break;
+                  }
+                }
+              }
+
+              if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx || hasSuccessfulTrxInLines) {
+                // Extract billNo from lines (primary match key)
+                if (lines != null) {
+                  for (var line in lines) {
+                    final billNo = line['billNo']?.toString();
+                    final billId = line['billId']?.toString();
+                    if (billNo != null && billNo.isNotEmpty) recentlyPaidBillNos.add(billNo);
+                    if (billId != null && billId.isNotEmpty) recentlyPaidBillNos.add(billId);
+                  }
+                }
+                final topLevelBillNo = walletData['billNo']?.toString();
+                final topLevelInvoiceNo = walletData['invoiceNo']?.toString();
+                if (topLevelBillNo != null && topLevelBillNo.isNotEmpty) recentlyPaidBillNos.add(topLevelBillNo);
+                if (topLevelInvoiceNo != null && topLevelInvoiceNo.isNotEmpty) recentlyPaidBillNos.add(topLevelInvoiceNo);
+              }
+            }
+          } catch(_) {}
+        }
+
+        // Parallel fetch for details — use server's pre-computed amounts
         final results = await Future.wait(newList.map((b) async {
           final bId = b['billingId']?.toString();
           if (bId != null && bId.isNotEmpty) {
              try {
-               final details = await ApiService.getWalletBillingBills(billingId: bId, forceRefresh: true);
-               double t = 0.0;
-               double a = 0.0;
-               final bills = details['newBills'] as List? ?? [];
-               for (var bill in bills) {
-                 t += (bill['billTotalAmount'] is num) ? (bill['billTotalAmount'] as num).toDouble() : 0.0;
-                 a += (bill['billLateFee'] is num) ? (bill['billLateFee'] as num).toDouble() : 0.0;
-               }
-               return {'total': t, 'aldangi': a, 'details': details};
+                final details = await ApiService.getWalletBillingBills(billingId: bId, forceRefresh: true);
+                double t = 0.0;
+                double a = 0.0;
+                List filteredBills = [];
+
+                // PRIORITY 1: Trust the server's pre-computed amount.
+                // Server sets newBillsAmount=0 when bills are PENDING/PAID.
+                final serverAmount = details['newBillsAmount'];
+                final serverAldangi = details['newBillsAldangi'];
+                if (serverAmount != null) {
+                  t = (serverAmount is num) ? serverAmount.toDouble() : double.tryParse(serverAmount.toString()) ?? 0.0;
+                  a = (serverAldangi is num) ? serverAldangi.toDouble() : 0.0;
+                  // For display: only show bills the server considers active (isNew != false)
+                  final originalBills = details['newBills'] as List? ?? [];
+                  for (var bill in originalBills) {
+                    if (bill['isNew'] == false) continue; // server says not new/active
+                    filteredBills.add(bill);
+                  }
+                } else {
+                  // FALLBACK: manual sum — skip isNew=false or paid/pending bills
+                  final originalBills = details['newBills'] as List? ?? [];
+                  for (var bill in originalBills) {
+                    if (bill['isNew'] == false) continue;
+                    final billId = bill['billId']?.toString();
+                    final billNo = bill['billNo']?.toString();
+                    if ((billId != null && recentlyPaidBillNos.contains(billId)) ||
+                        (billNo != null && recentlyPaidBillNos.contains(billNo))) {
+                      continue;
+                    }
+                    filteredBills.add(bill);
+                    t += (bill['billTotalAmount'] is num) ? (bill['billTotalAmount'] as num).toDouble() : 0.0;
+                    a += (bill['billLateFee'] is num) ? (bill['billLateFee'] as num).toDouble() : 0.0;
+                  }
+                }
+
+                final updatedDetails = Map<String, dynamic>.from(details);
+                updatedDetails['newBills'] = filteredBills;
+
+                return {'total': t, 'aldangi': a, 'details': updatedDetails};
              } catch(_) { return {'total': 0.0, 'aldangi': 0.0}; }
           }
           return {'total': 0.0, 'aldangi': 0.0};
@@ -227,51 +317,33 @@ class _BillingListPageState extends State<BillingListPage> {
   }
 
   Future<void> _handleBillingTap(Map<String, dynamic> billing) async {
-    if (billing['isLocalData'] == true) {
-      Map<String, dynamic>? billingDetails = billing['billingDetails'];
+    Map<String, dynamic>? billingDetails = billing['billingDetails'];
 
-      if (billingDetails == null) {
-        final billingId = billing['billingId']?.toString();
-        if (billingId != null && billingId.isNotEmpty) {
-          setState(() => _localIsLoading = true);
-          try {
-            final response = await ApiService.getWalletBillingBills(
-              billingId: billingId,
-            );
-            if (response.isNotEmpty && response['billingId'] != null) {
-              billingDetails = response;
-              billing['billingDetails'] = billingDetails;
-            }
-          } catch (e) {
-            print('Error fetching billing details in list page: $e');
-          } finally {
-            if (mounted) setState(() => _localIsLoading = false);
+    if (billingDetails == null) {
+      final billingId = billing['billingId']?.toString();
+      if (billingId != null && billingId.isNotEmpty && billing['source'] != 'OWN_ORG') {
+        setState(() => _localIsLoading = true);
+        try {
+          final response = await ApiService.getWalletBillingBills(
+            billingId: billingId,
+          );
+          if (response.isNotEmpty && response['billingId'] != null) {
+            billingDetails = response;
+            billing['billingDetails'] = billingDetails;
           }
+        } catch (e) {
+          print('Error fetching billing details in list page: $e');
+        } finally {
+          if (mounted) setState(() => _localIsLoading = false);
         }
       }
-
-      final result = await Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute(
-          builder: (context) => BillingDetailPage(
-            billing: billing,
-            billingData: billingDetails,
-            expandAddressAbbreviations: widget.expandAddressAbbreviations,
-            formatNumberWithComma: _formatNumberWithComma,
-          ),
-        ),
-      );
-
-      if (result == true && mounted) {
-        _refresh();
-      }
-      return;
     }
 
-    // Non-wallet usage
     final result = await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (context) => BillingDetailPage(
           billing: billing,
+          billingData: billingDetails,
           expandAddressAbbreviations: widget.expandAddressAbbreviations,
           formatNumberWithComma: _formatNumberWithComma,
         ),
@@ -398,7 +470,7 @@ class _BillingListPageState extends State<BillingListPage> {
                           ? (billing) => widget.onEditTap!(billing,
                                   ctx: context, onUpdated: () {
                                 if (mounted) setState(() {});
-                              })
+                               })
                           : null,
                       totalBalance: _localTotalBalance,
                       totalAldangi: _localTotalAldangi,

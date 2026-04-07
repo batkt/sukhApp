@@ -321,7 +321,22 @@ class _EbarimtPageState extends State<EbarimtPage> {
 
       if (mounted) {
         setState(() {
-          _ebarimtReceipts = allReceipts;
+          // Deduplicate by ID / DDTD
+          final uniqueReceipts = <String, VATReceipt>{};
+          for (var receipt in allReceipts) {
+            // Use receipt.id or receipt.receiptId or qrData as unique key
+            final key = receipt.id.isNotEmpty ? receipt.id : 
+                        (receipt.receiptId?.isNotEmpty == true ? receipt.receiptId! : receipt.qrData);
+            if (key.isNotEmpty) {
+               uniqueReceipts.putIfAbsent(key, () => receipt);
+            } else {
+               // Fallback if somehow no ID exists
+               uniqueReceipts.putIfAbsent(receipt.hashCode.toString(), () => receipt);
+            }
+          }
+          _ebarimtReceipts = uniqueReceipts.values.toList();
+          // Sort by date descending
+          _ebarimtReceipts.sort((a, b) => b.date.compareTo(a.date));
           _isLoadingReceipts = false;
         });
       }
@@ -344,8 +359,10 @@ class _EbarimtPageState extends State<EbarimtPage> {
     var msg = error.replaceAll("Exception: ", "").trim();
     if (msg.contains("Оршин суугчийн мэдээлэл олдсонгүй") || 
         msg.contains("СӨХ-өөс мэдээлэлээ шалгуулна уу") ||
-        msg.contains("Мэдээлэл авахад алдаа гарлаа")) {
-      return "Мэдээлэл олдсонгүй. СӨХ-өөс мэдээлэлээ шалгуулна уу.";
+        msg.contains("Мэдээлэл авахад алдаа гарлаа") ||
+        msg.toLowerCase().contains("invalid json") ||
+        msg.toLowerCase().contains("unexpected character")) {
+      return "Илэрц олдсонгүй. Мэдээлэлээ зөв оруулсан эсэхээ шалгана уу.";
     }
     return msg;
   }
@@ -427,8 +444,19 @@ class _EbarimtPageState extends State<EbarimtPage> {
         final cleanMsg = _cleanErrorMessage(e.toString());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(cleanMsg),
-            backgroundColor: Colors.red,
+            content: Text(
+              cleanMsg, 
+              style: TextStyle(
+                color: Colors.white, 
+                fontWeight: FontWeight.w600,
+                fontSize: 14.sp
+              )
+            ),
+            backgroundColor: Colors.red.shade800,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+            margin: EdgeInsets.all(16.w),
+            elevation: 8,
           ),
         );
       }
@@ -898,17 +926,15 @@ class _EbarimtPageState extends State<EbarimtPage> {
                         return Container(
                           padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                           decoration: BoxDecoration(
-                            color: isScanned 
-                                ? Colors.orange.withOpacity(0.08) 
-                                : AppColors.deepGreen.withOpacity(0.08),
+                            color: AppColors.deepGreen.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(6.r),
                           ),
                           child: Text(
-                            isScanned ? 'БҮРТГЭГДСЭН' : 'И-БАРИМТ',
+                            (receipt.id.isNotEmpty || (receipt.receiptId?.isNotEmpty ?? false)) ? 'ИБАРИМТ БҮРТГЭГДСЭН' : 'И-БАРИМТ',
                             style: TextStyle(
-                              color: isScanned ? Colors.orange : AppColors.deepGreen,
+                              color: AppColors.deepGreen,
                               fontSize: 9.sp,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         );

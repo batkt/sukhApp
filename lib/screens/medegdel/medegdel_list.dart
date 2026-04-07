@@ -599,7 +599,7 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          notification.title,
+                          notification.message,
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
@@ -613,6 +613,8 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                                 ? FontWeight.w500
                                 : FontWeight.w600,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (!isRead)
@@ -648,18 +650,18 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                     ),
                   ),
                   Text(
-                    notification.message,
+                    notification.title,
                     style: TextStyle(
-                      color: context.textPrimaryColor.withOpacity(0.9),
+                      color: context.textSecondaryColor,
                       fontSize: context.responsiveFontSize(
-                        small: 13,
-                        medium: 14,
-                        large: 15,
-                        tablet: 17,
-                        veryNarrow: 11,
+                        small: 12,
+                        medium: 13,
+                        large: 14,
+                        tablet: 16,
+                        veryNarrow: 10,
                       ),
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   // Show admin status only for sanal/gomdol; Мэдэгдэл (App) has no status

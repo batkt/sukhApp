@@ -434,12 +434,27 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Хэрэглэгч сонгох', style: TextStyle(fontSize: 18.sp)),
+            Text('Хэрэглэгч сонгох', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
             SizedBox(height: 16.h),
             ...customers.map(
               (c) => ListTile(
-                title: Text(c['customerName'] ?? 'Нэргүй'),
-                subtitle: Text(c['customerAddress'] ?? ''),
+                contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0),
+                title: Text(
+                  c['customerName'] ?? 'Нэргүй',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: context.textPrimaryColor,
+                  ),
+                ),
+                subtitle: Text(
+                  c['customerAddress'] ?? '',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.normal,
+                    color: context.textSecondaryColor,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context, c); // Return the selected customer
                 },
