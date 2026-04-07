@@ -471,7 +471,8 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             child: Column(
               children: [
                 Expanded(child: _buildContent(isGomdol, isSanal)),
-                _buildReplyBar(),
+                if (isSanal || isGomdol)
+                  _buildReplyBar(),
               ],
             ),
           ),
@@ -2587,7 +2588,8 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                     ),
                   ),
                 ),
-              _buildReplyBarScreen(),
+                if (_notification.turul.toLowerCase() == 'sanal' || _notification.turul.toLowerCase() == 'gomdol')
+                  _buildReplyBarScreen(),
             ],
           ),
         ),

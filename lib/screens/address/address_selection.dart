@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -420,48 +421,164 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
   Future<Map<String, dynamic>?> _showMultiAccountSelection(
     List<Map<String, dynamic>> customers,
   ) {
+    final isDark = context.isDarkMode;
+
     return showModalBottomSheet<Map<String, dynamic>?>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: EdgeInsets.all(24.w),
         decoration: BoxDecoration(
-          color: context.isDarkMode ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Хэрэглэгч сонгох', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
-            SizedBox(height: 16.h),
-            ...customers.map(
-              (c) => ListTile(
-                contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0),
-                title: Text(
-                  c['customerName'] ?? 'Нэргүй',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                    color: context.textPrimaryColor,
-                  ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 40.h),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.darkSurface.withOpacity(0.85)
+                    : Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : AppColors.deepGreen.withOpacity(0.1),
                 ),
-                subtitle: Text(
-                  c['customerAddress'] ?? '',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.normal,
-                    color: context.textSecondaryColor,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40.w,
+                      height: 4.h,
+                      margin: EdgeInsets.only(bottom: 24.h),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white24 : Colors.black12,
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
                   ),
-                ),
-                onTap: () {
-                  Navigator.pop(context, c); // Return the selected customer
-                },
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(10.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepGreen.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Icon(
+                          Icons.person_search_rounded,
+                          color: AppColors.deepGreen,
+                          size: 20.sp,
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      Text(
+                        'Хэрэглэгч сонгох',
+                        style: context.titleStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ).copyWith(fontSize: 18.sp),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24.h),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.6,
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: customers.length,
+                      separatorBuilder: (context, index) =>
+                          SizedBox(height: 12.h),
+                      itemBuilder: (context, index) {
+                        final c = customers[index];
+                        return InkWell(
+                          onTap: () => Navigator.pop(context, c),
+                          borderRadius: BorderRadius.circular(16.r),
+                          child: Container(
+                            padding: EdgeInsets.all(16.r),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.05)
+                                    : Colors.black.withOpacity(0.05),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20.r,
+                                  backgroundColor:
+                                      AppColors.deepGreen.withOpacity(0.1),
+                                  child: Text(
+                                    (c['customerName'] ?? 'Н')[0].toUpperCase(),
+                                    style: TextStyle(
+                                      color: AppColors.deepGreen,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.sp,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 16.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        c['customerName'] ?? 'Нэргүй',
+                                        style: TextStyle(
+                                          fontSize: 15.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4.h),
+                                      Text(
+                                        c['customerAddress'] ?? '',
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black54,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  color:
+                                      isDark ? Colors.white24 : Colors.grey,
+                                  size: 20.sp,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 24.h),
-          ],
+          ),
         ),
       ),
     );
@@ -469,39 +586,192 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
 
   Future<String?> _showManualCodeDialog() {
     final controller = TextEditingController();
-    return showDialog<String?>(
+    final isDark = context.isDarkMode;
+
+    return showGeneralDialog<String?>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Хаяг олдсонгүй'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Бид таны оруулсан хаягаар мэдээлэл олсонгүй. Та хэрэглэгчийн кодоо гараар оруулах уу?',
-              style: TextStyle(fontSize: 14),
-            ),
-            SizedBox(height: 16.h),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Хэрэглэгчийн код / Гэрээний №',
-                hintText: 'Жишээ: 1234567',
-                border: OutlineInputBorder(),
+      barrierDismissible: true,
+      barrierLabel: 'ManualCodeDialog',
+      barrierColor: Colors.black.withOpacity(0.5),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (context, anim1, anim2) {
+        return Center(
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 24.w),
+            child: Material(
+              color: Colors.transparent,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28.r),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    padding: EdgeInsets.all(24.r),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.darkSurface.withOpacity(0.8)
+                          : Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(28.r),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.1)
+                            : AppColors.deepGreen.withOpacity(0.1),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 30,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Icon Header
+                        Container(
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: AppColors.deepGreen.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.location_off_rounded,
+                            color: AppColors.deepGreen,
+                            size: 32.sp,
+                          ),
+                        ),
+                        SizedBox(height: 20.h),
+                        // Title
+                        Text(
+                          'Хаяг олдсонгүй',
+                          textAlign: TextAlign.center,
+                          style: context.titleStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        // Description
+                        Text(
+                          'Бид таны оруулсан хаягаар мэдээлэл олсонгүй. Та хэрэглэгчийн кодоо гараар оруулах уу?',
+                          textAlign: TextAlign.center,
+                          style: context.secondaryDescriptionStyle(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                        SizedBox(height: 24.h),
+                        // Input Field
+                        TextField(
+                          controller: controller,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontSize: 15.sp,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Хэрэглэгчийн код',
+                            labelStyle: TextStyle(
+                              color: isDark ? Colors.white38 : Colors.black38,
+                              fontSize: 13.sp,
+                            ),
+                            hintText: 'Жишээ: 1234567',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white24 : Colors.black26,
+                            ),
+                            filled: true,
+                            fillColor: isDark
+                                ? Colors.white.withOpacity(0.05)
+                                : const Color(0xFFF8FAFC),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20.w,
+                              vertical: 16.h,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16.r),
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.1)
+                                    : Colors.black.withOpacity(0.05),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16.r),
+                              borderSide: const BorderSide(
+                                color: AppColors.deepGreen,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 32.h),
+                        // Actions
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Цуцлах',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white60
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    Navigator.pop(context, controller.text),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.deepGreen,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Оруулах',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Цуцлах'),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Оруулах'),
+        );
+      },
+      transitionBuilder: (context, anim1, anim2, child) {
+        return FadeTransition(
+          opacity: anim1,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+              CurvedAnimation(parent: anim1, curve: Curves.easeOutBack),
+            ),
+            child: child,
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -917,166 +1187,191 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           final primaryColor = AppColors.deepGreen;
 
           return Container(
-            height: MediaQuery.of(context).size.height * 0.8,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF121212) : Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
             ),
-            child: Column(
-              children: [
-                SizedBox(height: 12.h),
-                Container(
-                  width: 40.w,
-                  height: 4.h,
+            child: ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : Colors.black12,
-                    borderRadius: BorderRadius.circular(2),
+                    color: isDark
+                        ? AppColors.darkSurface.withOpacity(0.85)
+                        : Colors.white.withOpacity(0.92),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(32.r)),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : AppColors.deepGreen.withOpacity(0.05),
+                    ),
                   ),
-                ),
-                SizedBox(height: 24.h),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          color: isDark ? Colors.white : Colors.black87,
-                          letterSpacing: -0.5,
+                      SizedBox(height: 12.h),
+                      Container(
+                        width: 40.w,
+                        height: 4.h,
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white24 : Colors.black12,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: isDark ? Colors.white54 : Colors.black45,
+                      SizedBox(height: 24.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: Row(
+                          children: [
+                            Text(
+                              title,
+                              style: context.titleStyle(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ).copyWith(fontSize: 18.sp, letterSpacing: -0.5),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icon(
+                                Icons.close_rounded,
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      if (showSearch)
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 16.h),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white10
+                                    : Colors.black.withOpacity(0.05),
+                              ),
+                            ),
+                            child: TextField(
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black87,
+                                fontSize: 14.sp,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Хайх...',
+                                hintStyle: TextStyle(
+                                  color: isDark ? Colors.white38 : Colors.black38,
+                                  fontSize: 14.sp,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search_rounded,
+                                  color: primaryColor,
+                                  size: 20.sp,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16.w,
+                                  vertical: 15.h,
+                                ),
+                              ),
+                              onChanged: (val) {
+                                setModalState(() {
+                                  updateFilteredItems(val);
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      Expanded(
+                        child: ListView.separated(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 20.w,
+                            vertical: 8.h,
+                          ),
+                          itemCount: filteredItems.length,
+                          separatorBuilder: (context, index) => SizedBox(height: 8.h),
+                          itemBuilder: (context, index) {
+                            final item = filteredItems[index];
+                            final name = title.contains('Дүүрэг')
+                                ? _getDistrictDisplayName(item)
+                                : (title.contains('Хороо')
+                                      ? _getKhorooDisplayName(item)
+                                      : (item['name'] ?? item['ner'] ?? ''));
+
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  onSelected(item);
+                                  Navigator.pop(context);
+                                },
+                                borderRadius: BorderRadius.circular(16.r),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16.w,
+                                    vertical: 14.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                    border: Border.all(
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40.w,
+                                        height: 40.w,
+                                        decoration: BoxDecoration(
+                                          color: primaryColor.withOpacity(0.08),
+                                          borderRadius: BorderRadius.circular(12.r),
+                                        ),
+                                        child: Icon(
+                                          title.contains('Барилга')
+                                              ? Icons.apartment_rounded
+                                              : (title.contains('Тоот') 
+                                                  ? Icons.meeting_room_rounded 
+                                                  : Icons.location_on_rounded),
+                                          size: 18.sp,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                      SizedBox(width: 16.w),
+                                      Expanded(
+                                        child: Text(
+                                          name,
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white.withOpacity(0.9)
+                                                : Colors.black87,
+                                            fontSize: 15.sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: isDark
+                                            ? Colors.white24
+                                            : Colors.black12,
+                                        size: 20.sp,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
                     ],
                   ),
                 ),
-                if (showSearch)
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 16.h),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.05)
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white10
-                              : Colors.black.withOpacity(0.05),
-                        ),
-                      ),
-                      child: TextField(
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 14.sp,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Хайх...',
-                          hintStyle: TextStyle(
-                            color: isDark ? Colors.white38 : Colors.black38,
-                            fontSize: 14.sp,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search_rounded,
-                            color: primaryColor,
-                            size: 20.sp,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 15.h,
-                          ),
-                        ),
-                        onChanged: (val) {
-                          setModalState(() {
-                            updateFilteredItems(val);
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                Expanded(
-                  child: ListView.separated(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 8.h,
-                    ),
-                    itemCount: filteredItems.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 4.h),
-                    itemBuilder: (context, index) {
-                      final item = filteredItems[index];
-                      final name = title.contains('Дүүрэг')
-                          ? _getDistrictDisplayName(item)
-                          : (title.contains('Хороо')
-                                ? _getKhorooDisplayName(item)
-                                : (item['name'] ?? item['ner'] ?? ''));
-
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            onSelected(item);
-                            Navigator.pop(context);
-                          },
-                          borderRadius: BorderRadius.circular(16.r),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 14.h,
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 36.w,
-                                  height: 36.w,
-                                  decoration: BoxDecoration(
-                                    color: primaryColor.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(10.r),
-                                  ),
-                                  child: Icon(
-                                    title.contains('Барилга')
-                                        ? Icons.apartment_rounded
-                                        : Icons.location_on_rounded,
-                                    size: 18.sp,
-                                    color: primaryColor,
-                                  ),
-                                ),
-                                SizedBox(width: 16.w),
-                                Expanded(
-                                  child: Text(
-                                    name,
-                                    style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white.withOpacity(0.9)
-                                          : Colors.black87,
-                                      fontSize: 15.sp,
-                                    ),
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: isDark
-                                      ? Colors.white24
-                                      : Colors.black12,
-                                  size: 20.sp,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 24.h),
-              ],
+              ),
             ),
           );
         },
