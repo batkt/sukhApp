@@ -18,14 +18,20 @@ import 'package:sukh_app/utils/responsive_helper.dart';
 /// URL must be /medegdel/baiguullagiinId/file.
 String _normalizeMedegdelPath(String? p) {
   if (p == null || p.isEmpty) return '';
-  final n = p.replaceFirst(RegExp(r'^public/medegdel/?'), '').replaceFirst(RegExp(r'^public/?'), '');
+  final n = p
+      .replaceFirst(RegExp(r'^public/medegdel/?'), '')
+      .replaceFirst(RegExp(r'^public/?'), '');
   return n.isEmpty ? p : n;
 }
 
 /// Split zurag (may be comma-separated for multiple images) into list of normalized paths for image URLs.
 List<String> _zuragPaths(String? zurag) {
   if (zurag == null || zurag.isEmpty) return [];
-  return zurag.split(',').map((e) => _normalizeMedegdelPath(e.trim())).where((e) => e.isNotEmpty).toList();
+  return zurag
+      .split(',')
+      .map((e) => _normalizeMedegdelPath(e.trim()))
+      .where((e) => e.isNotEmpty)
+      .toList();
 }
 
 class MedegdelDetailModal extends StatefulWidget {
@@ -62,12 +68,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     _notification = widget.notification;
     _markAsReadAutomatically();
     _loadThread();
-    final rootId = (_notification.parentId ?? _notification.id).toString().trim();
+    final rootId = (_notification.parentId ?? _notification.id)
+        .toString()
+        .trim();
     _socketCallback = (data) {
       if (!mounted) return;
       final payloadParentId = (data['parentId']?.toString() ?? '').trim();
       final turul = (data['turul'] ?? '').toString().toLowerCase();
-      final isAdminReply = turul == 'khariu' || turul == 'хариу' || turul == 'hariu';
+      final isAdminReply =
+          turul == 'khariu' || turul == 'хариу' || turul == 'hariu';
       if (payloadParentId.isEmpty || rootId.isEmpty) return;
       if (payloadParentId != rootId || !isAdminReply) return;
       Medegdel? msg;
@@ -85,7 +94,8 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             title: j['title']?.toString() ?? '',
             gereeniiDugaar: j['gereeniiDugaar']?.toString(),
             message: j['message']?.toString() ?? '',
-            orshinSuugchGereeniiDugaar: j['orshinSuugchGereeniiDugaar']?.toString(),
+            orshinSuugchGereeniiDugaar: j['orshinSuugchGereeniiDugaar']
+                ?.toString(),
             orshinSuugchId: j['orshinSuugchId']?.toString(),
             orshinSuugchNer: j['orshinSuugchNer']?.toString(),
             orshinSuugchUtas: j['orshinSuugchUtas']?.toString(),
@@ -110,7 +120,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         setState(() {
           if (_threadItems.any((m) => m.id == messageId)) return;
           // When receiver (admin) sends a message, previous messages were seen — show blue check on all
-          final markedSeen = _threadItems.map((m) => m.copyWith(kharsanEsekh: true)).toList();
+          final markedSeen = _threadItems
+              .map((m) => m.copyWith(kharsanEsekh: true))
+              .toList();
           _threadItems = [...markedSeen, msg!];
         });
       });
@@ -131,12 +143,17 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
 
   Future<void> _playOrPauseVoice(String messageId, String url) async {
     if (!mounted) return;
-    final fullUrl = '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(url)}';
+    final fullUrl =
+        '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(url)}';
     // iOS AVPlayer does not support WebM; stay on page and show message (no external link)
     if (!kIsWeb && Platform.isIOS && url.toLowerCase().contains('.webm')) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Энэ дууны формат (WebM) төхөөрөмж дээр тоглуулагдахгүй. M4A/MP3 илгээнэ үү.')),
+          const SnackBar(
+            content: Text(
+              'Энэ дууны формат (WebM) төхөөрөмж дээр тоглуулагдахгүй. M4A/MP3 илгээнэ үү.',
+            ),
+          ),
         );
       }
       return;
@@ -161,7 +178,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     } catch (e) {
       if (mounted) {
         setState(() => _playingVoiceMessageId = null);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
       }
     }
   }
@@ -173,9 +192,13 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     try {
       final res = await ApiService.getMedegdelThread(rootId);
       if (!mounted) return;
-      final list = (res['data'] as List?)
-          ?.map((e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList() ?? [];
+      final list =
+          (res['data'] as List?)
+              ?.map(
+                (e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)),
+              )
+              .toList() ??
+          [];
       if (!mounted) return;
       setState(() {
         _threadItems = list.where((item) => item.id != rootId).toList();
@@ -189,16 +212,23 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   Future<void> _pickImage() async {
     try {
       final picker = ImagePicker();
-      final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final x = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
       if (x == null || !mounted) {
-        if (x == null) print('[medegdel] _pickImage: user cancelled or no image');
+        if (x == null)
+          print('[medegdel] _pickImage: user cancelled or no image');
         return;
       }
       if (mounted) setState(() => _replyImage = x);
       print('[medegdel] _pickImage: ok name=${x.name}');
     } catch (e, st) {
       print('[medegdel] _pickImage error: $e\n$st');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
     }
   }
 
@@ -206,20 +236,26 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     if (_recording) return;
     try {
       if (!await _audioRecorder.hasPermission()) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Дуу бичих эрх олгоно уу.')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Дуу бичих эрх олгоно уу.')),
+          );
         return;
       }
       final isRecording = await _audioRecorder.isRecording();
       if (isRecording) return;
       final dir = await getTemporaryDirectory();
-      final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final path =
+          '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
       await _audioRecorder.start(const RecordConfig(), path: path);
       if (mounted) setState(() => _recording = true);
     } catch (e, st) {
       print('[medegdel] _startRecord error: $e\n$st');
       if (mounted) {
         setState(() => _recording = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
       }
     }
   }
@@ -233,7 +269,11 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         return;
       }
       final path = await _audioRecorder.stop();
-      if (mounted) setState(() { _recording = false; if (path != null) _replyVoicePath = path; });
+      if (mounted)
+        setState(() {
+          _recording = false;
+          if (path != null) _replyVoicePath = path;
+        });
     } catch (e, st) {
       print('[medegdel] _stopRecord error: $e\n$st');
       if (mounted) setState(() => _recording = false);
@@ -247,7 +287,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     final hasVoice = _replyVoicePath != null;
     if ((!hasText && !hasImage && !hasVoice) || _sendingReply) return;
     final rootId = _notification.parentId ?? _notification.id;
-    print('[medegdel] _sendReply start rootId=$rootId hasText=$hasText hasImage=$hasImage hasVoice=$hasVoice');
+    print(
+      '[medegdel] _sendReply start rootId=$rootId hasText=$hasText hasImage=$hasImage hasVoice=$hasVoice',
+    );
     setState(() => _sendingReply = true);
     try {
       String? zuragPath;
@@ -255,15 +297,22 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
       if (_replyImage != null) {
         final bytes = await _replyImage!.readAsBytes();
         final name = _replyImage!.name;
-        zuragPath = await ApiService.uploadMedegdelChatFileWithBytes(bytes, name.isEmpty ? 'image.jpg' : name);
+        zuragPath = await ApiService.uploadMedegdelChatFileWithBytes(
+          bytes,
+          name.isEmpty ? 'image.jpg' : name,
+        );
         print('[medegdel] _sendReply upload ok zuragPath=$zuragPath');
         if (mounted) setState(() => _replyImage = null);
       }
       if (_replyVoicePath != null) {
-        voicePath = await ApiService.uploadMedegdelChatFile(file: File(_replyVoicePath!));
+        voicePath = await ApiService.uploadMedegdelChatFile(
+          file: File(_replyVoicePath!),
+        );
         if (mounted) setState(() => _replyVoicePath = null);
       }
-      print('[medegdel] _sendReply sending reply zurag=$zuragPath voice=$voicePath');
+      print(
+        '[medegdel] _sendReply sending reply zurag=$zuragPath voice=$voicePath',
+      );
       final res = await ApiService.sendMedegdelReply(
         rootMedegdelId: rootId,
         message: text,
@@ -278,13 +327,18 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
           setState(() => _threadItems = [..._threadItems, newMsg]);
         } catch (_) {}
       }
-      if (mounted) Future.delayed(const Duration(milliseconds: 500), () => _loadThread());
+      if (mounted)
+        Future.delayed(const Duration(milliseconds: 500), () => _loadThread());
       print('[medegdel] _sendReply done');
     } catch (e, st) {
       print('[medegdel] _sendReply error: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Илгээхэд алдаа: ${e is Exception ? e.toString() : e}')),
+          SnackBar(
+            content: Text(
+              'Илгээхэд алдаа: ${e is Exception ? e.toString() : e}',
+            ),
+          ),
         );
       }
     }
@@ -297,7 +351,8 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     }
 
     final turul = _notification.turul.toLowerCase();
-    final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
+    final isChatOrMedegdel =
+        turul == 'app' || turul == 'sanal' || turul == 'gomdol';
 
     if (!isChatOrMedegdel) {
       return;
@@ -361,32 +416,38 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
       decoration: BoxDecoration(
         color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(context.responsiveBorderRadius(
-            small: 18,
-            medium: 19,
-            large: 20,
-            tablet: 24,
-            veryNarrow: 16,
-          )),
-          topRight: Radius.circular(context.responsiveBorderRadius(
-            small: 18,
-            medium: 19,
-            large: 20,
-            tablet: 24,
-            veryNarrow: 16,
-          )),
+          topLeft: Radius.circular(
+            context.responsiveBorderRadius(
+              small: 18,
+              medium: 19,
+              large: 20,
+              tablet: 24,
+              veryNarrow: 16,
+            ),
+          ),
+          topRight: Radius.circular(
+            context.responsiveBorderRadius(
+              small: 18,
+              medium: 19,
+              large: 20,
+              tablet: 24,
+              veryNarrow: 16,
+            ),
+          ),
         ),
       ),
       child: Column(
         children: [
           Container(
-            margin: EdgeInsets.only(top: context.responsiveSpacing(
-              small: 10,
-              medium: 11,
-              large: 12,
-              tablet: 14,
-              veryNarrow: 8,
-            )),
+            margin: EdgeInsets.only(
+              top: context.responsiveSpacing(
+                small: 10,
+                medium: 11,
+                large: 12,
+                tablet: 14,
+                veryNarrow: 8,
+              ),
+            ),
             width: context.responsiveSpacing(
               small: 36,
               medium: 38,
@@ -405,23 +466,27 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               color: context.isDarkMode
                   ? Colors.white.withOpacity(0.2)
                   : Colors.black.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                small: 2,
-                medium: 2,
-                large: 3,
-                tablet: 4,
-                veryNarrow: 2,
-              )),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 2,
+                  medium: 2,
+                  large: 3,
+                  tablet: 4,
+                  veryNarrow: 2,
+                ),
+              ),
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(context.responsiveSpacing(
-              small: 14,
-              medium: 15,
-              large: 16,
-              tablet: 18,
-              veryNarrow: 12,
-            )),
+            padding: EdgeInsets.all(
+              context.responsiveSpacing(
+                small: 14,
+                medium: 15,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 12,
+              ),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -458,7 +523,8 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   ),
                   onPressed: () {
                     final turul = _notification.turul.toLowerCase();
-                    final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
+                    final isChatOrMedegdel =
+                        turul == 'app' || turul == 'sanal' || turul == 'gomdol';
                     final wasMarkedAsRead =
                         _notification.kharsanEsekh && isChatOrMedegdel;
                     Navigator.pop(context, wasMarkedAsRead);
@@ -471,8 +537,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
             child: Column(
               children: [
                 Expanded(child: _buildContent(isGomdol, isSanal)),
-                if (isSanal || isGomdol)
-                  _buildReplyBar(),
+                if (isSanal || isGomdol) _buildReplyBar(),
               ],
             ),
           ),
@@ -525,7 +590,12 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   /// Мэдэгдэл (App/Мессеж/Mail) has no status; only sanal/gomdol show status.
   bool _showStatusForNotification(Medegdel n) {
     final t = n.turul?.toLowerCase().trim() ?? '';
-    if (t == 'app' || t == 'мессеж' || t == 'mail' || t == 'мэдэгдэл' || t == 'medegdel') return false;
+    if (t == 'app' ||
+        t == 'мессеж' ||
+        t == 'mail' ||
+        t == 'мэдэгдэл' ||
+        t == 'medegdel')
+      return false;
     return t == 'sanal' || t == 'санал' || t == 'gomdol' || t == 'гомдол';
   }
 
@@ -550,212 +620,89 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: context.responsiveSpacing(
-            small: 4,
-            medium: 5,
-            large: 6,
-            tablet: 8,
-            veryNarrow: 4,
-          )),
-          // Title
-          Text(
-            _notification.title,
-            style: TextStyle(
-              color: context.textPrimaryColor,
-              fontSize: context.responsiveFontSize(
-                small: 16,
-                medium: 17,
-                large: 18,
-                tablet: 20,
-                veryNarrow: 14,
-              ),
-              fontWeight: FontWeight.w600,
-              height: 1.3,
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 4,
+              medium: 5,
+              large: 6,
+              tablet: 8,
+              veryNarrow: 4,
             ),
           ),
-          SizedBox(height: context.responsiveSpacing(
-            small: 10,
-            medium: 11,
-            large: 12,
-            tablet: 14,
-            veryNarrow: 8,
-          )),
+          // Title
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: context.responsiveSpacing(
+                small: 12,
+                medium: 14,
+                large: 16,
+                tablet: 18,
+                veryNarrow: 10,
+              ),
+              vertical: context.responsiveSpacing(
+                small: 10,
+                medium: 12,
+                large: 14,
+                tablet: 16,
+                veryNarrow: 8,
+              ),
+            ),
+            decoration: BoxDecoration(
+              color: context.isDarkMode
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.03),
+              border: Border.all(
+                color: context.isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.1),
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(
+                context.responsiveBorderRadius(
+                  small: 8,
+                  medium: 10,
+                  large: 12,
+                  tablet: 14,
+                  veryNarrow: 6,
+                ),
+              ),
+            ),
+            child: Text(
+              _notification.title,
+              style: TextStyle(
+                color: context.textPrimaryColor,
+                fontSize: context.responsiveFontSize(
+                  small: 16,
+                  medium: 17,
+                  large: 18,
+                  tablet: 20,
+                  veryNarrow: 14,
+                ),
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 10,
+              medium: 11,
+              large: 12,
+              tablet: 14,
+              veryNarrow: 8,
+            ),
+          ),
           // Message and Images are now part of the chat thread as bubbles to show authorship alignment
-          if (_notification.hasReply && (isGomdol || isSanal)) ...[
-            SizedBox(height: context.responsiveSpacing(
+          SizedBox(
+            height: context.responsiveSpacing(
               small: 14,
               medium: 15,
               large: 16,
               tablet: 18,
               veryNarrow: 10,
-            )),
-            Container(
-              padding: EdgeInsets.all(context.responsiveSpacing(
-                small: 12,
-                medium: 13,
-                large: 14,
-                tablet: 16,
-                veryNarrow: 10,
-              )),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                  small: 10,
-                  medium: 11,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 8,
-                )),
-                border: Border.all(
-                  color: AppColors.success.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: context.responsiveSpacing(
-                        small: 8,
-                        medium: 9,
-                        large: 10,
-                        tablet: 12,
-                        veryNarrow: 6,
-                      ),
-                      vertical: context.responsiveSpacing(
-                        small: 4,
-                        medium: 5,
-                        large: 6,
-                        tablet: 8,
-                        veryNarrow: 3,
-                      ),
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                        small: 6,
-                        medium: 7,
-                        large: 8,
-                        tablet: 10,
-                        veryNarrow: 4,
-                      )),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.reply_rounded,
-                          color: AppColors.success,
-                          size: context.responsiveFontSize(
-                            small: 12,
-                            medium: 13,
-                            large: 14,
-                            tablet: 16,
-                            veryNarrow: 10,
-                          ),
-                        ),
-                        SizedBox(width: context.responsiveSpacing(
-                          small: 4,
-                          medium: 5,
-                          large: 6,
-                          tablet: 8,
-                          veryNarrow: 3,
-                        )),
-                        Text(
-                          'Хариу',
-                          style: TextStyle(
-                            color: AppColors.success,
-                            fontSize: context.responsiveFontSize(
-                              small: 10,
-                              medium: 11,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 9,
-                            ),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: context.responsiveSpacing(
-                    small: 10,
-                    medium: 11,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 8,
-                  )),
-                  Text(
-                    _notification.tailbar!,
-                    textAlign: TextAlign.justify,
-                    style: TextStyle(
-                      color: context.textPrimaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 11,
-                        medium: 12,
-                        large: 13,
-                        tablet: 15,
-                        veryNarrow: 10,
-                      ),
-                      height: 1.5,
-                    ),
-                  ),
-                  if (_notification.repliedAt != null) ...[
-                    SizedBox(height: context.responsiveSpacing(
-                      small: 10,
-                      medium: 11,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 8,
-                    )),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: context.responsiveFontSize(
-                            small: 10,
-                            medium: 11,
-                            large: 12,
-                            tablet: 14,
-                            veryNarrow: 9,
-                          ),
-                          color: context.textSecondaryColor,
-                        ),
-                        SizedBox(width: context.responsiveSpacing(
-                          small: 4,
-                          medium: 5,
-                          large: 6,
-                          tablet: 8,
-                          veryNarrow: 3,
-                        )),
-                        Text(
-                          'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
-                          style: TextStyle(
-                            color: context.textPrimaryColor,
-                            fontSize: context.responsiveFontSize(
-                              small: 9,
-                              medium: 10,
-                              large: 11,
-                              tablet: 13,
-                              veryNarrow: 8,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
             ),
-          ],
-          SizedBox(height: context.responsiveSpacing(
-            small: 14,
-            medium: 15,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
-          )),
+          ),
           // Details section
           // Container(
           //   padding: EdgeInsets.all(context.responsiveSpacing(
@@ -888,13 +835,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
           //     ],
           //   ),
           // ),
-          SizedBox(height: context.responsiveSpacing(
-            small: 16,
-            medium: 17,
-            large: 18,
-            tablet: 20,
-            veryNarrow: 12,
-          )),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 16,
+              medium: 17,
+              large: 18,
+              tablet: 20,
+              veryNarrow: 12,
+            ),
+          ),
           _buildChatSection(),
         ],
       ),
@@ -904,13 +853,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   Widget _buildChatSection() {
     if (_threadLoading) {
       return Padding(
-        padding: EdgeInsets.all(context.responsiveSpacing(
-          small: 12,
-          medium: 14,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 10,
-        )),
+        padding: EdgeInsets.all(
+          context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 10,
+          ),
+        ),
         child: Center(
           child: SizedBox(
             width: 24,
@@ -927,31 +878,39 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: context.responsiveSpacing(
-          small: 12,
-          medium: 14,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 8,
-        )),
-        _buildChatBubble(_notification), // Prepend root notification as first bubble!
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 8,
+          ),
+        ),
+        _buildChatBubble(
+          _notification,
+        ), // Prepend root notification as first bubble!
         if (_threadItems.isNotEmpty) ...[
-          SizedBox(height: context.responsiveSpacing(
-            small: 8,
-            medium: 9,
-            large: 10,
-            tablet: 12,
-            veryNarrow: 6,
-          )),
+          SizedBox(
+            height: context.responsiveSpacing(
+              small: 8,
+              medium: 9,
+              large: 10,
+              tablet: 12,
+              veryNarrow: 6,
+            ),
+          ),
           ..._threadItems.map((msg) => _buildChatBubble(msg)),
         ],
-        SizedBox(height: context.responsiveSpacing(
-          small: 12,
-          medium: 14,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 8,
-        )),
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 8,
+          ),
+        ),
       ],
     );
   }
@@ -959,15 +918,19 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   Widget _buildChatBubble(Medegdel msg) {
     final isUser = msg.isUserReply;
     return Padding(
-      padding: EdgeInsets.only(bottom: context.responsiveSpacing(
-        small: 8,
-        medium: 9,
-        large: 10,
-        tablet: 12,
-        veryNarrow: 6,
-      )),
+      padding: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 8,
+          medium: 9,
+          large: 10,
+          tablet: 12,
+          veryNarrow: 6,
+        ),
+      ),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) const SizedBox.shrink(),
@@ -993,37 +956,49 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                 color: isUser
                     ? AppColors.deepGreen.withOpacity(0.15)
                     : (context.isDarkMode
-                        ? Colors.white.withOpacity(0.08)
-                        : const Color(0xFFF0F0F0)),
+                          ? Colors.white.withOpacity(0.08)
+                          : const Color(0xFFF0F0F0)),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(context.responsiveBorderRadius(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 12,
-                  )),
-                  topRight: Radius.circular(context.responsiveBorderRadius(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 12,
-                  )),
-                  bottomLeft: Radius.circular(isUser ? context.responsiveBorderRadius(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 12,
-                  ) : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : context.responsiveBorderRadius(
-                    small: 14,
-                    medium: 15,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 12,
-                  )),
+                  topLeft: Radius.circular(
+                    context.responsiveBorderRadius(
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 18,
+                      veryNarrow: 12,
+                    ),
+                  ),
+                  topRight: Radius.circular(
+                    context.responsiveBorderRadius(
+                      small: 14,
+                      medium: 15,
+                      large: 16,
+                      tablet: 18,
+                      veryNarrow: 12,
+                    ),
+                  ),
+                  bottomLeft: Radius.circular(
+                    isUser
+                        ? context.responsiveBorderRadius(
+                            small: 14,
+                            medium: 15,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 12,
+                          )
+                        : 4,
+                  ),
+                  bottomRight: Radius.circular(
+                    isUser
+                        ? 4
+                        : context.responsiveBorderRadius(
+                            small: 14,
+                            medium: 15,
+                            large: 16,
+                            tablet: 18,
+                            veryNarrow: 12,
+                          ),
+                  ),
                 ),
               ),
               child: Column(
@@ -1032,7 +1007,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                 children: [
                   if (msg.zurag != null && msg.zurag!.isNotEmpty)
                     Padding(
-                      padding: EdgeInsets.only(bottom: context.responsiveSpacing(small: 6, medium: 8, large: 10, tablet: 12, veryNarrow: 4)),
+                      padding: EdgeInsets.only(
+                        bottom: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                       child: Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -1043,12 +1026,25 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 240,
+                                  maxHeight: 200,
+                                ),
                                 child: Image.network(
                                   url,
                                   fit: BoxFit.cover,
-                                  loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
-                                  errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                                  loadingBuilder: (_, child, progress) =>
+                                      progress == null
+                                      ? child
+                                      : const SizedBox(
+                                          height: 120,
+                                          width: 160,
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        ),
+                                  errorBuilder: (_, o, s) =>
+                                      const Icon(Icons.broken_image_outlined),
                                 ),
                               ),
                             ),
@@ -1058,21 +1054,48 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     ),
                   if (msg.duu != null && msg.duu!.isNotEmpty)
                     Padding(
-                      padding: EdgeInsets.only(bottom: context.responsiveSpacing(small: 6, medium: 8, large: 10, tablet: 12, veryNarrow: 4)),
+                      padding: EdgeInsets.only(
+                        bottom: context.responsiveSpacing(
+                          small: 6,
+                          medium: 8,
+                          large: 10,
+                          tablet: 12,
+                          veryNarrow: 4,
+                        ),
+                      ),
                       child: InkWell(
                         onTap: () => _playOrPauseVoice(msg.id, msg.duu!),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _playingVoiceMessageId == msg.id && _voicePlayer?.state == PlayerState.playing
+                              _playingVoiceMessageId == msg.id &&
+                                      _voicePlayer?.state == PlayerState.playing
                                   ? Icons.pause_circle
                                   : Icons.play_circle_fill,
                               color: AppColors.deepGreen,
                               size: 28,
                             ),
-                            SizedBox(width: context.responsiveSpacing(small: 6, medium: 8, large: 10, veryNarrow: 4)),
-                            Text('Дуу сонсох', style: TextStyle(color: AppColors.deepGreen, fontSize: context.responsiveFontSize(small: 12, medium: 13, large: 14, veryNarrow: 11))),
+                            SizedBox(
+                              width: context.responsiveSpacing(
+                                small: 6,
+                                medium: 8,
+                                large: 10,
+                                veryNarrow: 4,
+                              ),
+                            ),
+                            Text(
+                              'Дуу сонсох',
+                              style: TextStyle(
+                                color: AppColors.deepGreen,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  veryNarrow: 11,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1091,7 +1114,16 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                         ),
                       ),
                     ),
-                  if (msg.message.isNotEmpty) SizedBox(height: context.responsiveSpacing(small: 4, medium: 5, large: 6, tablet: 8, veryNarrow: 3)),
+                  if (msg.message.isNotEmpty)
+                    SizedBox(
+                      height: context.responsiveSpacing(
+                        small: 4,
+                        medium: 5,
+                        large: 6,
+                        tablet: 8,
+                        veryNarrow: 3,
+                      ),
+                    ),
                   Text(
                     _formatDate(msg.createdAt),
                     style: TextStyle(
@@ -1107,18 +1139,40 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                   ),
                   if (isUser && msg.kharsanEsekh && msg.updatedAt.isNotEmpty)
                     Padding(
-                      padding: EdgeInsets.only(top: context.responsiveSpacing(small: 2, medium: 3, large: 4, veryNarrow: 1)),
+                      padding: EdgeInsets.only(
+                        top: context.responsiveSpacing(
+                          small: 2,
+                          medium: 3,
+                          large: 4,
+                          veryNarrow: 1,
+                        ),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.done_all, size: 14, color: Colors.blue.shade600),
-                          SizedBox(width: context.responsiveSpacing(small: 3, medium: 4, veryNarrow: 2)),
+                          Icon(
+                            Icons.done_all,
+                            size: 14,
+                            color: Colors.blue.shade600,
+                          ),
+                          SizedBox(
+                            width: context.responsiveSpacing(
+                              small: 3,
+                              medium: 4,
+                              veryNarrow: 2,
+                            ),
+                          ),
                           Text(
                             _formatTimeOnly(msg.updatedAt),
                             style: TextStyle(
                               color: context.textPrimaryColor.withOpacity(0.8),
-                              fontSize: context.responsiveFontSize(small: 8, medium: 9, large: 10, veryNarrow: 7),
+                              fontSize: context.responsiveFontSize(
+                                small: 8,
+                                medium: 9,
+                                large: 10,
+                                veryNarrow: 7,
+                              ),
                             ),
                           ),
                         ],
@@ -1137,13 +1191,39 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   Widget _buildReplyBar() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        context.responsiveSpacing(small: 12, medium: 14, large: 16, tablet: 18, veryNarrow: 10),
-        context.responsiveSpacing(small: 8, medium: 9, large: 10, tablet: 12, veryNarrow: 6),
-        context.responsiveSpacing(small: 12, medium: 14, large: 16, tablet: 18, veryNarrow: 10),
-        context.responsiveSpacing(small: 8, medium: 10, large: 12, tablet: 14, veryNarrow: 6),
+        context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 10,
+        ),
+        context.responsiveSpacing(
+          small: 8,
+          medium: 9,
+          large: 10,
+          tablet: 12,
+          veryNarrow: 6,
+        ),
+        context.responsiveSpacing(
+          small: 12,
+          medium: 14,
+          large: 16,
+          tablet: 18,
+          veryNarrow: 10,
+        ),
+        context.responsiveSpacing(
+          small: 8,
+          medium: 10,
+          large: 12,
+          tablet: 14,
+          veryNarrow: 6,
+        ),
       ),
       decoration: BoxDecoration(
-        color: context.isDarkMode ? const Color(0xFF252525) : const Color(0xFFF5F5F5),
+        color: context.isDarkMode
+            ? const Color(0xFF252525)
+            : const Color(0xFFF5F5F5),
         border: Border(
           top: BorderSide(
             color: context.isDarkMode ? Colors.white10 : Colors.black12,
@@ -1157,7 +1237,13 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
           children: [
             if (_replyImage != null || _replyVoicePath != null)
               Padding(
-                padding: EdgeInsets.only(bottom: context.responsiveSpacing(small: 6, medium: 8, veryNarrow: 4)),
+                padding: EdgeInsets.only(
+                  bottom: context.responsiveSpacing(
+                    small: 6,
+                    medium: 8,
+                    veryNarrow: 4,
+                  ),
+                ),
                 child: Row(
                   children: [
                     if (_replyImage != null)
@@ -1181,17 +1267,41 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               children: [
                 IconButton(
                   onPressed: _sendingReply ? null : _pickImage,
-                  icon: Icon(Icons.image_outlined, color: AppColors.deepGreen, size: context.responsiveFontSize(small: 22, medium: 24, veryNarrow: 20)),
+                  icon: Icon(
+                    Icons.image_outlined,
+                    color: AppColors.deepGreen,
+                    size: context.responsiveFontSize(
+                      small: 22,
+                      medium: 24,
+                      veryNarrow: 20,
+                    ),
+                  ),
                 ),
                 if (!_recording)
                   IconButton(
                     onPressed: _sendingReply ? null : _startRecord,
-                    icon: Icon(Icons.mic_none, color: AppColors.deepGreen, size: context.responsiveFontSize(small: 22, medium: 24, veryNarrow: 20)),
+                    icon: Icon(
+                      Icons.mic_none,
+                      color: AppColors.deepGreen,
+                      size: context.responsiveFontSize(
+                        small: 22,
+                        medium: 24,
+                        veryNarrow: 20,
+                      ),
+                    ),
                   )
                 else
                   IconButton(
                     onPressed: _stopRecord,
-                    icon: Icon(Icons.stop_rounded, color: Colors.red, size: context.responsiveFontSize(small: 22, medium: 24, veryNarrow: 20)),
+                    icon: Icon(
+                      Icons.stop_rounded,
+                      color: Colors.red,
+                      size: context.responsiveFontSize(
+                        small: 22,
+                        medium: 24,
+                        veryNarrow: 20,
+                      ),
+                    ),
                   ),
                 Expanded(
                   child: TextField(
@@ -1221,13 +1331,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                           ? Colors.white.withOpacity(0.08)
                           : Colors.white,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
-                          small: 20,
-                          medium: 22,
-                          large: 24,
-                          tablet: 28,
-                          veryNarrow: 16,
-                        )),
+                        borderRadius: BorderRadius.circular(
+                          context.responsiveBorderRadius(
+                            small: 20,
+                            medium: 22,
+                            large: 24,
+                            tablet: 28,
+                            veryNarrow: 16,
+                          ),
+                        ),
                         borderSide: BorderSide.none,
                       ),
                       contentPadding: EdgeInsets.symmetric(
@@ -1264,15 +1376,23 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                     onSubmitted: (_) => _sendReply(),
                   ),
                 ),
-                SizedBox(width: context.responsiveSpacing(
-                  small: 8,
-                  medium: 10,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 6,
-                )),
+                SizedBox(
+                  width: context.responsiveSpacing(
+                    small: 8,
+                    medium: 10,
+                    large: 12,
+                    tablet: 14,
+                    veryNarrow: 6,
+                  ),
+                ),
                 IconButton(
-                  onPressed: (_sendingReply || (_replyController.text.trim().isEmpty && _replyImage == null && _replyVoicePath == null)) ? null : _sendReply,
+                  onPressed:
+                      (_sendingReply ||
+                          (_replyController.text.trim().isEmpty &&
+                              _replyImage == null &&
+                              _replyVoicePath == null))
+                      ? null
+                      : _sendReply,
                   icon: _sendingReply
                       ? SizedBox(
                           width: 22,
@@ -1305,52 +1425,62 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
   Widget _buildDetailRow(String label, String value, IconData icon) {
     return Builder(
       builder: (context) => Container(
-        margin: EdgeInsets.only(bottom: context.responsiveSpacing(
-          small: 8,
-          medium: 9,
-          large: 10,
-          tablet: 12,
-          veryNarrow: 6,
-        )),
-        padding: EdgeInsets.all(context.responsiveSpacing(
-          small: 10,
-          medium: 11,
-          large: 12,
-          tablet: 14,
-          veryNarrow: 8,
-        )),
-        decoration: BoxDecoration(
-          color: context.isDarkMode
-              ? Colors.white.withOpacity(0.03)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+        margin: EdgeInsets.only(
+          bottom: context.responsiveSpacing(
+            small: 8,
+            medium: 9,
+            large: 10,
+            tablet: 12,
+            veryNarrow: 6,
+          ),
+        ),
+        padding: EdgeInsets.all(
+          context.responsiveSpacing(
             small: 10,
             medium: 11,
             large: 12,
             tablet: 14,
             veryNarrow: 8,
-          )),
+          ),
+        ),
+        decoration: BoxDecoration(
+          color: context.isDarkMode
+              ? Colors.white.withOpacity(0.03)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 10,
+              medium: 11,
+              large: 12,
+              tablet: 14,
+              veryNarrow: 8,
+            ),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: EdgeInsets.all(context.responsiveSpacing(
-                small: 6,
-                medium: 7,
-                large: 8,
-                tablet: 10,
-                veryNarrow: 4,
-              )),
-              decoration: BoxDecoration(
-                color: AppColors.deepGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+              padding: EdgeInsets.all(
+                context.responsiveSpacing(
                   small: 6,
                   medium: 7,
                   large: 8,
                   tablet: 10,
                   veryNarrow: 4,
-                )),
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.deepGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(
+                  context.responsiveBorderRadius(
+                    small: 6,
+                    medium: 7,
+                    large: 8,
+                    tablet: 10,
+                    veryNarrow: 4,
+                  ),
+                ),
               ),
               child: Icon(
                 icon,
@@ -1364,13 +1494,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                 color: AppColors.deepGreen,
               ),
             ),
-            SizedBox(width: context.responsiveSpacing(
-              small: 10,
-              medium: 11,
-              large: 12,
-              tablet: 14,
-              veryNarrow: 8,
-            )),
+            SizedBox(
+              width: context.responsiveSpacing(
+                small: 10,
+                medium: 11,
+                large: 12,
+                tablet: 14,
+                veryNarrow: 8,
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1389,13 +1521,15 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: context.responsiveSpacing(
-                    small: 3,
-                    medium: 4,
-                    large: 5,
-                    tablet: 6,
-                    veryNarrow: 2,
-                  )),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 3,
+                      medium: 4,
+                      large: 5,
+                      tablet: 6,
+                      veryNarrow: 2,
+                    ),
+                  ),
                   Text(
                     value,
                     style: TextStyle(
@@ -1461,10 +1595,16 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               child: Image.network(
                 url,
                 fit: BoxFit.contain,
-                loadingBuilder: (_, child, progress) => progress == null 
-                  ? child 
-                  : const Center(child: CircularProgressIndicator(color: Colors.white)),
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 48),
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white,
+                  size: 48,
+                ),
               ),
             ),
             Positioned(
@@ -1556,7 +1696,12 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
   /// Мэдэгдэл (App/Мессеж/Mail) has no status; only sanal/gomdol show status.
   bool _showStatusForNotification(Medegdel n) {
     final t = n.turul?.toLowerCase().trim() ?? '';
-    if (t == 'app' || t == 'мессеж' || t == 'mail' || t == 'мэдэгдэл' || t == 'medegdel') return false;
+    if (t == 'app' ||
+        t == 'мессеж' ||
+        t == 'mail' ||
+        t == 'мэдэгдэл' ||
+        t == 'medegdel')
+      return false;
     return t == 'sanal' || t == 'санал' || t == 'gomdol' || t == 'гомдол';
   }
 
@@ -1570,12 +1715,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     _notification = widget.notification;
     _markAsReadAutomatically();
     _loadThread();
-    final rootId = (_notification.parentId ?? _notification.id).toString().trim();
+    final rootId = (_notification.parentId ?? _notification.id)
+        .toString()
+        .trim();
     _socketCallback = (data) {
       if (!mounted) return;
       final payloadParentId = (data['parentId']?.toString() ?? '').trim();
       final turul = (data['turul'] ?? '').toString().toLowerCase();
-      final isAdminReply = turul == 'khariu' || turul == 'хариу' || turul == 'hariu';
+      final isAdminReply =
+          turul == 'khariu' || turul == 'хариу' || turul == 'hariu';
       if (payloadParentId.isEmpty || rootId.isEmpty) return;
       if (payloadParentId != rootId || !isAdminReply) return;
       Medegdel? msg;
@@ -1593,7 +1741,8 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
             title: j['title']?.toString() ?? '',
             gereeniiDugaar: j['gereeniiDugaar']?.toString(),
             message: j['message']?.toString() ?? '',
-            orshinSuugchGereeniiDugaar: j['orshinSuugchGereeniiDugaar']?.toString(),
+            orshinSuugchGereeniiDugaar: j['orshinSuugchGereeniiDugaar']
+                ?.toString(),
             orshinSuugchId: j['orshinSuugchId']?.toString(),
             orshinSuugchNer: j['orshinSuugchNer']?.toString(),
             orshinSuugchUtas: j['orshinSuugchUtas']?.toString(),
@@ -1618,7 +1767,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         setState(() {
           if (_threadItems.any((m) => m.id == messageId)) return;
           // When receiver (admin) sends a message, previous messages were seen — show blue check on all
-          final markedSeen = _threadItems.map((m) => m.copyWith(kharsanEsekh: true)).toList();
+          final markedSeen = _threadItems
+              .map((m) => m.copyWith(kharsanEsekh: true))
+              .toList();
           _threadItems = [...markedSeen, msg!];
         });
       });
@@ -1639,12 +1790,17 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
 
   Future<void> _playOrPauseVoice(String messageId, String url) async {
     if (!mounted) return;
-    final fullUrl = '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(url)}';
+    final fullUrl =
+        '${ApiService.baseUrl}/medegdel/${_normalizeMedegdelPath(url)}';
     // iOS AVPlayer does not support WebM; stay on page and show message (no external link)
     if (Platform.isIOS && url.toLowerCase().contains('.webm')) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Энэ дууны формат (WebM) төхөөрөмж дээр тоглуулагдахгүй. M4A/MP3 илгээнэ үү.')),
+          const SnackBar(
+            content: Text(
+              'Энэ дууны формат (WebM) төхөөрөмж дээр тоглуулагдахгүй. M4A/MP3 илгээнэ үү.',
+            ),
+          ),
         );
       }
       return;
@@ -1669,7 +1825,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _playingVoiceMessageId = null);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
       }
     }
   }
@@ -1681,9 +1839,13 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     try {
       final res = await ApiService.getMedegdelThread(rootId);
       if (!mounted) return;
-      final list = (res['data'] as List?)
-          ?.map((e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList() ?? [];
+      final list =
+          (res['data'] as List?)
+              ?.map(
+                (e) => Medegdel.fromJson(Map<String, dynamic>.from(e as Map)),
+              )
+              .toList() ??
+          [];
       if (!mounted) return;
       setState(() {
         // Filter out the root message to avoid duplication
@@ -1698,16 +1860,23 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
   Future<void> _pickImage() async {
     try {
       final picker = ImagePicker();
-      final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final x = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
       if (x == null || !mounted) {
-        if (x == null) print('[medegdel] _pickImage: user cancelled or no image');
+        if (x == null)
+          print('[medegdel] _pickImage: user cancelled or no image');
         return;
       }
       if (mounted) setState(() => _replyImage = x);
       print('[medegdel] _pickImage: ok name=${x.name}');
     } catch (e, st) {
       print('[medegdel] _pickImage error: $e\n$st');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
     }
   }
 
@@ -1715,20 +1884,26 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     if (_recording) return;
     try {
       if (!await _audioRecorder.hasPermission()) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Дуу бичих эрх олгоно уу.')));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Дуу бичих эрх олгоно уу.')),
+          );
         return;
       }
       final isRecording = await _audioRecorder.isRecording();
       if (isRecording) return;
       final dir = await getTemporaryDirectory();
-      final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      final path =
+          '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
       await _audioRecorder.start(const RecordConfig(), path: path);
       if (mounted) setState(() => _recording = true);
     } catch (e, st) {
       print('[medegdel] _startRecord error: $e\n$st');
       if (mounted) {
         setState(() => _recording = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
       }
     }
   }
@@ -1742,7 +1917,11 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         return;
       }
       final path = await _audioRecorder.stop();
-      if (mounted) setState(() { _recording = false; if (path != null) _replyVoicePath = path; });
+      if (mounted)
+        setState(() {
+          _recording = false;
+          if (path != null) _replyVoicePath = path;
+        });
     } catch (e, st) {
       print('[medegdel] _stopRecord error: $e\n$st');
       if (mounted) setState(() => _recording = false);
@@ -1756,7 +1935,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     final hasVoice = _replyVoicePath != null;
     if ((!hasText && !hasImage && !hasVoice) || _sendingReply) return;
     final rootId = _notification.parentId ?? _notification.id;
-    print('[medegdel] _sendReply start rootId=$rootId hasText=$hasText hasImage=$hasImage hasVoice=$hasVoice');
+    print(
+      '[medegdel] _sendReply start rootId=$rootId hasText=$hasText hasImage=$hasImage hasVoice=$hasVoice',
+    );
     setState(() => _sendingReply = true);
     try {
       String? zuragPath;
@@ -1764,15 +1945,22 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
       if (_replyImage != null) {
         final bytes = await _replyImage!.readAsBytes();
         final name = _replyImage!.name;
-        zuragPath = await ApiService.uploadMedegdelChatFileWithBytes(bytes, name.isEmpty ? 'image.jpg' : name);
+        zuragPath = await ApiService.uploadMedegdelChatFileWithBytes(
+          bytes,
+          name.isEmpty ? 'image.jpg' : name,
+        );
         print('[medegdel] _sendReply upload ok zuragPath=$zuragPath');
         if (mounted) setState(() => _replyImage = null);
       }
       if (_replyVoicePath != null) {
-        voicePath = await ApiService.uploadMedegdelChatFile(file: File(_replyVoicePath!));
+        voicePath = await ApiService.uploadMedegdelChatFile(
+          file: File(_replyVoicePath!),
+        );
         if (mounted) setState(() => _replyVoicePath = null);
       }
-      print('[medegdel] _sendReply sending reply zurag=$zuragPath voice=$voicePath');
+      print(
+        '[medegdel] _sendReply sending reply zurag=$zuragPath voice=$voicePath',
+      );
       final res = await ApiService.sendMedegdelReply(
         rootMedegdelId: rootId,
         message: text,
@@ -1787,13 +1975,18 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
           setState(() => _threadItems = [..._threadItems, newMsg]);
         } catch (_) {}
       }
-      if (mounted) Future.delayed(const Duration(milliseconds: 500), () => _loadThread());
+      if (mounted)
+        Future.delayed(const Duration(milliseconds: 500), () => _loadThread());
       print('[medegdel] _sendReply done');
     } catch (e, st) {
       print('[medegdel] _sendReply error: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Илгээхэд алдаа: ${e is Exception ? e.toString() : e}')),
+          SnackBar(
+            content: Text(
+              'Илгээхэд алдаа: ${e is Exception ? e.toString() : e}',
+            ),
+          ),
         );
       }
     }
@@ -1806,7 +1999,8 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     }
 
     final turul = _notification.turul.toLowerCase();
-    final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
+    final isChatOrMedegdel =
+        turul == 'app' || turul == 'sanal' || turul == 'gomdol';
 
     if (!isChatOrMedegdel) {
       return;
@@ -1870,8 +2064,10 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
           final turul = _notification.turul.toLowerCase();
-          final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
-          final wasMarkedAsRead = _notification.kharsanEsekh && isChatOrMedegdel;
+          final isChatOrMedegdel =
+              turul == 'app' || turul == 'sanal' || turul == 'gomdol';
+          final wasMarkedAsRead =
+              _notification.kharsanEsekh && isChatOrMedegdel;
           if (Navigator.canPop(context)) {
             Navigator.pop(context, wasMarkedAsRead);
           } else {
@@ -1915,7 +2111,10 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                         ),
                         onPressed: () {
                           final turul = _notification.turul.toLowerCase();
-                          final isChatOrMedegdel = turul == 'app' || turul == 'sanal' || turul == 'gomdol';
+                          final isChatOrMedegdel =
+                              turul == 'app' ||
+                              turul == 'sanal' ||
+                              turul == 'gomdol';
                           final wasMarkedAsRead =
                               _notification.kharsanEsekh && isChatOrMedegdel;
                           if (Navigator.canPop(context)) {
@@ -1925,13 +2124,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                           }
                         },
                       ),
-                      SizedBox(width: context.responsiveSpacing(
-                        small: 12,
-                        medium: 13,
-                        large: 14,
-                        tablet: 16,
-                        veryNarrow: 8,
-                      )),
+                      SizedBox(
+                        width: context.responsiveSpacing(
+                          small: 12,
+                          medium: 13,
+                          large: 14,
+                          tablet: 16,
+                          veryNarrow: 8,
+                        ),
+                      ),
                       Expanded(
                         child: Text(
                           isGomdol
@@ -1942,13 +2143,13 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: context.responsiveFontSize(
-                              small: 22,
-                              medium: 23,
-                              large: 24,
-                              tablet: 26,
-                              veryNarrow: 18,
+                              small: 16,
+                              medium: 17,
+                              large: 18,
+                              tablet: 20,
+                              veryNarrow: 14,
                             ),
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1967,478 +2168,71 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+
                         Container(
-                          padding: EdgeInsets.all(context.responsiveSpacing(
-                            small: 12,
-                            medium: 13,
-                            large: 14,
-                            tablet: 16,
-                            veryNarrow: 10,
-                          )),
-                          decoration: BoxDecoration(
-                            color: context.textPrimaryColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 12,
-                ),
-              ),
-                            border: Border.all(
-                              color: _isStatusDone(_notification)
-                                  ? AppColors.success.withOpacity(0.3)
-                                  : context.textPrimaryColor.withOpacity(0.15),
-                              width: _isStatusDone(_notification) ? 1.5 : 1,
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.responsiveSpacing(
+                              small: 12,
+                              medium: 14,
+                              large: 16,
+                              tablet: 18,
+                              veryNarrow: 10,
+                            ),
+                            vertical: context.responsiveSpacing(
+                              small: 10,
+                              medium: 12,
+                              large: 14,
+                              tablet: 16,
+                              veryNarrow: 8,
                             ),
                           ),
-                          child: Wrap(
-                            spacing: 12,
-                            runSpacing: 10,
-                            children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.responsiveSpacing(
-                                    small: 12,
-                                    medium: 13,
-                                    large: 14,
-                                    tablet: 16,
-                                    veryNarrow: 10,
-                                  ),
-                                  vertical: context.responsiveSpacing(
-                                    small: 8,
-                                    medium: 9,
-                                    large: 10,
-                                    tablet: 12,
-                                    veryNarrow: 6,
-                                  ),
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isGomdol
-                                      ? Colors.orange.withOpacity(0.15)
-                                      : isSanal
-                                      ? AppColors.secondaryAccent.withOpacity(
-                                          0.15,
-                                        )
-                                      : AppColors.primary.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(
-                                    context.responsiveBorderRadius(
-                                      small: 10,
-                                      medium: 12,
-                                      large: 14,
-                                      tablet: 16,
-                                      veryNarrow: 8,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      isGomdol
-                                          ? Icons.report_problem
-                                          : isSanal
-                                          ? Icons.lightbulb_outline
-                                          : Icons.notifications,
-                                      size: context.responsiveFontSize(
-                                        small: 18,
-                                        medium: 19,
-                                        large: 20,
-                                        tablet: 22,
-                                        veryNarrow: 14,
-                                      ),
-                                      color: isGomdol
-                                          ? Colors.orange
-                                          : isSanal
-                                          ? AppColors.secondaryAccent
-                                          : AppColors.primary,
-                                    ),
-                                    SizedBox(
-                                      width: context.responsiveSpacing(
-                                        small: 6,
-                                        medium: 8,
-                                        large: 10,
-                                        tablet: 12,
-                                        veryNarrow: 4,
-                                      ),
-                                    ),
-                                    Text(
-                                      _getDisplayTurul(_notification.turul),
-                                      style: TextStyle(
-                                        color: isGomdol
-                                            ? Colors.orange
-                                            : isSanal
-                                            ? AppColors.secondaryAccent
-                                            : AppColors.primary,
-                                        fontSize: context.responsiveFontSize(
-                                          small: 13,
-                                          medium: 14,
-                                          large: 15,
-                                          tablet: 17,
-                                          veryNarrow: 11,
-                                        ),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          decoration: BoxDecoration(
+                            color: context.isDarkMode
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.black.withOpacity(0.03),
+                            border: Border.all(
+                              color: context.isDarkMode
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.black.withOpacity(0.1),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(
+                              context.responsiveBorderRadius(
+                                small: 8,
+                                medium: 10,
+                                large: 12,
+                                tablet: 14,
+                                veryNarrow: 6,
                               ),
-                              if (isGomdol || isSanal)
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: context.responsiveSpacing(
-                                      small: 12,
-                                      medium: 13,
-                                      large: 14,
-                                      tablet: 16,
-                                      veryNarrow: 10,
-                                    ),
-                                    vertical: context.responsiveSpacing(
-                                      small: 8,
-                                      medium: 9,
-                                      large: 10,
-                                      tablet: 12,
-                                      veryNarrow: 6,
-                                    ),
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _isStatusDone(_notification)
-                                        ? AppColors.success.withOpacity(0.15)
-                                        : _isStatusRejected(_notification)
-                                        ? AppColors.error.withOpacity(0.15)
-                                        : _notification.hasReply
-                                        ? AppColors.success.withOpacity(0.15)
-                                        : Colors.orange.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(
-                                      context.responsiveBorderRadius(
-                                        small: 10,
-                                        medium: 12,
-                                        large: 14,
-                                        tablet: 16,
-                                        veryNarrow: 8,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        _isStatusDone(_notification)
-                                            ? Icons.check_circle
-                                            : _isStatusRejected(_notification)
-                                            ? Icons.cancel
-                                            : _notification.hasReply
-                                            ? Icons.check_circle
-                                            : Icons.schedule,
-                                        size: context.responsiveFontSize(
-                                          small: 16,
-                                          medium: 17,
-                                          large: 18,
-                                          tablet: 20,
-                                          veryNarrow: 12,
-                                        ),
-                                        color: _isStatusDone(_notification)
-                                            ? AppColors.success
-                                            : _isStatusRejected(_notification)
-                                            ? AppColors.error
-                                            : _notification.hasReply
-                                            ? AppColors.success
-                                            : Colors.orange,
-                                      ),
-                                      SizedBox(
-                                        width: context.responsiveSpacing(
-                                          small: 6,
-                                          medium: 8,
-                                          large: 10,
-                                          tablet: 12,
-                                          veryNarrow: 4,
-                                        ),
-                                      ),
-                                      Text(
-                                        _getStatusText(_notification),
-                                        style: TextStyle(
-                                          color: _isStatusDone(_notification)
-                                              ? AppColors.success
-                                              : _isStatusRejected(_notification)
-                                              ? AppColors.error
-                                              : _notification.hasReply
-                                              ? AppColors.success
-                                              : Colors.orange,
-                                          fontSize: context.responsiveFontSize(
-                                            small: 12,
-                                            medium: 13,
-                                            large: 14,
-                                            tablet: 16,
-                                            veryNarrow: 10,
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 20,
-                            medium: 24,
-                            large: 28,
-                            tablet: 32,
-                            veryNarrow: 14,
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(vertical: context.responsiveSpacing(
-                            small: 4,
-                            medium: 5,
-                            large: 6,
-                            tablet: 8,
-                            veryNarrow: 3,
-                          )),
                           child: Text(
                             _notification.title,
                             style: TextStyle(
                               color: context.textPrimaryColor,
                               fontSize: context.responsiveFontSize(
-                                small: 22,
-                                medium: 23,
-                                large: 24,
-                                tablet: 26,
-                                veryNarrow: 18,
+                                small: 16,
+                                medium: 17,
+                                large: 18,
+                                tablet: 20,
+                                veryNarrow: 14,
                               ),
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               height: 1.3,
                             ),
                           ),
                         ),
-                        SizedBox(height: context.responsiveSpacing(
-                          small: 16,
-                          medium: 17,
-                          large: 18,
-                          tablet: 20,
-                          veryNarrow: 12,
-                        )),
+                        SizedBox(
+                          height: context.responsiveSpacing(
+                            small: 16,
+                            medium: 17,
+                            large: 18,
+                            tablet: 20,
+                            veryNarrow: 12,
+                          ),
+                        ),
                         // Root message and images are now displayed in the chat section as bubbles
-                        if (_notification.hasReply &&
-                            (isGomdol || isSanal)) ...[
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 20,
-                              medium: 24,
-                              large: 28,
-                              tablet: 32,
-                              veryNarrow: 14,
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.all(context.responsiveSpacing(
-                              small: 18,
-                              medium: 19,
-                              large: 20,
-                              tablet: 22,
-                              veryNarrow: 14,
-                            )),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppColors.success.withOpacity(0.12),
-                                  AppColors.success.withOpacity(0.08),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                context.responsiveBorderRadius(
-                                  small: 16,
-                                  medium: 18,
-                                  large: 20,
-                                  tablet: 22,
-                                  veryNarrow: 12,
-                                ),
-                              ),
-                              border: Border.all(
-                                color: AppColors.success.withOpacity(0.25),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: context.responsiveSpacing(
-                                      small: 12,
-                                      medium: 13,
-                                      large: 14,
-                                      tablet: 16,
-                                      veryNarrow: 10,
-                                    ),
-                                    vertical: context.responsiveSpacing(
-                                      small: 8,
-                                      medium: 9,
-                                      large: 10,
-                                      tablet: 12,
-                                      veryNarrow: 6,
-                                    ),
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.success.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(
-                                      context.responsiveBorderRadius(
-                                        small: 10,
-                                        medium: 12,
-                                        large: 14,
-                                        tablet: 16,
-                                        veryNarrow: 8,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.reply_rounded,
-                                        color: AppColors.success,
-                                        size: context.responsiveFontSize(
-                                          small: 20,
-                                          medium: 21,
-                                          large: 22,
-                                          tablet: 24,
-                                          veryNarrow: 16,
-                                        ),
-                                      ),
-                                      SizedBox(width: context.responsiveSpacing(
-                                        small: 8,
-                                        medium: 9,
-                                        large: 10,
-                                        tablet: 12,
-                                        veryNarrow: 6,
-                                      )),
-                                      Text(
-                                        'Хариу',
-                                        style: TextStyle(
-                                          color: AppColors.success,
-                                          fontSize: context.responsiveFontSize(
-                                            small: 16,
-                                            medium: 17,
-                                            large: 18,
-                                            tablet: 20,
-                                            veryNarrow: 13,
-                                          ),
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(height: context.responsiveSpacing(
-                                  small: 16,
-                                  medium: 17,
-                                  large: 18,
-                                  tablet: 20,
-                                  veryNarrow: 12,
-                                )),
-                                Text(
-                                  _notification.tailbar!,
-                                  textAlign: TextAlign.justify,
-                                  style: TextStyle(
-                                    color: context.textPrimaryColor,
-                                    fontSize: context.responsiveFontSize(
-                                      small: 14,
-                                      medium: 15,
-                                      large: 16,
-                                      tablet: 18,
-                                      veryNarrow: 12,
-                                    ),
-                                    height: 1.6,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                                if (_notification.repliedAt != null) ...[
-                                  SizedBox(height: context.responsiveSpacing(
-                                    small: 14,
-                                    medium: 15,
-                                    large: 16,
-                                    tablet: 18,
-                                    veryNarrow: 10,
-                                  )),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: context.responsiveSpacing(
-                                        small: 10,
-                                        medium: 11,
-                                        large: 12,
-                                        tablet: 14,
-                                        veryNarrow: 8,
-                                      ),
-                                      vertical: context.responsiveSpacing(
-                                        small: 6,
-                                        medium: 7,
-                                        large: 8,
-                                        tablet: 10,
-                                        veryNarrow: 4,
-                                      ),
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: context.textPrimaryColor
-                                          .withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(
-                                        context.responsiveBorderRadius(
-                                          small: 8,
-                                          medium: 9,
-                                          large: 10,
-                                          tablet: 12,
-                                          veryNarrow: 6,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.access_time,
-                                          size: context.responsiveFontSize(
-                                            small: 14,
-                                            medium: 15,
-                                            large: 16,
-                                            tablet: 18,
-                                            veryNarrow: 12,
-                                          ),
-                                          color: context.textPrimaryColor,
-                                        ),
-                                        SizedBox(
-                                          width: context.responsiveSpacing(
-                                            small: 6,
-                                            medium: 8,
-                                            large: 10,
-                                            tablet: 12,
-                                            veryNarrow: 4,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Хариу өгсөн: ${_formatDate(_notification.repliedAt!)}',
-                                          style: TextStyle(
-                                            color: context.textPrimaryColor,
-                                            fontSize: context.responsiveFontSize(
-                                              small: 12,
-                                              medium: 13,
-                                              large: 14,
-                                              tablet: 16,
-                                              veryNarrow: 10,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
                         SizedBox(
                           height: context.responsiveSpacing(
                             small: 20,
@@ -2588,26 +2382,29 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                     ),
                   ),
                 ),
-                if (_notification.turul.toLowerCase() == 'sanal' || _notification.turul.toLowerCase() == 'gomdol')
+                if (_notification.turul.toLowerCase() == 'sanal' ||
+                    _notification.turul.toLowerCase() == 'gomdol')
                   _buildReplyBarScreen(),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
   Widget _buildChatSectionScreen() {
     if (_threadLoading) {
       return Padding(
-        padding: EdgeInsets.all(context.responsiveSpacing(
-          small: 12,
-          medium: 14,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 10,
-        )),
+        padding: EdgeInsets.all(
+          context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 10,
+          ),
+        ),
         child: Center(
           child: SizedBox(
             width: 24,
@@ -2624,30 +2421,36 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: context.responsiveSpacing(
-          small: 20,
-          medium: 24,
-          large: 28,
-          tablet: 32,
-          veryNarrow: 14,
-        )),
-        
-        SizedBox(height: context.responsiveSpacing(
-          small: 12,
-          medium: 14,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 8,
-        )),
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 20,
+            medium: 24,
+            large: 28,
+            tablet: 32,
+            veryNarrow: 14,
+          ),
+        ),
+
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 8,
+          ),
+        ),
         _buildChatBubbleScreen(_notification), // Prepend root!
         ..._threadItems.map((msg) => _buildChatBubbleScreen(msg)),
-        SizedBox(height: context.responsiveSpacing(
-          small: 16,
-          medium: 18,
-          large: 20,
-          tablet: 24,
-          veryNarrow: 10,
-        )),
+        SizedBox(
+          height: context.responsiveSpacing(
+            small: 16,
+            medium: 18,
+            large: 20,
+            tablet: 24,
+            veryNarrow: 10,
+          ),
+        ),
       ],
     );
   }
@@ -2655,15 +2458,19 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
   Widget _buildChatBubbleScreen(Medegdel msg) {
     final isUser = msg.isUserReply;
     return Padding(
-      padding: EdgeInsets.only(bottom: context.responsiveSpacing(
-        small: 10,
-        medium: 12,
-        large: 14,
-        tablet: 16,
-        veryNarrow: 8,
-      )),
+      padding: EdgeInsets.only(
+        bottom: context.responsiveSpacing(
+          small: 10,
+          medium: 12,
+          large: 14,
+          tablet: 16,
+          veryNarrow: 8,
+        ),
+      ),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) const SizedBox.shrink(),
@@ -2713,12 +2520,25 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 240, maxHeight: 200),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 240,
+                                  maxHeight: 200,
+                                ),
                                 child: Image.network(
                                   url,
                                   fit: BoxFit.cover,
-                                  loadingBuilder: (_, child, progress) => progress == null ? child : const SizedBox(height: 120, width: 160, child: Center(child: CircularProgressIndicator())),
-                                  errorBuilder: (_, o, s) => const Icon(Icons.broken_image_outlined),
+                                  loadingBuilder: (_, child, progress) =>
+                                      progress == null
+                                      ? child
+                                      : const SizedBox(
+                                          height: 120,
+                                          width: 160,
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        ),
+                                  errorBuilder: (_, o, s) =>
+                                      const Icon(Icons.broken_image_outlined),
                                 ),
                               ),
                             ),
@@ -2735,14 +2555,26 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              _playingVoiceMessageId == msg.id && _voicePlayer?.state == PlayerState.playing
+                              _playingVoiceMessageId == msg.id &&
+                                      _voicePlayer?.state == PlayerState.playing
                                   ? Icons.pause_circle
                                   : Icons.play_circle_fill,
                               color: AppColors.deepGreen,
                               size: 28,
                             ),
                             const SizedBox(width: 8),
-                            Text('Дуу сонсох', style: TextStyle(color: AppColors.deepGreen, fontSize: context.responsiveFontSize(small: 12, medium: 13, large: 14, veryNarrow: 11))),
+                            Text(
+                              'Дуу сонсох',
+                              style: TextStyle(
+                                color: AppColors.deepGreen,
+                                fontSize: context.responsiveFontSize(
+                                  small: 12,
+                                  medium: 13,
+                                  large: 14,
+                                  veryNarrow: 11,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2782,13 +2614,24 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.done_all, size: 14, color: Colors.blue.shade600),
+                          Icon(
+                            Icons.done_all,
+                            size: 14,
+                            color: Colors.blue.shade600,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             _formatTimeOnly(msg.updatedAt),
                             style: TextStyle(
-                              color: context.textSecondaryColor.withOpacity(0.8),
-                              fontSize: context.responsiveFontSize(small: 8, medium: 9, large: 10, veryNarrow: 7),
+                              color: context.textSecondaryColor.withOpacity(
+                                0.8,
+                              ),
+                              fontSize: context.responsiveFontSize(
+                                small: 8,
+                                medium: 9,
+                                large: 10,
+                                veryNarrow: 7,
+                              ),
                             ),
                           ),
                         ],
@@ -2807,14 +2650,44 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
   Widget _buildReplyBarScreen() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        context.responsiveSpacing(small: 16, medium: 18, large: 20, tablet: 22, veryNarrow: 12),
-        context.responsiveSpacing(small: 10, medium: 12, large: 14, tablet: 16, veryNarrow: 8),
-        context.responsiveSpacing(small: 16, medium: 18, large: 20, tablet: 22, veryNarrow: 12),
-        context.responsiveSpacing(small: 10, medium: 12, large: 14, tablet: 16, veryNarrow: 8),
+        context.responsiveSpacing(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 22,
+          veryNarrow: 12,
+        ),
+        context.responsiveSpacing(
+          small: 10,
+          medium: 12,
+          large: 14,
+          tablet: 16,
+          veryNarrow: 8,
+        ),
+        context.responsiveSpacing(
+          small: 16,
+          medium: 18,
+          large: 20,
+          tablet: 22,
+          veryNarrow: 12,
+        ),
+        context.responsiveSpacing(
+          small: 10,
+          medium: 12,
+          large: 14,
+          tablet: 16,
+          veryNarrow: 8,
+        ),
       ),
       decoration: BoxDecoration(
-        color: context.isDarkMode ? const Color(0xFF252525) : const Color(0xFFF5F5F5),
-        border: Border(top: BorderSide(color: context.isDarkMode ? Colors.white10 : Colors.black12)),
+        color: context.isDarkMode
+            ? const Color(0xFF252525)
+            : const Color(0xFFF5F5F5),
+        border: Border(
+          top: BorderSide(
+            color: context.isDarkMode ? Colors.white10 : Colors.black12,
+          ),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -2847,17 +2720,29 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
               children: [
                 IconButton(
                   onPressed: _sendingReply ? null : _pickImage,
-                  icon: Icon(Icons.image_outlined, color: AppColors.deepGreen, size: 24),
+                  icon: Icon(
+                    Icons.image_outlined,
+                    color: AppColors.deepGreen,
+                    size: 24,
+                  ),
                 ),
                 if (!_recording)
                   IconButton(
                     onPressed: _sendingReply ? null : _startRecord,
-                    icon: Icon(Icons.mic_none, color: AppColors.deepGreen, size: 24),
+                    icon: Icon(
+                      Icons.mic_none,
+                      color: AppColors.deepGreen,
+                      size: 24,
+                    ),
                   )
                 else
                   IconButton(
                     onPressed: _stopRecord,
-                    icon: const Icon(Icons.stop_rounded, color: Colors.red, size: 24),
+                    icon: const Icon(
+                      Icons.stop_rounded,
+                      color: Colors.red,
+                      size: 24,
+                    ),
                   ),
                 Expanded(
                   child: TextField(
@@ -2866,7 +2751,10 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                     cursorHeight: 20,
                     decoration: InputDecoration(
                       hintText: 'Хариу бичих...',
-                      hintStyle: TextStyle(color: context.textSecondaryColor, fontSize: 15),
+                      hintStyle: TextStyle(
+                        color: context.textSecondaryColor,
+                        fontSize: 15,
+                      ),
                       filled: true,
                       fillColor: context.isDarkMode
                           ? Colors.white.withOpacity(0.08)
@@ -2875,7 +2763,10 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     style: TextStyle(
                       color: context.isDarkMode
@@ -2890,10 +2781,27 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                 ),
                 const SizedBox(width: 12),
                 IconButton(
-                  onPressed: (_sendingReply || (_replyController.text.trim().isEmpty && _replyImage == null && _replyVoicePath == null)) ? null : _sendReply,
+                  onPressed:
+                      (_sendingReply ||
+                          (_replyController.text.trim().isEmpty &&
+                              _replyImage == null &&
+                              _replyVoicePath == null))
+                      ? null
+                      : _sendReply,
                   icon: _sendingReply
-                      ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.deepGreen))
-                      : Icon(Icons.send_rounded, color: AppColors.deepGreen, size: 26),
+                      ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.deepGreen,
+                          ),
+                        )
+                      : Icon(
+                          Icons.send_rounded,
+                          color: AppColors.deepGreen,
+                          size: 26,
+                        ),
                 ),
               ],
             ),
@@ -2906,50 +2814,60 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
   Widget _buildDetailRow(String label, String value, IconData icon) {
     return Builder(
       builder: (context) => Container(
-        margin: EdgeInsets.only(bottom: context.responsiveSpacing(
-          small: 14,
-          medium: 15,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 10,
-        )),
-        padding: EdgeInsets.all(context.responsiveSpacing(
-          small: 12,
-          medium: 13,
-          large: 14,
-          tablet: 16,
-          veryNarrow: 10,
-        )),
-        decoration: BoxDecoration(
-          color: context.textPrimaryColor.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+        margin: EdgeInsets.only(
+          bottom: context.responsiveSpacing(
+            small: 14,
+            medium: 15,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 10,
+          ),
+        ),
+        padding: EdgeInsets.all(
+          context.responsiveSpacing(
             small: 12,
             medium: 13,
             large: 14,
             tablet: 16,
             veryNarrow: 10,
-          )),
+          ),
+        ),
+        decoration: BoxDecoration(
+          color: context.textPrimaryColor.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(
+            context.responsiveBorderRadius(
+              small: 12,
+              medium: 13,
+              large: 14,
+              tablet: 16,
+              veryNarrow: 10,
+            ),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: EdgeInsets.all(context.responsiveSpacing(
-                small: 8,
-                medium: 9,
-                large: 10,
-                tablet: 12,
-                veryNarrow: 6,
-              )),
-              decoration: BoxDecoration(
-                color: context.textPrimaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(context.responsiveBorderRadius(
+              padding: EdgeInsets.all(
+                context.responsiveSpacing(
                   small: 8,
                   medium: 9,
                   large: 10,
                   tablet: 12,
                   veryNarrow: 6,
-                )),
+                ),
+              ),
+              decoration: BoxDecoration(
+                color: context.textPrimaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(
+                  context.responsiveBorderRadius(
+                    small: 8,
+                    medium: 9,
+                    large: 10,
+                    tablet: 12,
+                    veryNarrow: 6,
+                  ),
+                ),
               ),
               child: Icon(
                 icon,
@@ -2963,13 +2881,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                 color: context.textPrimaryColor,
               ),
             ),
-            SizedBox(width: context.responsiveSpacing(
-              small: 12,
-              medium: 13,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 10,
-            )),
+            SizedBox(
+              width: context.responsiveSpacing(
+                small: 12,
+                medium: 13,
+                large: 14,
+                tablet: 16,
+                veryNarrow: 10,
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2988,13 +2908,15 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: context.responsiveSpacing(
-                    small: 6,
-                    medium: 7,
-                    large: 8,
-                    tablet: 10,
-                    veryNarrow: 4,
-                  )),
+                  SizedBox(
+                    height: context.responsiveSpacing(
+                      small: 6,
+                      medium: 7,
+                      large: 8,
+                      tablet: 10,
+                      veryNarrow: 4,
+                    ),
+                  ),
                   Text(
                     value,
                     style: TextStyle(
@@ -3060,10 +2982,16 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
               child: Image.network(
                 url,
                 fit: BoxFit.contain,
-                loadingBuilder: (_, child, progress) => progress == null 
-                  ? child 
-                  : const Center(child: CircularProgressIndicator(color: Colors.white)),
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 48),
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white,
+                  size: 48,
+                ),
               ),
             ),
             Positioned(

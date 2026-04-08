@@ -20,6 +20,22 @@ class ApiService {
 
   // Helper method to wrap HTTP calls with better error handling
 
+  static Future<void> _checkTokenExpiry(http.Response response) async {
+    if (response.statusCode == 500 || response.statusCode == 401) {
+      try {
+        final body = json.decode(response.body);
+        final err =
+            body['message']?.toString() ?? body['aldaa']?.toString() ?? '';
+        if (err.contains('jwt expired')) {
+          await handleUnauthorized(
+            'Нэвтрэлтийн хугацаа дууссан байна. Дахин нэвтэрнэ үү',
+          );
+          throw Exception('jwt expired');
+        }
+      } catch (_) {}
+    }
+  }
+
   static List<Map<String, dynamic>>? _cachedLocationData;
   static List<Map<String, dynamic>>? _cachedWalletBillingList;
   static DateTime? _lastWalletBillingListFetch;
@@ -47,6 +63,7 @@ class ApiService {
         Uri.parse('$baseUrl/baiguullagaBairshilaarAvya'),
         headers: {'Content-Type': 'application/json'},
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -173,6 +190,7 @@ class ApiService {
           'soh': soh,
         }),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -205,6 +223,7 @@ class ApiService {
           'baiguullagiinId': baiguullagiinId,
         }),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -259,6 +278,7 @@ class ApiService {
           'purpose': purpose,
         }),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -306,6 +326,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'utas': utas}),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -331,6 +352,8 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(checkPayload),
       );
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -359,6 +382,7 @@ class ApiService {
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -387,6 +411,7 @@ class ApiService {
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -415,6 +440,7 @@ class ApiService {
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -442,6 +468,7 @@ class ApiService {
         Uri.parse('$baseUrl/walletAddress/bair/$khorooId'),
         headers: {'Content-Type': 'application/json'},
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -465,6 +492,7 @@ class ApiService {
         Uri.parse('$baseUrl/walletAddress/toots/$bairId'),
         headers: {'Content-Type': 'application/json'},
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -490,6 +518,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billers'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -502,8 +531,8 @@ class ApiService {
       } else if (response.statusCode == 401) {
         String? errorMsg;
         try {
-           final decoded = json.decode(response.body);
-           errorMsg = decoded['message'] ?? decoded['aldaa'];
+          final decoded = json.decode(response.body);
+          errorMsg = decoded['message'] ?? decoded['aldaa'];
         } catch (_) {}
         await handleUnauthorized(errorMsg);
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
@@ -523,17 +552,15 @@ class ApiService {
           );
         }
       } else {
-        final errorData = json.decode(response.body);
-        final errorMessage = (response.statusCode == 500) 
-            ? '1 эрхээр давхар орж байна'
-            : (errorData['message'] ?? 'Биллерүүд авахад алдаа гарлаа: ${response.statusCode}');
-        throw Exception(errorMessage);
+        await handleUnauthorized('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү');
+        throw Exception('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү');
       }
     } catch (e) {
       if (e.toString().contains('404')) {
         rethrow;
       }
-      throw Exception('Биллерүүд авахад алдаа гарлаа: $e');
+      await handleUnauthorized('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү');
+      throw Exception('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү: $e');
     }
   }
 
@@ -647,6 +674,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billing/customer/$customerId'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -683,6 +711,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billing/list'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -697,10 +726,14 @@ class ApiService {
         // Wallet session expired — do NOT log out of main app, just clear wallet cache
         _cachedWalletHeaders = null;
         _lastWalletHeadersFetch = null;
-        print('⚠️ [WALLET] Billing list 401 - clearing wallet cache, returning empty list');
+        print(
+          '⚠️ [WALLET] Billing list 401 - clearing wallet cache, returning empty list',
+        );
         return [];
       } else {
-        print('⚠️ [WALLET] Billing list error ${response.statusCode} - returning empty list');
+        print(
+          '⚠️ [WALLET] Billing list error ${response.statusCode} - returning empty list',
+        );
         return [];
       }
     } catch (e) {
@@ -721,6 +754,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billing/bills/$billingId'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -758,10 +792,14 @@ class ApiService {
         // Wallet session expired — do NOT log out of main app
         _cachedWalletHeaders = null;
         _lastWalletHeadersFetch = null;
-        print('⚠️ [WALLET] Billing bills 401 - clearing wallet cache, returning empty');
+        print(
+          '⚠️ [WALLET] Billing bills 401 - clearing wallet cache, returning empty',
+        );
         return {};
       } else {
-        print('⚠️ [WALLET] Billing bills error ${response.statusCode} - returning empty');
+        print(
+          '⚠️ [WALLET] Billing bills error ${response.statusCode} - returning empty',
+        );
         return {};
       }
     } catch (e) {
@@ -779,6 +817,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billing/bills/$billingId'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -810,6 +849,7 @@ class ApiService {
       final url = '$baseUrl/walletAddress/details/$bairId/$doorNo';
       print('🔍 [WALLET ADDRESS] Fetching: $url');
       final response = await http.get(Uri.parse(url), headers: headers);
+      await _checkTokenExpiry(response);
 
       print('🔍 [WALLET ADDRESS] Status: ${response.statusCode}');
       print(
@@ -850,6 +890,7 @@ class ApiService {
         Uri.parse('$walletApiBaseUrl/api/billing/address/$bairId/$doorNo'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -900,6 +941,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -936,6 +979,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billing/$billingId'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       dynamic data;
       try {
@@ -984,6 +1028,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billing/$billingId/bill/$billId'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       dynamic data;
       try {
@@ -1026,6 +1071,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/billing/$billingId/recover'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1060,6 +1106,7 @@ class ApiService {
         headers: headers,
         body: json.encode({'name': name}),
       );
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1097,6 +1144,7 @@ class ApiService {
         headers: headers,
         body: json.encode({'nickname': nickname}),
       );
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1145,6 +1193,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -1176,6 +1226,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/invoice/$invoiceId'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1210,6 +1261,7 @@ class ApiService {
         Uri.parse('$baseUrl/wallet/invoice/$invoiceId/cancel'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1244,6 +1296,7 @@ class ApiService {
         headers: headers,
         body: json.encode({'invoiceId': invoiceId}),
       );
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1293,6 +1346,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
@@ -1334,6 +1389,8 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(requestBody),
       );
+
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1411,6 +1468,7 @@ class ApiService {
         headers: headers,
         body: json.encode(requestBody),
       );
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
 
@@ -1483,6 +1541,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -1524,6 +1584,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(registrationData),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200 ||
           response.statusCode == 201 ||
@@ -1617,6 +1678,8 @@ class ApiService {
       body: json.encode(requestBody),
     );
 
+    await _checkTokenExpiry(response);
+
     final loginData = json.decode(response.body);
 
     if (loginData['success'] == false) {
@@ -1654,19 +1717,21 @@ class ApiService {
     };
   }
 
-  static Future<void> handleUnauthorized([String? message]) async {
+  static Future<void> handleUnauthorized([String? message, bool showNotification = true]) async {
     print('🔒 [API] 401 Unauthorized - Token expired, logging out...');
 
     final isLoggedIn = await StorageService.isLoggedIn();
     if (!isLoggedIn) {
       print('🔒 [API] Already logged out, skipping...');
-      if (message != null && message.contains('өөр төхөөрөмж')) {
-         await NotificationService.showSessionExpiredNotification(message);
+      if (showNotification && message != null && message.contains('өөр төхөөрөмж')) {
+        await NotificationService.showSessionExpiredNotification(message);
       }
       return;
     }
 
-    await NotificationService.showSessionExpiredNotification(message);
+    if (showNotification) {
+      await NotificationService.showSessionExpiredNotification(message);
+    }
 
     await SessionService.logout();
 
@@ -1750,6 +1815,7 @@ class ApiService {
           'shineNuutsUg': shineNuutsUg,
         }),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
@@ -1819,6 +1885,8 @@ class ApiService {
       print('🔍 [API] getConsumerInfo - Headers: ${headers.keys.toList()}');
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       print('🔍 [API] getConsumerInfo - Status: ${response.statusCode}');
       print(
@@ -1921,6 +1989,8 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
+      await _checkTokenExpiry(response);
+
       print('🔍 [API] getForeignerInfo - Status: ${response.statusCode}');
       print(
         '🔍 [API] getForeignerInfo - Response body length: ${response.body.length}',
@@ -1989,8 +2059,9 @@ class ApiService {
       final isLoggedIn = await StorageService.isLoggedIn();
 
       // If default value, try to fetch from user profile
-      if (isLoggedIn && (tukhainBaaziinKholbolt == 'amarSukh' ||
-          tukhainBaaziinKholbolt == null)) {
+      if (isLoggedIn &&
+          (tukhainBaaziinKholbolt == 'amarSukh' ||
+              tukhainBaaziinKholbolt == null)) {
         try {
           final userProfile = await getUserProfile();
           if (userProfile['result']?['tukhainBaaziinKholbolt'] != null) {
@@ -2037,6 +2108,8 @@ class ApiService {
         headers: headers,
         body: json.encode(body),
       );
+
+      await _checkTokenExpiry(response);
 
       print('🔍 [API] easyRegisterUserSearch - Status: ${response.statusCode}');
       print('🔍 [API] easyRegisterUserSearch - Response: ${response.body}');
@@ -2111,6 +2184,8 @@ class ApiService {
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
       print(
         '🔍 [API] easyRegisterGetSavedUsers Status: ${response.statusCode}',
       );
@@ -2181,6 +2256,8 @@ class ApiService {
           'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
         }),
       );
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -2253,6 +2330,8 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
+      await _checkTokenExpiry(response);
+
       print(
         '🔍 [API] getForeignerInfoByLoginName - Status: ${response.statusCode}',
       );
@@ -2321,6 +2400,7 @@ class ApiService {
         headers: headers,
         body: json.encode(data),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
@@ -2369,6 +2449,8 @@ class ApiService {
         headers: headers,
         body: json.encode(requestBody),
       );
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -2427,6 +2509,8 @@ class ApiService {
         headers: headers,
       );
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         Map<String, dynamic> result;
@@ -2464,7 +2548,9 @@ class ApiService {
         return result;
       } else {
         if (response.statusCode == 401 || response.statusCode == 404) {
-          await handleUnauthorized('Нэвтрэлтийн мэдээлэл хүчингүй байна. Дахин нэвтэрнэ үү');
+          await handleUnauthorized(
+            'Нэвтрэлтийн мэдээлэл хүчингүй байна. Дахин нэвтэрнэ үү',
+          );
           throw Exception('Дахин нэвтэрнэ үү');
         }
         throw Exception(
@@ -2519,6 +2605,8 @@ class ApiService {
         }),
       );
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else {
@@ -2557,6 +2645,8 @@ class ApiService {
           'taniltsuulgaKharakhEsekh': taniltsuulgaKharakhEsekh,
         }),
       );
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception(
@@ -2605,6 +2695,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       print(
         '📝 [API] updateOrshinSuugchAddress - Response status: ${response.statusCode}',
       );
@@ -2631,6 +2723,7 @@ class ApiService {
         headers: headers,
         body: json.encode({'_id': userId, ...updateData}),
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -2668,6 +2761,8 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
@@ -2694,6 +2789,7 @@ class ApiService {
         },
       );
       final response = await http.get(uri, headers: headers);
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         try {
@@ -2753,10 +2849,13 @@ class ApiService {
         queryParams['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
       }
 
-      final uri = Uri.parse('$baseUrl/nekhemjlekhiinTuukh')
-          .replace(queryParameters: queryParams);
+      final uri = Uri.parse(
+        '$baseUrl/nekhemjlekhiinTuukh',
+      ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         try {
@@ -2791,14 +2890,16 @@ class ApiService {
   }) async {
     try {
       final authHeaders = await getAuthHeaders();
-      final uri = Uri.parse('$baseUrl/geree/$gereeniiId/history-ledger').replace(
-        queryParameters: {
-          'baiguullagiinId': baiguullagiinId,
-          if (barilgiinId != null) 'barilgiinId': barilgiinId,
-          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-        },
-      );
+      final uri = Uri.parse('$baseUrl/geree/$gereeniiId/history-ledger')
+          .replace(
+            queryParameters: {
+              'baiguullagiinId': baiguullagiinId,
+              if (barilgiinId != null) 'barilgiinId': barilgiinId,
+              '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+            },
+          );
       final response = await http.get(uri, headers: authHeaders);
+      await _checkTokenExpiry(response);
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
@@ -2852,6 +2953,8 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         try {
           final data = json.decode(response.body);
@@ -2889,6 +2992,8 @@ class ApiService {
       );
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         try {
@@ -2955,6 +3060,8 @@ class ApiService {
         }),
       );
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         return {
@@ -3014,6 +3121,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       print(
         '📝 [API] updateConsumerInfo - Response status: ${response.statusCode}',
       );
@@ -3066,32 +3175,38 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      
+
       // Multiple fallbacks for orgId
       String? orgId = baiguullagiinId;
       if (orgId == null || orgId.isEmpty || orgId == "null") {
         orgId = await StorageService.getBaiguullagiinId();
       }
-      
+
       // Additional fallback check for safety
       if (orgId == null || orgId == "null") {
-        print('⚠️ [API] checkPaymentStatus: baiguullagiinId is missing from both parameter and storage');
+        print(
+          '⚠️ [API] checkPaymentStatus: baiguullagiinId is missing from both parameter and storage',
+        );
       }
 
-      final dbKholbolt = tukhainBaaziinKholbolt ?? await StorageService.getTukhainBaaziinKholbolt();
+      final dbKholbolt =
+          tukhainBaaziinKholbolt ??
+          await StorageService.getTukhainBaaziinKholbolt();
 
       final uri = Uri.parse('$baseUrl/qpayShalgay');
-      
+
       final bodyMap = {
         'invoice_id': invoiceId,
         'baiguullagiinId': orgId,
         'tukhainBaaziinKholbolt': dbKholbolt,
       };
-      
+
       print('🔍 [API] Calling qpayShalgay: $bodyMap');
       final body = json.encode(bodyMap);
 
       final response = await http.post(uri, headers: headers, body: body);
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3121,6 +3236,8 @@ class ApiService {
       );
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3153,6 +3270,8 @@ class ApiService {
       ).replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3248,6 +3367,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       print('🔍 [QPAY] Response status: ${response.statusCode}');
       if (response.statusCode != 200 && response.statusCode != 201) {
         print(
@@ -3288,7 +3409,9 @@ class ApiService {
         // For Wallet QPay: { "success": true, "data": { "qpayInvoiceId": "...", "qrText": "..." } }
         if (responseData['success'] == true && responseData['data'] != null) {
           final data = responseData['data'];
-          print('🔍 [QPAY] Success with data wrapper. invoice_id=${data['invoice_id']}, qpayInvoiceId=${data['qpayInvoiceId']}');
+          print(
+            '🔍 [QPAY] Success with data wrapper. invoice_id=${data['invoice_id']}, qpayInvoiceId=${data['qpayInvoiceId']}',
+          );
           return {
             'invoice_id':
                 data['invoice_id']?.toString() ??
@@ -3301,7 +3424,8 @@ class ApiService {
         }
         print('🔍 [QPAY] Success with legacy format: $responseData');
         // Standardize legacy format to also include invoice_id
-        if (responseData.containsKey('id') && !responseData.containsKey('invoice_id')) {
+        if (responseData.containsKey('id') &&
+            !responseData.containsKey('invoice_id')) {
           responseData['invoice_id'] = responseData['id'];
         }
         return responseData;
@@ -3379,6 +3503,8 @@ class ApiService {
         headers: headers,
         body: json.encode(requestBody),
       );
+
+      await _checkTokenExpiry(response);
 
       print('💳 [WALLET QPAY] Status: ${response.statusCode}');
 
@@ -3469,6 +3595,7 @@ class ApiService {
 
       print('🔍 [WALLET QPAY] Fetching history: $uri');
       final response = await http.get(uri, headers: headers);
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -3511,6 +3638,8 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         print('🔍 [WALLET QPAY] Status: ${data['status']}');
@@ -3551,6 +3680,8 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         return data;
@@ -3577,6 +3708,7 @@ class ApiService {
 
       print('🔍 [WALLET QPAY] Getting payment: $uri');
       final response = await http.get(uri, headers: headers);
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
@@ -3627,6 +3759,7 @@ class ApiService {
         Uri.parse('$baseUrl/orshinSuugch/walletPayment/$paymentId'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
@@ -3663,6 +3796,8 @@ class ApiService {
         }),
       );
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else {
@@ -3682,14 +3817,13 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      
+
       // Try to get baiguullagiinId if not provided
-      final orgId = baiguullagiinId ?? await StorageService.getBaiguullagiinId();
-      
-      final queryParams = <String, String>{
-        'barilgiinId': barilgiinId,
-      };
-      
+      final orgId =
+          baiguullagiinId ?? await StorageService.getBaiguullagiinId();
+
+      final queryParams = <String, String>{'barilgiinId': barilgiinId};
+
       if (orgId != null) {
         queryParams['baiguullagiinId'] = orgId;
       }
@@ -3699,6 +3833,8 @@ class ApiService {
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -3732,6 +3868,8 @@ class ApiService {
         }),
       );
 
+      await _checkTokenExpiry(response);
+
       final data = json.decode(response.body);
 
       return data;
@@ -3752,6 +3890,8 @@ class ApiService {
         headers: headers,
         body: json.encode({'nuutsUg': nuutsUg}),
       );
+
+      await _checkTokenExpiry(response);
 
       final data = json.decode(response.body);
       return data;
@@ -3808,6 +3948,8 @@ class ApiService {
       print('📞 [API] fetchAjiltan URL: $uri');
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       print('📞 [API] fetchAjiltan response status: ${response.statusCode}');
       print(
@@ -3927,6 +4069,8 @@ class ApiService {
 
       final response = await http.get(uri, headers: headers);
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         // Filter to only include notifications where turul = "app" or "мэдэгдэл"
@@ -4026,6 +4170,8 @@ class ApiService {
       ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -4244,6 +4390,8 @@ class ApiService {
         body: json.encode({}),
       );
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         try {
           final responseData = json.decode(response.body);
@@ -4296,6 +4444,7 @@ class ApiService {
             },
           );
       final response = await http.get(uri, headers: headers);
+      await _checkTokenExpiry(response);
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
@@ -4403,6 +4552,7 @@ class ApiService {
         headers: requestHeaders,
         body: json.encode(body),
       );
+      await _checkTokenExpiry(response);
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
@@ -4483,6 +4633,8 @@ class ApiService {
         headers: headers,
         body: json.encode(requestBody),
       );
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = response.body.trim();
@@ -4577,6 +4729,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseBody = response.body.trim();
         if (responseBody == 'Amjilttai' || responseBody == 'Success') {
@@ -4641,6 +4795,8 @@ class ApiService {
         body: json.encode(requestBody),
       );
 
+      await _checkTokenExpiry(response);
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
@@ -4672,6 +4828,8 @@ class ApiService {
           'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
         }),
       );
+
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         final responseBody = response.body.trim();
@@ -4709,6 +4867,7 @@ class ApiService {
         Uri.parse('$baseUrl/zochinSettings'),
         headers: headers,
       );
+      await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
         if (response.body.isNotEmpty &&
@@ -4732,16 +4891,18 @@ class ApiService {
       final headers = await getAuthHeaders();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
-      
+
       final uri = Uri.parse('$baseUrl/zochinQuotaStatus').replace(
         queryParameters: {
           if (baiguullagiinId != null) 'baiguullagiinId': baiguullagiinId,
           if (barilgiinId != null) 'barilgiinId': barilgiinId,
           '_': DateTime.now().millisecondsSinceEpoch.toString(),
-        }
+        },
       );
 
       final response = await http.get(uri, headers: headers);
+
+      await _checkTokenExpiry(response);
 
       final responseBody = response.body.trim();
       if (response.statusCode == 200) {

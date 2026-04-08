@@ -8,6 +8,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/socket_service.dart';
+import 'package:sukh_app/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 
@@ -87,8 +88,15 @@ class _QPayQRModalState extends State<QPayQRModal> {
       _paidResult = true;
       _resultMessage = 'Төлбөр амжилттай төлөгдлөө';
     });
+
+    NotificationService.showNotification(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: 'Төлбөр амжилттай төлөгдлөө',
+      body: 'Дарж И-баримт аа харна уу!',
+    );
+
     if (widget.closeOnSuccess) {
-      Future.delayed(const Duration(milliseconds: 600), () {
+      Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted) Navigator.of(context).pop(true);
       });
     }
@@ -127,6 +135,12 @@ class _QPayQRModalState extends State<QPayQRModal> {
       _paidResult = result;
       if (result == true) {
         _resultMessage = 'Төлбөр амжилттай төлөгдлөө';
+        
+        NotificationService.showNotification(
+          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: 'Төлбөр амжилттай төлөгдлөө',
+          body: 'Дарж И-баримт аа харна уу!',
+        );
       } else if (result == false) {
         _resultMessage = 'Төлбөр төлөгдөөгүй байна';
       } else {
@@ -137,7 +151,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
     print('💬 [QPayModal] Status update: _paidResult=$_paidResult, _resultMessage=$_resultMessage');
 
     if (result == true && widget.closeOnSuccess) {
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 1500));
       if (mounted) Navigator.of(context).pop(true);
     }
   }

@@ -148,13 +148,27 @@ class NekhemjlekhItem {
     }
   }
 
+  /// Mirrors web's getPaymentStatusLabel + backend pre-save logic:
+  /// When paid: backend sets niitTulbur=0, uldegdel=0, tuluv='Төлсөн'
+  /// niitTulburOriginal is preserved as the original amount.
+  bool get isPaid {
+    // Explicit paid status from backend (most reliable)
+    final t = tuluv.toLowerCase().trim();
+    if (t == 'төлсөн' || t == 'paid' || t == 'paid_success') return true;
+    // uldegdel==0 AND niitTulburOriginal>0 → backend has marked this as paid
+    // (backend sets niitTulbur=0 too when paid, so we use niitTulburOriginal)
+    if (uldegdel == 0 && niitTulburOriginal > 0) return true;
+    if (uldegdel < 0) return true;
+    return false;
+  }
+
   /// Calculate the total amount to be paid for this invoice.
   /// 1. Current Monthly Charge (niitTulbur).
   /// 2. All detailed unpaid transactions (guilgeenuud).
   /// 3. Fallback to summarized balance (uldegdel) ONLY if no details exist.
   double get effectiveNiitTulbur {
     // If fully paid, we only show the original amount for reference
-    if (tuluv == 'Төлсөн') {
+    if (isPaid) {
       return niitTulburOriginal > 0 ? niitTulburOriginal : niitTulbur;
     }
 

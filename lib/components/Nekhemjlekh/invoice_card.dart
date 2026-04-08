@@ -55,8 +55,10 @@ class InvoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(invoice.tuluv);
-    final statusLabel = _getStatusLabel(invoice.tuluv);
+    // Use isPaid (mirrors web getPaymentStatusLabel) for accurate status
+    final effectiveTuluv = invoice.isPaid ? 'Төлсөн' : invoice.tuluv;
+    final statusColor = _getStatusColor(effectiveTuluv);
+    final statusLabel = _getStatusLabel(effectiveTuluv);
 
     return RepaintBoundary(
       child: Container(
@@ -208,7 +210,7 @@ class InvoiceCard extends StatelessWidget {
                             // Selection Checkbox (Leading)
                             if (!isHistory &&
                                 onToggleSelect != null &&
-                                invoice.tuluv != 'Төлсөн') ...[
+                                !invoice.isPaid) ...[
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(

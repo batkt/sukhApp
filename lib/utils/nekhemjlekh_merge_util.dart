@@ -31,7 +31,16 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
 
   final unpaidIndices = <int>[];
   for (var i = 0; i < invoices.length; i++) {
-    if (invoices[i]['tuluv'] != 'Төлсөн') unpaidIndices.add(i);
+    final inv = invoices[i];
+    final t = (inv['tuluv']?.toString() ?? '').toLowerCase().trim();
+    final isExplicitlyPaid = t == 'төлсөн' || t == 'paid' || t == 'paid_success';
+    final uldegdel = _toNum(inv['uldegdel']);
+    final niitTulburOrig = _toNum(inv['niitTulburOriginal']);
+    final isLogicallyPaid = (uldegdel == 0 && niitTulburOrig > 0) || uldegdel < 0;
+    
+    if (!isExplicitlyPaid && !isLogicallyPaid) {
+      unpaidIndices.add(i);
+    }
   }
   final latestUnpaidIndex = unpaidIndices.isNotEmpty ? unpaidIndices.first : 0;
 

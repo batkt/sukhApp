@@ -520,7 +520,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
   bool get allSelected {
     final unpaidInvoices = invoices
-        .where((invoice) => invoice.tuluv != 'Төлсөн')
+        .where((invoice) => !invoice.isPaid)
         .toList();
     return unpaidInvoices.isNotEmpty &&
         unpaidInvoices.every((invoice) => invoice.isSelected);
@@ -538,7 +538,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     }
 
     // 2. Sum unique unpaid invoices as fallback
-    final unpaid = invoices.where((i) => i.tuluv != 'Төлсөн').toList();
+    final unpaid = invoices.where((i) => !i.isPaid).toList();
     if (unpaid.isNotEmpty) {
       final sum = unpaid.fold<double>(0, (s, i) => s + i.effectiveNiitTulbur);
       return sum;
@@ -564,7 +564,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       bool newValue = !allSelected;
       for (var invoice in invoices) {
         // Only select/deselect invoices that are not paid
-        if (invoice.tuluv != 'Төлсөн') {
+        if (!invoice.isPaid) {
           invoice.isSelected = newValue;
         }
       }
@@ -586,13 +586,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     // Apply status filter
     if (selectedFilter == 'Paid') {
       filtered = filtered
-          .where((invoice) => invoice.tuluv == 'Төлсөн')
+          .where((invoice) => invoice.isPaid)
           .toList();
     } else if (selectedFilter == 'Unpaid') {
       // Unpaid = anything that is not fully paid (Төлөөгүй only, excludes Хэсэгчлэн since
       // we no longer create that status — but kept for safety)
       filtered = filtered
-          .where((invoice) => invoice.tuluv != 'Төлсөн')
+          .where((invoice) => !invoice.isPaid)
           .toList();
     }
     // 'All' shows everything (no additional filter)
@@ -619,11 +619,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         return monthFiltered.length;
       case 'Unpaid':
         return monthFiltered
-            .where((invoice) => invoice.tuluv != 'Төлсөн')
+            .where((invoice) => !invoice.isPaid)
             .length;
       case 'Paid':
         return monthFiltered
-            .where((invoice) => invoice.tuluv == 'Төлсөн')
+            .where((invoice) => invoice.isPaid)
             .length;
       default:
         return 0;
@@ -1756,7 +1756,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           .toList();
 
       final allPaid = selectedInvoices.isNotEmpty &&
-          selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн' || inv.uldegdel <= 0);
+          selectedInvoices.every((inv) => inv.isPaid);
 
       if (isPaidFromQpayCheck || allPaid) {
         // Close loading dialog
@@ -1871,7 +1871,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           .toList();
 
       final allPaid = selectedInvoices.isNotEmpty &&
-          selectedInvoices.every((inv) => inv.tuluv == 'Төлсөн' || inv.uldegdel <= 0);
+          selectedInvoices.every((inv) => inv.isPaid);
 
       if (isPaidFromQpayCheck || allPaid) {
         // Close loading dialog

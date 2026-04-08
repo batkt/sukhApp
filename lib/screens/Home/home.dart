@@ -948,10 +948,14 @@ class _BookingScreenState extends State<NuurKhuudas>
         if (errorMessage.contains('404')) {
           displayMessage =
               'Биллерүүд авах endpoint олдсонгүй. Backend дээр /wallet/billers route-ийг шалгана уу.';
+        } else if (errorMessage.contains('500')) {
+          ApiService.handleUnauthorized(null, false);
+          return;
+        } else if (errorMessage.contains('Таны хүчинтэй хугацаа дууссан')) {
+          // Already handled and logged out by api_service.dart
+          return;
         } else {
-          displayMessage = e.toString().contains('500') 
-            ? '1 эрхээр давхар орж байна'
-            : 'Биллерүүд авахад алдаа гарлаа: $e';
+          displayMessage = errorMessage;
         }
 
         showGlassSnackBar(
