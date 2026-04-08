@@ -415,7 +415,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                       ApiService.fetchNekhemjlekhiinTuukh(
                         gereeniiDugaar: dugaar,
                         khuudasniiDugaar: 1,
-                        khuudasniiKhemjee: 200,
+                        khuudasniiKhemjee: 1000,
                       ),
                       baiguullagiinId != null
                           ? ApiService.fetchGereeniiTulukhAvlaga(
@@ -495,10 +495,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                         hasData = true;
                       }
                       
-                      // Priority: Authoritative Ledger Balance > Manual Summation
-                      // IMPORTANT: Only fall back to manual sum if ledger was NOT available at all.
-                      // If ledger IS available and shows 0, it means everything is paid - trust it!
-                      if (!hasLedger && (!invoiceSum.isFinite || invoiceSum == 0)) {
+                      // Prefer the sum of current invoice records to match nekhemjlekhiin-tuukh web totals.
+                      // Ledger balances can lag behind invoice history, so use invoice-derived totals when data exists.
+                      if (rawInvoices.isNotEmpty) {
+                        if (hasLedger && (invoiceSum - manualsSum).abs() > 1) {
+                          print(' [SYNC] Using invoice sum ($manualsSum) over ledger balance ($invoiceSum) for $dugaar');
+                        }
+                        invoiceSum = manualsSum;
+                      } else if (!hasLedger && (!invoiceSum.isFinite || invoiceSum == 0)) {
                         invoiceSum = manualsSum;
                       }
                       aldangiSum = tTotalAldangi;
@@ -1152,6 +1156,32 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
+  DateTime? _calculateNextInvoiceDateFromContract(String gereeniiOgnoo) {
+    try {
+      final contractDate = DateTime.parse(gereeniiOgnoo);
+      final today = DateTime.now();
+      final todayDateOnly = DateTime(today.year, today.month, today.day);
+      final dayOfMonth = contractDate.day;
+
+      DateTime nextInvoiceDate;
+      if (today.day >= dayOfMonth) {
+        final nextMonth = today.month == 12 ? 1 : today.month + 1;
+        final nextYear = today.month == 12 ? today.year + 1 : today.year;
+        nextInvoiceDate = DateTime(nextYear, nextMonth, dayOfMonth);
+      } else {
+        nextInvoiceDate = DateTime(today.year, today.month, dayOfMonth);
+      }
+
+      return DateTime(
+        nextInvoiceDate.year,
+        nextInvoiceDate.month,
+        nextInvoiceDate.day,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   Widget _buildRemainingDaysWidget(
     Geree? geree, {
     required VoidCallback onTapBilling,
@@ -1247,15 +1277,46 @@ class _BookingScreenState extends State<NuurKhuudas>
         targetProgress = 1.0;
       }
     } else {
-      // If we can't predict next payday
+      // If we can't predict next payday from cron, use contract start date as fallback.
       if (geree != null) {
-        final daysPassed = _calculateDaysPassed(geree.gereeniiOgnoo);
-        displayDays = daysPassed;
-        rightLabel = 'Өдөр';
-        centerLabel = 'өдөр өнгөрсөн';
-        accentColor = const Color(0xFFFF6B6B);
-        targetProgress = (daysPassed % 30) / 30.0;
-        nextUnitDateText = _getNextUnitDate(geree.gereeniiOgnoo);
+        final nextContractInvoiceDate =
+            _calculateNextInvoiceDateFromContract(geree.gereeniiOgnoo);
+        if (nextContractInvoiceDate != null) {
+          final today = DateTime.now();
+          final todayDateOnly = DateTime(today.year, today.month, today.day);
+
+          if (nextContractInvoiceDate.isAfter(todayDateOnly) ||
+              nextContractInvoiceDate.isAtSameMomentAs(todayDateOnly)) {
+            final remainingDays =
+                nextContractInvoiceDate.difference(todayDateOnly).inDays;
+            displayDays = remainingDays;
+            rightLabel = 'Өдөр';
+            centerLabel = 'Төлөлт хийхэд';
+            accentColor = AppColors.deepGreen;
+            nextUnitDateText =
+                '${nextContractInvoiceDate.year}-${nextContractInvoiceDate.month.toString().padLeft(2, '0')}-${nextContractInvoiceDate.day.toString().padLeft(2, '0')}';
+            final clampedRemaining = remainingDays > 30 ? 30 : remainingDays;
+            targetProgress = 1.0 - (clampedRemaining / 30.0);
+          } else {
+            final daysOverdue =
+                todayDateOnly.difference(nextContractInvoiceDate).inDays;
+            displayDays = daysOverdue;
+            rightLabel = 'Өдөр';
+            centerLabel = 'өдөр хэтэрсэн';
+            accentColor = const Color(0xFFFF6B6B);
+            nextUnitDateText =
+                '${nextContractInvoiceDate.year}-${nextContractInvoiceDate.month.toString().padLeft(2, '0')}-${nextContractInvoiceDate.day.toString().padLeft(2, '0')}';
+            targetProgress = 1.0;
+          }
+        } else {
+          final daysPassed = _calculateDaysPassed(geree.gereeniiOgnoo);
+          displayDays = daysPassed;
+          rightLabel = 'Өдөр';
+          centerLabel = 'өдөр өнгөрсөн';
+          accentColor = const Color(0xFFFF6B6B);
+          targetProgress = (daysPassed % 30) / 30.0;
+          nextUnitDateText = _getNextUnitDate(geree.gereeniiOgnoo);
+        }
       } else {
         // Mock data for user without org
         displayDays = 0;

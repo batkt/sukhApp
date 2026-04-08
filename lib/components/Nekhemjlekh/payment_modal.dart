@@ -449,7 +449,7 @@ class _PaymentModalState extends State<PaymentModal> {
                   try {
                     final resp = await ApiService.fetchNekhemjlekhiinTuukh(
                       gereeniiDugaar: _gereeniiDugaarForCheck!,
-                      khuudasniiKhemjee: 200,
+                      khuudasniiKhemjee: 1000,
                     );
 
                     final list = resp['jagsaalt'];

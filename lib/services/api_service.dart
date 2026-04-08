@@ -2818,7 +2818,7 @@ class ApiService {
   static Future<Map<String, dynamic>> fetchNekhemjlekhiinTuukh({
     required String gereeniiDugaar,
     int khuudasniiDugaar = 1,
-    int khuudasniiKhemjee = 200,
+    int khuudasniiKhemjee = 1000,
   }) async {
     try {
       final authHeaders = await getAuthHeaders();

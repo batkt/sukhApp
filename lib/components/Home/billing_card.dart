@@ -251,7 +251,8 @@ class _BillingCardState extends State<BillingCard>
                                 fontSize: 13.sp,
                                 height: 1.3,
                               ),
-                              maxLines: 3,
+                              softWrap: true,
+                              maxLines: null,
                               overflow: TextOverflow.visible,
                             ),
 

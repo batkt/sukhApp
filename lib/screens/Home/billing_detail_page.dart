@@ -227,7 +227,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               ApiService.fetchNekhemjlekhiinTuukh(
                 gereeniiDugaar: gereeniiDugaar,
                 khuudasniiDugaar: 1,
-                khuudasniiKhemjee: 200,
+                khuudasniiKhemjee: 1000,
               ),
               baiguullagiinId != null
                   ? ApiService.fetchGereeniiTulukhAvlaga(

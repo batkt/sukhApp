@@ -51,7 +51,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         final res = await ApiService.fetchNekhemjlekhiinTuukh(
           gereeniiDugaar: widget.billingId,
           khuudasniiDugaar: 1,
-          khuudasniiKhemjee: 200,
+          khuudasniiKhemjee: 1000,
         );
 
         if (res['jagsaalt'] != null && res['jagsaalt'] is List) {
