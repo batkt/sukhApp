@@ -138,7 +138,9 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   // User billing data from profile
   Map<String, dynamic>? _userBillingData;
+  Map<String, dynamic>? _userProfile;
   bool _isInitialBillingLoaded = false;
+  bool _isNonOrgUser = false;
 
   // GlobalKey to access BillingListSection state
   // No longer needed since billing list is on its own page
@@ -368,6 +370,23 @@ class _BookingScreenState extends State<NuurKhuudas>
       double ownOrgAldangi = 0.0;
 
       List<Map<String, dynamic>> finalBillingList = [];
+
+      // Fetch user profile to identify user type
+      final userProfile = await ApiService.getUserProfile(forceRefresh: forceRefresh);
+      final user = userProfile['result'];
+
+      if (mounted) {
+        setState(() {
+          _userProfile = user;
+          // Identify non-organization users (Bpay signups or users with no linked org)
+          // Include '698e7fd3b6dd386b6c56a808' which is the default Wallet-only organization
+          final String? baigIdValue = user?['baiguullagiinId']?.toString();
+          _isNonOrgUser = baigIdValue == null ||
+              baigIdValue == "null" ||
+              baigIdValue.isEmpty ||
+              baigIdValue == '698e7fd3b6dd386b6c56a808';
+        });
+      }
 
       // 1. Load Local Residency Contracts (OWN_ORG)
       if (!isWalletOnlyOrg) {
@@ -1099,7 +1118,7 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   Widget _buildRemainingDaysWidget(
-    Geree geree, {
+    Geree? geree, {
     required VoidCallback onTapBilling,
     required String totalBalance,
     required String totalAldangi,
@@ -1135,6 +1154,18 @@ class _BookingScreenState extends State<NuurKhuudas>
             nekhemjlekhUusgekhOgnoo,
           );
         }
+      }
+    }
+
+    // SPECIAL CASE: For non-organization users, due day is 20th of every month
+    if (_isNonOrgUser && nextInvoiceDate == null) {
+      final today = DateTime.now();
+      if (today.day >= 20) {
+        final nextMonth = today.month == 12 ? 1 : today.month + 1;
+        final nextYear = today.month == 12 ? today.year + 1 : today.year;
+        nextInvoiceDate = DateTime(nextYear, nextMonth, 20);
+      } else {
+        nextInvoiceDate = DateTime(today.year, today.month, 20);
       }
     }
 
@@ -1181,13 +1212,32 @@ class _BookingScreenState extends State<NuurKhuudas>
         targetProgress = 1.0;
       }
     } else {
-      final daysPassed = _calculateDaysPassed(geree.gereeniiOgnoo);
-      displayDays = daysPassed;
-      rightLabel = 'Өдөр';
-      centerLabel = 'өдөр өнгөрсөн';
-      accentColor = const Color(0xFFFF6B6B);
-      targetProgress = (daysPassed % 30) / 30.0;
-      nextUnitDateText = _getNextUnitDate(geree.gereeniiOgnoo);
+      // If we can't predict next payday
+      if (geree != null) {
+        final daysPassed = _calculateDaysPassed(geree.gereeniiOgnoo);
+        displayDays = daysPassed;
+        rightLabel = 'Өдөр';
+        centerLabel = 'өдөр өнгөрсөн';
+        accentColor = const Color(0xFFFF6B6B);
+        targetProgress = (daysPassed % 30) / 30.0;
+        nextUnitDateText = _getNextUnitDate(geree.gereeniiOgnoo);
+      } else {
+        // Mock data for user without org
+        displayDays = 0;
+        rightLabel = 'Өдөр';
+        centerLabel = 'Мэдээлэл байхгүй';
+        accentColor = const Color(0xFF6C5CE7); // Deep Purple for First Signup
+        targetProgress = 0.0;
+        nextUnitDateText = '---';
+      }
+    }
+
+    // Override styling for First Signup users (Bpay signups with no address yet)
+    bool hasAnyAddress = _billingList.isNotEmpty || 
+                         (_userProfile != null && _userProfile!['toots'] != null && (_userProfile!['toots'] as List).isNotEmpty);
+                         
+    if (_isNonOrgUser && !hasAnyAddress) {
+       accentColor = const Color(0xFF6C5CE7); // Premium Purple/Indigo
     }
 
     final isDark = context.isDarkMode;
@@ -1369,28 +1419,38 @@ class _BookingScreenState extends State<NuurKhuudas>
               ),
               child: Row(
                 children: [
-                  Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 16.sp),
+                  Icon(
+                    _isNonOrgUser && !hasAnyAddress 
+                        ? Icons.location_on_outlined 
+                        : Icons.account_balance_wallet_outlined, 
+                    color: Colors.white, 
+                    size: 16.sp
+                  ),
                   SizedBox(width: 10.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Байрны төлбөр',
+                          _isNonOrgUser && !hasAnyAddress 
+                              ? 'Бүртгэлгүй байна' 
+                              : 'Байрны төлбөр',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.7),
                             fontSize: 11.sp,
                           ),
                         ),
                         Text(
-                          () {
-                            final numBalance = double.tryParse(
-                              totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
-                            ) ?? 0.0;
-                            if (numBalance < 0) return '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт';
-                            if (numBalance == 0) return 'Төлбөр байхгүй';
-                            return '$totalBalance₮';
-                          }(),
+                          _isNonOrgUser && !hasAnyAddress 
+                              ? 'Хаяг сонгох' 
+                              : () {
+                                  final numBalance = double.tryParse(
+                                    totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
+                                  ) ?? 0.0;
+                                  if (numBalance < 0) return '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт';
+                                  if (numBalance == 0) return 'Төлбөр байхгүй';
+                                  return '$totalBalance₮';
+                                }(),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13.sp,
@@ -1482,16 +1542,21 @@ class _BookingScreenState extends State<NuurKhuudas>
                       SizedBox(height: 4.h),
 
                       // 1. Merged Remaining Days & Billing Box
-                      if (_gereeResponse != null &&
-                          _gereeResponse!.jagsaalt.isNotEmpty)
+                      if (_isNonOrgUser || 
+                          (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ||
+                          _billingList.isNotEmpty)
                         _buildRemainingDaysWidget(
-                          _gereeResponse!.jagsaalt.first,
-                          onTapBilling: _navigateToBillingList,
+                          _gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty 
+                              ? _gereeResponse!.jagsaalt.first 
+                              : null,
+                          onTapBilling: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) || _billingList.isNotEmpty
+                              ? _navigateToBillingList
+                              : () => context.push('/address_selection'),
                           totalBalance: _formatNumberWithComma(totalNiitTulbur),
                           totalAldangi: _formatNumberWithComma(totalNiitAldangi),
                         )
-                      else if (_billingList.isNotEmpty)
-                        _buildBillingBox(),
+                      else
+                        const SizedBox.shrink(),
 
                       SizedBox(height: 16.h),
 

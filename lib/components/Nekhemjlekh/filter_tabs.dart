@@ -19,7 +19,6 @@ class FilterTabs extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildFilterTab(context, 'All', 'Бүгд'),
         SizedBox(width: 6.w),
         _buildFilterTab(context, 'Unpaid', 'Төлөх'),
         SizedBox(width: 6.w),

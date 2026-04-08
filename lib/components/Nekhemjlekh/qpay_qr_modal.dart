@@ -11,7 +11,7 @@ import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-
+import 'package:go_router/go_router.dart';
 class QPayQRModal extends StatefulWidget {
   final String? qrImageOwnOrg;
   final String? qrImageWallet;
@@ -150,9 +150,18 @@ class _QPayQRModalState extends State<QPayQRModal> {
     });
     print('💬 [QPayModal] Status update: _paidResult=$_paidResult, _resultMessage=$_resultMessage');
 
-    if (result == true && widget.closeOnSuccess) {
-      await Future.delayed(const Duration(milliseconds: 1500));
-      if (mounted) Navigator.of(context).pop(true);
+    if (mounted) {
+      if (result == true && widget.closeOnSuccess) {
+        await Future.delayed(const Duration(milliseconds: 1500));
+        Navigator.of(context).pop(true);
+        context.push('/payment-history');
+      } else if (result == true) {
+        Navigator.of(context).pop(true);
+        context.push('/payment-history');
+      } else {
+        Navigator.of(context).pop(result);
+        context.push('/payment-history');
+      }
     }
   }
 
