@@ -215,8 +215,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         // Deduplicate by composite key (amount + time) to merge identical wallet transactions spanning multiple bills
         final Map<String, PaymentHistory> uniqueWalletAuth = {};
         for (var p in flattenedWalletHistory) {
-          // Create a composite key: amount + YYYYMMDDHHmm (down to minute precision)
-          final dateStr = DateFormat('yyyyMMddHHmm').format(p.paymentStatusDate);
+          // Create a composite key: amount + ISO date (down to minute precision)
+          final dateStr = DateFormat("yyyy-MM-ddTHH:mm:ss").format(p.paymentStatusDate);
           final compositeKey = '${p.paymentAmount}_$dateStr';
           
           if (!uniqueWalletAuth.containsKey(compositeKey)) {

@@ -436,12 +436,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                     final ledgerResponse = results[2] as Map<String, dynamic>;
 
                     // Try to extract the definitive balance from the ledger (last row) first
+                    bool hasLedger = false;
                     final ledgerJagsaalt = ledgerResponse['jagsaalt'] ?? ledgerResponse['ledger'] ?? [];
                     if (ledgerJagsaalt is List && ledgerJagsaalt.isNotEmpty) {
                        final latestRow = ledgerJagsaalt.last;
                        final latestUld = _parseNum(latestRow['uldegdel'] ?? latestRow['balance']);
                        invoiceSum = latestUld;
                        hasData = true;
+                       hasLedger = true; // Mark that we have authoritative ledger data
                     }
 
                     if (invoiceResponse['jagsaalt'] != null && invoiceResponse['jagsaalt'] is List) {
@@ -459,8 +461,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                         null,
                       );
 
-                      // Even if we got a ledger balance for the TOTAL, we still process the cards for 
-                      // individual counts, but we only calculate summations if we DIDN'T get a ledger.
+                      // Only calculate manual sum as fallback if there was NO ledger data at all
                       double manualsSum = 0.0;
                       double tTotalAldangi = 0.0;
                       
@@ -495,7 +496,9 @@ class _BookingScreenState extends State<NuurKhuudas>
                       }
                       
                       // Priority: Authoritative Ledger Balance > Manual Summation
-                      if (!invoiceSum.isFinite || invoiceSum == 0) {
+                      // IMPORTANT: Only fall back to manual sum if ledger was NOT available at all.
+                      // If ledger IS available and shows 0, it means everything is paid - trust it!
+                      if (!hasLedger && (!invoiceSum.isFinite || invoiceSum == 0)) {
                         invoiceSum = manualsSum;
                       }
                       aldangiSum = tTotalAldangi;
@@ -689,6 +692,38 @@ class _BookingScreenState extends State<NuurKhuudas>
           totalAldangi += billingAldangi;
         }
         finalBillingList.add(billing);
+      }
+
+      // If total is 0, double-check by fetching bills directly to ensure consistency with detail page
+      if (total == 0.0) {
+        double recalculatedTotal = 0.0;
+        double recalculatedAldangi = 0.0;
+        for (var billing in updatedWalletBillings) {
+          final billingId = billing['billingId']?.toString();
+          if (billingId != null) {
+            try {
+              final billsResponse = await ApiService.getWalletBillingBills(billingId: billingId);
+              // Extract bills list from response - it could be under 'newBills' or 'bills' key
+              List<Map<String, dynamic>> bills = [];
+              if (billsResponse['newBills'] is List) {
+                bills = List<Map<String, dynamic>>.from(billsResponse['newBills']);
+              } else if (billsResponse['bills'] is List) {
+                bills = List<Map<String, dynamic>>.from(billsResponse['bills']);
+              }
+              
+              for (var bill in bills) {
+                if (bill['isNew'] != false) {
+                  recalculatedTotal += _parseNum(bill['billTotalAmount']);
+                  recalculatedAldangi += _parseNum(bill['billLateFee'] ?? bill['billLateFeeAmount']);
+                }
+              }
+            } catch (_) {}
+          }
+        }
+        if (recalculatedTotal > 0.0) {
+          total = recalculatedTotal;
+          totalAldangi = recalculatedAldangi;
+        }
       }
 
       if (mounted) {
@@ -1432,7 +1467,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _isNonOrgUser && !hasAnyAddress 
+                          !hasAnyAddress 
                               ? 'Бүртгэлгүй байна' 
                               : 'Байрны төлбөр',
                           style: TextStyle(
@@ -1441,7 +1476,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                           ),
                         ),
                         Text(
-                          _isNonOrgUser && !hasAnyAddress 
+                          !hasAnyAddress 
                               ? 'Хаяг сонгох' 
                               : () {
                                   final numBalance = double.tryParse(

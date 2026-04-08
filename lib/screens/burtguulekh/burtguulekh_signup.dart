@@ -351,6 +351,8 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
           String? wBairId = userData?['walletBairId']?.toString();
           String? wDoorNo = userData?['walletDoorNo']?.toString();
           final toots = userData?['toots'];
+          
+          // First check for wallet address in top-level or toots array
           if ((wBairId == null || wBairId.isEmpty || wDoorNo == null || wDoorNo.isEmpty) &&
               toots is List) {
             final tootWithWalletAddress = toots.cast<dynamic>().firstWhere(
@@ -365,19 +367,43 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
               wDoorNo = tootWithWalletAddress['walletDoorNo']?.toString();
             }
           }
-          final hasServerAddress =
+          
+          final hasWalletAddress =
               wBairId != null &&
               wBairId.isNotEmpty &&
               wDoorNo != null &&
               wDoorNo.isNotEmpty;
-          if (hasServerAddress) {
+          
+          if (hasWalletAddress) {
             await StorageService.saveWalletAddress(
               bairId: wBairId,
               doorNo: wDoorNo,
             );
             hasAddress = true;
           } else {
-            await StorageService.clearWalletAddress();
+            // Check for OWN_ORG address (organization + building)
+            final baiguullagiinId = userData?['baiguullagiinId']?.toString();
+            final barilgiinId = userData?['barilgiinId']?.toString();
+            
+            final hasOwnOrgAddress =
+                baiguullagiinId != null &&
+                baiguullagiinId.isNotEmpty &&
+                barilgiinId != null &&
+                barilgiinId.isNotEmpty;
+            
+            if (hasOwnOrgAddress) {
+              // For OWN_ORG users, use barilgiinId as bairId and a placeholder for doorNo
+              await StorageService.saveWalletAddress(
+                bairId: barilgiinId!,
+                doorNo: 'OWN_ORG',
+                source: 'OWN_ORG',
+                baiguullagiinId: baiguullagiinId,
+                barilgiinId: barilgiinId,
+              );
+              hasAddress = true;
+            } else {
+              await StorageService.clearWalletAddress();
+            }
           }
           loginSuccess = true;
         } catch (e) {

@@ -20,3 +20,28 @@ String formatNumber(double number, [int decimalDigits = 2]) {
     return '$formattedInteger$decimalPart';
   }
 }
+
+/// Formats invoice dates from ISO 8601 strings to "YYYY.MM.DD" format
+/// Handles malformed dates gracefully
+String formatInvoiceDate(String dateString) {
+  if (dateString.isEmpty) return '';
+  
+  try {
+    // Parse the ISO 8601 date string
+    final dateTime = DateTime.parse(dateString);
+    // Format as YYYY.MM.DD
+    return '${dateTime.year}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.day.toString().padLeft(2, '0')}';
+  } catch (e) {
+    // If parsing fails, try to extract just the date part
+    try {
+      // Try to extract YYYY-MM-DD from the string
+      final match = RegExp(r'(\d{4})-(\d{2})-(\d{2})').firstMatch(dateString);
+      if (match != null) {
+        return '${match.group(1)}.${match.group(2)}.${match.group(3)}';
+      }
+    } catch (_) {}
+    
+    // Return original string if all parsing fails
+    return dateString;
+  }
+}

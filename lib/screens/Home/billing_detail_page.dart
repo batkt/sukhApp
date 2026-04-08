@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
+import 'package:sukh_app/utils/format_util.dart' show formatInvoiceDate;
 
 class BillingDetailPage extends StatefulWidget {
   final Map<String, dynamic> billing;
@@ -308,14 +309,14 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                 if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
                 runningSum += paymentAmt;
 
+                final rawDate = inv['ognoo']?.toString() ?? inv['nekhemjlekhiinOgnoo']?.toString() ?? '';
+                final formattedDate = formatInvoiceDate(rawDate);
+
                 collectedBills.add({
                   'billId': invoiceId,
                   'billTotalAmount': paymentAmt,
                   'billLateFee': 0.0,
-                  'billPeriod':
-                      inv['ognoo']?.toString() ??
-                      inv['nekhemjlekhiinOgnoo']?.toString() ??
-                      '',
+                  'billPeriod': formattedDate,
                   'billtype': 'Орон сууц',
                   'billerName': billing['billingName'] ?? 'Орон сууцны төлбөр',
                   'customerAddress':
@@ -799,7 +800,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       backgroundColor: backgroundColor,
       appBar: buildStandardAppBar(
         context,
-        title: 'ТӨЛБӨРИЙН ДЭЛГЭРЭНГҮЙ',
+        title: 'Төлбөрийн дэлгэрэнгүй',
         onBackPressed: () => Navigator.of(context).pop(),
         actions: [
           IconButton(

@@ -129,34 +129,42 @@ class _SideMenuState extends State<SideMenu> {
                     ),
                   ],
                 ),
-                if (_baiguullagiinId != null &&
-                    _baiguullagiinId!.isNotEmpty &&
-                    _baiguullagiinId != '698e7fd3b6dd386b6c56a808') ...[
-                  SizedBox(height: 24.h),
-                  _buildMenuSection(
-                    'Төлбөр ба Гэрээ',
-                    [
-                      _buildNavTile(
-                        context,
-                        icon: Icons.description_outlined,
-                        title: 'Миний гэрээ',
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.push('/geree');
-                        },
-                      ),
-                      _buildNavTile(
-                        context,
-                        icon: Icons.receipt_long_outlined,
-                        title: 'Нэхэмжлэхүүд',
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.push('/nekhemjlekh');
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                SizedBox(height: 24.h),
+                _buildMenuSection(
+                  'Төлбөр ба Гэрээ',
+                  [
+                    _buildNavTile(
+                      context,
+                      icon: Icons.description_outlined,
+                      title: 'Миний гэрээ',
+                      onTap: () {
+                        if (_baiguullagiinId == null ||
+                            _baiguullagiinId!.isEmpty ||
+                            _baiguullagiinId == '698e7fd3b6dd386b6c56a808') {
+                          _showOrgRequiredWarning(context);
+                          return;
+                        }
+                        Navigator.pop(context);
+                        context.push('/geree');
+                      },
+                    ),
+                    _buildNavTile(
+                      context,
+                      icon: Icons.receipt_long_outlined,
+                      title: 'Нэхэмжлэхүүд',
+                      onTap: () {
+                        if (_baiguullagiinId == null ||
+                            _baiguullagiinId!.isEmpty ||
+                            _baiguullagiinId == '698e7fd3b6dd386b6c56a808') {
+                          _showOrgRequiredWarning(context);
+                          return;
+                        }
+                        Navigator.pop(context);
+                        context.push('/nekhemjlekh');
+                      },
+                    ),
+                  ],
+                ),
                 SizedBox(height: 24.h),
                 _buildMenuSection(
                   'Бусад',
@@ -185,6 +193,12 @@ class _SideMenuState extends State<SideMenu> {
                       icon: Icons.mail_outline_rounded,
                       title: 'Санал хүсэлт',
                       onTap: () {
+                        if (_baiguullagiinId == null ||
+                            _baiguullagiinId!.isEmpty ||
+                            _baiguullagiinId == '698e7fd3b6dd386b6c56a808') {
+                          _showOrgRequiredWarning(context);
+                          return;
+                        }
                         Navigator.pop(context);
                         context.push('/gomdol-sanal-progress');
                       },
@@ -463,6 +477,43 @@ class _SideMenuState extends State<SideMenu> {
       await SessionService.logout();
       router.go('/newtrekh');
     }
+  }
+
+  void _showOrgRequiredWarning(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Анхааруулга',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Text(
+            'Бүртгэлгүй СӨХ байна, СӨХ-тэйгээ холбогдоно уу',
+            style: TextStyle(
+              fontSize: 14.sp,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Ойлголоо',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showContactBottomSheet(BuildContext context) {

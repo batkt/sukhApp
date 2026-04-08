@@ -1620,149 +1620,170 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   ],
                 ),
               ),
-              // Content
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.symmetric(horizontal: 24.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Section 1: Basic Info
-                      _buildSubSectionTitle('Үндсэн мэдээлэл'),
-                      SizedBox(height: 12.h),
-                      _buildModernTextField(
-                        controller: _phoneController,
-                        label: 'Утасны дугаар',
-                        icon: Icons.phone_android_rounded,
-                        enabled: true,
-                        hint: 'Утасны дугаар хоосон байна',
-                        keyboardType: TextInputType.phone,
-                      ),
-                      SizedBox(height: 16.h),
-                      _buildModernTextField(
-                        controller: _emailController,
-                        label: 'И-мэйл хаяг',
-                        icon: Icons.alternate_email_rounded,
-                        enabled: true,
-                        hint: 'И-мэйл хаяг оруулах',
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      SizedBox(height: 16.h),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () async {
-                            if (_nameController.text.trim().isEmpty) {
-                              showGlassSnackBar(
-                                context,
-                                message: 'Нэрээ оруулна уу',
-                                icon: Icons.warning,
-                              );
-                              return;
-                            }
-                            if (_phoneController.text.trim().isEmpty) {
-                              showGlassSnackBar(
-                                context,
-                                message: 'Утасны дугаараа оруулна уу',
-                                icon: Icons.warning,
-                              );
-                              return;
-                            }
-                            if (_emailController.text.isNotEmpty) {
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                  .hasMatch(_emailController.text)) {
-                                showGlassSnackBar(
-                                  context,
-                                  message: 'Зөв и-мэйл хаяг оруулна уу',
-                                  icon: Icons.error,
-                                );
-                                return;
-                              }
-                            }
-
-                            try {
-                              final response = await ApiService.updateUserProfile({
-                                'ner': _nameController.text.trim(),
-                                'mail': _emailController.text.trim(),
-                                'utas': _phoneController.text.trim(),
-                              });
-                              if (response['success'] == true || response['_id'] != null) {
-                                showGlassSnackBar(
-                                  context,
-                                  message: 'Мэдээлэл амжилттай хадгалагдлаа',
-                                  icon: Icons.check_circle,
-                                  iconColor: Colors.green,
-                                );
-                                _loadUserProfile(); // Reload to update state
-                              }
-                            } catch (e) {
-                              showGlassSnackBar(
-                                context,
-                                message: 'Алдаа гарлаа: $e',
-                                icon: Icons.error,
-                              );
-                            }
-                          },
-                          label: Text(
-                            'Хадгалах',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      // Section 1: Address Info (moved to top per user request)
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
                           ),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.deepGreen,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 24.w,
-                              vertical: 12.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                _buildSubSectionTitle('Хаягийн мэдээлэл'),
+                                const Spacer(),
+                                TextButton.icon(
+                                  onPressed: () => _handleUpdateAddress(),
+                                  icon: Icon(
+                                    Icons.edit_location_alt_rounded,
+                                    size: 14.sp,
+                                  ),
+                                  label: Text(
+                                    'Солих',
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.deepGreen,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12.w,
+                                      vertical: 4.h,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ],
                             ),
-                            backgroundColor: AppColors.deepGreen.withOpacity(0.1),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                          ),
+                            SizedBox(height: 12.h),
+                            if (_userData != null)
+                              _buildUserDataGrid()
+                            else
+                              _buildAddressPlaceholder(context),
+                          ],
                         ),
                       ),
 
+                      SizedBox(height: 28.h),
 
-                      SizedBox(height: 32.h),
-
-                      // Section 2: Address & Property
-                      Row(
-                        children: [
-                          _buildSubSectionTitle('Хаягийн мэдээлэл'),
-                          const Spacer(),
-                          TextButton.icon(
-                            onPressed: () => _handleUpdateAddress(),
-                            icon: Icon(
-                              Icons.edit_location_alt_rounded,
-                              size: 14.sp,
-                            ),
-                            label: Text(
-                              'Солих',
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.deepGreen,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12.w,
-                                vertical: 4.h,
-                              ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
+                      // Section 2: Basic Info
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: 12.h),
-                      if (_userData != null)
-                        _buildUserDataGrid()
-                      else
-                        _buildAddressPlaceholder(context),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSubSectionTitle('Үндсэн мэдээлэл'),
+                            SizedBox(height: 12.h),
+                            _buildModernTextField(
+                              controller: _phoneController,
+                              label: 'Утасны дугаар',
+                              icon: Icons.phone_android_rounded,
+                              enabled: true,
+                              hint: 'Утасны дугаар хоосон байна',
+                              keyboardType: TextInputType.phone,
+                            ),
+                            SizedBox(height: 16.h),
+                            _buildModernTextField(
+                              controller: _emailController,
+                              label: 'И-мэйл хаяг',
+                              icon: Icons.alternate_email_rounded,
+                              enabled: true,
+                              hint: 'И-мэйл хаяг оруулах',
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            SizedBox(height: 20.h),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  if (_phoneController.text.trim().isEmpty) {
+                                    showGlassSnackBar(
+                                      context,
+                                      message: 'Утасны дугаараа оруулна уу',
+                                      icon: Icons.warning,
+                                    );
+                                    return;
+                                  }
+                                  if (_emailController.text.isNotEmpty) {
+                                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                        .hasMatch(_emailController.text)) {
+                                      showGlassSnackBar(
+                                        context,
+                                        message: 'Зөв и-мэйл хаяг оруулна уу',
+                                        icon: Icons.error,
+                                      );
+                                      return;
+                                    }
+                                  }
 
-                      SizedBox(height: 16.h),
+                                  try {
+                                    final response = await ApiService.updateUserProfile({
+                                      'ner': _nameController.text.trim(),
+                                      'mail': _emailController.text.trim(),
+                                      'utas': _phoneController.text.trim(),
+                                    });
+                                    if (response['success'] == true || response['_id'] != null) {
+                                      showGlassSnackBar(
+                                        context,
+                                        message: 'Мэдээлэл амжилттай хадгалагдлаа',
+                                        icon: Icons.check_circle,
+                                        iconColor: Colors.green,
+                                      );
+                                      _loadUserProfile();
+                                    }
+                                  } catch (e) {
+                                    showGlassSnackBar(
+                                      context,
+                                      message: 'Алдаа гарлаа: $e',
+                                      icon: Icons.error,
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.deepGreen,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16.r),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  'Хадгалах',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 24.h),
                     ],
                   ),
                 ),
@@ -2407,19 +2428,18 @@ class _ProfileSettingsState extends State<ProfileSettings>
       bairText = _userData!['bairniiNer'].toString();
     }
 
-    // Always add Address row - explicit request to re-enable address selection if missing
+    // Always add Address row — only show 'Хаяг сонгох' as a link if user truly has no address
+    final hasAddress = bairText != null && bairText.isNotEmpty;
     dataItems.add({
       'icon': Icons.location_on_outlined,
       'label': 'Байр',
-      'value': (bairText != null && bairText.isNotEmpty)
-          ? bairText
-          : 'Хаяг сонгох',
-      'action': (bairText == null || bairText.isEmpty)
+      'value': hasAddress ? bairText! : 'Хаяг сонгох',
+      'action': !hasAddress
           ? () {
               _handleUpdateAddress();
             }
           : null,
-      'isLink': (bairText == null || bairText.isEmpty),
+      'isLink': !hasAddress,
     });
 
     // Тоот (Door number)
