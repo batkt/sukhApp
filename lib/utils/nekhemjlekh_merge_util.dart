@@ -112,8 +112,8 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
     }
 
     if (targetIndex == -1 && !ekhniiUldegdelEsekh) {
-      if (latestUnpaidIndex >= 0 && latestUnpaidIndex < invoices.length) {
-        // AGGRESSIVE MERGE: Bundle into the first unpaid invoice card instead of creating new cards.
+      // Only merge if we actually found an unpaid invoice
+      if (unpaidIndices.isNotEmpty) {
         targetIndex = latestUnpaidIndex;
       }
     }
@@ -187,20 +187,24 @@ List<Map<String, dynamic>> mergeTulukhAvlagaIntoInvoices(
         }
       }
     } else {
-      if (ekhniiUldegdelEsekh) continue;
-
+      // If no merge target, create a new card (including initial balances)
       final existingId = rec['_id']?.toString();
       final alreadyHas =
           existingId != null &&
           invoices.any(
-            (inv) => (inv['_id'] ?? inv['id'])?.toString() == existingId,
+            (inv) => (inv['guilgeenuud'] is List && (inv['guilgeenuud'] as List).any((g) => (g['_id'] ?? g['id'])?.toString() == existingId)) || 
+                     (inv['_id'] ?? inv['id'])?.toString() == existingId,
           );
           
-      // Extra safety: Check for summary cards by amount deduplication
+      // Extra safety: Check for summary cards by amount deduplication (ONLY if exactly same date and same amount)
       final amt = _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0);
-      final alreadyRepresentedByAmount = invoices.any((inv) => (_toNum(inv['niitTulbur']) - amt).abs() < 5);
+      final ognoo = rec['ognoo']?.toString();
+      final alreadyRepresentedByAmountAndDate = invoices.any((inv) => 
+        (_toNum(inv['niitTulbur']) - amt).abs() < 1 && 
+        (inv['ognoo']?.toString().substring(0, 10) == ognoo?.substring(0, 10))
+      );
 
-      if (!alreadyHas && !alreadyRepresentedByAmount) {
+      if (!alreadyHas && !alreadyRepresentedByAmountAndDate) {
         final amount =
             _toNum(rec['tulukhDun'] ?? rec['undsenDun'] ?? 0) -
             _toNum(rec['tulsunDun'] ?? 0);

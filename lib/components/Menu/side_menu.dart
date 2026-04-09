@@ -482,37 +482,84 @@ class _SideMenuState extends State<SideMenu> {
   void _showOrgRequiredWarning(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Анхааруулга',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-            ),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 280.w,
+          padding: EdgeInsets.all(24.w),
+          decoration: BoxDecoration(
+            color: context.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+            borderRadius: BorderRadius.circular(28.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          content: Text(
-            'Бүртгэлгүй СӨХ байна, СӨХ-тэйгээ холбогдоно уу',
-            style: TextStyle(
-              fontSize: 14.sp,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Ойлголоо',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: Theme.of(context).primaryColor,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.report_problem_rounded,
+                  color: AppColors.error,
+                  size: 32.sp,
                 ),
               ),
-            ),
-          ],
-        );
-      },
+              SizedBox(height: 20.h),
+              Text(
+                'Бүртгэлгүй СӨХ',
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                'Таны хаягт СӨХ бүртгэгдээгүй байна.\nСӨХ-тэйгээ холбогдон бүртгүүлнэ үү.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.textSecondaryColor,
+                  fontSize: 13.sp,
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: 28.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.deepGreen,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
+                  ),
+                  child: Text(
+                    'Ойлголоо',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
