@@ -48,131 +48,67 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
       List<PaymentHistory> history = [];
 
       if (widget.source == 'OWN_ORG') {
-        final res = await ApiService.fetchNekhemjlekhiinTuukh(
-          gereeniiDugaar: widget.billingId,
-          khuudasniiDugaar: 1,
-          khuudasniiKhemjee: 1000,
-        );
-
-        if (res['jagsaalt'] != null && res['jagsaalt'] is List) {
-          final List<dynamic> list = res['jagsaalt'];
-          List<PaymentHistory> flattenedHistory = [];
-
-          for (var item in list) {
-            final String status = item['tuluv']?.toString() ?? '';
-
-            // Only show paid invoices with their total paid amount
-            if (status.contains('Төлсөн')) {
-              // Calculate total paid amount from paymentHistory
-              double displayAmount = 0.0;
-              bool hasSystemSyncOnly = true;
-              final paymentHistory = item['paymentHistory'] as List?;
-              if (paymentHistory != null) {
-                for (var tx in paymentHistory) {
-                  final txType = tx['turul']?.toString().toLowerCase() ?? '';
-                  final dun = (tx['dun'] as num?)?.toDouble() ?? 0.0;
-                  // Check if there's any non-system_sync payment
-                  if (txType != 'system_sync' && dun > 0) {
-                    hasSystemSyncOnly = false;
-                    displayAmount += dun;
-                  }
-                }
-              }
-
-              // Skip if only system_sync payments (no actual user payments)
-              if (hasSystemSyncOnly) continue;
-
-              // Skip if no valid amount
-              if (displayAmount <= 0) continue;
-
-              flattenedHistory.add(
-                PaymentHistory(
-                  paymentId: item['_id']?.toString() ?? '',
-                  invoiceNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
-                  paymentAmount: displayAmount,
-                  paymentStatus: 'PAID',
-                  paymentStatusText: 'Төлсөн',
-                  paymentStatusDate:
-                      DateTime.tryParse(
-                        item['tulsunOgnoo']?.toString() ?? '',
-                      ) ??
-                      DateTime.tryParse(item['updatedAt']?.toString() ?? '') ??
-                      DateTime.tryParse(item['ognoo']?.toString() ?? '') ??
-                      DateTime.now(),
-                  bills: [
-                    Bill(
-                      billerName: widget.billingName,
-                      billType: 'Орон сууцны төлбөр',
-                      billNo: item['nekhemjlekhiinDugaar']?.toString() ?? '',
-                      hasVat: true,
-                      billTotalAmount: displayAmount,
-                      billPeriod:
-                          item['ognoo']?.toString().substring(0, 7) ?? '',
-                      billLateFee: (item['aldangi'] as num?)?.toDouble() ?? 0.0,
-                    ),
-                  ],
-                ),
-              );
-            }
-          }
-          // Fetch standalone receivables (paid ones)
-          final baiguullagiinId = await StorageService.getBaiguullagiinId();
-          final gereeResponse = await ApiService.fetchGeree(await StorageService.getUserId() ?? '');
-          String? gereeniiId;
-          if (gereeResponse['jagsaalt'] != null && (gereeResponse['jagsaalt'] as List).isNotEmpty) {
-            final myGeree = (gereeResponse['jagsaalt'] as List).firstWhere(
-              (g) => g['gereeniiDugaar'] == widget.billingId,
-              orElse: () => null,
-            );
-            if (myGeree != null) gereeniiId = myGeree['_id']?.toString();
-          }
-
-          if (baiguullagiinId != null) {
-            final avlagaRes = await ApiService.fetchGereeniiTulukhAvlaga(
-              baiguullagiinId: baiguullagiinId,
-              gereeniiId: gereeniiId,
-            );
-            if (avlagaRes['jagsaalt'] != null && avlagaRes['jagsaalt'] is List) {
-              final avlagaList = avlagaRes['jagsaalt'] as List;
-              for (var item in avlagaList) {
-                // If paid, show in history
-                if (item['tuluv'] == 'Төлсөн' || ((item['tulsunDun'] ?? 0) > 0)) {
-                  final amt = (item['tulsunDun'] as num?)?.toDouble() ?? (item['undsenDun'] as num?)?.toDouble() ?? 0.0;
-                  if (amt <= 0) continue;
-
-                  flattenedHistory.add(
-                    PaymentHistory(
-                      paymentId: item['_id']?.toString() ?? '',
-                      invoiceNo: item['tailbar']?.toString() ?? 'Нэмэлт авлага',
-                      paymentAmount: amt,
-                      paymentStatus: 'PAID',
-                      paymentStatusText: 'Төлсөн',
-                      paymentStatusDate:
-                          DateTime.tryParse(item['guilgeeKhiisenOgnoo']?.toString() ?? '') ??
-                          DateTime.now(),
-                      bills: [
-                        Bill(
-                          billerName: widget.billingName,
-                          billType: 'Нэмэлт үйлчилгээ',
-                          billNo: item['tailbar']?.toString() ?? '',
-                          hasVat: false,
-                          billTotalAmount: amt,
-                          billPeriod: '',
-                          billLateFee: 0.0,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              }
-            }
-          }
-
-          // Sort by date descending (latest first)
-          flattenedHistory.sort(
-            (a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate),
+      if (widget.source == 'OWN_ORG') {
+        final baiguullagiinId = await StorageService.getBaiguullagiinId();
+        final gereeResponse = await ApiService.fetchGeree(await StorageService.getUserId() ?? '');
+        String? gereeniiId;
+        if (gereeResponse['jagsaalt'] != null && (gereeResponse['jagsaalt'] as List).isNotEmpty) {
+          final myGeree = (gereeResponse['jagsaalt'] as List).firstWhere(
+            (g) => g['gereeniiDugaar'] == widget.billingId,
+            orElse: () => null,
           );
-          history = flattenedHistory;
+          if (myGeree != null) gereeniiId = myGeree['_id']?.toString();
+        }
+
+        if (baiguullagiinId != null && gereeniiId != null) {
+          final ledgerRes = await ApiService.fetchGereeniiHistoryLedger(
+            gereeniiId: gereeniiId,
+            baiguullagiinId: baiguullagiinId,
+          );
+
+          if (ledgerRes['jagsaalt'] != null && ledgerRes['jagsaalt'] is List) {
+            final List<dynamic> ledgerRows = ledgerRes['jagsaalt'];
+            List<PaymentHistory> flattenedHistory = [];
+
+            for (var item in ledgerRows) {
+              final String khelber = item['khelber']?.toString() ?? '';
+              
+              if (khelber == 'Орлого' || khelber == 'Төлөлт') {
+                final amtStr = item['tulugdsun'] ?? item['tulukhDun'] ?? item['amount'] ?? 0.0;
+                final amt = (amtStr as num).toDouble();
+                if (amt <= 0) continue;
+                
+                final String tailbar = item['tailbar']?.toString() ?? 'Орлого';
+                
+                flattenedHistory.add(
+                  PaymentHistory(
+                    paymentId: item['_id']?.toString() ?? '',
+                    invoiceNo: tailbar,
+                    paymentAmount: amt,
+                    paymentStatus: 'PAID',
+                    paymentStatusText: 'Төлсөн',
+                    paymentStatusDate: DateTime.tryParse(item['ognoo']?.toString() ?? item['burtgesenOgnoo']?.toString() ?? '') ?? DateTime.now(),
+                    bills: [
+                      Bill(
+                        billerName: widget.billingName,
+                        billType: 'Төлбөр',
+                        billNo: tailbar,
+                        hasVat: false,
+                        billTotalAmount: amt,
+                        billPeriod: '',
+                        billLateFee: 0.0,
+                      )
+                    ],
+                  ),
+                );
+              }
+            }
+
+            flattenedHistory.sort(
+              (a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate),
+            );
+            history = flattenedHistory;
+          }
         }
       } else {
         // Original Wallet API history fetcher — from wallet/billing/bills

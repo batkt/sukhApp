@@ -386,7 +386,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
          setState(() => _isSearching = false);
          ScaffoldMessenger.of(context).showSnackBar(
            const SnackBar(
-             content: Text('Байгууллагын РД алдаатай байна'),
+             content: Text('Байгууллагын РД алдаатай байна (7 оронтой тоо оруулна уу)'),
              backgroundColor: Colors.red,
            ),
          );

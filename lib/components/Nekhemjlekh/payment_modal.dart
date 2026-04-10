@@ -267,17 +267,34 @@ class _PaymentModalState extends State<PaymentModal> {
     });
 
     try {
-      if (_vatReceiveType == 'COMPANY' && _vatTinController.text.isEmpty) {
-        if (mounted) {
-          showGlassSnackBar(
-            context,
-            message: 'Байгууллагын РД оруулна уу',
-            icon: Icons.info_outline,
-            iconColor: AppColors.deepGreenAccent,
-          );
+      if (_vatReceiveType == 'COMPANY') {
+        final rDText = _vatTinController.text.trim();
+        if (rDText.isEmpty) {
+          if (mounted) {
+            showGlassSnackBar(
+              context,
+              message: 'Байгууллагын РД оруулна уу',
+              icon: Icons.info_outline,
+              iconColor: AppColors.deepGreenAccent,
+            );
+          }
+          setState(() => _isLoadingQPay = false);
+          return;
         }
-        setState(() => _isLoadingQPay = false);
-        return;
+
+        final isNumeric = RegExp(r'^[0-9]+$').hasMatch(rDText);
+        if (rDText.length != 7 || !isNumeric) {
+          if (mounted) {
+            showGlassSnackBar(
+              context,
+              message: 'Байгууллагын РД алдаатай байна (7 оронтой тоо оруулна уу)',
+              icon: Icons.error_outline,
+              iconColor: Colors.red,
+            );
+          }
+          setState(() => _isLoadingQPay = false);
+          return;
+        }
       }
 
       String? turul;
@@ -322,7 +339,11 @@ class _PaymentModalState extends State<PaymentModal> {
         burtgeliinDugaar = firstInvoice.register.isNotEmpty
             ? firstInvoice.register
             : null;
-        firstInvoiceId = firstInvoice.id;
+            
+        // Don't send synthetic IDs to the backend, it will cause 404 in webhooks
+        if (!firstInvoice.id.startsWith('synthetic-balance')) {
+          firstInvoiceId = firstInvoice.id;
+        }
       }
 
       // Check for OWN_ORG and WALLET addresses

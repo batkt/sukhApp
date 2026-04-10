@@ -470,6 +470,34 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
               finalInvoices.add(NekhemjlekhItem.fromJson(item));
             }
 
+            // Sync with history-ledger authoritative balance
+            double sumUnpaid = 0;
+            for (var inv in finalInvoices) {
+              if (!inv.isPaid) sumUnpaid += inv.effectiveNiitTulbur;
+            }
+            if (_contractUldegdel != null && _contractUldegdel! > 0) {
+              final diff = _contractUldegdel! - sumUnpaid;
+              if (diff > 1.0) {
+                 finalInvoices.insert(0, NekhemjlekhItem(
+                    id: 'synthetic-balance-${DateTime.now().millisecondsSinceEpoch}',
+                    baiguullagiinNer: 'Өмнөх үлдэгдэл болон бусад',
+                    ovog: gereeToUse['ovog']?.toString() ?? '',
+                    ner: gereeToUse['ner']?.toString() ?? '',
+                    register: (gereeToUse['register'] ?? gereeToUse['rd'])?.toString() ?? '',
+                    khayag: gereeToUse['khayag']?.toString() ?? '',
+                    orts: gereeToUse['orts']?.toString() ?? '',
+                    gereeniiDugaar: gereeniiDugaar,
+                    nekhemjlekhiinOgnoo: DateTime.now().toIso8601String(),
+                    niitTulbur: diff,
+                    niitTulburOriginal: diff,
+                    uldegdel: diff,
+                    utas: gereeToUse['utas'] != null ? [gereeToUse['utas'].toString()] : [],
+                    dansniiDugaar: '', // QPAY custom endpoint falls back
+                    tuluv: 'Төлөөгүй',
+                 ));
+              }
+            }
+
             invoices = finalInvoices;
 
             for (var invoice in invoices) {

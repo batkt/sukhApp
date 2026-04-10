@@ -1155,6 +1155,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     bool showSearch = true,
   }) {
     List<Map<String, dynamic>> filteredItems = List.from(getItems());
+    final TextEditingController searchController = TextEditingController();
 
     void updateFilteredItems(String query) {
       final items = getItems();
@@ -1283,6 +1284,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                               ),
                             ),
                             child: TextField(
+                              controller: searchController,
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black87,
                                 fontSize: 14.sp,

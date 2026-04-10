@@ -3384,13 +3384,15 @@ class ApiService {
               response.body.trim().startsWith('['));
 
       if (!isJson) {
-        // Server returned HTML or other non-JSON response
-        print(
-          'QPay API returned non-JSON response: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}',
-        );
-        throw Exception(
-          'Сервер алдаатай хариу буцааллаа. Статус код: ${response.statusCode}',
-        );
+        // Server returned string, HTML or other non-JSON response
+        print('QPay API returned non-JSON response: ${response.body}');
+        // Often QPay API returns a raw string error like "Token abahad aldaa garlaa"
+        // Let's truncate and show the string instead of just "status code 200"
+        String errorText = response.body.trim();
+        if (errorText.length > 100 || errorText.startsWith('<html')) {
+           errorText = 'Сервер алдаатай хариу буцаалаа (Хүсэлт буруу эсвэл серверт алдаа гарсан)';
+        }
+        throw Exception(errorText);
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
