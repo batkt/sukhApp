@@ -48,7 +48,6 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
       List<PaymentHistory> history = [];
 
       if (widget.source == 'OWN_ORG') {
-      if (widget.source == 'OWN_ORG') {
         final baiguullagiinId = await StorageService.getBaiguullagiinId();
         final gereeResponse = await ApiService.fetchGeree(await StorageService.getUserId() ?? '');
         String? gereeniiId;
