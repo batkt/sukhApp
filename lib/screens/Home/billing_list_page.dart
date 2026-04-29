@@ -236,7 +236,35 @@ class _BillingListPageState extends State<BillingListPage> {
                 final updatedDetails = Map<String, dynamic>.from(details);
                 updatedDetails['newBills'] = filteredBills;
 
-                return {'total': t, 'aldangi': a, 'details': updatedDetails};
+                // Force synchronization with the authoritative ledger balance for residential bills
+                double uldegdel = t;
+                double uldegdelAldangi = a;
+                final bName = b['billingName']?.toString().toLowerCase() ?? '';
+                if (bName.contains('орон сууц') || bName.contains('сөх')) {
+                  try {
+                    final gereeniiDugaar = b['customerCode']?.toString() ?? '';
+                    final baiguullagiinId = b['baiguullagiinId']?.toString() ?? '';
+                    if (gereeniiDugaar.isNotEmpty) {
+                      final ledger = await ApiService.fetchInvoicesWithItems(
+                        baiguullagiinId: baiguullagiinId,
+                        gereeniiDugaar: gereeniiDugaar,
+                        gereeniiId: '',
+                      );
+                      uldegdel = (ledger['totalUldegdel'] ?? t).toDouble();
+                      uldegdelAldangi = (ledger['totalAldangi'] ?? a).toDouble();
+                    }
+                  } catch (e) {
+                    debugPrint('Error syncing ledger during refresh: $e');
+                  }
+                }
+
+                return {
+                  'total': uldegdel,
+                  'aldangi': uldegdelAldangi,
+                  'details': updatedDetails,
+                  'uldegdel': uldegdel,
+                  'uldegdelAldangi': uldegdelAldangi
+                };
              } catch(_) { return {'total': 0.0, 'aldangi': 0.0}; }
           }
           return {'total': 0.0, 'aldangi': 0.0};
@@ -248,6 +276,8 @@ class _BillingListPageState extends State<BillingListPage> {
           item['perItemTotal'] = results[i]['total'];
           item['perItemAldangi'] = results[i]['aldangi'];
           item['billingDetails'] = results[i]['details'];
+          item['uldegdel'] = results[i]['uldegdel'];
+          item['uldegdelAldangi'] = results[i]['uldegdelAldangi'];
           enrichedList.add(item);
           newTotal += (results[i]['total'] as double);
           newAldangi += (results[i]['aldangi'] as double);

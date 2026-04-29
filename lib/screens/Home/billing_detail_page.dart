@@ -12,7 +12,6 @@ import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
-import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/utils/format_util.dart' show formatInvoiceDate;
 
 class BillingDetailPage extends StatefulWidget {
@@ -222,121 +221,77 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             final baiguullagiinId = billing['baiguullagiinId']?.toString();
             final gereeniiId = billing['gereeniiId']?.toString();
 
-            // Fetch local invoices and ledger
-            final results = await Future.wait([
-              ApiService.fetchNekhemjlekhiinTuukh(
-                gereeniiDugaar: gereeniiDugaar,
-                khuudasniiDugaar: 1,
-                khuudasniiKhemjee: 1000,
-              ),
-              baiguullagiinId != null
-                  ? ApiService.fetchGereeniiTulukhAvlaga(
-                      baiguullagiinId: baiguullagiinId,
-                      gereeniiId: gereeniiId,
-                    )
-                  : Future.value({'jagsaalt': []}),
-              (gereeniiId != null && baiguullagiinId != null)
-                  ? ApiService.fetchGereeniiHistoryLedger(
-                      gereeniiId: gereeniiId,
-                      baiguullagiinId: baiguullagiinId,
-                    )
-                  : Future.value({}),
-            ]);
+            // Fetch unified invoices with their ledger items (Ledger-First architecture)
+            final unifiedResponse = await ApiService.fetchInvoicesWithItems(
+              gereeniiDugaar: gereeniiDugaar,
+              gereeniiId: gereeniiId ?? '',
+              baiguullagiinId: baiguullagiinId ?? '',
+            );
 
-            final invoiceResponse = results[0] as Map<String, dynamic>;
-            final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
-            final ledgerResponse = results[2] as Map<String, dynamic>;
+            final mergedInvoices = unifiedResponse['jagsaalt'] ?? [];
+            final double totalUldegdel = (unifiedResponse['totalUldegdel'] ?? 0.0).toDouble();
 
-            // Use the ledger balance as the authoritative total if available
-            double authoritativeUldegdel = -1.0;
-            final ledgerJagsaalt = ledgerResponse['jagsaalt'] ?? ledgerResponse['ledger'] ?? [];
-            if (ledgerJagsaalt is List && ledgerJagsaalt.isNotEmpty) {
-              final latestRow = ledgerJagsaalt.last;
-              authoritativeUldegdel = (latestRow['uldegdel'] ?? latestRow['balance'] ?? 0.0).toDouble();
-            }
+            // Ledger balance is the authoritative total
 
-            if (invoiceResponse['jagsaalt'] != null &&
-                invoiceResponse['jagsaalt'] is List) {
-              final rawInvoices = invoiceResponse['jagsaalt'] as List;
-              final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
-                  ? (tulukhAvlagaResponse['jagsaalt'] as List)
-                        .cast<Map<String, dynamic>>()
-                  : <Map<String, dynamic>>[];
 
-              // Use the shared utility to merge gereeniiTulukhAvlaga into invoices
-              final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
-                rawInvoices,
-                tulukhAvlagaList,
-                null,
-                '',
-                null,
-              );
+            // Standard OWN_ORG logic: use official merged invoices
+            final Set<String> seenIds = {};
+            double runningSum = 0.0;
 
-              // Standard OWN_ORG logic: use official merged invoices
-              final Set<String> seenIds = {};
-              double runningSum = 0.0;
-
-              for (var inv in mergedInvoices) {
-                final invId = inv['_id']?.toString() ?? inv['id']?.toString();
-                
-                // Authoritative check: if we already identified this bill as paid/pending in recent cache, skip!
-                if (invId != null && _billStatuses.containsKey(invId)) {
-                   continue;
-                }
-                
-                if (invId != null && inv['tuluv'] == 'Төлсөн') {
-                  _billStatuses[invId] = 'PAID';
-                  _billStatusTexts[invId] = 'Төлөгдсөн';
-                  _billStatusColors[invId] = Colors.green;
-                  continue; // Hide from outstanding list
-                }
-
-                // Avoid double-counting standalone avlaga
-                if (inv['isStandaloneAvlaga'] == true && rawInvoices.isNotEmpty) {
-                  continue;
-                }
-
-                final invoiceId =
-                    inv['_id']?.toString() ?? inv['id']?.toString() ?? '';
-                if (invoiceId.isNotEmpty && seenIds.contains(invoiceId)) {
-                  continue;
-                }
-                
-                final item = NekhemjlekhItem.fromJson(inv);
-                final paymentAmt = item.effectiveNiitTulbur;
-                if (paymentAmt == 0) continue;
-
-                if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
-                runningSum += paymentAmt;
-
-                final rawDate = inv['ognoo']?.toString() ?? inv['nekhemjlekhiinOgnoo']?.toString() ?? '';
-                final formattedDate = formatInvoiceDate(rawDate);
-
-                collectedBills.add({
-                  'billId': invoiceId,
-                  'billTotalAmount': paymentAmt,
-                  'billLateFee': 0.0,
-                  'billPeriod': formattedDate,
-                  'billtype': 'Орон сууц',
-                  'billerName': billing['billingName'] ?? 'Орон сууцны төлбөр',
-                  'customerAddress':
-                      billing['customerAddress'] ?? billing['bairniiNer'] ?? '',
-                  'parentBillingId': billingId,
-                  'parentBillerName':
-                      billing['billingName'] ?? 'Орон сууцны төлбөр',
-                  'source': 'OWN_ORG',
-                });
+            for (var inv in mergedInvoices) {
+              final invId = inv['_id']?.toString() ?? inv['id']?.toString();
+              
+              // Authoritative check: if we already identified this bill as paid/pending in recent cache, skip!
+              if (invId != null && _billStatuses.containsKey(invId)) {
+                 continue;
+              }
+              
+              if (invId != null && inv['tuluv'] == 'Төлсөн') {
+                _billStatuses[invId] = 'PAID';
+                _billStatusTexts[invId] = 'Төлөгдсөн';
+                _billStatusColors[invId] = Colors.green;
+                continue; // Hide from outstanding list
               }
 
-              // If ledger balance is present and differs from runningSum, we might need a corrective entry 
-              // or just update the billing model which is used for the summary display.
-              if (authoritativeUldegdel >= 0 && (authoritativeUldegdel - runningSum).abs() > 10) {
-                 print(' [DEBUG] Ledger balance ($authoritativeUldegdel) differs from sum ($runningSum). Using ledger as authority.');
-                 // Update the billing map itself so parent gets the correct total for summary
-                 billing['uldegdel'] = authoritativeUldegdel;
-                 billing['perItemTotal'] = authoritativeUldegdel;
+              final invoiceId = invId ?? '';
+              if (invoiceId.isNotEmpty && seenIds.contains(invoiceId)) {
+                continue;
               }
+              
+              final item = NekhemjlekhItem.fromJson(inv);
+              final paymentAmt = item.effectiveNiitTulbur;
+
+              
+              runningSum += paymentAmt;
+
+              if (invoiceId.isNotEmpty) seenIds.add(invoiceId);
+
+              final rawDate = inv['ognoo']?.toString() ?? inv['nekhemjlekhiinOgnoo']?.toString() ?? '';
+              final formattedDate = formatInvoiceDate(rawDate);
+
+              collectedBills.add({
+                'billId': invoiceId,
+                'billTotalAmount': paymentAmt,
+                'billLateFee': 0.0,
+                'billPeriod': formattedDate,
+                'billtype': 'Орон сууц',
+                'billerName': billing['billingName'] ?? 'Орон сууцны төлбөр',
+                'customerAddress':
+                    billing['customerAddress'] ?? billing['bairniiNer'] ?? '',
+                'parentBillingId': billingId,
+                'parentBillerName':
+                    billing['billingName'] ?? 'Орон сууцны төлбөр',
+                'source': 'OWN_ORG',
+              });
             }
+
+            // If authoritative balance differs from runningSum, we trust the balance
+            if (totalUldegdel >= 0 && (totalUldegdel - runningSum).abs() > 10) {
+               print(' [DEBUG] Authoritative balance ($totalUldegdel) differs from sum ($runningSum).');
+               billing['uldegdel'] = totalUldegdel;
+               billing['perItemTotal'] = totalUldegdel;
+            }
+
           } else {
             // Standard WALLET_API logic
             final billingData = await ApiService.getWalletBillingBills(
@@ -583,6 +538,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           baiguullagiinId: baiguullagiinId,
           barilgiinId: barilgiinId,
           dun: totalAmount,
+          gereeniiId: billingEntry['gereeniiId']?.toString(),
           nekhemjlekhiinId: selectedBillIds.join(','),
           turul: gereeniiDugaar.isNotEmpty
               ? gereeniiDugaar

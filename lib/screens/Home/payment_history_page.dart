@@ -60,7 +60,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         }
 
         if (baiguullagiinId != null && gereeniiId != null) {
-          final ledgerRes = await ApiService.fetchGereeniiHistoryLedger(
+          final ledgerRes = await ApiService.fetchGuilgeeAvlaguud(
             gereeniiId: gereeniiId,
             baiguullagiinId: baiguullagiinId,
           );

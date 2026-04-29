@@ -15,15 +15,21 @@ class FilterTabs extends StatelessWidget {
     required this.getFilterCount,
   });
 
+  @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(width: 6.w),
-        _buildFilterTab(context, 'Unpaid', 'Төлөх'),
-        SizedBox(width: 6.w),
-        _buildFilterTab(context, 'Paid', 'Төлөгдсөн'),
-      ],
+    return Container(
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildFilterTab(context, 'Unpaid', 'Төлөх'),
+          _buildFilterTab(context, 'Paid', 'Төлөгдсөн'),
+        ],
+      ),
     );
   }
 
@@ -31,46 +37,62 @@ class FilterTabs extends StatelessWidget {
     final isSelected = selectedFilter == filterKey;
     final count = getFilterCount(filterKey);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => onFilterChanged(filterKey),
-        borderRadius: BorderRadius.circular(10.r),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.deepGreen : (context.isDarkMode ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03)),
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : context.textPrimaryColor,
-                  fontSize: 11.sp,
+    return GestureDetector(
+      onTap: () => onFilterChanged(filterKey),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOutCubic,
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected ? (context.isDarkMode ? Colors.white : AppColors.deepGreen) : Colors.transparent,
+          borderRadius: BorderRadius.circular(100),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: (context.isDarkMode ? Colors.black : AppColors.deepGreen).withOpacity(0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? (context.isDarkMode ? Colors.black : Colors.white)
+                    : context.textSecondaryColor,
+                fontSize: 12.sp,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+            if (count > 0) ...[
+              SizedBox(width: 6.w),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (context.isDarkMode ? Colors.black.withOpacity(0.1) : Colors.white.withOpacity(0.2))
+                      : AppColors.deepGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: TextStyle(
+                    color: isSelected
+                        ? (context.isDarkMode ? Colors.black : Colors.white)
+                        : AppColors.deepGreen,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              if (count > 0) ...[
-                SizedBox(width: 4.w),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white.withOpacity(0.15) : AppColors.deepGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6.r),
-                  ),
-                  child: Text(
-                    count.toString(),
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.deepGreen,
-                      fontSize: 9.sp,
-                    ),
-                  ),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );

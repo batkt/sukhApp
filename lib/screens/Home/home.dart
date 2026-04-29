@@ -17,7 +17,6 @@ import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
-import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
@@ -410,103 +409,42 @@ class _BookingScreenState extends State<NuurKhuudas>
 
                 if (dugaar != null) {
                   try {
-                    // Fetch both Invoices, standalone Receivables (Avlaga), and the Authoritative Ledger Balance
-                    final results = await Future.wait([
-                      ApiService.fetchNekhemjlekhiinTuukh(
-                        gereeniiDugaar: dugaar,
-                        khuudasniiDugaar: 1,
-                        khuudasniiKhemjee: 1000,
-                      ),
-                      baiguullagiinId != null
-                          ? ApiService.fetchGereeniiTulukhAvlaga(
-                              baiguullagiinId: baiguullagiinId,
-                              gereeniiId: gereeniiId,
-                            )
-                          : Future.value({'jagsaalt': []}),
-                      (gereeniiId != null && baiguullagiinId != null)
-                          ? ApiService.fetchGereeniiHistoryLedger(
-                              gereeniiId: gereeniiId,
-                              baiguullagiinId: baiguullagiinId,
-                            )
-                          : Future.value({}),
-                    ]);
+                    // Fetch unified invoices with their ledger items (Ledger-First architecture)
+                    final unifiedResponse = await ApiService.fetchInvoicesWithItems(
+                      baiguullagiinId: contract['baiguullagiinId']?.toString() ?? '',
+                      gereeniiDugaar: contract['gereeniiDugaar']?.toString() ?? '',
+                      gereeniiId: contract['_id']?.toString() ?? '',
+                    );
 
-                    final invoiceResponse = results[0] as Map<String, dynamic>;
-                    final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
-                    final ledgerResponse = results[2] as Map<String, dynamic>;
+                    invoiceSum = (unifiedResponse['totalUldegdel'] ?? 0.0).toDouble();
+                    aldangiSum = (unifiedResponse['totalAldangi'] ?? 0.0).toDouble();
+                    final mergedInvoices = List<Map<String, dynamic>>.from(unifiedResponse['jagsaalt'] ?? []);
+                    hasData = true;
 
-                    // Try to extract the definitive balance from the ledger (last row) first
-                    bool hasLedger = false;
-                    final ledgerJagsaalt = ledgerResponse['jagsaalt'] ?? ledgerResponse['ledger'] ?? [];
-                    if (ledgerJagsaalt is List && ledgerJagsaalt.isNotEmpty) {
-                       final latestRow = ledgerJagsaalt.last;
-                       final latestUld = _parseNum(latestRow['uldegdel'] ?? latestRow['balance']);
-                       invoiceSum = latestUld;
-                       hasData = true;
-                       hasLedger = true; // Mark that we have authoritative ledger data
+                    // Apply reactive filtering for recently paid bills from the wallet
+                    List<Map<String, dynamic>> walletHistory = [];
+                    try {
+                      walletHistory = await ApiService.fetchWalletQpayList();
+                    } catch(_) {}
+                    final Set<String> recentlyPaidBillIds = {};
+                    for (var h in walletHistory.take(10)) {
+                      final billIds = h['billIds'] as List?;
+                      if (billIds != null) {
+                        for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
+                      }
                     }
 
-                    if (invoiceResponse['jagsaalt'] != null && invoiceResponse['jagsaalt'] is List) {
-                      final rawInvoices = invoiceResponse['jagsaalt'] as List;
-                      final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
-                          ? (tulukhAvlagaResponse['jagsaalt'] as List).cast<Map<String, dynamic>>()
-                          : <Map<String, dynamic>>[];
-
-                      // Use shared utility to merge them correctly
-                      final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
-                        rawInvoices,
-                        tulukhAvlagaList,
-                        null,
-                        '',
-                        null,
-                      );
-
-                      // Only calculate manual sum as fallback if there was NO ledger data at all
-                      double manualsSum = 0.0;
-                      double tTotalAldangi = 0.0;
-                      
-                      // Get recent wallet history to filter out just-paid bills (reactive UI)
-                      List<Map<String, dynamic>> walletHistory = [];
-                      try {
-                        walletHistory = await ApiService.fetchWalletQpayList();
-                      } catch(_) {}
-                      final Set<String> recentlyPaidBillIds = {};
-                      // Increased depth to 100 to catch older payments from days ago
-                      for (var h in walletHistory.take(100)) {
-                        final billIds = h['billIds'] as List?;
-                        // If it's in our recent list, we hide it from the home screen balance
-                        if (billIds != null) {
-                          for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
-                        }
-                      }
-
-                      for (var inv in mergedInvoices) {
-                        final invId = inv['_id']?.toString() ?? inv['id']?.toString();
-                        if (inv['tuluv'] == 'Төлсөн' || (invId != null && recentlyPaidBillIds.contains(invId))) continue;
-
-                        // Avoid double-counting avlaga already in main balance
-                        if (inv['isStandaloneAvlaga'] == true && rawInvoices.isNotEmpty) {
-                          continue;
-                        }
-
+                    // If any of the invoices were just paid, subtract them from the summary balance
+                    // This provides instant feedback before the authoritative ledger updates.
+                    for (var inv in mergedInvoices) {
+                      final invId = inv['_id']?.toString() ?? inv['id']?.toString();
+                      if (invId != null && recentlyPaidBillIds.contains(invId)) {
                         final item = NekhemjlekhItem.fromJson(inv);
-                        manualsSum += item.effectiveNiitTulbur;
-                        tTotalAldangi += _parseNum(inv['aldangi'] ?? 0);
-                        hasData = true;
+                        invoiceSum -= item.effectiveNiitTulbur;
+                        print(' [REACTIVE] Subtracting just-paid invoice $invId: ${item.effectiveNiitTulbur}');
                       }
-                      
-                      // Prefer the sum of current invoice records to match nekhemjlekhiin-tuukh web totals.
-                      // Ledger balances can lag behind invoice history, so use invoice-derived totals when data exists.
-                      if (rawInvoices.isNotEmpty) {
-                        if (hasLedger && (invoiceSum - manualsSum).abs() > 1) {
-                          print(' [SYNC] Using invoice sum ($manualsSum) over ledger balance ($invoiceSum) for $dugaar');
-                        }
-                        invoiceSum = manualsSum;
-                      } else if (!hasLedger && (!invoiceSum.isFinite || invoiceSum == 0)) {
-                        invoiceSum = manualsSum;
-                      }
-                      aldangiSum = tTotalAldangi;
                     }
+
                   } catch (e) {
                     print('❌ [ERROR] Home accuracy sync failed for $dugaar: $e');
                   }
@@ -540,6 +478,8 @@ class _BookingScreenState extends State<NuurKhuudas>
                   'bairniiNer': contract['bairNer']?.toString() ?? '',
                   'tootNum': contract['toot']?.toString() ?? '',
                   'perItemTotal': uld,
+                  'uldegdel': uld, // Authoritative balance from ledger
+                  'uldegdelAldangi': ald,
                   'perItemAldangi': ald,
                   'isLocalData': false,
                   'source': 'OWN_ORG',

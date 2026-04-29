@@ -15,7 +15,6 @@ import 'package:sukh_app/models/geree_model.dart';
 import 'package:sukh_app/models/ajiltan_model.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/components/Nekhemjlekh/filter_tabs.dart';
 import 'package:sukh_app/components/Nekhemjlekh/payment_section.dart';
@@ -26,18 +25,7 @@ import 'package:sukh_app/components/Nekhemjlekh/payment_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
-import 'package:sukh_app/utils/nekhemjlekh_merge_util.dart';
 import 'package:sukh_app/utils/format_util.dart';
-
-class AppBackground extends StatelessWidget {
-  final Widget child;
-  const AppBackground({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(child: child);
-  }
-}
 
 class NekhemjlekhPage extends StatefulWidget {
   const NekhemjlekhPage({super.key});
@@ -56,8 +44,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   List<Map<String, dynamic>> availableContracts = [];
   String? selectedGereeniiDugaar;
   String? selectedContractDisplay;
-  double?
-  _contractUldegdel; // Authoritative balance from backend (globalUldegdel)
+  double? _contractUldegdel; // Authoritative balance from backend (globalUldegdel)
   String selectedFilter = 'All'; // All, Overdue, Paid, Due this month, Pending
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
@@ -259,6 +246,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         throw Exception('Гэрээний дугаар олдсонгүй');
       }
 
+      print('[QPAY-LOG] [UI] Initiating QPay invoice creation for amount: $totalAmount, invoices: ${selectedInvoiceIds.length}');
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final orderNumber = 'TEST-$timestamp';
 
@@ -307,6 +296,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
             qpayInvoiceId = ownOrgResponse['invoice_id']?.toString();
           }
 
+          print('[QPAY-LOG] [UI] OWN_ORG QPay created: $qpayInvoiceId');
+
           if (ownOrgResponse['urls'] != null &&
               ownOrgResponse['urls'] is List) {
             qpayBanks = (ownOrgResponse['urls'] as List)
@@ -337,11 +328,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
       // Set legacy qpayQrImage for backward compatibility
       qpayQrImage = qpayQrImageOwnOrg ?? qpayQrImageWallet;
+      print('[QPAY-LOG] [UI] Final QR set: ${qpayQrImage != null ? 'YES' : 'NO'}');
 
       setState(() {
         isLoadingQPay = false;
       });
     } catch (e) {
+      print('[QPAY-LOG] [UI] QPay creation error: $e');
       setState(() {
         isLoadingQPay = false;
       });
@@ -409,60 +402,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         final barilgiinId = gereeToUse['barilgiinId']?.toString();
         final gereeniiId = gereeToUse['_id']?.toString();
 
-        // Fetch both nekhemjlekhiinTuukh, gereeniiTulukhAvlaga AND history-ledger in parallel (matches web)
-        final results = await Future.wait([
-          ApiService.fetchNekhemjlekhiinTuukh(
-            gereeniiDugaar: gereeniiDugaar,
-            khuudasniiDugaar: 1,
-            khuudasniiKhemjee: 1000,
-          ),
-          baiguullagiinId != null
-              ? ApiService.fetchGereeniiTulukhAvlaga(
-                  baiguullagiinId: baiguullagiinId,
-                  gereeniiId: gereeniiId,
-                )
-              : Future.value({'jagsaalt': []}),
-          (gereeniiId != null && baiguullagiinId != null)
-              ? ApiService.fetchGereeniiHistoryLedger(
-                  gereeniiId: gereeniiId,
-                  baiguullagiinId: baiguullagiinId,
-                )
-              : Future.value({}),
-        ]);
+        // Fetch unified invoices with their ledger items (matches refactored backend-first logic)
+        final unifiedResponse = await ApiService.fetchInvoicesWithItems(
+          gereeniiDugaar: gereeniiDugaar,
+          gereeniiId: gereeniiId ?? '',
+          baiguullagiinId: baiguullagiinId ?? '',
+        );
 
-        final response = results[0] as Map<String, dynamic>;
-        final tulukhAvlagaResponse = results[1] as Map<String, dynamic>;
-        final ledgerResponse = results[2] as Map<String, dynamic>;
+        final List<dynamic> mergedInvoices = unifiedResponse['jagsaalt'] ?? [];
+        final double totalUldegdel = (unifiedResponse['totalUldegdel'] ?? 0.0).toDouble();
+        
+        // Use the authoritative calculated balance from ledger items
+        _contractUldegdel = totalUldegdel;
 
-        // Authoritative Ledger Balance
-        final ledgerJagsaalt = ledgerResponse['jagsaalt'] ?? ledgerResponse['ledger'] ?? [];
-        if (ledgerJagsaalt is List && ledgerJagsaalt.isNotEmpty) {
-           final latestRow = ledgerJagsaalt.last;
-           final latestUld = (latestRow['uldegdel'] ?? latestRow['balance'] ?? 0.0).toDouble();
-           _contractUldegdel = latestUld;
-        }
+        final previouslySelectedIds = invoices
+            .where((inv) => inv.isSelected)
+            .map((inv) => inv.id)
+            .toSet();
 
-        if (response['jagsaalt'] != null && response['jagsaalt'] is List) {
-          final rawInvoices = response['jagsaalt'] as List;
-          final tulukhAvlagaList = tulukhAvlagaResponse['jagsaalt'] is List
-              ? (tulukhAvlagaResponse['jagsaalt'] as List)
-                    .cast<Map<String, dynamic>>()
-              : <Map<String, dynamic>>[];
-
-          // Merge gereeniiTulukhAvlaga into invoices (ekhniiUldegdel, avlaga) - matches web
-          final mergedInvoices = mergeTulukhAvlagaIntoInvoices(
-            rawInvoices,
-            tulukhAvlagaList,
-            gereeniiId,
-            gereeniiDugaar,
-            orshinSuugchId,
-          );
-
-          final previouslySelectedIds = invoices
-              .where((inv) => inv.isSelected)
-              .map((inv) => inv.id)
-              .toSet();
-
+        if (mergedInvoices.isNotEmpty) {
           setState(() {
             final List<NekhemjlekhItem> finalInvoices = [];
             for (var item in mergedInvoices) {
@@ -480,7 +438,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
               if (diff > 1.0) {
                  finalInvoices.insert(0, NekhemjlekhItem(
                     id: 'synthetic-balance-${DateTime.now().millisecondsSinceEpoch}',
-                    baiguullagiinNer: 'Өмнөх үлдэгдэл болон бусад',
+                    baiguullagiinNer: 'Эхний үлдэгдэл болон бусад',
                     ovog: gereeToUse['ovog']?.toString() ?? '',
                     ner: gereeToUse['ner']?.toString() ?? '',
                     register: (gereeToUse['register'] ?? gereeToUse['rd'])?.toString() ?? '',
@@ -659,7 +617,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   }
 
   Widget _buildMonthSelector() {
-    // Extract unique months from invoices
     final months = <DateTime>{};
     for (var inv in invoices) {
       try {
@@ -670,82 +627,59 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
     if (months.isEmpty) return const SizedBox.shrink();
 
-    // Sort months descending
     final sortedMonths = months.toList()..sort((a, b) => b.compareTo(a));
     final selectedLabel = selectedMonth == null
-        ? 'Бүх'
-        : "${selectedMonth!.year}.${selectedMonth!.month.toString().padLeft(2, '0')}";
+        ? 'Бүх сар'
+        : "${selectedMonth!.year} оны ${selectedMonth!.month}-р сар";
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        hoverColor: Colors.transparent,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-      ),
-      child: PopupMenuButton<DateTime?>(
-        offset: const Offset(0, 40),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
+    return PopupMenuButton<DateTime?>(
+      offset: const Offset(0, 45),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      color: context.cardBackgroundColor,
+      elevation: 10,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(100),
         ),
-        color: context.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
-          decoration: BoxDecoration(
-            color: context.isDarkMode
-                ? Colors.white.withOpacity(0.04)
-                : Colors.black.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                selectedLabel,
-                style: TextStyle(
-                  color: context.textPrimaryColor,
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(width: 2.w),
-              Icon(
-                Icons.keyboard_arrow_down_rounded,
-                size: 14.sp,
-                color: context.textSecondaryColor,
-              ),
-            ],
-          ),
-        ),
-        onSelected: (date) {
-          setState(() {
-            selectedMonth = date;
-          });
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem<DateTime?>(
-            value: null,
-            child: Text(
-              'Бүх',
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_today_rounded, size: 14.sp, color: AppColors.deepGreen),
+            SizedBox(width: 8.w),
+            Text(
+              selectedLabel,
               style: TextStyle(
-                fontSize: 13.sp,
                 color: context.textPrimaryColor,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-          ...sortedMonths.map(
-            (month) => PopupMenuItem<DateTime?>(
-              value: month,
-              child: Text(
-                "${month.year}.${month.month.toString().padLeft(2, '0')}",
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: context.textPrimaryColor,
-                ),
-              ),
-            ),
-          ),
-        ],
+            SizedBox(width: 4.w),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 16.sp, color: context.textSecondaryColor),
+          ],
+        ),
       ),
+      onSelected: (DateTime? value) {
+        setState(() {
+          selectedMonth = value;
+        });
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<DateTime?>(
+          value: null,
+          child: Text('Бүх сар', style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp)),
+        ),
+        ...sortedMonths.map((date) => PopupMenuItem<DateTime?>(
+              value: date,
+              child: Text(
+                "${date.year} оны ${date.month}-р сар",
+                style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp),
+              ),
+            )),
+      ],
     );
   }
 
@@ -2663,519 +2597,234 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    // 720x1600 phone will have width ~360-400 and height ~700-850 (considering status bar)
-    final isSmallScreen = screenHeight < 900 || screenWidth < 400;
-    final isVerySmallScreen = screenHeight < 700 || screenWidth < 380;
-
     return Scaffold(
       backgroundColor: context.backgroundColor,
-      appBar: buildStandardAppBar(
-        context,
-        title: 'Нэхэмжлэх',
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.refresh_rounded,
-              color: Colors.white,
-              size: context.responsiveIconSize(
-                small: 24,
-                medium: 26,
-                large: 28,
-                tablet: 30,
-                veryNarrow: 22,
-              ),
-            ),
-            onPressed: isLoading ? null : () => _loadNekhemjlekh(),
-            tooltip: 'Шинэчлэх',
-          ),
-          if (availableContracts.length > 1)
-            IconButton(
-              icon: Icon(
-                Icons.swap_horiz,
-                color: Colors.white,
-                size: context.responsiveIconSize(
-                  small: 26,
-                  medium: 28,
-                  large: 30,
-                  tablet: 32,
-                  veryNarrow: 22,
+      body: Column(
+        children: [
+          // Premium Custom Header
+          Container(
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 16.h, left: 16.w, right: 16.w, bottom: 20.h),
+            decoration: BoxDecoration(
+              color: context.cardBackgroundColor,
+              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32.r), bottomRight: Radius.circular(32.r)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-              onPressed: _showContractSelectionModal,
-              tooltip: 'Гэрээ солих',
+              ],
             ),
-        ],
-      ),
-      body: AppBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Contract info (if multiple contracts)
-              if (selectedContractDisplay != null &&
-                  availableContracts.length > 1)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                  child: GestureDetector(
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Container(
+                        padding: EdgeInsets.all(10.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepGreen.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.arrow_back_ios_new_rounded, size: 20.sp, color: AppColors.deepGreen),
+                      ),
+                    ),
+                    Text(
+                      'Миний төлбөр',
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        if (availableContracts.length > 1)
+                          IconButton(
+                            onPressed: _showContractSelectionModal,
+                            icon: Icon(Icons.swap_horiz_rounded, color: context.textPrimaryColor),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        IconButton(
+                          onPressed: isLoading ? null : () => _loadNekhemjlekh(),
+                          icon: Icon(Icons.refresh_rounded, color: context.textPrimaryColor),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (selectedContractDisplay != null && availableContracts.length > 1) ...[
+                  SizedBox(height: 16.h),
+                  GestureDetector(
                     onTap: _showContractSelectionModal,
                     child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 6.h,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                       decoration: BoxDecoration(
-                        color: context.isDarkMode
-                            ? const Color(0xFF1A1A1A)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color: AppColors.deepGreen.withOpacity(0.2),
-                          width: 1,
-                        ),
+                        color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                        borderRadius: BorderRadius.circular(16.r),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.business_rounded,
-                            color: AppColors.deepGreen,
-                            size: 16.sp,
-                          ),
-                          SizedBox(width: 6.w),
+                          Icon(Icons.business_rounded, size: 14.sp, color: AppColors.deepGreen),
+                          SizedBox(width: 8.w),
                           Flexible(
                             child: Text(
                               selectedContractDisplay!,
-                              style: TextStyle(
-                                color: context.textPrimaryColor,
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp, fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          SizedBox(width: 3.w),
-                          Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: AppColors.deepGreen,
-                            size: 14.sp,
-                          ),
+                          SizedBox(width: 4.w),
+                          Icon(Icons.keyboard_arrow_down_rounded, size: 14.sp, color: context.textSecondaryColor),
                         ],
                       ),
                     ),
                   ),
-                ),
-              Expanded(
-                child: isLoading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.deepGreen,
-                          ),
-                        ),
-                      )
-                    : errorMessage != null
-                    ? Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.w),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: context.isDarkMode
-                                  ? const Color(0xFF1A1A1A)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(14.r),
-                              border: Border.all(
-                                color: context.isDarkMode
-                                    ? Colors.white.withOpacity(0.1)
-                                    : Colors.black.withOpacity(0.08),
-                                width: 1,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(20.w),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.error_outline_rounded,
-                                    color: Colors.red.withOpacity(0.8),
-                                    size: 36.sp,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  Text(
-                                    errorMessage!,
-                                    style: TextStyle(
-                                      color: context.textPrimaryColor,
-                                      fontSize: 14.sp,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  SizedBox(height: 16.h),
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: _loadNekhemjlekh,
-                                      borderRadius: BorderRadius.circular(10.r),
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 16.w,
-                                          vertical: 10.h,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.deepGreen,
-                                          borderRadius: BorderRadius.circular(
-                                            10.r,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Дахин оролдох',
-                                          style: TextStyle(
-                                            fontSize: 13.sp,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
+                ],
+              ],
+            ),
+          ),
+
+          // Main Content
+          Expanded(
+            child: isLoading
+                ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.deepGreen)))
+                : errorMessage != null
+                    ? _buildErrorState()
                     : Column(
                         children: [
-                          // Date and Status Row
+                          // Filters & Month Selector
                           Padding(
-                            padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 4.h),
+                            padding: EdgeInsets.all(16.w),
                             child: Row(
                               children: [
                                 _buildMonthSelector(),
-                                SizedBox(width: 8.w),
-                                Expanded(
-                                  child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: FilterTabs(
-                                      selectedFilter: selectedFilter,
-                                      onFilterChanged: (filterKey) {
-                                        setState(() {
-                                          selectedFilter = filterKey;
-                                        });
-                                      },
-                                      getFilterCount: _getFilterCount,
-                                    ),
-                                  ),
+                                const Spacer(),
+                                FilterTabs(
+                                  selectedFilter: selectedFilter,
+                                  onFilterChanged: (key) => setState(() => selectedFilter = key),
+                                  getFilterCount: _getFilterCount,
                                 ),
                               ],
                             ),
                           ),
-                          // Sticky payment section at top (hidden in history mode)
+                          
+                          // Payment Bar
                           if (selectedFilter != 'Paid')
                             PaymentSection(
                               selectedCount: selectedCount,
                               totalSelectedAmount: totalSelectedAmount,
-                              onPaymentTap: selectedCount > 0
-                                  ? _showPaymentModal
-                                  : null,
+                              onPaymentTap: selectedCount > 0 ? _showPaymentModal : null,
                             ),
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 8,
-                              medium: 10,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 6,
-                            ),
-                          ),
-                          // Scrollable invoice list
+
+                          // List
                           Expanded(
-                            child: () {
-                              final filteredInvoices = _getFilteredInvoices();
-
-                              if (filteredInvoices.isEmpty) {
-                                return Center(
-                                  child: Padding(
-                                    padding: context.responsivePadding(
-                                      small: 20,
-                                      medium: 22,
-                                      large: 24,
-                                      tablet: 26,
-                                      veryNarrow: 14,
-                                    ),
-                                    child: OptimizedGlass(
-                                      borderRadius: BorderRadius.circular(
-                                        context.responsiveBorderRadius(
-                                          small: 22,
-                                          medium: 24,
-                                          large: 26,
-                                          tablet: 28,
-                                          veryNarrow: 18,
-                                        ),
-                                      ),
-                                      opacity: 0.10,
-                                      child: Padding(
-                                        padding: context.responsivePadding(
-                                          small: 24,
-                                          medium: 26,
-                                          large: 28,
-                                          tablet: 30,
-                                          veryNarrow: 18,
-                                        ),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              padding: context
-                                                  .responsivePadding(
-                                                    small: 24,
-                                                    medium: 26,
-                                                    large: 28,
-                                                    tablet: 30,
-                                                    veryNarrow: 18,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: context
-                                                    .accentBackgroundColor,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                selectedFilter == 'Paid'
-                                                    ? Icons.history_rounded
-                                                    : Icons
-                                                          .receipt_long_rounded,
-                                                size: context
-                                                    .responsiveIconSize(
-                                                      small: 48,
-                                                      medium: 52,
-                                                      large: 56,
-                                                      tablet: 60,
-                                                      veryNarrow: 40,
-                                                    ),
-                                                color:
-                                                    context.textSecondaryColor,
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              height: context.responsiveSpacing(
-                                                small: 24,
-                                                medium: 28,
-                                                large: 32,
-                                                tablet: 36,
-                                                veryNarrow: 18,
-                                              ),
-                                            ),
-                                            Text(
-                                              selectedFilter == 'Paid'
-                                                  ? 'Төлөгдсөн нэхэмжлэл байхгүй'
-                                                  : 'Одоогоор нэхэмжлэл байхгүй',
-                                              style: TextStyle(
-                                                color: context.textPrimaryColor,
-                                                fontSize: 16.sp,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            SizedBox(height: 6.h),
-                                            Text(
-                                              selectedFilter == 'Paid'
-                                                  ? 'Төлөгдсөн нэхэмжлэлийн түүх энд харагдана'
-                                                  : 'Шинэ нэхэмжлэл үүсэхэд энд харагдана',
-                                              style: TextStyle(
-                                                color:
-                                                    context.textSecondaryColor,
-                                                fontSize: 13.sp,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              return RefreshIndicator(
-                                onRefresh: _loadNekhemjlekh,
-                                color: AppColors.deepGreen,
-                                child: SingleChildScrollView(
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isVerySmallScreen
-                                        ? 12
-                                        : (isSmallScreen ? 14 : 16),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      if (selectedFilter != 'Paid' &&
-                                          filteredInvoices.isNotEmpty)
-                                        Padding(
-                                          padding: EdgeInsets.only(
-                                            left: isVerySmallScreen
-                                                ? 14
-                                                : (isSmallScreen ? 16 : 18),
-                                          ),
-                                          child: OptimizedGlass(
-                                            borderRadius: BorderRadius.circular(
-                                              12.r,
-                                            ),
-                                            opacity: 0.08,
-                                            child: Material(
-                                              color: Colors.transparent,
-                                              child: InkWell(
-                                                onTap: toggleSelectAll,
-                                                borderRadius:
-                                                    BorderRadius.circular(12.r),
-                                                child: Padding(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 12.w,
-                                                    vertical: 8.h,
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Container(
-                                                        width: isVerySmallScreen
-                                                            ? 18
-                                                            : (isSmallScreen
-                                                                  ? 20
-                                                                  : 22),
-                                                        height:
-                                                            isVerySmallScreen
-                                                            ? 18
-                                                            : (isSmallScreen
-                                                                  ? 20
-                                                                  : 22),
-                                                        decoration: BoxDecoration(
-                                                          gradient: allSelected
-                                                              ? LinearGradient(
-                                                                  colors: [
-                                                                    AppColors
-                                                                        .deepGreen,
-                                                                    AppColors
-                                                                        .deepGreen
-                                                                        .withOpacity(
-                                                                          0.8,
-                                                                        ),
-                                                                  ],
-                                                                )
-                                                              : null,
-                                                          color: allSelected
-                                                              ? null
-                                                              : Colors
-                                                                    .transparent,
-                                                          border: Border.all(
-                                                            color: allSelected
-                                                                ? AppColors
-                                                                      .deepGreen
-                                                                : context
-                                                                      .borderColor,
-                                                            width: 2,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                6.r,
-                                                              ),
-                                                        ),
-                                                        child: allSelected
-                                                            ? Icon(
-                                                                Icons
-                                                                    .check_rounded,
-                                                                color: Colors
-                                                                    .white,
-                                                                size:
-                                                                    isVerySmallScreen
-                                                                    ? 12
-                                                                    : (isSmallScreen
-                                                                          ? 14
-                                                                          : 16),
-                                                              )
-                                                            : null,
-                                                      ),
-                                                      SizedBox(
-                                                        width: isVerySmallScreen
-                                                            ? 10
-                                                            : (isSmallScreen
-                                                                  ? 12
-                                                                  : 14),
-                                                      ),
-                                                      Text(
-                                                        'Бүгдийг сонгох',
-                                                        style: TextStyle(
-                                                          color: context
-                                                              .textPrimaryColor,
-                                                          fontSize: 13.sp,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      if (selectedFilter != 'Paid' &&
-                                          filteredInvoices.isNotEmpty)
-                                        SizedBox(
-                                          height: isVerySmallScreen
-                                              ? 10
-                                              : (isSmallScreen ? 12 : 16),
-                                        ),
-                                      ...filteredInvoices.map(
-                                        (invoice) => Padding(
-                                          padding: EdgeInsets.only(
-                                            bottom: isVerySmallScreen
-                                                ? 10
-                                                : (isSmallScreen ? 12 : 16),
-                                          ),
-                                          child: InvoiceCard(
-                                            invoice: invoice,
-                                            isHistory: selectedFilter == 'Paid',
-                                            isSmallScreen: isSmallScreen,
-                                            isVerySmallScreen:
-                                                isVerySmallScreen,
-                                            onToggleExpand: () {
-                                              setState(() {
-                                                invoice.isExpanded =
-                                                    !invoice.isExpanded;
-                                              });
-                                            },
-                                            onToggleSelect:
-                                                selectedFilter != 'Paid'
-                                                ? () {
-                                                    setState(() {
-                                                      invoice.isSelected =
-                                                          !invoice.isSelected;
-                                                    });
-                                                  }
-                                                : null,
-                                            onShowVATReceipt:
-                                                selectedFilter == 'Paid'
-                                                ? () => _showVATReceiptModal(
-                                                    invoice.id,
-                                                  )
-                                                : null,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }(),
+                            child: _buildInvoiceList(),
                           ),
                         ],
                       ),
-              ),
-            ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline_rounded, size: 64.sp, color: Colors.red.withOpacity(0.5)),
+          SizedBox(height: 16.h),
+          Text(errorMessage!, style: TextStyle(color: context.textPrimaryColor, fontSize: 15.sp), textAlign: TextAlign.center),
+          SizedBox(height: 24.h),
+          ElevatedButton(
+            onPressed: _loadNekhemjlekh,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.deepGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r))),
+            child: const Text('Дахин оролдох', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInvoiceList() {
+    final filteredInvoices = _getFilteredInvoices();
+
+    if (filteredInvoices.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              selectedFilter == 'Paid' ? Icons.history_rounded : Icons.receipt_long_rounded,
+              size: 64.sp,
+              color: context.textSecondaryColor.withOpacity(0.2),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              selectedFilter == 'Paid' ? 'Төлөгдсөн нэхэмжлэл байхгүй' : 'Одоогоор нэхэмжлэл байхгүй',
+              style: TextStyle(color: context.textSecondaryColor, fontSize: 14.sp),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadNekhemjlekh,
+      color: AppColors.deepGreen,
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        itemCount: filteredInvoices.length + (selectedFilter != 'Paid' ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (selectedFilter != 'Paid' && index == 0) {
+            return _buildSelectAllBar();
+          }
+          final invoice = filteredInvoices[selectedFilter != 'Paid' ? index - 1 : index];
+          return InvoiceCard(
+            invoice: invoice,
+            isHistory: selectedFilter == 'Paid',
+            onToggleExpand: () => setState(() => invoice.isExpanded = !invoice.isExpanded),
+            onToggleSelect: selectedFilter != 'Paid' ? () => setState(() => invoice.isSelected = !invoice.isSelected) : null,
+            onShowVATReceipt: selectedFilter == 'Paid' ? () => _showVATReceiptModal(invoice.id) : null,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSelectAllBar() {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h, left: 4.w),
+      child: GestureDetector(
+        onTap: toggleSelectAll,
+        child: Row(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 20.w,
+              height: 20.w,
+              decoration: BoxDecoration(
+                color: allSelected ? AppColors.deepGreen : Colors.transparent,
+                borderRadius: BorderRadius.circular(6.r),
+                border: Border.all(color: allSelected ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.3), width: 2),
+              ),
+              child: allSelected ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
+            ),
+            SizedBox(width: 12.w),
+            Text(
+              'Бүгдийг сонгох',
+              style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp, fontWeight: FontWeight.w600),
+            ),
+          ],
         ),
       ),
     );

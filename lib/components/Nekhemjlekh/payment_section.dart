@@ -17,84 +17,98 @@ class PaymentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasSelection = selectedCount > 0;
+    
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 14.w),
-      child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
-          color: context.isDarkMode
-              ? const Color(0xFF1A1A1A)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: context.isDarkMode
-                ? AppColors.deepGreen.withOpacity(0.2)
-                : AppColors.deepGreen.withOpacity(0.15),
-            width: 1,
-          ),
+          color: context.cardBackgroundColor,
+          borderRadius: BorderRadius.circular(24.r),
           boxShadow: [
             BoxShadow(
-              color: context.isDarkMode
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: AppColors.deepGreen.withOpacity(hasSelection ? 0.12 : 0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
+          border: Border.all(
+            color: hasSelection 
+                ? AppColors.deepGreen.withOpacity(0.2) 
+                : context.borderColor.withOpacity(0.5),
+            width: 1,
+          ),
         ),
         child: Padding(
-          padding: EdgeInsets.all(12.w),
+          padding: EdgeInsets.all(16.w),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Container(
+                width: 48.w,
+                height: 48.w,
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
+                child: Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: AppColors.deepGreen,
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: 16.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      totalSelectedAmount,
+                      hasSelection ? totalSelectedAmount : '0.00₮',
                       style: TextStyle(
-                        color: AppColors.deepGreen,
-                        fontSize: 16.sp,
+                        color: context.textPrimaryColor,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    SizedBox(height: 2.h),
                     Text(
-                      selectedCount > 0
-                          ? '$selectedCount нэхэмжлэх'
-                          : 'Сонгоно уу',
+                      hasSelection ? '$selectedCount нэхэмжлэх сонгосон' : 'Нэхэмжлэл сонгоно уу',
                       style: TextStyle(
                         color: context.textSecondaryColor,
                         fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: 12.w),
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: selectedCount > 0 ? onPaymentTap : null,
-                  borderRadius: BorderRadius.circular(10.r),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 10.h,
-                    ),
+                  onTap: hasSelection ? onPaymentTap : null,
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                     decoration: BoxDecoration(
-                      color: selectedCount > 0
-                          ? AppColors.deepGreen
-                          : context.textPrimaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10.r),
+                      color: hasSelection ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: hasSelection ? [
+                        BoxShadow(
+                          color: AppColors.deepGreen.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        )
+                      ] : null,
                     ),
                     child: Text(
-                      'Төлбөр төлөх',
+                      'Төлөх',
                       style: TextStyle(
+                        color: hasSelection ? Colors.white : context.textSecondaryColor.withOpacity(0.5),
                         fontSize: 14.sp,
-                        color: selectedCount > 0
-                            ? Colors.white
-                            : context.textPrimaryColor.withOpacity(0.3),
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),

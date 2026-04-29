@@ -39,7 +39,7 @@ class AppVersionInfo {
 class UpdateService {
   static const String _lastCheckedVersionKey = 'last_checked_app_version';
   static const String _updateDismissedKey = 'update_dismissed_version';
-  static const String baseUrl = 'https://amarhome.mn/api';
+  static const String baseUrl = 'http://103.236.194.106:8084';
 
   static AppVersionInfo? _latestVersionInfo;
   static AppVersionInfo? get latestVersionInfo => _latestVersionInfo;
@@ -58,7 +58,7 @@ class UpdateService {
 
       // Get latest version from API
       try {
-        String platform = 'android'; // Default
+        String platform = 'unknown'; // Default
         if (!kIsWeb) {
           if (Platform.isIOS)
             platform = 'ios';
@@ -174,7 +174,7 @@ class UpdateService {
     }
 
     if (kIsWeb) {
-      return 'https://amarhome.mn';
+      return 'http://103.236.194.106:8084';
     }
 
     if (Platform.isIOS) {

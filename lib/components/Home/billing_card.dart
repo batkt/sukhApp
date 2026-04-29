@@ -123,13 +123,30 @@ class _BillingCardState extends State<BillingCard>
         (widget.billing['isLocalData'] != true &&
             widget.billing['customerId'] != null);
 
-    double cardBalance = _parseNum(widget.billing['perItemTotal']);
-    double cardAldangi = _parseNum(widget.billing['perItemAldangi']);
+    // Use 'uldegdel' as the absolute source of truth if available (from ledger summary)
+    double cardBalance = widget.billing['uldegdel'] != null
+        ? _parseNum(widget.billing['uldegdel'])
+        : _parseNum(widget.billing['perItemTotal']);
 
+    double cardAldangi = widget.billing['uldegdelAldangi'] != null
+        ? _parseNum(widget.billing['uldegdelAldangi'])
+        : _parseNum(widget.billing['perItemAldangi']);
+
+    final displayName = (nickname != null && nickname.isNotEmpty)
+        ? nickname
+        : billingName;
+    final showSubtitle = (nickname != null && nickname.isNotEmpty);
+
+    // DEBUG LOG
+
+
+    // Fallback for residential bills that haven't been merged yet
     if (cardBalance == 0 &&
         widget.totalBalance > 0 &&
         (widget.billing['isLocalData'] == true ||
-            billingName.contains('Орон сууцны'))) {
+            billingName.toLowerCase().contains('орон сууц') ||
+            billingName.toLowerCase().contains('сөх'))) {
+
       cardBalance = widget.totalBalance;
       cardAldangi = widget.totalAldangi ?? 0.0;
     }
@@ -139,11 +156,6 @@ class _BillingCardState extends State<BillingCard>
         isEBillConnected ||
         widget.billing['isLocalData'] == true;
     final hasActions = widget.onEditTap != null || widget.onDeleteTap != null;
-
-    final displayName = (nickname != null && nickname.isNotEmpty)
-        ? nickname
-        : billingName;
-    final showSubtitle = (nickname != null && nickname.isNotEmpty);
 
     // FIX: Show the bottom pills row if there are new bills OR a non-zero balance
     final bool hasBalance = cardBalance != 0;

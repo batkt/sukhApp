@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
 
 class VersionService {
-  static const String _baseUrl = 'https://amarhome.mn/api';
+  static const String _baseUrl = 'http://103.236.194.106:8084';
   static const String _versionCheckUrl = '$_baseUrl/version-check';
 
   static Future<String> getAppVersion() async {

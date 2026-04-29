@@ -31,7 +31,7 @@ class SocketService {
       }
       
       // Socket.io is at site root (same as web). Do not use /api so nginx can proxy /socket.io.
-      const serverUrl = 'https://amarhome.mn';
+      const serverUrl = 'http://103.236.194.106:8084';
 
       socket = IO.io(
         serverUrl,

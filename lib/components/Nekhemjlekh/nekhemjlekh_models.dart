@@ -162,49 +162,8 @@ class NekhemjlekhItem {
     return false;
   }
 
-  /// Calculate the total amount to be paid for this invoice.
-  /// 1. Current Monthly Charge (niitTulbur).
-  /// 2. All detailed unpaid transactions (guilgeenuud).
-  /// 3. Fallback to summarized balance (uldegdel) ONLY if no details exist.
-  double get effectiveNiitTulbur {
-    // If fully paid, we only show the original amount for reference
-    if (isPaid) {
-      return niitTulburOriginal > 0 ? niitTulburOriginal : niitTulbur;
-    }
-
-    // 1. Authoritative Total: niitTulbur is usually the total payable amount from the backend.
-    // It already includes current charges, past dues, and starting balances.
-    if (niitTulbur > 0) {
-      return niitTulbur;
-    }
-    
-    // 2. Fallback for standalone receivables or invoices with no niitTulbur
-    double total = uldegdel != 0 ? uldegdel : 0.0;
-    
-    // If we have detailed transactions, they represent the balance
-    if (medeelel?.guilgeenuud != null && medeelel!.guilgeenuud!.isNotEmpty) {
-      double avlagaTotal = 0;
-      bool foundEkhniiInList = false;
-      for (final g in medeelel!.guilgeenuud!) {
-        final amt = (g.tulukhDun ?? g.undsenDun ?? 0.0) - (g.tulsunDun ?? 0.0);
-        if (amt > 0) avlagaTotal += amt;
-        if (g.ekhniiUldegdelEsekh) foundEkhniiInList = true;
-      }
-      
-      // If we have items that sum up, use that sum. 
-      // But check if it's missing the starting balance.
-      if (avlagaTotal > 0) {
-        total = avlagaTotal;
-        if (!foundEkhniiInList) total += (ekhniiUldegdel ?? 0.0);
-      } else {
-        total += (ekhniiUldegdel ?? 0.0);
-      }
-    } else {
-      total += (ekhniiUldegdel ?? 0.0);
-    }
-
-    return total;
-  }
+  /// The amount that needs to be paid (Remaining balance)
+  double get effectiveNiitTulbur => uldegdel;
 
   String get formattedAmount {
     final total = effectiveNiitTulbur;
@@ -358,7 +317,9 @@ class Guilgee {
   final double? tulukhDun;
   final double? undsenDun;
   final double? tulsunDun;
+  final double? dun;
   final String? tailbar;
+  final String? zardliinNer;
   final String? turul;
   final String? gereeniiId;
   final String? guilgeeKhiisenOgnoo;
@@ -374,7 +335,9 @@ class Guilgee {
     this.tulukhDun,
     this.undsenDun,
     this.tulsunDun,
+    this.dun,
     this.tailbar,
+    this.zardliinNer,
     this.turul,
     this.gereeniiId,
     this.guilgeeKhiisenOgnoo,
@@ -398,7 +361,9 @@ class Guilgee {
       tulsunDun: json['tulsunDun'] != null
           ? (json['tulsunDun'] as num).toDouble()
           : null,
-      tailbar: json['tailbar']?.toString(),
+      dun: json['dun'] != null ? (json['dun'] as num).toDouble() : null,
+      tailbar: json['tailbar']?.toString() ?? json['zardliinNer']?.toString(),
+      zardliinNer: json['zardliinNer']?.toString(),
       turul: json['turul']?.toString(),
       gereeniiId: json['gereeniiId']?.toString(),
       guilgeeKhiisenOgnoo: json['guilgeeKhiisenOgnoo']?.toString(),
@@ -406,7 +371,9 @@ class Guilgee {
       guilgeeKhiisenAjiltniiId: json['guilgeeKhiisenAjiltniiId']?.toString(),
       avlagaGuilgeeIndex: json['avlagaGuilgeeIndex'] as int?,
       id: json['_id']?.toString(),
-      ekhniiUldegdelEsekh: json['ekhniiUldegdelEsekh'] == true,
+      ekhniiUldegdelEsekh:
+          json['ekhniiUldegdelEsekh'] == true ||
+          (json['zardliinNer']?.toString().toLowerCase().contains('эхний үлдэгдэл') ?? false),
       isLinked: json['isLinked'] == true,
     );
   }

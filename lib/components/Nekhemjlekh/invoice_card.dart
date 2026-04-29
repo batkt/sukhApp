@@ -31,12 +31,12 @@ class InvoiceCard extends StatelessWidget {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Төлсөн':
-        return AppColors.success;
+        return const Color(0xFF10B981); // Emerald 500
       case 'Төлөөгүй':
       case 'Хэсэгчлэн':
-        return AppColors.warning;
+        return const Color(0xFFF59E0B); // Amber 500
       default:
-        return AppColors.neutralGray;
+        return const Color(0xFF6B7280); // Gray 500
     }
   }
 
@@ -55,7 +55,6 @@ class InvoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use isPaid (mirrors web getPaymentStatusLabel) for accurate status
     final effectiveTuluv = invoice.isPaid ? 'Төлсөн' : invoice.tuluv;
     final statusColor = _getStatusColor(effectiveTuluv);
     final statusLabel = _getStatusLabel(effectiveTuluv);
@@ -64,399 +63,179 @@ class InvoiceCard extends StatelessWidget {
       child: Container(
         margin: EdgeInsets.only(
           bottom: context.responsiveSpacing(
-            small: 10,
-            medium: 12,
-            large: 14,
-            tablet: 16,
-            veryNarrow: 8,
+            small: 12,
+            medium: 14,
+            large: 16,
+            tablet: 18,
+            veryNarrow: 10,
           ),
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-            borderRadius: BorderRadius.circular(
-              context.responsiveBorderRadius(
-                small: 16,
-                medium: 18,
-                large: 20,
-                tablet: 22,
-                veryNarrow: 14,
-              ),
+        decoration: BoxDecoration(
+          color: context.cardBackgroundColor,
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
             ),
-            border: Border.all(
-              color: context.isDarkMode
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.06),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: context.isDarkMode
-                    ? Colors.black.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+          ],
+          border: Border.all(
+            color: context.isDarkMode
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.05),
+            width: 1,
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onToggleExpand,
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 16,
-                  medium: 18,
-                  large: 20,
-                  tablet: 22,
-                  veryNarrow: 14,
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.all(
-                  context.responsiveSpacing(
-                    small: 14,
-                    medium: 16,
-                    large: 18,
-                    tablet: 20,
-                    veryNarrow: 12,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Main card content
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Date row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              invoice.formattedDate,
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: context.responsiveFontSize(
-                                  small: 13,
-                                  medium: 14,
-                                  large: 15,
-                                  tablet: 16,
-                                  veryNarrow: 12,
-                                ),
-                              ),
-                            ),
-                            // Status tag
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: context.responsiveSpacing(
-                                  small: 10,
-                                  medium: 12,
-                                  large: 14,
-                                  tablet: 16,
-                                  veryNarrow: 8,
-                                ),
-                                vertical: context.responsiveSpacing(
-                                  small: 5,
-                                  medium: 6,
-                                  large: 7,
-                                  tablet: 8,
-                                  veryNarrow: 4,
-                                ),
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusColor.withOpacity(
-                                  context.isDarkMode ? 0.2 : 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  context.responsiveBorderRadius(
-                                    small: 20,
-                                    medium: 22,
-                                    large: 24,
-                                    tablet: 26,
-                                    veryNarrow: 18,
-                                  ),
-                                ),
-                              ),
-                              child: Text(
-                                statusLabel,
-                                style: TextStyle(
-                                  color: statusColor,
-                                  fontSize: context.responsiveFontSize(
-                                    small: 12,
-                                    medium: 13,
-                                    large: 14,
-                                    tablet: 15,
-                                    veryNarrow: 11,
-                                  ),
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 12,
-                            medium: 14,
-                            large: 16,
-                            tablet: 18,
-                            veryNarrow: 10,
-                          ),
-                        ),
-                        // Main content row
-                        Row(
-                          children: [
-                            // Selection Checkbox (Leading)
-                            if (!isHistory &&
-                                onToggleSelect != null &&
-                                !invoice.isPaid) ...[
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onToggleExpand,
+            borderRadius: BorderRadius.circular(20.r),
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(16.w),
+                  child: Column(
+                    children: [
+                      // Top Row: Date and Selection/Logo
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              if (!isHistory && onToggleSelect != null && !invoice.isPaid) ...[
+                                GestureDetector(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
                                     onToggleSelect!();
                                   },
-                                  borderRadius: BorderRadius.circular(6.w),
-                                  splashColor: AppColors.deepGreen.withOpacity(
-                                    0.3,
-                                  ),
-                                  highlightColor: AppColors.deepGreen
-                                      .withOpacity(0.1),
                                   child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOutCubic,
+                                    duration: const Duration(milliseconds: 200),
                                     width: 22.w,
                                     height: 22.w,
                                     decoration: BoxDecoration(
-                                      gradient: invoice.isSelected
-                                          ? LinearGradient(
-                                              colors: [
-                                                AppColors.secondaryAccent,
-                                                AppColors.secondaryAccent
-                                                    .withOpacity(0.8),
-                                              ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            )
-                                          : null,
-                                      color: invoice.isSelected
-                                          ? null
-                                          : Colors.transparent,
+                                      color: invoice.isSelected ? AppColors.deepGreen : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(6.r),
                                       border: Border.all(
-                                        color: invoice.isSelected
-                                            ? AppColors.deepGreen
-                                            : context.borderColor,
-                                        width: invoice.isSelected ? 2.5 : 2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(6.w),
-                                      boxShadow: invoice.isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: AppColors.deepGreen
-                                                    .withOpacity(0.2),
-                                                blurRadius: 8,
-                                                spreadRadius: 0,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: Center(
-                                      child: AnimatedScale(
-                                        scale: invoice.isSelected ? 1.0 : 0.0,
-                                        duration: const Duration(
-                                          milliseconds: 250,
-                                        ),
-                                        curve: Curves.elasticOut,
-                                        child: invoice.isSelected
-                                            ? Icon(
-                                                Icons.check_rounded,
-                                                color: Colors.white,
-                                                size: context
-                                                    .responsiveFontSize(
-                                                      small: 16,
-                                                      medium: 17,
-                                                      large: 18,
-                                                      tablet: 20,
-                                                      veryNarrow: 14,
-                                                    ),
-                                                weight: 3,
-                                              )
-                                            : const SizedBox.shrink(),
+                                        color: invoice.isSelected ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.3),
+                                        width: 2,
                                       ),
                                     ),
+                                    child: invoice.isSelected
+                                        ? const Icon(Icons.check, color: Colors.white, size: 14)
+                                        : null,
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                              ],
+                              Container(
+                                width: 40.w,
+                                height: 40.w,
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: ClipOval(
+                                  child: SelectableLogoImage(
+                                    width: 40.w,
+                                    height: 40.w,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 14.w),
-                            ],
-                            // Company logo
-                            Container(
-                              width: context.responsiveSpacing(
-                                small: 44,
-                                medium: 48,
-                                large: 52,
-                                tablet: 56,
-                                veryNarrow: 40,
-                              ),
-                              height: context.responsiveSpacing(
-                                small: 44,
-                                medium: 48,
-                                large: 52,
-                                tablet: 56,
-                                veryNarrow: 40,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    AppColors.deepGreen,
-                                    AppColors.deepGreen.withOpacity(0.8),
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: ClipOval(
-                                child: SelectableLogoImage(
-                                  width: context.responsiveSpacing(
-                                    small: 44,
-                                    medium: 48,
-                                    large: 52,
-                                    tablet: 56,
-                                    veryNarrow: 40,
-                                  ),
-                                  height: context.responsiveSpacing(
-                                    small: 44,
-                                    medium: 48,
-                                    large: 52,
-                                    tablet: 56,
-                                    veryNarrow: 40,
-                                  ),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: context.responsiveSpacing(
-                                small: 12,
-                                medium: 14,
-                                large: 16,
-                                tablet: 18,
-                                veryNarrow: 10,
-                              ),
-                            ),
-                            // Client info
-                            Expanded(
-                              child: Column(
+                              SizedBox(width: 12.w),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     invoice.displayName,
                                     style: TextStyle(
                                       color: context.textPrimaryColor,
-                                      fontSize: context.responsiveFontSize(
-                                        small: 16,
-                                        medium: 17,
-                                        large: 18,
-                                        tablet: 19,
-                                        veryNarrow: 14,
-                                      ),
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: -0.3,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  SizedBox(height: 3.h),
-                                  SizedBox(height: 3.h),
+                                  Text(
+                                    invoice.formattedDate,
+                                    style: TextStyle(
+                                      color: context.textSecondaryColor,
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
                                 ],
                               ),
+                            ],
+                          ),
+                          // Status Badge
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(100),
                             ),
-                            // Amount
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  invoice.formattedAmount,
-                                  style: TextStyle(
-                                    color: AppColors.deepGreen,
-                                    fontSize: context.responsiveFontSize(
-                                      small: 17,
-                                      medium: 18,
-                                      large: 19,
-                                      tablet: 21,
-                                      veryNarrow: 15,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        // Expand/Collapse indicator
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: context.responsiveSpacing(
-                              small: 8,
-                              medium: 10,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 6,
+                            child: Text(
+                              statusLabel,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        ],
+                      ),
+                      SizedBox(height: 16.h),
+                      // Bottom Row: Amount and Expand Icon
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: context.responsiveSpacing(
-                                    small: 12,
-                                    medium: 14,
-                                    large: 16,
-                                    tablet: 18,
-                                    veryNarrow: 10,
-                                  ),
-                                  vertical: context.responsiveSpacing(
-                                    small: 4,
-                                    medium: 5,
-                                    large: 6,
-                                    tablet: 7,
-                                    veryNarrow: 3,
-                                  ),
+                              Text(
+                                'Нийт төлөх',
+                                style: TextStyle(
+                                  color: context.textSecondaryColor,
+                                  fontSize: 12.sp,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: context.isDarkMode
-                                      ? Colors.white.withOpacity(0.06)
-                                      : Colors.black.withOpacity(0.04),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Icon(
-                                  invoice.isExpanded
-                                      ? Icons.keyboard_arrow_up_rounded
-                                      : Icons.keyboard_arrow_down_rounded,
-                                  color: context.isDarkMode
-                                      ? Colors.white.withOpacity(0.6)
-                                      : Colors.black.withOpacity(0.5),
-                                  size: context.responsiveFontSize(
-                                    small: 18,
-                                    medium: 20,
-                                    large: 22,
-                                    tablet: 24,
-                                    veryNarrow: 16,
-                                  ),
+                              ),
+                              Text(
+                                invoice.formattedAmount,
+                                style: TextStyle(
+                                  color: context.textPrimaryColor,
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    // Expanded details section
-                    if (invoice.isExpanded) _buildExpandedSection(context),
-                  ],
+                          Container(
+                            padding: EdgeInsets.all(4.w),
+                            decoration: BoxDecoration(
+                              color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              invoice.isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                              color: context.textSecondaryColor,
+                              size: 20.sp,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                if (invoice.isExpanded) ...[
+                  Divider(height: 1, color: context.borderColor.withOpacity(0.5)),
+                  _buildExpandedSection(context),
+                ],
+              ],
             ),
           ),
         ),
@@ -465,781 +244,162 @@ class InvoiceCard extends StatelessWidget {
   }
 
   Widget _buildExpandedSection(BuildContext context) {
-    final toot = invoice.medeelel?.toot ?? '';
-    return Container(
-      padding: EdgeInsets.all(
-        context.responsiveSpacing(
-          small: 8,
-          medium: 10,
-          large: 12,
-          tablet: 14,
-          veryNarrow: 6,
-        ),
-      ),
-      decoration: BoxDecoration(color: Colors.transparent),
+    final guilgeenuud = invoice.medeelel?.guilgeenuud?.where((g) {
+          // Use 'dun' or negative 'tulsunDun' for payments, otherwise use charge amount
+          final baseAmt = (g.turul == 'tulult' || g.turul == 'buun_tulult')
+              ? -(g.tulsunDun ?? 0.0)
+              : (g.tulukhDun ?? g.undsenDun ?? g.dun ?? 0.0);
+          return baseAmt != 0 &&
+              !g.ekhniiUldegdelEsekh &&
+              g.turul?.toLowerCase() != 'system_sync';
+        }).toList() ??
+        [];
+
+    final additionalZardluud = invoice.medeelel?.zardluud.where((z) => z.isDisplayable && !z.isEkhniiUldegdel).toList() ?? [];
+
+    return Padding(
+      padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Үйлчилгээний нэхэмжлэх header
-          Padding(
-            padding: EdgeInsets.only(
-              bottom: context.responsiveSpacing(
-                small: 8,
-                medium: 10,
-                large: 12,
-                tablet: 14,
-                veryNarrow: 6,
-              ),
+          // Detailed Location Info
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: context.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(16.r),
             ),
-            child: Text(
-              'Үйлчилгээний нэхэмжлэх',
-              style: TextStyle(
-                color: AppColors.deepGreen,
-                fontSize: context.responsiveFontSize(
-                  small: 14,
-                  medium: 15,
-                  large: 16,
-                  tablet: 17,
-                  veryNarrow: 13,
-                ),
-              ),
-            ),
-          ),
-          // Нэхэмжлэгч (left) and Төлөгч (right) sections
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left: Нэхэмжлэгч - Байгууллагын мэдээлэл
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 8,
-                      medium: 10,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 6,
-                    ),
-                  ),
-                  child: Container(
-                    padding: EdgeInsets.all(
-                      context.responsiveSpacing(
-                        small: 8,
-                        medium: 10,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 6,
-                      ),
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.isDarkMode
-                          ? Colors.white.withOpacity(0.05)
-                          : const Color(0xFFF8F8F8),
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 8,
-                          medium: 10,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 6,
-                        ),
-                      ),
-                      border: Border.all(
-                        color: context.isDarkMode
-                            ? AppColors.deepGreen.withOpacity(0.15)
-                            : AppColors.deepGreen.withOpacity(0.1),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildInfoRow(
-                          context,
-                          'Нэхэмжлэгч:',
-                          invoice.baiguullagiinNer,
-                        ),
-                        _buildInfoRow(
-                          context,
-                          'Утас:',
-                          invoice.baiguullagiinUtas,
-                        ),
-                        _buildInfoRow(
-                          context,
-                          'Хаяг:',
-                          invoice.baiguullagiinKhayag,
-                        ),
-                        _buildInfoRow(context, 'Данс:', invoice.dansniiDugaar),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: context.responsiveSpacing(
-                  small: 6,
-                  medium: 8,
-                  large: 10,
-                  tablet: 12,
-                  veryNarrow: 4,
-                ),
-              ),
-              // Right: Төлөгч - Оршин суугчийн мэдээлэл
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 8,
-                      medium: 10,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 6,
-                    ),
-                  ),
-                  child: Container(
-                    padding: EdgeInsets.all(
-                      context.responsiveSpacing(
-                        small: 8,
-                        medium: 10,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 6,
-                      ),
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.isDarkMode
-                          ? Colors.white.withOpacity(0.04)
-                          : const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 8,
-                          medium: 10,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 6,
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildInfoRow(context, 'Төлөгч:', invoice.displayName),
-                        _buildInfoRow(context, 'Байр:', invoice.khayag),
-                        _buildInfoRow(context, 'Орц:', invoice.orts),
-                        _buildInfoRow(context, 'Тоот:', toot),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 10,
-              medium: 12,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 8,
-            ),
-          ),
-          // Starting Balance (Эхний үлдэгдэл)
-          if ((invoice.ekhniiUldegdel ?? 0) != 0) ...[
-            _buildPriceRow(
-              context,
-              'Эхний үлдэгдэл',
-              '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮',
-            ),
-            SizedBox(
-              height: context.responsiveSpacing(
-                small: 6,
-                medium: 8,
-                large: 10,
-                tablet: 12,
-                veryNarrow: 4,
-              ),
-            ),
-          ],
-          // Avlaga items from guilgeenuud (exclude ekhniiUldegdel - shown above)
-          // Match both "avlaga" and "Авлага" (API may return either)
-          if (invoice.medeelel != null &&
-              invoice.medeelel!.guilgeenuud != null) ...[
-            ...invoice.medeelel!.guilgeenuud!
-                .where((guilgee) {
-                  // Only show transactions that represent an unpaid balance or charge
-                  // Use tulukhDun or undsenDun to see if any amount is still due
-                  final baseAmt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0);
-                  final tulsun = (guilgee.tulsunDun ?? 0.0);
-                  
-                  // Filter out fully paid transactions if needed, but for breakdown 
-                  // usually we show the full charge (baseAmt) or the remaining due (baseAmt - tulsun).
-                  // Match web behavior: show anything with non-zero baseAmt, and skip system payments
-                  // Match web behavior: show anything with non-zero baseAmt, skip starting balance (shown in separate row), and skip system payments
-                  return baseAmt != 0 && 
-                         !guilgee.ekhniiUldegdelEsekh && 
-                         (guilgee.turul?.toLowerCase() != 'system_sync');
-                })
-                .map((guilgee) {
-                  // Use either 'tailbar' or 'turul' for the label, fallback to 'Авлага'
-                  final String label = (guilgee.tailbar != null && guilgee.tailbar!.isNotEmpty)
-                      ? guilgee.tailbar!
-                      : (guilgee.turul != null && guilgee.turul!.isNotEmpty)
-                          ? guilgee.turul!
-                          : 'Нэмэлт авлага';
-                  
-                  // Use tulukhDun or undsenDun (API may use either for avlaga amount)
-                  final amt = (guilgee.tulukhDun ?? guilgee.undsenDun ?? 0.0);
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (amt > 0) ...[
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 6,
-                            medium: 8,
-                            large: 10,
-                            tablet: 12,
-                            veryNarrow: 4,
-                          ),
-                        ),
-                        _buildPriceRow(
-                          context,
-                          label,
-                          '${formatNumber(amt, 2)}₮',
-                        ),
-                      ],
-                      if (guilgee.tailbar != null &&
-                          guilgee.tailbar!.isNotEmpty) ...[
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 4,
-                            medium: 6,
-                            large: 8,
-                            tablet: 10,
-                            veryNarrow: 3,
-                          ),
-                        ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            context.responsiveBorderRadius(
-                              small: 8,
-                              medium: 10,
-                              large: 12,
-                              tablet: 14,
-                              veryNarrow: 6,
-                            ),
-                          ),
-                          child: Container(
-                            padding: EdgeInsets.all(
-                              context.responsiveSpacing(
-                                small: 8,
-                                medium: 10,
-                                large: 12,
-                                tablet: 14,
-                                veryNarrow: 6,
-                              ),
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.isDarkMode
-                                  ? Colors.white.withOpacity(0.04)
-                                  : Colors.black.withOpacity(0.03),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline_rounded,
-                                  size: context.responsiveIconSize(
-                                    small: 14,
-                                    medium: 16,
-                                    large: 18,
-                                    tablet: 20,
-                                    veryNarrow: 12,
-                                  ),
-                                  color: context.textSecondaryColor,
-                                ),
-                                SizedBox(
-                                  width: context.responsiveSpacing(
-                                    small: 6,
-                                    medium: 8,
-                                    large: 10,
-                                    tablet: 12,
-                                    veryNarrow: 4,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Авлагын шалтгаан:',
-                                        style: TextStyle(
-                                          color: context.isDarkMode
-                                              ? Colors.blue.shade300
-                                              : Colors.blue.shade600,
-                                          fontSize: context.responsiveFontSize(
-                                            small: 12,
-                                            medium: 13,
-                                            large: 14,
-                                            tablet: 15,
-                                            veryNarrow: 11,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        height: context.responsiveSpacing(
-                                          small: 2,
-                                          medium: 3,
-                                          large: 4,
-                                          tablet: 5,
-                                          veryNarrow: 1,
-                                        ),
-                                      ),
-                                      Text(
-                                        guilgee.tailbar!,
-                                        style: TextStyle(
-                                          color: context.textPrimaryColor,
-                                          fontSize: context.responsiveFontSize(
-                                            small: 12,
-                                            medium: 13,
-                                            large: 14,
-                                            tablet: 15,
-                                            veryNarrow: 11,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  );
-                }),
-          ],
-          // AshiglaltiinZardal items from zardluud (Тогтмол, Дурын, цахилгаан)
-          // Note: Эхний үлдэгдэл (starting balance) is filtered out - only show actual charges
-          if (invoice.medeelel != null) ...[
-            if (invoice.medeelel!.zardluud.isNotEmpty) ...[
-              ...invoice.medeelel!.zardluud
-                  .where(
-                    (zardal) => zardal.isDisplayable,
-                  )
-                  .map((zardal) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: context.responsiveSpacing(
-                            small: 6,
-                            medium: 8,
-                            large: 10,
-                            tablet: 12,
-                            veryNarrow: 4,
-                          ),
-                        ),
-                        _buildPriceRow(
-                          context,
-                          zardal.ner,
-                          zardal.isEkhniiUldegdel &&
-                                  (invoice.ekhniiUldegdel ?? 0) >
-                                      zardal.displayAmount
-                              ? '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮'
-                              : zardal.formattedDisplayAmount,
-                        ),
-                        if (zardal.turul.isNotEmpty) ...[
-                          SizedBox(
-                            height: context.responsiveSpacing(
-                              small: 2,
-                              medium: 3,
-                              large: 4,
-                              tablet: 5,
-                              veryNarrow: 1,
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(
-                              left: context.responsiveSpacing(
-                                small: 10,
-                                medium: 12,
-                                large: 14,
-                                tablet: 16,
-                                veryNarrow: 8,
-                              ),
-                            ),
-                            child: Text(
-                              'Төрөл: ${zardal.turul}',
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: context.responsiveFontSize(
-                                  small: 11,
-                                  medium: 12,
-                                  large: 13,
-                                  tablet: 14,
-                                  veryNarrow: 10,
-                                ),
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    );
-                  }),
-            ],
-          ],
-          // Dedicated row for ekhniiUldegdel if missing from breakdown (from registration or merge)
-          if ((invoice.ekhniiUldegdel ?? 0) > 0 &&
-              !(invoice.medeelel?.zardluud.any((z) => z.isEkhniiUldegdel) ??
-                  false) &&
-              !(invoice.medeelel?.guilgeenuud?.any(
-                    (g) => g.ekhniiUldegdelEsekh,
-                  ) ??
-                  false)) ...[
-            SizedBox(
-              height: context.responsiveSpacing(
-                small: 6,
-                medium: 8,
-                large: 10,
-                tablet: 12,
-                veryNarrow: 4,
-              ),
-            ),
-            _buildPriceRow(
-              context,
-              'Эхний үлдэгдэл',
-              '${formatNumber(invoice.ekhniiUldegdel!, 2)}₮',
-            ),
-            Padding(
-              padding: EdgeInsets.only(
-                left: context.responsiveSpacing(
-                  small: 10,
-                  medium: 12,
-                  large: 14,
-                  tablet: 16,
-                  veryNarrow: 8,
-                ),
-              ),
-              child: Text(
-                'Төрөл: Тогтмол',
-                style: TextStyle(
-                  color: context.textSecondaryColor,
-                  fontSize: context.responsiveFontSize(
-                    small: 11,
-                    medium: 12,
-                    large: 13,
-                    tablet: 14,
-                    veryNarrow: 10,
-                  ),
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
-          // Tailbar field
-          if (invoice.medeelel != null &&
-              invoice.medeelel!.tailbar != null &&
-              invoice.medeelel!.tailbar!.isNotEmpty) ...[
-            SizedBox(
-              height: context.responsiveSpacing(
-                small: 10,
-                medium: 12,
-                large: 14,
-                tablet: 16,
-                veryNarrow: 8,
-              ),
-            ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 8,
-                  medium: 10,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 6,
-                ),
-              ),
-              child: Container(
-                padding: EdgeInsets.all(
-                  context.responsiveSpacing(
-                    small: 8,
-                    medium: 10,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 6,
-                  ),
-                ),
-                decoration: BoxDecoration(
-                  color: context.isDarkMode
-                      ? Colors.white.withOpacity(0.04)
-                      : const Color(0xFFF8F8F8),
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 8,
-                      medium: 10,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 6,
-                    ),
-                  ),
-                  border: Border.all(
-                    color: context.isDarkMode
-                        ? Colors.white.withOpacity(0.12)
-                        : AppColors.deepGreen.withOpacity(0.15),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.note_outlined,
-                          color: AppColors.deepGreen,
-                          size: context.responsiveFontSize(
-                            small: 14,
-                            medium: 16,
-                            large: 18,
-                            tablet: 20,
-                            veryNarrow: 12,
-                          ),
-                        ),
-                        SizedBox(
-                          width: context.responsiveSpacing(
-                            small: 3,
-                            medium: 4,
-                            large: 5,
-                            tablet: 6,
-                            veryNarrow: 2,
-                          ),
-                        ),
-                        Text(
-                          'Тайлбар',
-                          style: TextStyle(
-                            color: AppColors.deepGreen,
-                            fontSize: context.responsiveFontSize(
-                              small: 12,
-                              medium: 13,
-                              large: 14,
-                              tablet: 15,
-                              veryNarrow: 11,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: context.responsiveSpacing(
-                        small: 4,
-                        medium: 5,
-                        large: 6,
-                        tablet: 8,
-                        veryNarrow: 3,
-                      ),
-                    ),
-                    Text(
-                      invoice.medeelel!.tailbar!,
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: context.responsiveFontSize(
-                          small: 12,
-                          medium: 13,
-                          large: 14,
-                          tablet: 15,
-                          veryNarrow: 11,
-                        ),
+                    Icon(Icons.business_rounded, size: 16.sp, color: AppColors.deepGreen),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        invoice.baiguullagiinNer,
+                        style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ),
-          ],
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 10,
-              medium: 12,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 8,
+                SizedBox(height: 8.h),
+                Row(
+                  children: [
+                    Icon(Icons.location_on_rounded, size: 16.sp, color: context.textSecondaryColor),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        '${invoice.khayag}, ${invoice.orts}-р орц, ${invoice.medeelel?.toot ?? ""} тоот',
+                        style: TextStyle(color: context.textSecondaryColor, fontSize: 12.sp),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          // Total amount
-          ClipRRect(
-            borderRadius: BorderRadius.circular(
-              context.responsiveBorderRadius(
-                small: 8,
-                medium: 10,
-                large: 12,
-                tablet: 14,
-                veryNarrow: 6,
-              ),
+          SizedBox(height: 24.h),
+          Text(
+            'ТӨЛБӨРИЙН ДЭЛГЭРЭНГҮЙ',
+            style: TextStyle(
+              color: context.textSecondaryColor.withOpacity(0.6),
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
             ),
-            child: Container(
-              padding: EdgeInsets.all(
-                context.responsiveSpacing(
-                  small: 10,
-                  medium: 12,
-                  large: 14,
-                  tablet: 16,
-                  veryNarrow: 8,
-                ),
+          ),
+          SizedBox(height: 12.h),
+          // Starting Balance
+          if ((invoice.ekhniiUldegdel ?? 0) != 0) ...[
+            _buildModernChargeRow(context, 'Эхний үлдэгдэл', invoice.ekhniiUldegdel!, isStartingBalance: true),
+            Divider(height: 24.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+          ],
+          // Ledger Items
+          ...guilgeenuud.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final g = entry.value;
+            final isPayment = (g.turul == 'tulult' || g.turul == 'buun_tulult');
+            final label = isPayment
+                ? 'Төлөлт'
+                : (g.tailbar?.isNotEmpty ?? false)
+                    ? g.tailbar!
+                    : (g.zardliinNer?.isNotEmpty ?? false)
+                        ? g.zardliinNer!
+                        : 'Үйлчилгээний төлбөр';
+            final amt = isPayment
+                ? -(g.tulsunDun ?? 0.0)
+                : (g.tulukhDun ?? g.undsenDun ?? g.dun ?? 0.0);
+            return Column(
+              children: [
+                _buildModernChargeRow(context, label, amt),
+                if (idx < guilgeenuud.length - 1 || additionalZardluud.isNotEmpty) Divider(height: 20.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+              ],
+            );
+          }),
+          // Additional Charges
+          ...additionalZardluud.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final z = entry.value;
+            return Column(
+              children: [
+                if (idx == 0 && guilgeenuud.isNotEmpty) Divider(height: 20.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+                _buildModernChargeRow(context, z.ner, z.displayAmount),
+                if (idx < additionalZardluud.length - 1) Divider(height: 20.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+              ],
+            );
+          }),
+          SizedBox(height: 24.h),
+          // Final Total Section
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: context.isDarkMode
+                    ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.03)]
+                    : [Colors.black.withOpacity(0.04), Colors.black.withOpacity(0.01)],
               ),
-              decoration: BoxDecoration(
-                color: context.isDarkMode
-                    ? Colors.white.withOpacity(0.04)
-                    : const Color(0xFFF8F8F8),
-                borderRadius: BorderRadius.circular(
-                  context.responsiveBorderRadius(
-                    small: 8,
-                    medium: 10,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 6,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: AppColors.deepGreen.withOpacity(0.1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'НИЙТ ТӨЛБӨР',
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                border: Border.all(
-                  color: context.isDarkMode
-                      ? Colors.white.withOpacity(0.12)
-                      : AppColors.deepGreen.withOpacity(0.15),
-                  width: 1,
+                Text(
+                  invoice.formattedAmount,
+                  style: TextStyle(
+                    color: AppColors.deepGreen,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Нийт дүн:',
-                    style: TextStyle(
-                      color: context.textPrimaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 14,
-                        medium: 15,
-                        large: 16,
-                        tablet: 17,
-                        veryNarrow: 12,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    invoice.formattedAmount,
-                    style: TextStyle(
-                      color: AppColors.deepGreen,
-                      fontSize: context.responsiveFontSize(
-                        small: 16,
-                        medium: 17,
-                        large: 18,
-                        tablet: 20,
-                        veryNarrow: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
           if (isHistory && onShowVATReceipt != null) ...[
+            SizedBox(height: 16.h),
             SizedBox(
-              height: context.responsiveSpacing(
-                small: 8,
-                medium: 10,
-                large: 12,
-                tablet: 14,
-                veryNarrow: 6,
-              ),
-            ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 8,
-                  medium: 10,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 6,
-                ),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onShowVATReceipt,
-                  borderRadius: BorderRadius.circular(
-                    context.responsiveBorderRadius(
-                      small: 8,
-                      medium: 10,
-                      large: 12,
-                      tablet: 14,
-                      veryNarrow: 6,
-                    ),
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(
-                      vertical: context.responsiveSpacing(
-                        small: 8,
-                        medium: 10,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 6,
-                      ),
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.deepGreen,
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 8,
-                          medium: 10,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 6,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.receipt_long_rounded,
-                          size: context.responsiveFontSize(
-                            small: 14,
-                            medium: 16,
-                            large: 18,
-                            tablet: 20,
-                            veryNarrow: 12,
-                          ),
-                          color: Colors.white,
-                        ),
-                        SizedBox(
-                          width: context.responsiveSpacing(
-                            small: 4,
-                            medium: 6,
-                            large: 8,
-                            tablet: 10,
-                            veryNarrow: 3,
-                          ),
-                        ),
-                        Text(
-                          'Баримт харах',
-                          style: TextStyle(
-                            fontSize: context.responsiveFontSize(
-                              small: 13,
-                              medium: 14,
-                              large: 15,
-                              tablet: 16,
-                              veryNarrow: 12,
-                            ),
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onShowVATReceipt,
+                icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                label: const Text('И-Баримт харах'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.deepGreen,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                  elevation: 4,
+                  shadowColor: AppColors.deepGreen.withOpacity(0.3),
                 ),
               ),
             ),
@@ -1249,103 +409,30 @@ class InvoiceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoText(BuildContext context, String text) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: isVerySmallScreen ? 4 : (isSmallScreen ? 5 : 6),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: context.textPrimaryColor,
-          fontSize: context.responsiveFontSize(
-            small: 13,
-            medium: 14,
-            large: 15,
-            tablet: 16,
-            veryNarrow: 11,
+  Widget _buildModernChargeRow(BuildContext context, String label, double amount, {bool isStartingBalance = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isStartingBalance ? context.textPrimaryColor : context.textSecondaryColor,
+              fontSize: 13.sp,
+              fontWeight: isStartingBalance ? FontWeight.w600 : FontWeight.w500,
+            ),
           ),
-          height: 1.3,
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    if (value.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          small: 3,
-          medium: 4,
-          large: 5,
-          tablet: 6,
-          veryNarrow: 2,
-        ),
-      ),
-      child: RichText(
-        text: TextSpan(
+        Text(
+          '${formatNumber(amount, 2)}₮',
           style: TextStyle(
             color: context.textPrimaryColor,
-            fontSize: context.responsiveFontSize(
-              small: 12,
-              medium: 13,
-              large: 14,
-              tablet: 15,
-              veryNarrow: 11,
-            ),
-            height: 1.3,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Roboto', // Mono-like spacing for numbers if available
           ),
-          children: [
-            TextSpan(
-              text: '$label ',
-              style: TextStyle(color: context.textSecondaryColor),
-            ),
-            TextSpan(text: value),
-          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPriceRow(BuildContext context, String label, String amount) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        vertical: isVerySmallScreen ? 4 : (isSmallScreen ? 5 : 6),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 12,
-                  medium: 13,
-                  large: 14,
-                  tablet: 15,
-                  veryNarrow: 10,
-                ),
-              ),
-            ),
-          ),
-          Text(
-            amount,
-            style: TextStyle(
-              color: AppColors.deepGreen,
-              fontSize: context.responsiveFontSize(
-                small: 13,
-                medium: 14,
-                large: 15,
-                tablet: 16,
-                veryNarrow: 11,
-              ),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

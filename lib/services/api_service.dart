@@ -14,8 +14,8 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://amarhome.mn/api';
-  static const String deleteBaseUrl = 'https://amarhome.mn';
+  static const String baseUrl = 'http://103.236.194.106:8084';
+  static const String deleteBaseUrl = 'http://103.236.194.106:8084';
   static const String walletApiBaseUrl = 'https://api.bpay.mn/v1';
 
   // Helper method to wrap HTTP calls with better error handling
@@ -486,10 +486,36 @@ class ApiService {
     }
   }
 
-  static Future<List<String>> getWalletToots(String bairId) async {
+  static Future<List<String>> getWalletOrts(String bairId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/walletAddress/toots/$bairId'),
+        Uri.parse('$baseUrl/walletAddress/orts/$bairId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['data'] != null && data['data'] is List) {
+          return List<String>.from(data['data'].map((i) => i.toString()));
+        }
+        return [];
+      } else {
+        throw Exception('Орц авахад алдаа гарлаа: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Орц авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<List<String>> getWalletToots(String bairId, {String? orts}) async {
+    try {
+      String url = '$baseUrl/walletAddress/toots/$bairId';
+      if (orts != null && orts.isNotEmpty) {
+        url += '?orts=$orts';
+      }
+      final response = await http.get(
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
       );
       await _checkTokenExpiry(response);
@@ -512,6 +538,7 @@ class ApiService {
 
   // Biller Services
   static Future<List<Map<String, dynamic>>> getWalletBillers() async {
+    return []; // Temporarily disabled for testing
     try {
       final headers = await getWalletApiHeaders();
       final response = await http.get(
@@ -703,6 +730,7 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getWalletBillingList({
     bool forceRefresh = false,
   }) async {
+    return []; // Temporarily disabled for testing
     // User-specific billing data must always be fetched fresh.
 
     try {
@@ -746,6 +774,7 @@ class ApiService {
     required String billingId,
     bool forceRefresh = false,
   }) async {
+    return {}; // Temporarily disabled for testing
     // User-specific billing details must always be fetched fresh.
 
     try {
@@ -2541,7 +2570,7 @@ class ApiService {
 
           if (phone.isNotEmpty &&
               !user['mail'].toString().endsWith('@amarhome.mn')) {
-            _autoRegisterWallet(phone, user['mail'].toString());
+            // _autoRegisterWallet(phone, user['mail'].toString()); // Temporarily disabled
           }
         }
 
@@ -2745,12 +2774,9 @@ class ApiService {
 
   static Future<Map<String, dynamic>> fetchGeree(String orshinSuugchId) async {
     try {
-      final authHeaders = await getAuthHeaders();
-      final headers = {
-        ...authHeaders,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-      };
+      final headers = await getAuthHeaders();
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Pragma'] = 'no-cache';
 
       final uri = Uri.parse('$baseUrl/geree').replace(
         queryParameters: {
@@ -2776,44 +2802,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> fetchNekhemjlekh({
-    required int khuudasniiDugaar,
-    required int khuudasniiKhemjee,
-  }) async {
-    try {
-      final headers = await getAuthHeaders();
 
-      final uri = Uri.parse('$baseUrl/nekhemjlekhiinTuukh').replace(
-        queryParameters: {
-          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-        },
-      );
-      final response = await http.get(uri, headers: headers);
-      await _checkTokenExpiry(response);
-
-      if (response.statusCode == 200) {
-        try {
-          final data = json.decode(response.body);
-
-          if (data is String) {
-            print('API returned string instead of JSON: $data');
-            return {'jagsaalt': []};
-          }
-          return data;
-        } catch (e) {
-          // JSON parsing failed
-          return {'jagsaalt': []};
-        }
-      } else {
-        throw Exception(
-          'Нэхэмжлэхийн мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      print('Error fetching nekhemjlekh: $e');
-      throw Exception('Нэхэмжлэхийн мэдээлэл татахад алдаа гарлаа: $e');
-    }
-  }
 
   static Future<Map<String, dynamic>> fetchNekhemjlekhiinTuukh({
     required String gereeniiDugaar,
@@ -2821,12 +2810,9 @@ class ApiService {
     int khuudasniiKhemjee = 1000,
   }) async {
     try {
-      final authHeaders = await getAuthHeaders();
-      final headers = {
-        ...authHeaders,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-      };
+      final headers = await getAuthHeaders();
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Pragma'] = 'no-cache';
 
       // Include baiguullagiinId so backend can find the correct DB connection
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -2881,96 +2867,206 @@ class ApiService {
     }
   }
 
-  /// Fetch gereeniiTulukhAvlaga (avlaga + ekhniiUldegdel) for merging with invoices.
-  /// Matches web "Үйлчилгээний нэхэмжлэх" which merges this data for display.
-  static Future<Map<String, dynamic>> fetchGereeniiHistoryLedger({
+  /// Fetch detailed ledger items (charges and payments)
+  static Future<Map<String, dynamic>> fetchGuilgeeAvlaguud({
     required String gereeniiId,
     required String baiguullagiinId,
-    String? barilgiinId,
-  }) async {
-    try {
-      final authHeaders = await getAuthHeaders();
-      final uri = Uri.parse('$baseUrl/geree/$gereeniiId/history-ledger')
-          .replace(
-            queryParameters: {
-              'baiguullagiinId': baiguullagiinId,
-              if (barilgiinId != null) 'barilgiinId': barilgiinId,
-              '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-            },
-          );
-      final response = await http.get(uri, headers: authHeaders);
-      await _checkTokenExpiry(response);
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      }
-      throw Exception('Ledger fetch failed: ${response.statusCode}');
-    } catch (e) {
-      throw Exception('Ledger fetch failed: $e');
-    }
-  }
-
-  static Future<Map<String, dynamic>> fetchGereeniiTulukhAvlaga({
-    required String baiguullagiinId,
-    String? gereeniiDugaar,
-    String? orshinSuugchId,
-    String? barilgiinId,
-    String? gereeniiId,
     int khuudasniiDugaar = 1,
-    int khuudasniiKhemjee = 500,
+    int khuudasniiKhemjee = 1000,
   }) async {
     try {
-      final authHeaders = await getAuthHeaders();
-      final headers = {
-        ...authHeaders,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
+      final headers = await getAuthHeaders();
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Pragma'] = 'no-cache';
+
+      final query = {
+        'gereeniiId': gereeniiId,
+        'baiguullagiinId': baiguullagiinId,
       };
 
-      final query = <String, dynamic>{'baiguullagiinId': baiguullagiinId};
-      if (gereeniiId != null && gereeniiId.isNotEmpty) {
-        query['gereeniiId'] = gereeniiId;
-      }
-      if (gereeniiDugaar != null && gereeniiDugaar.isNotEmpty) {
-        query['gereeniiDugaar'] = gereeniiDugaar;
-      }
-      if (orshinSuugchId != null && orshinSuugchId.isNotEmpty) {
-        query['orshinSuugchId'] = orshinSuugchId;
-      }
-      if (barilgiinId != null && barilgiinId.isNotEmpty) {
-        query['barilgiinId'] = barilgiinId;
-      }
-
-      final queryJson = json.encode(query);
-      final uri = Uri.parse('$baseUrl/gereeniiTulukhAvlaga').replace(
+      final uri = Uri.parse('$baseUrl/guilgeeAvlaguud').replace(
         queryParameters: {
-          'query': queryJson,
-          'baiguullagiinId': baiguullagiinId,
+          'query': json.encode(query),
           'khuudasniiDugaar': khuudasniiDugaar.toString(),
           'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
           '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+          'baiguullagiinId': baiguullagiinId,
         },
       );
 
       final response = await http.get(uri, headers: headers);
-
       await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
-        try {
-          final data = json.decode(response.body);
-          if (data is String) return {'jagsaalt': []};
-          return data is Map<String, dynamic> ? data : {'jagsaalt': []};
-        } catch (e) {
-          print(
-            'JSON parsing failed for gereeniiTulukhAvlaga: ${response.body}',
-          );
-          return {'jagsaalt': []};
-        }
+        final data = json.decode(response.body);
+        if (data is String) return {'jagsaalt': []};
+        return data is Map<String, dynamic> ? data : {'jagsaalt': []};
       }
       return {'jagsaalt': []};
     } catch (e) {
-      print('Error fetching gereeniiTulukhAvlaga: $e');
+      print('Error fetching guilgeeAvlaguud: $e');
       return {'jagsaalt': []};
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchUldegdelBodyo({
+    required String gereeniiId,
+    required String baiguullagiinId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+
+      final body = {
+        'baiguullagiinId': baiguullagiinId,
+        'gereeniiId': gereeniiId,
+        '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+
+      final uri = Uri.parse('$baseUrl/uldegdelBodyo');
+
+      final response = await http.post(
+        uri,
+        headers: headers,
+        body: json.encode(body),
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Backend returns: { success: true, summary: { totalTulbur, ... }, items: [...] }
+        final List<dynamic> items = data['items'] ?? data['jagsaalt'] ?? data['result'] ?? [];
+        final summary = data['summary'] ?? {};
+        
+        return {
+          'jagsaalt': items,
+          'summary': summary,
+          'totalUldegdel': summary['uldegdel'] ?? 0.0,
+        };
+      }
+      return {'jagsaalt': [], 'totalUldegdel': 0.0};
+    } catch (e) {
+      print('Error fetching uldegdelBodyo: $e');
+      return {'jagsaalt': [], 'totalUldegdel': 0.0};
+    }
+  }
+
+  /// Unified fetch that merges invoices with their corresponding ledger items
+  static Future<Map<String, dynamic>> fetchInvoicesWithItems({
+    required String gereeniiDugaar,
+    required String gereeniiId,
+    required String baiguullagiinId,
+  }) async {
+    try {
+      // 1. Fetch Invoices (nekhemjlekhiinTuukh)
+      final invoicesResponse = await fetchNekhemjlekhiinTuukh(
+        gereeniiDugaar: gereeniiDugaar,
+      );
+      final List<dynamic> invoices = invoicesResponse['jagsaalt'] ?? [];
+
+      // 2. Fetch Ledger Items (uldegdelBodyo)
+      final itemsResponse = await fetchUldegdelBodyo(
+        gereeniiId: gereeniiId,
+        baiguullagiinId: baiguullagiinId,
+      );
+      final List<dynamic> items = itemsResponse['jagsaalt'] ?? [];
+      final summary = itemsResponse['summary'] ?? {};
+      final List<dynamic> nekhemjlekhuudSummary = summary['nekhemjlekhuud'] ?? [];
+
+      final Set<String> linkedItemIds = {};
+      for (var invoice in invoices) {
+        final invoiceId = invoice['_id'];
+        final linked = items
+            .where((item) => item['nekhemjlekhId'] == invoiceId)
+            .toList();
+        
+        // Ensure medeelel exists for model compatibility
+        if (invoice['medeelel'] == null) {
+          invoice['medeelel'] = {'zardluud': []};
+        }
+        invoice['medeelel']['guilgeenuud'] = linked;
+        
+        // Also keep at root for legacy reasons
+        invoice['guilgeenuud'] = linked;
+        
+        // KEY FIX: Update the invoice uldegdel from the authoritative ledger summary
+        final summaryMatch = nekhemjlekhuudSummary.firstWhere(
+          (s) => s['nekhemjlekhId'] == invoiceId,
+          orElse: () => null,
+        );
+        if (summaryMatch != null) {
+          final ledgerUldegdel = (summaryMatch['uldegdel'] ?? 0.0).toDouble();
+          invoice['uldegdel'] = ledgerUldegdel;
+          // Synchronize niitTulbur as well to prevent legacy UI components from showing the old total
+          invoice['niitTulbur'] = ledgerUldegdel;
+
+        }
+
+        for (var item in linked) {
+          linkedItemIds.add(item['_id']?.toString() ?? '');
+        }
+      }
+
+      final standaloneItems = items.where((item) {
+        final id = item['_id']?.toString() ?? '';
+        return !linkedItemIds.contains(id);
+      }).toList();
+
+      for (var item in standaloneItems) {
+        // Create a synthetic invoice for standalone items
+        invoices.add({
+          '_id': item['_id']?.toString() ?? 'standalone-${item['ognoo']}',
+          'baiguullagiinNer': 'Авлага / Гүйцэтгэл',
+          'ovog': '',
+          'ner': '',
+          'register': '',
+          'khayag': '',
+          'toot': '',
+          'gereeniiDugaar': gereeniiDugaar,
+          'ognoo': item['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
+          'nekhemjlekhiinOgnoo':
+              item['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
+          'niitTulbur': (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
+              (item['tulsunDun'] ?? 0.0).toDouble(),
+          'uldegdel': (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
+              (item['tulsunDun'] ?? 0.0).toDouble(),
+          'tuluv': 'Төлөөгүй',
+          'guilgeenuud': [item],
+          'isStandaloneAvlaga': true,
+        });
+      }
+
+
+      // 4. Calculate authoritative total balance and aldangi
+      double manualTotalUldegdel = 0;
+      double totalAldangi = 0;
+      
+      for (var item in items) {
+        final base = (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble();
+        final paid = (item['tulsunDun'] ?? 0.0).toDouble();
+        manualTotalUldegdel += (base - paid);
+      }
+      
+      for (var inv in invoices) {
+        totalAldangi += (inv['aldangi'] ?? 0.0).toDouble();
+      }
+
+      // Use server-provided totalUldegdel if it looks valid, otherwise use manual calculation
+      final serverTotalUldegdel = itemsResponse['totalUldegdel'];
+      final finalTotalUldegdel = (serverTotalUldegdel != null && serverTotalUldegdel != 0) 
+          ? serverTotalUldegdel.toDouble() 
+          : manualTotalUldegdel;
+
+      return {
+        'jagsaalt': invoices,
+        'items': items,
+        'totalUldegdel': finalTotalUldegdel,
+        'totalAldangi': totalAldangi,
+      };
+    } catch (e) {
+      print('Error in fetchInvoicesWithItems: $e');
+      rethrow;
     }
   }
 
@@ -3201,12 +3297,15 @@ class ApiService {
         'tukhainBaaziinKholbolt': dbKholbolt,
       };
 
-      print('🔍 [API] Calling qpayShalgay: $bodyMap');
+      print('[QPAY-LOG] Checking status: $uri');
+      print('[QPAY-LOG] Status check body: $bodyMap');
       final body = json.encode(bodyMap);
 
       final response = await http.post(uri, headers: headers, body: body);
 
       await _checkTokenExpiry(response);
+
+      print('[QPAY-LOG] Status check response code: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3300,15 +3399,15 @@ class ApiService {
     String? nekhemjlekhiinId, // Single invoice ID (for Custom QPay)
     String? dansniiDugaar, // Account number (for Custom QPay)
     String? burtgeliinDugaar, // Registration number (for Custom QPay)
-    String? customerNo, // B2C phone
     String? customerTin, // B2B registration number
+    String? gereeniiId, // Residency contract ID
   }) async {
     try {
       final headers = await getAuthHeaders();
 
       // Build request body based on type (Custom QPay vs Wallet QPay)
       final Map<String, dynamic> requestBody = {
-        'dun': dun.toString(), // Amount as string
+        'dun': dun, // Amount as double (some APIs are strict about type)
       };
 
       // Custom QPay (OWN_ORG) - requires baiguullagiinId
@@ -3336,12 +3435,12 @@ class ApiService {
           requestBody['zakhialgiinDugaar'] = zakhialgiinDugaar;
         }
 
-        if (customerNo != null && customerNo.isNotEmpty) {
-          requestBody['customerNo'] = customerNo;
-        }
-
         if (customerTin != null && customerTin.isNotEmpty) {
           requestBody['customerTin'] = customerTin;
+        }
+
+        if (gereeniiId != null && gereeniiId.isNotEmpty) {
+          requestBody['gereeniiId'] = gereeniiId;
         }
       }
       // Wallet QPay - DEPRECATED: Use createWalletQPayPayment() instead
@@ -3358,8 +3457,8 @@ class ApiService {
       }
 
       final endpoint = '$baseUrl/qpayGargaya';
-      print('🔍 [QPAY] Calling OWN_ORG QPay endpoint: $endpoint');
-      print('🔍 [QPAY] Request body: ${json.encode(requestBody)}');
+      print('[QPAY-LOG] Calling OWN_ORG QPay endpoint: $endpoint');
+      print('[QPAY-LOG] Request body: ${json.encode(requestBody)}');
 
       final response = await http.post(
         Uri.parse(endpoint),
@@ -3369,10 +3468,10 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-      print('🔍 [QPAY] Response status: ${response.statusCode}');
+      print('[QPAY-LOG] Response status: ${response.statusCode}');
       if (response.statusCode != 200 && response.statusCode != 201) {
         print(
-          '🔍 [QPAY] Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+          '[QPAY-LOG] Error response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
         );
       }
 
@@ -3497,8 +3596,8 @@ class ApiService {
       if (dansniiDugaar != null) requestBody['dansniiDugaar'] = dansniiDugaar;
 
       final endpoint = '$baseUrl/walletQpay/create';
-      print('💳 [WALLET QPAY] Creating payment: $endpoint');
-      print('💳 [WALLET QPAY] Body: ${json.encode(requestBody)}');
+      print('[QPAY-LOG] [WALLET] Creating payment: $endpoint');
+      print('[QPAY-LOG] [WALLET] Body: ${json.encode(requestBody)}');
 
       final response = await http.post(
         Uri.parse(endpoint),
@@ -3508,7 +3607,7 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-      print('💳 [WALLET QPAY] Status: ${response.statusCode}');
+      print('[QPAY-LOG] [WALLET] Status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body) as Map<String, dynamic>;
@@ -3590,6 +3689,7 @@ class ApiService {
 
   /// Fetch Wallet QPay payment history list (with 15s cache)
   static Future<List<Map<String, dynamic>>> fetchWalletQpayList() async {
+    return []; // Temporarily disabled for testing
     // Payment history is user-specific. Always fetch fresh.
     try {
       final headers = await getAuthHeaders();
@@ -3678,7 +3778,7 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/walletQpay/wallet-check/$baiguullagiinId/$walletPaymentId',
       );
-      print('🔍 [WALLET QPAY] Checking full wallet status: $uri');
+      print('[QPAY-LOG] [WALLET] Checking full wallet status: $uri');
 
       final response = await http.get(uri, headers: headers);
 
