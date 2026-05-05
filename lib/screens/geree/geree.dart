@@ -34,6 +34,7 @@ class _GereeState extends State<Geree> {
   model.GereeResponse? _gereeData;
   AjiltanResponse? _ajiltanData;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int _selectedGereeIndex = 0;
 
   @override
   void initState() {
@@ -359,8 +360,12 @@ class _GereeState extends State<Geree> {
       return const SizedBox.shrink();
     }
 
-    // Show full invoice for the first contract
-    final geree = _gereeData!.jagsaalt.first;
+    // Clamp selected index
+    if (_selectedGereeIndex >= _gereeData!.jagsaalt.length) {
+      _selectedGereeIndex = 0;
+    }
+    final geree = _gereeData!.jagsaalt[_selectedGereeIndex];
+    final hasMultiple = _gereeData!.jagsaalt.length > 1;
 
     return SingleChildScrollView(
       padding: context.responsivePadding(
@@ -373,25 +378,80 @@ class _GereeState extends State<Geree> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Toot/Bair selector when multiple contracts exist
+          if (hasMultiple) ...[
+            SizedBox(
+              height: 80.h,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _gereeData!.jagsaalt.length,
+                separatorBuilder: (_, __) => SizedBox(width: 10.w),
+                itemBuilder: (context, index) {
+                  final g = _gereeData!.jagsaalt[index];
+                  final isSelected = index == _selectedGereeIndex;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedGereeIndex = index),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                      decoration: BoxDecoration(
+                        gradient: isSelected
+                            ? LinearGradient(colors: [AppColors.deepGreen, AppColors.deepGreenAccent])
+                            : null,
+                        color: isSelected ? null : (context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white),
+                        borderRadius: BorderRadius.circular(14.r),
+                        border: Border.all(
+                          color: isSelected ? Colors.transparent : AppColors.deepGreen.withOpacity(0.3),
+                          width: 1,
+                        ),
+                        boxShadow: isSelected
+                            ? [BoxShadow(color: AppColors.deepGreen.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]
+                            : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            g.bairNer.isNotEmpty ? g.bairNer : 'Байр',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? Colors.white : context.textPrimaryColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            'Тоот: ${g.toot}',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w500,
+                              color: isSelected ? Colors.white70 : context.textSecondaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: context.responsiveSpacing(small: 16, medium: 20, large: 24, tablet: 28, veryNarrow: 12)),
+          ],
+
           // Modern Hero Card with Gradient
           _buildHeroCard(geree),
           SizedBox(
             height: context.responsiveSpacing(
-              small: 24,
-              medium: 28,
-              large: 32,
-              tablet: 36,
-              veryNarrow: 16,
+              small: 24, medium: 28, large: 32, tablet: 36, veryNarrow: 16,
             ),
           ),
 
           SizedBox(
             height: context.responsiveSpacing(
-              small: 20,
-              medium: 24,
-              large: 28,
-              tablet: 32,
-              veryNarrow: 14,
+              small: 20, medium: 24, large: 28, tablet: 32, veryNarrow: 14,
             ),
           ),
 
@@ -427,11 +487,7 @@ class _GereeState extends State<Geree> {
 
           SizedBox(
             height: context.responsiveSpacing(
-              small: 20,
-              medium: 24,
-              large: 28,
-              tablet: 32,
-              veryNarrow: 14,
+              small: 20, medium: 24, large: 28, tablet: 32, veryNarrow: 14,
             ),
           ),
 
@@ -456,11 +512,7 @@ class _GereeState extends State<Geree> {
                   ),
                   SizedBox(
                     width: context.responsiveSpacing(
-                      small: 12,
-                      medium: 14,
-                      large: 16,
-                      tablet: 18,
-                      veryNarrow: 8,
+                      small: 12, medium: 14, large: 16, tablet: 18, veryNarrow: 8,
                     ),
                   ),
                   Expanded(
@@ -477,11 +529,7 @@ class _GereeState extends State<Geree> {
 
           SizedBox(
             height: context.responsiveSpacing(
-              small: 20,
-              medium: 24,
-              large: 28,
-              tablet: 32,
-              veryNarrow: 14,
+              small: 20, medium: 24, large: 28, tablet: 32, veryNarrow: 14,
             ),
           ),
 
@@ -497,11 +545,7 @@ class _GereeState extends State<Geree> {
                       if (_ajiltanData!.jagsaalt.indexOf(ajiltan) > 0)
                         SizedBox(
                           height: context.responsiveSpacing(
-                            small: 16,
-                            medium: 18,
-                            large: 20,
-                            tablet: 22,
-                            veryNarrow: 12,
+                            small: 16, medium: 18, large: 20, tablet: 22, veryNarrow: 12,
                           ),
                         ),
                       _buildEmployeeCard(ajiltan),
@@ -514,69 +558,9 @@ class _GereeState extends State<Geree> {
           if (_ajiltanData != null && _ajiltanData!.jagsaalt.isNotEmpty)
             SizedBox(
               height: context.responsiveSpacing(
-                small: 20,
-                medium: 24,
-                large: 28,
-                tablet: 32,
-                veryNarrow: 14,
+                small: 20, medium: 24, large: 28, tablet: 32, veryNarrow: 14,
               ),
             ),
-
-          // If there are multiple contracts, show selector
-          if (_gereeData!.jagsaalt.length > 1) ...[
-            SizedBox(height: 16.h),
-            Container(
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.deepGreen.withOpacity(0.15),
-                    AppColors.deepGreenAccent.withOpacity(0.08),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(
-                  color: AppColors.deepGreen.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8.w),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.deepGreen,
-                          AppColors.deepGreenAccent,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    child: Icon(
-                      Icons.info_outline_rounded,
-                      color: Colors.white,
-                      size: 16.sp,
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Text(
-                      'Таньд ${_gereeData!.jagsaalt.length} гэрээ байна',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.1,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

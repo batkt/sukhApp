@@ -12,7 +12,8 @@ import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
-import 'package:sukh_app/utils/format_util.dart' show formatInvoiceDate;
+import 'package:sukh_app/utils/format_util.dart'
+    show formatInvoiceDate, formatBillPeriod;
 
 class BillingDetailPage extends StatefulWidget {
   final Map<String, dynamic> billing;
@@ -59,63 +60,81 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     Map<String, dynamic> data,
     String? billingId,
   ) {
-    if (billingId == null)
+    if (billingId == null) {
       return {'bills': <Map<String, dynamic>>[], 'billingName': null};
-
-    if (data['billingId']?.toString() == billingId &&
-        data['newBills'] is List) {
-      final list = data['newBills'] as List;
-      if (list.isEmpty || (list[0] is Map && list[0].containsKey('billId'))) {
-        return {
-          'bills': List<Map<String, dynamic>>.from(list),
-          'billingName': data['billingName'],
-        };
-      }
     }
 
-    if (data.containsKey('data') && data['data'] is List) {
-      final itemList = data['data'] as List;
-      final matchedItem = itemList.firstWhere(
-        (item) => item is Map && item['billingId']?.toString() == billingId,
-        orElse: () => null,
-      );
-      if (matchedItem is Map && matchedItem['newBills'] is List) {
-        return {
-          'bills': List<Map<String, dynamic>>.from(matchedItem['newBills']),
-          'billingName': matchedItem['billingName'],
-        };
-      }
+    // Path 1: Direct structure (Data is the billing object)
+    final directBills = data['newBills'] ?? data['bills'];
+    if (directBills is List && (data['billingId']?.toString() == billingId || data['billingId'] == null)) {
+      print('🚀 [EXTRACT] Path 1: Found ${directBills.length} bills');
+      return {
+        'bills': List<Map<String, dynamic>>.from(directBills),
+        'billingName': data['billingName'],
+      };
     }
 
-    if (data['newBills'] is List) {
-      final itemList = data['newBills'] as List;
-      if (itemList.isNotEmpty) {
-        final firstItem = itemList[0];
-        if (firstItem is Map && firstItem.containsKey('billId')) {
-          return {
-            'bills': List<Map<String, dynamic>>.from(itemList),
-            'billingName': data['billingName'],
-          };
-        } else if (firstItem is Map && firstItem.containsKey('billingId')) {
-          final matchedItem = itemList.firstWhere(
-            (item) => item is Map && item['billingId']?.toString() == billingId,
-            orElse: () => null,
-          );
-          if (matchedItem is Map && matchedItem['newBills'] is List) {
+    // Path 2: Nested in 'data' field (User's JSON structure)
+    if (data['data'] != null) {
+      final rawData = data['data'];
+      if (rawData is List) {
+        final matchedItem = rawData.firstWhere(
+          (item) => item is Map && (item['billingId']?.toString() == billingId),
+          orElse: () => rawData.isNotEmpty ? rawData[0] : null,
+        );
+        if (matchedItem is Map) {
+          final billsList = matchedItem['newBills'] ?? matchedItem['bills'];
+          if (billsList is List) {
+            print('🚀 [EXTRACT] Path 2: Found ${billsList.length} bills from nested data');
             return {
-              'bills': List<Map<String, dynamic>>.from(matchedItem['newBills']),
+              'bills': List<Map<String, dynamic>>.from(billsList),
               'billingName': matchedItem['billingName'],
             };
           }
         }
-      } else {
-        return {
-          'bills': <Map<String, dynamic>>[],
-          'billingName': data['billingName'],
-        };
+      } else if (rawData is Map) {
+        final billsList = rawData['newBills'] ?? rawData['bills'];
+        if (billsList is List) {
+          print('🚀 [EXTRACT] Path 2 (Map): Found ${billsList.length} bills');
+          return {
+            'bills': List<Map<String, dynamic>>.from(billsList),
+            'billingName': rawData['billingName'],
+          };
+        }
       }
     }
 
+    // Path 3: Root newBills is a list of billings
+    if (data['newBills'] is List) {
+      final itemList = data['newBills'] as List;
+      if (itemList.isNotEmpty) {
+        final first = itemList[0];
+        if (first is Map && first.containsKey('billId')) {
+          print('🚀 [EXTRACT] Path 3: Root newBills is a flat list of bills');
+          return {
+            'bills': List<Map<String, dynamic>>.from(itemList),
+            'billingName': data['billingName'],
+          };
+        }
+        
+        final matchedItem = itemList.firstWhere(
+          (item) => item is Map && item['billingId']?.toString() == billingId,
+          orElse: () => itemList[0],
+        );
+        if (matchedItem is Map) {
+          final billsList = matchedItem['newBills'] ?? matchedItem['bills'];
+          if (billsList is List) {
+            print('🚀 [EXTRACT] Path 3: Found ${billsList.length} bills from nested list');
+            return {
+              'bills': List<Map<String, dynamic>>.from(billsList),
+              'billingName': matchedItem['billingName'],
+            };
+          }
+        }
+      }
+    }
+
+    print('🚀 [EXTRACT] No bills found for $billingId');
     return {'bills': <Map<String, dynamic>>[], 'billingName': null};
   }
 
@@ -141,10 +160,6 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             extracted['billingName']?.toString() ??
             billingData['billingName']?.toString() ??
             'Хэрэглээний төлбөр';
-
-        // KEY FIX: Filter out bills the server already considers not-new (isNew=false)
-        // This handles PENDING/PAID states where server sets isNew=false
-        bills = bills.where((bill) => bill['isNew'] != false).toList();
 
         // Add metadata to each bill
         for (var bill in bills) {
@@ -212,7 +227,13 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       for (var billing in targetBillingList) {
         final billingId = billing['billingId']?.toString();
         final source = billing['source']?.toString();
-        if (billingId == null) continue;
+        
+        print('🚀 [DETAIL] Processing billing: $billingId, source: $source');
+        
+        if (billingId == null) {
+          print('🚀 [DETAIL] Skipping billing: billingId is null');
+          continue;
+        }
 
         try {
           if (source == 'OWN_ORG') {
@@ -324,6 +345,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       setState(() {
         _allBillingsData = targetBillingList;
         _allBills = collectedBills;
+        print('🚀 [DETAIL] _allBills count after load: ${_allBills.length}');
         // Auto-select first 5 bills initially
         int count = 0;
         for (var bill in _allBills) {
@@ -424,7 +446,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
               _allBills.removeWhere((bill) {
                 final bNo = bill['billNo']?.toString() ?? '';
                 final bId = bill['billId']?.toString() ?? '';
-                return paymentBillNos.contains(bNo) || paymentBillNos.contains(bId);
+                final match = paymentBillNos.contains(bNo) || paymentBillNos.contains(bId);
+                if (match) {
+                  print('🚀 [DETAIL] Removing bill from view as it is $state: $bNo / $bId');
+                }
+                return match;
               });
               // Also deselect them
               for (var no in paymentBillNos) {
@@ -582,22 +608,25 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             qpayResponse['qr_text']?.toString();
         final qrImage = qpayResponse['qr_image']?.toString();
         final urls = qpayResponse['urls'] as List<dynamic>?;
+        final responseSource = qpayResponse['source']?.toString() ?? source;
 
         final paid = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (ctx) => QPayQRModal(
               qrText: qrText,
-              qrImageWallet: source == 'WALLET_API' ? qrImage : null,
-              qrImageOwnOrg: source == 'OWN_ORG' ? qrImage : null,
+              qrImageWallet: (responseSource == 'WALLET_API' || responseSource == 'WALLET_QPAY') ? qrImage : null,
+              qrImageOwnOrg: responseSource == 'OWN_ORG' ? qrImage : null,
               urls: urls,
               amount: paymentAmount,
               walletPaymentId: walletPaymentId,
               invoiceNumber: qpayInvoiceId,
+
               closeOnSuccess: true,
               onCheckPaymentAsync: () async {
-                print('🚀 [BillingDetail] onCheckPaymentAsync started. source=$source, qpayInvoiceId=$qpayInvoiceId, walletPaymentId=$walletPaymentId');
+                print('🚀 [BillingDetail] onCheckPaymentAsync started. source=$responseSource, qpayInvoiceId=$qpayInvoiceId, walletPaymentId=$walletPaymentId');
                 
-                if (source == 'WALLET_API' && walletPaymentId != null) {
+                if ((responseSource == 'WALLET_API' || responseSource == 'WALLET_QPAY') && walletPaymentId != null) {
+
                   try {
                     // Check the full wallet status including transactions
                     final statusRes = await ApiService.walletQpayWalletCheck(
@@ -682,7 +711,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
         if (paid == true && mounted) {
           // Show success for WALLET payments (receipts)
-          if (source == 'WALLET_API' && walletPaymentId != null) {
+          if ((responseSource == 'WALLET_API' || responseSource == 'WALLET_QPAY') && walletPaymentId != null) {
+
             try {
               final paymentData = await ApiService.walletQpayGetPayment(
                 walletPaymentId: walletPaymentId,
@@ -1092,8 +1122,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                             final billLateFee =
                                 (bill['billLateFee'] as num?)?.toDouble() ??
                                 0.0;
-                            final billPeriod =
-                                bill['billPeriod']?.toString() ?? '';
+                            final billPeriod = formatBillPeriod(
+                                bill['billPeriod']?.toString() ?? '');
                             final billtype = bill['billtype']?.toString() ?? '';
                             final billerName =
                                 bill['billerName']?.toString() ??
@@ -1236,7 +1266,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                             ),
                                             SizedBox(height: 2.h),
                                             Text(
-                                              billPeriod,
+                                              'Төлбөрийн сар: $billPeriod',
                                               style: TextStyle(
                                                 color: textSecondary
                                                     .withOpacity(0.4),
@@ -1509,40 +1539,38 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           ),
           SizedBox(width: 20.w),
           Expanded(
-            child: SizedBox(
-              height: 54.h,
-              child: ElevatedButton(
-                onPressed: _isProcessingPayment ||
-                        _selectedBillIds.isEmpty ||
-                        _totalSelectedAmount <= 0
-                    ? null
-                    : _processPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: primaryColor.withOpacity(0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  elevation: 0,
+            child: ElevatedButton(
+              onPressed: _isProcessingPayment ||
+                      _selectedBillIds.isEmpty ||
+                      _totalSelectedAmount <= 0
+                  ? null
+                  : _processPayment,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: primaryColor.withOpacity(0.3),
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
                 ),
-                child: _isProcessingPayment
-                    ? SizedBox(
-                        height: 20.w,
-                        width: 20.w,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Center(
-                        child: Text(
-                          'ТӨЛӨХ',
-                          style: TextStyle(fontSize: 14.sp, letterSpacing: 1.0),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                elevation: 0,
               ),
+              child: _isProcessingPayment
+                  ? SizedBox(
+                      height: 20.w,
+                      width: 20.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        'ТӨЛӨХ',
+                        style: TextStyle(fontSize: 14.sp, letterSpacing: 1.0),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
             ),
           ),
         ],

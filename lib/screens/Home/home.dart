@@ -113,6 +113,8 @@ class _BookingScreenState extends State<NuurKhuudas>
   double totalNiitTulbur = 0.0;
   double totalNiitAldangi = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final PageController _billerPageController = PageController();
+  final PageController _contractPageController = PageController();
 
   // New variables for invoice tracking
   int? nekhemjlekhUusgekhOgnoo;
@@ -128,7 +130,6 @@ class _BookingScreenState extends State<NuurKhuudas>
   // Billers
   List<Map<String, dynamic>> _billers = [];
   bool _isLoadingBillers = true;
-  final PageController _billerPageController = PageController();
 
   // Billing List
   List<Map<String, dynamic>> _billingList = [];
@@ -141,9 +142,8 @@ class _BookingScreenState extends State<NuurKhuudas>
   bool _isInitialBillingLoaded = false;
   bool _isNonOrgUser = false;
 
-  // GlobalKey to access BillingListSection state
-  // No longer needed since billing list is on its own page
-  // final GlobalKey<BillingListSectionState> _billingListSectionKey = ...
+  bool get hasAnyAddress => _billingList.isNotEmpty || 
+                         (_userProfile != null && _userProfile!['toots'] != null && (_userProfile!['toots'] as List).isNotEmpty);
 
   // Periodic refresh for balance (fallback when socket notification is missed)
   Timer? _balanceRefreshTimer;
@@ -282,6 +282,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     _balanceRefreshTimer = null;
     WidgetsBinding.instance.removeObserver(this);
     _billerPageController.dispose();
+    _contractPageController.dispose();
     _progressAnimationController.dispose();
     if (_notificationCallback != null) {
       SocketService.instance.removeNotificationCallback(_notificationCallback);
@@ -586,18 +587,16 @@ class _BookingScreenState extends State<NuurKhuudas>
             
             if (billingData.isNotEmpty && billingData['billingId'] != null) {
               // PRIORITY 1: Trust the server's pre-computed amount.
-              // The server sets newBillsAmount=0 when bills are PENDING/PAID.
-              final serverAmount = billingData['newBillsAmount'];
-              final serverAldangi = billingData['newBillsAldangi'];
-              if (serverAmount != null) {
+              final serverAmount = billingData['payableBillAmount'] ?? billingData['newBillsAmount'];
+              final serverAldangi = billingData['payableBillAldangi'] ?? billingData['newBillsAldangi'] ?? billingData['newBillsLateFee'];
+              
+              if (serverAmount != null && _parseNum(serverAmount) > 0) {
                 billingTotal = _parseNum(serverAmount);
                 billingAldangi = serverAldangi != null ? _parseNum(serverAldangi) : 0.0;
               } else {
-                // FALLBACK: Manual sum — skip bills marked isNew=false or in paid set
-                final newBills = billingData['newBills'] as List? ?? [];
-                for (var bill in newBills) {
-                  // Skip bills the server already considers not-new
-                  if (bill['isNew'] == false) continue;
+                // FALLBACK: Manual sum — skip ONLY bills found in recent paid set
+                final allBills = (billingData['newBills'] as List? ?? []) + (billingData['bills'] as List? ?? []);
+                for (var bill in allBills) {
                   final billId = bill['billId']?.toString();
                   final billNo = bill['billNo']?.toString();
                   if ((billId != null && recentlyPaidBillNos.contains(billId)) ||
@@ -605,7 +604,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     continue;
                   }
                   billingTotal += _parseNum(bill['billTotalAmount']);
-                  billingAldangi += _parseNum(bill['billLateFee'] ?? bill['billLateFeeAmount']);
+                  billingAldangi += _parseNum(bill['billLateFee'] ?? bill['billLateFeeAmount'] ?? 0);
                 }
               }
               updatedBilling['billingDetails'] = billingData;
@@ -636,6 +635,38 @@ class _BookingScreenState extends State<NuurKhuudas>
           totalAldangi += billingAldangi;
         }
         finalBillingList.add(billing);
+      }
+
+      // 4. Fallback: If no billings were found but user has 'toots' in profile, add them as placeholders
+      if (user?['toots'] != null && user!['toots'] is List) {
+        final profileToots = user['toots'] as List;
+        for (var toot in profileToots) {
+          final t = toot is Map<String, dynamic> ? toot : Map<String, dynamic>.from(toot as Map);
+          final billingId = t['billingId']?.toString();
+          
+          // Check if this billing is already in the list
+          bool alreadyExists = finalBillingList.any((b) => 
+            b['billingId']?.toString() == billingId || 
+            (b['gereeniiDugaar'] != null && b['gereeniiDugaar'] == t['walletCustomerCode'])
+          );
+          
+          if (!alreadyExists) {
+            finalBillingList.add({
+              'billingId': billingId,
+              'billingName': t['bairniiNer']?.toString() ?? 'Орон сууцны төлбөр',
+              'customerName': '${t['ovog'] ?? ''} ${t['ner'] ?? ''}'.trim(),
+              'bairniiNer': t['bairniiNer']?.toString() ?? '',
+              'tootNum': t['toot']?.toString() ?? '',
+              'perItemTotal': 0.0, // Will load detail on tap
+              'uldegdel': 0.0,
+              'perItemAldangi': 0.0,
+              'source': t['source'] ?? 'WALLET_API',
+              'isPlaceholder': true,
+              'baiguullagiinId': t['baiguullagiinId']?.toString() ?? currentBaiguullagiinId,
+              'barilgiinId': t['barilgiinId']?.toString() ?? currentBarilgiinId,
+            });
+          }
+        }
       }
 
       // If total is 0, double-check by fetching bills directly to ensure consistency with detail page
@@ -1127,6 +1158,8 @@ class _BookingScreenState extends State<NuurKhuudas>
     required VoidCallback onTapBilling,
     required String totalBalance,
     required String totalAldangi,
+    String? bairNer,
+    String? toot,
   }) {
     // Determine next invoice date from nekhemjlekhCron (if available)
     DateTime? nextInvoiceDate;
@@ -1269,8 +1302,12 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
 
     // Override styling for First Signup users (Bpay signups with no address yet)
-    bool hasAnyAddress = _billingList.isNotEmpty || 
-                         (_userProfile != null && _userProfile!['toots'] != null && (_userProfile!['toots'] as List).isNotEmpty);
+    
+    print('🏠 [HOME] _isNonOrgUser: $_isNonOrgUser, hasAnyAddress: $hasAnyAddress');
+    print('🏠 [HOME] _billingList length: ${_billingList.length}');
+    if (_userProfile != null) {
+      print('🏠 [HOME] _userProfile toots: ${_userProfile!['toots']}');
+    }
                          
     if (_isNonOrgUser && !hasAnyAddress) {
        accentColor = const Color(0xFF6C5CE7); // Premium Purple/Indigo
@@ -1293,7 +1330,33 @@ class _BookingScreenState extends State<NuurKhuudas>
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (bairNer != null || toot != null) ...[
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.home_work_rounded, size: 14.sp, color: Colors.white),
+                  SizedBox(width: 6.w),
+                  Text(
+                    '${bairNer ?? ""} - ${toot ?? ""} тоот',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16.h),
+          ],
           IntrinsicHeight(
             child: Row(
               children: [
@@ -1577,19 +1640,84 @@ class _BookingScreenState extends State<NuurKhuudas>
                     children: [
                       SizedBox(height: 4.h),
 
-                      // 1. Merged Remaining Days & Billing Box
+                      // 1. Merged Remaining Days & Billing Box - PageView for multiple contracts
                       if (_isNonOrgUser || 
                           (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ||
                           _billingList.isNotEmpty)
-                        _buildRemainingDaysWidget(
-                          _gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty 
-                              ? _gereeResponse!.jagsaalt.first 
-                              : null,
-                          onTapBilling: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) || _billingList.isNotEmpty
-                              ? _navigateToBillingList
-                              : () => context.push('/address_selection'),
-                          totalBalance: _formatNumberWithComma(totalNiitTulbur),
-                          totalAldangi: _formatNumberWithComma(totalNiitAldangi),
+                        Column(
+                          children: [
+                            SizedBox(
+                              height: (_isNonOrgUser && !hasAnyAddress) ? 220.h : 250.h,
+                              child: PageView.builder(
+                                controller: _contractPageController,
+                                itemCount: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
+                                    ? _gereeResponse!.jagsaalt.length
+                                    : 1,
+                                itemBuilder: (context, index) {
+                                  final g = (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
+                                      ? _gereeResponse!.jagsaalt[index]
+                                      : null;
+                                  
+                                  // Find the aggregated balance for this specific unit from finalBillingList
+                                  String unitBalance = _formatNumberWithComma(totalNiitTulbur);
+                                  String unitAldangi = _formatNumberWithComma(totalNiitAldangi);
+                                  
+                                  if (g != null) {
+                                    final billingItem = _billingList.firstWhere(
+                                      (b) => b['gereeniiDugaar'] == g.gereeniiDugaar,
+                                      orElse: () => {},
+                                    );
+                                    if (billingItem.isNotEmpty) {
+                                      unitBalance = _formatNumberWithComma(billingItem['uldegdel'] ?? 0.0);
+                                      unitAldangi = _formatNumberWithComma(billingItem['uldegdelAldangi'] ?? 0.0);
+                                    }
+                                  }
+
+                                  return Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                                    child: _buildRemainingDaysWidget(
+                                      g,
+                                      onTapBilling: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) || _billingList.isNotEmpty
+                                          ? _navigateToBillingList
+                                          : () => context.push('/address_selection'),
+                                      totalBalance: unitBalance,
+                                      totalAldangi: unitAldangi,
+                                      bairNer: g?.bairNer,
+                                      toot: g?.toot.toString(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            if (_gereeResponse != null && _gereeResponse!.jagsaalt.length > 1) ...[
+                              SizedBox(height: 12.h),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(_gereeResponse!.jagsaalt.length, (index) {
+                                  return AnimatedBuilder(
+                                    animation: _contractPageController,
+                                    builder: (context, child) {
+                                      double selectedness = 0.0;
+                                      if (_contractPageController.hasClients) {
+                                        selectedness = (1.0 - (_contractPageController.page! - index).abs()).clamp(0.0, 1.0);
+                                      } else if (index == 0) {
+                                        selectedness = 1.0;
+                                      }
+                                      return Container(
+                                        margin: EdgeInsets.symmetric(horizontal: 4.w),
+                                        height: 6.h,
+                                        width: 6.h + (selectedness * 12.w),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.deepGreen.withOpacity(0.2 + (selectedness * 0.8)),
+                                          borderRadius: BorderRadius.circular(100),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                }),
+                              ),
+                            ],
+                          ],
                         )
                       else
                         const SizedBox.shrink(),

@@ -165,6 +165,23 @@ class InvoiceCard extends StatelessWidget {
                                       fontWeight: FontWeight.w400,
                                     ),
                                   ),
+                                  if (invoice.bairNer.isNotEmpty || invoice.toot.isNotEmpty) ...[
+                                    SizedBox(height: 2.h),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.home_work_outlined, size: 12.sp, color: AppColors.deepGreen.withOpacity(0.6)),
+                                        SizedBox(width: 4.w),
+                                        Text(
+                                          '${invoice.bairNer} - ${invoice.toot} тоот',
+                                          style: TextStyle(
+                                            color: AppColors.deepGreen,
+                                            fontSize: 11.sp,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ],

@@ -14,9 +14,25 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://103.236.194.106:8084';
-  static const String deleteBaseUrl = 'http://103.236.194.106:8084';
+  static const String baseUrl = 'https://amarhome.mn/api';
+  static const String deleteBaseUrl = 'https://amarhome.mn/api';
   static const String walletApiBaseUrl = 'https://api.bpay.mn/v1';
+  static const String CENTRALIZED_ORG_ID = '698e7fd3b6dd386b6c56a808';
+
+  static Future<String?> getEffectiveKholbolt({bool isOther = true}) async {
+    final baiguullagiinId = await StorageService.getBaiguullagiinId();
+    final savedKholbolt = await StorageService.getTukhainBaaziinKholbolt();
+
+    if (baiguullagiinId == CENTRALIZED_ORG_ID) {
+      if (isOther) {
+        return 'bpaySukh';
+      } else {
+        return 'amarSukh';
+      }
+    }
+
+    return savedKholbolt;
+  }
 
   // Helper method to wrap HTTP calls with better error handling
 
@@ -730,15 +746,23 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getWalletBillingList({
     bool forceRefresh = false,
   }) async {
-    return []; // Temporarily disabled for testing
     // User-specific billing data must always be fetched fresh.
 
     try {
       final headers = await getWalletApiHeaders();
+      final uri = Uri.parse('$baseUrl/wallet/billing/list');
+      
+      print('🚀 [WALLET] getWalletBillingList - URL: $uri');
+      print('🚀 [WALLET] getWalletBillingList - Headers: $headers');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/wallet/billing/list'),
+        uri,
         headers: headers,
       );
+      
+      print('🚀 [WALLET] getWalletBillingList - Status: ${response.statusCode}');
+      print('🚀 [WALLET] getWalletBillingList - Body: ${response.body}');
+
       await _checkTokenExpiry(response);
 
       if (response.statusCode == 200) {
@@ -774,10 +798,10 @@ class ApiService {
     required String billingId,
     bool forceRefresh = false,
   }) async {
-    return {}; // Temporarily disabled for testing
     // User-specific billing details must always be fetched fresh.
 
     try {
+      print('🚀 [WALLET] getWalletBillingBills - ID: $billingId');
       final headers = await getWalletApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/wallet/billing/bills/$billingId'),
@@ -2778,12 +2802,23 @@ class ApiService {
       headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
       headers['Pragma'] = 'no-cache';
 
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: true);
+
+      final queryParams = <String, String>{
+        'query': '{"orshinSuugchId":"$orshinSuugchId"}',
+        '_t': DateTime.now().millisecondsSinceEpoch.toString(),
+      };
+
+      if (baiguullagiinId != null) queryParams['baiguullagiinId'] = baiguullagiinId;
+      if (tukhainBaaziinKholbolt != null) queryParams['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
+
       final uri = Uri.parse('$baseUrl/geree').replace(
-        queryParameters: {
-          'query': '{"orshinSuugchId":"$orshinSuugchId"}',
-          '_t': DateTime.now().millisecondsSinceEpoch.toString(),
-        },
+        queryParameters: queryParams,
       );
+
+      print('🚀 [API] fetchGeree - URL: $uri');
+      print('🚀 [API] fetchGeree - OrgID: $baiguullagiinId, Kholbolt: $tukhainBaaziinKholbolt');
 
       final response = await http.get(uri, headers: headers);
 
@@ -2816,8 +2851,7 @@ class ApiService {
 
       // Include baiguullagiinId so backend can find the correct DB connection
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      final tukhainBaaziinKholbolt =
-          await StorageService.getTukhainBaaziinKholbolt();
+      final tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: true);
 
       final queryJson = json.encode({'gereeniiDugaar': gereeniiDugaar});
       final queryParams = <String, String>{
@@ -2917,11 +2951,16 @@ class ApiService {
       final headers = await getAuthHeaders();
       headers['Content-Type'] = 'application/json';
 
+      final tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: true);
+
       final body = {
         'baiguullagiinId': baiguullagiinId,
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
         'gereeniiId': gereeniiId,
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
       };
+
+      print('🚀 [API] fetchUldegdelBodyo - Body: $body');
 
       final uri = Uri.parse('$baseUrl/uldegdelBodyo');
 
@@ -3033,7 +3072,9 @@ class ApiService {
               (item['tulsunDun'] ?? 0.0).toDouble(),
           'tuluv': 'Төлөөгүй',
           'guilgeenuud': [item],
+          'billingId': gereeniiDugaar,
           'isStandaloneAvlaga': true,
+
         });
       }
 
@@ -3359,9 +3400,14 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
 
+      final tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: false);
+
       final queryParams = <String, String>{};
       if (barilgiinId != null) {
         queryParams['barilgiinId'] = barilgiinId;
+      }
+      if (tukhainBaaziinKholbolt != null) {
+        queryParams['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
       }
 
       final uri = Uri.parse(
@@ -3514,14 +3560,20 @@ class ApiService {
             '🔍 [QPAY] Success with data wrapper. invoice_id=${data['invoice_id']}, qpayInvoiceId=${data['qpayInvoiceId']}',
           );
           return {
+            'success': true,
+            'source': responseData['source']?.toString() ?? 'CUSTOM',
             'invoice_id':
                 data['invoice_id']?.toString() ??
                 data['qpayInvoiceId']?.toString() ??
                 data['id']?.toString(), // Map id to invoice_id
             'qr_image': data['qr_image']?.toString(),
             'qrText': data['qrText']?.toString(), // For Wallet QPay
-            'urls': responseData['urls'], // Keep URLs if present
+            'urls': responseData['urls'] ?? data['urls'], // Keep URLs if present
+            'walletPaymentId': responseData['walletPaymentId']?.toString(),
+            'walletInvoiceId': responseData['walletInvoiceId']?.toString(),
+            'sender_invoice_no': responseData['sender_invoice_no']?.toString(),
           };
+
         }
         print('🔍 [QPAY] Success with legacy format: $responseData');
         // Standardize legacy format to also include invoice_id
@@ -3926,8 +3978,13 @@ class ApiService {
 
       final queryParams = <String, String>{'barilgiinId': barilgiinId};
 
+      final tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: true);
+
       if (orgId != null) {
         queryParams['baiguullagiinId'] = orgId;
+      }
+      if (tukhainBaaziinKholbolt != null) {
+        queryParams['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
       }
 
       final uri = Uri.parse(
@@ -4107,8 +4164,7 @@ class ApiService {
   }) async {
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      var tukhainBaaziinKholbolt =
-          await StorageService.getTukhainBaaziinKholbolt();
+      var tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: true);
 
       if (tukhainBaaziinKholbolt == 'amarSukh' ||
           tukhainBaaziinKholbolt == null) {
@@ -4132,7 +4188,9 @@ class ApiService {
       // If user doesn't have baiguullagiinId, return empty notifications
       // This can happen for users without organization (e.g., Wallet API only users)
       if (baiguullagiinId == null ||
+          baiguullagiinId == "null" ||
           tukhainBaaziinKholbolt == null ||
+          tukhainBaaziinKholbolt == "null" ||
           tukhainBaaziinKholbolt.isEmpty) {
         print(
           '⚠️ [API] fetchMedegdel: Missing baiguullagiinId or tukhainBaaziinKholbolt, returning empty notifications',
@@ -4148,8 +4206,8 @@ class ApiService {
       // Build query parameters
       // Note: Some APIs might not support turul filter, so we'll filter client-side
       final queryParams = <String, String>{
-        'baiguullagiinId': baiguullagiinId,
-        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        'baiguullagiinId': baiguullagiinId.toString(),
+        'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt.toString(),
         // Try without turul first - filter client-side instead
         // 'turul': 'мэдэгдэл',
       };
@@ -4168,6 +4226,9 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl$endpoint',
       ).replace(queryParameters: queryParams);
+
+      print('🚀 [API] fetchMedegdel - URL: $uri');
+      print('🚀 [API] fetchMedegdel - OrgID: $baiguullagiinId, Kholbolt: $tukhainBaaziinKholbolt');
 
       final response = await http.get(uri, headers: headers);
 
@@ -5024,6 +5085,116 @@ class ApiService {
     } catch (e) {
       print('Error fetching quota status: $e');
       throw Exception('Квот шалгахад алдаа гарлаа: $e');
+    }
+  }
+
+  // Support Chat Services
+  static Future<Map<String, dynamic>> createWalletChat({
+    required String paymentId,
+    required String reason,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/wallet/chat'),
+        headers: headers,
+        body: json.encode({
+          'paymentId': paymentId,
+          'reason': reason,
+        }),
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return Map<String, dynamic>.from(data['data']);
+        }
+        throw Exception(data['message'] ?? 'Чат үүсгэхэд алдаа гарлаа');
+      } else {
+        throw Exception(
+          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Чат үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getWalletChat(String chatId) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/chat/$chatId'),
+        headers: headers,
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return Map<String, dynamic>.from(data['data']);
+        }
+        throw Exception(data['message'] ?? 'Чатын мэдээлэл авахад алдаа гарлаа');
+      } else {
+        throw Exception(
+          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Чатын мэдээлэл авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getWalletChatByObjectId(
+    String objectId,
+  ) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/chat/object/$objectId'),
+        headers: headers,
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return Map<String, dynamic>.from(data['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> sendWalletChatMessage({
+    required String chatId,
+    required String message,
+  }) async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.put(
+        Uri.parse('$baseUrl/wallet/chat/$chatId'),
+        headers: headers,
+        body: json.encode({'message': message}),
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return Map<String, dynamic>.from(data['data']);
+        }
+        throw Exception(data['message'] ?? 'Мессеж илгээхэд алдаа гарлаа');
+      } else {
+        throw Exception(
+          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Мессеж илгээхэд алдаа гарлаа: $e');
     }
   }
 }

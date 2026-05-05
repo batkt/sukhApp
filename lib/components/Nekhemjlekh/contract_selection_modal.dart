@@ -70,9 +70,61 @@ class ContractSelectionModal extends StatelessWidget {
             child: ListView.builder(
               shrinkWrap: true,
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              itemCount: availableContracts.length,
+              itemCount: availableContracts.length + (availableContracts.length > 1 ? 1 : 0),
               itemBuilder: (context, index) {
-                final contract = availableContracts[index];
+                // If multiple contracts, show "All" at index 0
+                if (availableContracts.length > 1 && index == 0) {
+                  final isSelected = selectedGereeniiDugaar == 'ALL';
+                  return GestureDetector(
+                    onTap: () {
+                      onContractSelected('ALL');
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      margin: EdgeInsets.only(bottom: 8.h),
+                      padding: EdgeInsets.all(12.w),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.deepGreen.withOpacity(0.15)
+                            : (isDarkMode ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F8F8)),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: isSelected ? AppColors.deepGreen : (isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08)),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.deepGreen.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.apps_rounded, size: 16.sp, color: AppColors.deepGreen),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Text(
+                              'Бүх тоот (${availableContracts.length})',
+                              style: TextStyle(
+                                color: isDarkMode ? Colors.white : Colors.black87,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (isSelected)
+                            Icon(Icons.check_circle, color: AppColors.deepGreen, size: 18.sp),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                // Adjust index if "All" is present
+                final contractIndex = availableContracts.length > 1 ? index - 1 : index;
+                final contract = availableContracts[contractIndex];
                 final gereeniiDugaar = contract['gereeniiDugaar'] as String;
                 final bairNer = contract['bairNer'] ?? gereeniiDugaar;
                 final isSelected = gereeniiDugaar == selectedGereeniiDugaar;

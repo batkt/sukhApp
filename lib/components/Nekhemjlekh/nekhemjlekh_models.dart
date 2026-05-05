@@ -19,7 +19,11 @@ class NekhemjlekhItem {
   final List<String> utas;
   final String dansniiDugaar;
   final String tuluv;
+  final String bairNer;
+  final String toot;
+  final String billingId;
   final NekhemjlekhMedeelel? medeelel;
+
   final double? ekhniiUldegdel;
   bool isSelected;
   bool isExpanded;
@@ -42,7 +46,11 @@ class NekhemjlekhItem {
     required this.utas,
     required this.dansniiDugaar,
     required this.tuluv,
+    required this.bairNer,
+    required this.toot,
+    this.billingId = '',
     this.medeelel,
+
     this.ekhniiUldegdel,
     this.isSelected = false,
     this.isExpanded = false,
@@ -134,8 +142,12 @@ class NekhemjlekhItem {
           : [],
       dansniiDugaar: json['dansniiDugaar']?.toString() ?? '',
       tuluv: json['tuluv']?.toString() ?? 'Төлөөгүй',
+      bairNer: json['bairNer']?.toString() ?? '',
+      toot: json['toot']?.toString() ?? '',
+      billingId: json['billingId']?.toString() ?? json['gereeniiDugaar']?.toString() ?? '',
       medeelel: medeelel,
       ekhniiUldegdel: ekhniiUldegdel,
+
     );
   }
 

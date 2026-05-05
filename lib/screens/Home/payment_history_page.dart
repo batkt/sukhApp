@@ -347,6 +347,34 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     }
   }
 
+  Future<void> _openSupportChat(PaymentHistory payment) async {
+    // Only available for Wallet API
+    if (widget.source?.toUpperCase() == 'OWN_ORG') {
+      showGlassSnackBar(
+        context,
+        message: 'Энэ төлбөрт чат үүсгэх боломжгүй.',
+        icon: Icons.info_outline,
+      );
+      return;
+    }
+
+    try {
+      context.push('/support-chat', extra: {
+        'paymentId': payment.paymentId,
+        'billingName': widget.billingName,
+        'amount': payment.paymentAmount,
+        'date': payment.paymentStatusDate,
+        'invoiceNo': payment.invoiceNo,
+      });
+    } catch (e) {
+      showGlassSnackBar(
+        context,
+        message: 'Чат нээхэд алдаа гарлаа.',
+        icon: Icons.error_outline,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
@@ -879,6 +907,29 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                     ),
                   ),
                 ),
+                if (widget.source?.toUpperCase() != 'OWN_ORG') ...[
+                  SizedBox(width: 8.w),
+                  InkWell(
+                    onTap: () => _openSupportChat(payment),
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Container(
+                      height: 42.h,
+                      width: 42.h,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.r),
+                        color: Colors.blue.withOpacity(0.08),
+                        border: Border.all(
+                          color: Colors.blue.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: Colors.blue,
+                        size: 20.sp,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

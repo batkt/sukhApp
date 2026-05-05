@@ -45,3 +45,25 @@ String formatInvoiceDate(String dateString) {
     return dateString;
   }
 }
+/// Formats bill periods (like 2026-5) to "YYYY/MM" format
+String formatBillPeriod(String period) {
+  if (period.isEmpty) return '';
+  
+  // Handles YYYY-M or YYYY-MM (Wallet API format)
+  final walletMatch = RegExp(r'^(\d{4})-(\d{1,2})$').firstMatch(period);
+  if (walletMatch != null) {
+    final year = walletMatch.group(1);
+    final month = walletMatch.group(2)!.padLeft(2, '0');
+    return '$year/$month';
+  }
+
+  // Handles YYYY.MM.DD (OWN_ORG format via formatInvoiceDate)
+  final ownMatch = RegExp(r'^(\d{4})\.(\d{2})\.(\d{2})$').firstMatch(period);
+  if (ownMatch != null) {
+    final year = ownMatch.group(1);
+    final month = ownMatch.group(2);
+    return '$year/$month';
+  }
+
+  return period;
+}

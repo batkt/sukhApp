@@ -7,10 +7,19 @@ class BlogService {
   static Future<List<BlogModel>> getBlogs(String baiguullagiinId) async {
     try {
       final headers = await ApiService.getAuthHeaders();
-      final response = await http.get(
-        Uri.parse('${ApiService.baseUrl}/blog?baiguullagiinId=$baiguullagiinId'),
-        headers: headers,
+      final tukhainBaaziinKholbolt = await ApiService.getEffectiveKholbolt(isOther: true);
+      
+      final uri = Uri.parse('${ApiService.baseUrl}/blog').replace(
+        queryParameters: {
+          'baiguullagiinId': baiguullagiinId,
+          if (tukhainBaaziinKholbolt != null) 'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
+        }
       );
+
+      print('🚀 [BLOG] getBlogs - URL: $uri');
+      print('🚀 [BLOG] getBlogs - OrgID: $baiguullagiinId, Kholbolt: $tukhainBaaziinKholbolt');
+
+      final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -32,11 +41,14 @@ class BlogService {
   }) async {
     try {
       final headers = await ApiService.getAuthHeaders();
+      final tukhainBaaziinKholbolt = await ApiService.getEffectiveKholbolt(isOther: true);
+      
       final response = await http.post(
         Uri.parse('${ApiService.baseUrl}/blog/$blogId/reaction'),
         headers: headers,
         body: json.encode({
           'baiguullagiinId': baiguullagiinId,
+          'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
           'emoji': emoji,
           'userId': orshinSuugchId,
           'orshinSuugchId': orshinSuugchId,

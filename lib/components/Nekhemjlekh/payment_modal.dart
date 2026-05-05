@@ -354,42 +354,65 @@ class _PaymentModalState extends State<PaymentModal> {
 
       final hasOwnOrg =
           ownOrgBaiguullagiinId != null && ownOrgBarilgiinId != null;
-      final hasWallet = walletBairId != null && walletSource == 'WALLET_API';
+      final hasWallet = walletBairId != null && (walletSource == 'WALLET_API' || walletSource == 'WALLET_QPAY');
 
-      // Create OWN_ORG QPay invoice (Custom QPay)
-      if (hasOwnOrg) {
+      // Create QPay invoice (Auto-detect source)
+      Map<String, dynamic>? finalResponse;
+
+      if (hasOwnOrg || hasWallet) {
         try {
-          final ownOrgResponse = await ApiService.qpayGargaya(
-            baiguullagiinId: ownOrgBaiguullagiinId,
-            barilgiinId: ownOrgBarilgiinId,
-            dun: totalAmount,
-            turul: turul,
-            nekhemjlekhiinId: firstInvoiceId,
-            dansniiDugaar: dansniiDugaar,
-            burtgeliinDugaar: burtgeliinDugaar,
-            customerTin: _vatReceiveType == 'COMPANY' ? _vatTinController.text : null,
-          );
-
-          if (ownOrgResponse['qr_image'] != null) {
-            setState(() {
-              _qrImageOwnOrg = ownOrgResponse['qr_image']?.toString();
-              _senderInvoiceNoForSocket = ownOrgResponse['sender_invoice_no']?.toString();
-            });
+          if (hasWallet && !hasOwnOrg) {
+            // Pure Wallet flow
+            finalResponse = await ApiService.createWalletQPayPayment(
+              billingId: widget.invoices.first.billingId,
+              billIds: selectedInvoiceIds,
+              vatReceiveType: _vatReceiveType,
+              vatCompanyReg: _vatReceiveType == 'COMPANY' ? _vatTinController.text : null,
+            );
+          } else {
+            // Own Org or Hybrid flow (via qpayGargaya which auto-detects)
+            finalResponse = await ApiService.qpayGargaya(
+              baiguullagiinId: ownOrgBaiguullagiinId,
+              barilgiinId: ownOrgBarilgiinId,
+              dun: totalAmount,
+              turul: turul,
+              nekhemjlekhiinId: firstInvoiceId,
+              dansniiDugaar: dansniiDugaar,
+              burtgeliinDugaar: burtgeliinDugaar,
+              customerTin: _vatReceiveType == 'COMPANY' ? _vatTinController.text : null,
+            );
           }
 
-          if (ownOrgResponse['urls'] != null &&
-              ownOrgResponse['urls'] is List) {
-            final banks = (ownOrgResponse['urls'] as List)
-                .map((e) => QPayBank.fromJson(e as Map<String, dynamic>))
-                .toList();
+          if (finalResponse != null && finalResponse['qr_image'] != null) {
             setState(() {
-              _qpayBanks = banks;
+              final source = finalResponse!['source']?.toString();
+              if (source == 'WALLET_API' || source == 'WALLET_QPAY') {
+                _qrImageWallet = finalResponse!['qr_image']?.toString();
+              } else {
+                _qrImageOwnOrg = finalResponse!['qr_image']?.toString();
+              }
+              
+              _senderInvoiceNoForSocket = 
+                  finalResponse!['walletPaymentId']?.toString() ?? 
+                  finalResponse!['sender_invoice_no']?.toString() ??
+                  finalResponse!['invoice_id']?.toString();
             });
+
+            if (finalResponse['urls'] != null && finalResponse['urls'] is List) {
+              final banks = (finalResponse['urls'] as List)
+                  .map((e) => QPayBank.fromJson(e as Map<String, dynamic>))
+                  .toList();
+              setState(() {
+                _qpayBanks = banks;
+              });
+            }
           }
         } catch (e) {
-          print('Error creating OWN_ORG QPay invoice: $e');
+          print('Error creating QPay invoice: $e');
         }
       }
+
+
 
       if (_qrImageOwnOrg == null && _qrImageWallet == null) {
         if (mounted) {
@@ -455,8 +478,13 @@ class _PaymentModalState extends State<PaymentModal> {
               builder: (context) => QPayQRModal(
                 qrImageOwnOrg: _qrImageOwnOrg,
                 qrImageWallet: _qrImageWallet,
+                urls: _qpayBanks.map((b) => {'name': b.name, 'description': b.description, 'logo': b.logo, 'link': b.link}).toList(),
+                walletPaymentId: finalResponse?['walletPaymentId']?.toString(),
                 invoiceNumber: _senderInvoiceNoForSocket,
+                amount: totalAmount,
                 onCheckPaymentAsync: () async {
+
+
                   // Refresh invoice list first (caller handles it)
                   await widget.onPaymentTap();
 

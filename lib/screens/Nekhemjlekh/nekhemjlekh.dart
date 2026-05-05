@@ -358,13 +358,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       });
 
       final orshinSuugchId = await StorageService.getUserId();
-
       if (orshinSuugchId == null) {
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
       final gereeResponse = await ApiService.fetchGeree(orshinSuugchId);
-
       if (gereeResponse['jagsaalt'] != null &&
           gereeResponse['jagsaalt'] is List &&
           (gereeResponse['jagsaalt'] as List).isNotEmpty) {
@@ -372,106 +370,175 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           gereeResponse['jagsaalt'],
         );
 
-        final gereeToUse = selectedGereeniiDugaar != null
-            ? availableContracts.firstWhere(
-                (c) => c['gereeniiDugaar'] == selectedGereeniiDugaar,
-                orElse: () => availableContracts[0],
-              )
-            : availableContracts[0];
-
-        final gereeniiDugaar = gereeToUse['gereeniiDugaar'] as String?;
-
-        if (gereeniiDugaar == null || gereeniiDugaar.isEmpty) {
-          throw Exception('Гэрээний дугаар олдсонгүй');
-        }
-
-        selectedGereeniiDugaar = gereeniiDugaar;
-        selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
-        // Use uldegdel first (matches HistoryModal), fallback to globalUldegdel
-        final rawUldegdel =
-            gereeToUse['uldegdel'] ?? gereeToUse['globalUldegdel'];
-        _contractUldegdel = rawUldegdel != null
-            ? ((rawUldegdel is num)
-                  ? rawUldegdel.toDouble()
-                  : (double.tryParse(rawUldegdel.toString()) ?? 0.0))
-            : null;
-
-        final baiguullagiinId =
-            gereeToUse['baiguullagiinId']?.toString() ??
-            await StorageService.getBaiguullagiinId();
-        final barilgiinId = gereeToUse['barilgiinId']?.toString();
-        final gereeniiId = gereeToUse['_id']?.toString();
-
-        // Fetch unified invoices with their ledger items (matches refactored backend-first logic)
-        final unifiedResponse = await ApiService.fetchInvoicesWithItems(
-          gereeniiDugaar: gereeniiDugaar,
-          gereeniiId: gereeniiId ?? '',
-          baiguullagiinId: baiguullagiinId ?? '',
-        );
-
-        final List<dynamic> mergedInvoices = unifiedResponse['jagsaalt'] ?? [];
-        final double totalUldegdel = (unifiedResponse['totalUldegdel'] ?? 0.0).toDouble();
-        
-        // Use the authoritative calculated balance from ledger items
-        _contractUldegdel = totalUldegdel;
-
         final previouslySelectedIds = invoices
             .where((inv) => inv.isSelected)
             .map((inv) => inv.id)
             .toSet();
 
-        if (mergedInvoices.isNotEmpty) {
-          setState(() {
-            final List<NekhemjlekhItem> finalInvoices = [];
-            for (var item in mergedInvoices) {
-              // One source of truth: keep each invoice as-is, no splitting.
-              finalInvoices.add(NekhemjlekhItem.fromJson(item));
-            }
+        final List<NekhemjlekhItem> finalInvoices = [];
+        double aggregateUldegdel = 0;
 
-            // Sync with history-ledger authoritative balance
-            double sumUnpaid = 0;
-            for (var inv in finalInvoices) {
-              if (!inv.isPaid) sumUnpaid += inv.effectiveNiitTulbur;
-            }
-            if (_contractUldegdel != null && _contractUldegdel! > 0) {
-              final diff = _contractUldegdel! - sumUnpaid;
-              if (diff > 1.0) {
-                 finalInvoices.insert(0, NekhemjlekhItem(
-                    id: 'synthetic-balance-${DateTime.now().millisecondsSinceEpoch}',
-                    baiguullagiinNer: 'Эхний үлдэгдэл болон бусад',
-                    ovog: gereeToUse['ovog']?.toString() ?? '',
-                    ner: gereeToUse['ner']?.toString() ?? '',
-                    register: (gereeToUse['register'] ?? gereeToUse['rd'])?.toString() ?? '',
-                    khayag: gereeToUse['khayag']?.toString() ?? '',
-                    orts: gereeToUse['orts']?.toString() ?? '',
-                    gereeniiDugaar: gereeniiDugaar,
-                    nekhemjlekhiinOgnoo: DateTime.now().toIso8601String(),
-                    niitTulbur: diff,
-                    niitTulburOriginal: diff,
-                    uldegdel: diff,
-                    utas: gereeToUse['utas'] != null ? [gereeToUse['utas'].toString()] : [],
-                    dansniiDugaar: '', // QPAY custom endpoint falls back
-                    tuluv: 'Төлөөгүй',
-                 ));
-              }
-            }
+        if (selectedGereeniiDugaar == 'ALL') {
+          selectedContractDisplay = 'Бүх тоот (${availableContracts.length})';
+          _contractUldegdel = null; // We'll compute aggregate instead
 
-            invoices = finalInvoices;
+          // Fetch all in parallel
+          final List<Future<Map<String, dynamic>>> fetchFutures = [];
+          for (var g in availableContracts) {
+            final baiguullagiinId = g['baiguullagiinId']?.toString() ?? '';
+            final gereeniiId = g['_id']?.toString() ?? '';
+            final dugaar = g['gereeniiDugaar'] as String;
+            
+            fetchFutures.add(ApiService.fetchInvoicesWithItems(
+              gereeniiDugaar: dugaar,
+              gereeniiId: gereeniiId,
+              baiguullagiinId: baiguullagiinId,
+            ));
+          }
 
-            for (var invoice in invoices) {
-              if (previouslySelectedIds.contains(invoice.id)) {
-                invoice.isSelected = true;
-              }
+          final responses = await Future.wait(fetchFutures);
+          
+          for (int i = 0; i < responses.length; i++) {
+            final resp = responses[i];
+            final contract = availableContracts[i];
+            final dugaar = contract['gereeniiDugaar'] as String;
+            
+            final List<dynamic> jagsaalt = resp['jagsaalt'] ?? [];
+            final double unitUldegdel = (resp['totalUldegdel'] ?? 0.0).toDouble();
+            aggregateUldegdel += unitUldegdel;
+
+            final List<NekhemjlekhItem> unitInvoices = jagsaalt.map((item) {
+              final inv = NekhemjlekhItem.fromJson(item);
+              // Ensure bairNer and toot are set from contract if missing in invoice
+              return NekhemjlekhItem(
+                id: inv.id,
+                baiguullagiinNer: inv.baiguullagiinNer,
+                baiguullagiinUtas: inv.baiguullagiinUtas,
+                baiguullagiinKhayag: inv.baiguullagiinKhayag,
+                ovog: inv.ovog,
+                ner: inv.ner,
+                register: inv.register,
+                khayag: inv.khayag,
+                orts: inv.orts,
+                gereeniiDugaar: inv.gereeniiDugaar,
+                nekhemjlekhiinOgnoo: inv.nekhemjlekhiinOgnoo,
+                niitTulbur: inv.niitTulbur,
+                niitTulburOriginal: inv.niitTulburOriginal,
+                uldegdel: inv.uldegdel,
+                utas: inv.utas,
+                dansniiDugaar: inv.dansniiDugaar,
+                tuluv: inv.tuluv,
+                bairNer: inv.bairNer.isNotEmpty ? inv.bairNer : (contract['bairNer']?.toString() ?? ''),
+                toot: inv.toot.isNotEmpty ? inv.toot : (contract['toot']?.toString() ?? ''),
+                billingId: inv.billingId.isNotEmpty ? inv.billingId : (contract['gereeniiDugaar']?.toString() ?? ''),
+                medeelel: inv.medeelel,
+                ekhniiUldegdel: inv.ekhniiUldegdel,
+              );
+
+            }).toList();
+
+            // Handle synthetic balance for this unit
+            double sumUnpaid = unitInvoices.where((inv) => !inv.isPaid).fold(0, (s, inv) => s + inv.effectiveNiitTulbur);
+            if (unitUldegdel - sumUnpaid > 1.0) {
+              final diff = unitUldegdel - sumUnpaid;
+              finalInvoices.add(NekhemjlekhItem(
+                id: 'synthetic-balance-$dugaar-${DateTime.now().millisecondsSinceEpoch}',
+                baiguullagiinNer: 'Эхний үлдэгдэл - ${contract['bairNer'] ?? dugaar}',
+                ovog: contract['ovog']?.toString() ?? '',
+                ner: contract['ner']?.toString() ?? '',
+                register: (contract['register'] ?? contract['rd'])?.toString() ?? '',
+                khayag: contract['khayag']?.toString() ?? '',
+                orts: contract['orts']?.toString() ?? '',
+                gereeniiDugaar: dugaar,
+                nekhemjlekhiinOgnoo: DateTime.now().toIso8601String(),
+                niitTulbur: diff,
+                niitTulburOriginal: diff,
+                uldegdel: diff,
+                utas: contract['utas'] != null ? [contract['utas'].toString()] : [],
+                dansniiDugaar: '',
+                tuluv: 'Төлөөгүй',
+                bairNer: contract['bairNer']?.toString() ?? '',
+                toot: contract['toot']?.toString() ?? '',
+                billingId: contract['gereeniiDugaar']?.toString() ?? '',
+              ));
+
             }
-
-            isLoading = false;
-          });
+            finalInvoices.addAll(unitInvoices);
+          }
+          
+          _contractUldegdel = aggregateUldegdel;
         } else {
-          setState(() {
-            isLoading = false;
-            errorMessage = 'Мэдээлэл олдсонгүй';
-          });
+          // Single contract mode (original logic)
+          final gereeToUse = selectedGereeniiDugaar != null
+              ? availableContracts.firstWhere(
+                  (c) => c['gereeniiDugaar'] == selectedGereeniiDugaar,
+                  orElse: () => availableContracts[0],
+                )
+              : availableContracts[0];
+
+          final gereeniiDugaar = gereeToUse['gereeniiDugaar'] as String?;
+          if (gereeniiDugaar == null || gereeniiDugaar.isEmpty) {
+            throw Exception('Гэрээний дугаар олдсонгүй');
+          }
+
+          selectedGereeniiDugaar = gereeniiDugaar;
+          selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
+          
+          final baiguullagiinId = gereeToUse['baiguullagiinId']?.toString() ?? await StorageService.getBaiguullagiinId();
+          final gereeniiId = gereeToUse['_id']?.toString();
+
+          final unifiedResponse = await ApiService.fetchInvoicesWithItems(
+            gereeniiDugaar: gereeniiDugaar,
+            gereeniiId: gereeniiId ?? '',
+            baiguullagiinId: baiguullagiinId ?? '',
+          );
+
+          final List<dynamic> mergedInvoices = unifiedResponse['jagsaalt'] ?? [];
+          _contractUldegdel = (unifiedResponse['totalUldegdel'] ?? 0.0).toDouble();
+
+          for (var item in mergedInvoices) {
+            finalInvoices.add(NekhemjlekhItem.fromJson(item));
+          }
+
+          double sumUnpaid = finalInvoices.where((inv) => !inv.isPaid).fold(0, (s, inv) => s + inv.effectiveNiitTulbur);
+          if (_contractUldegdel != null && _contractUldegdel! - sumUnpaid > 1.0) {
+            final diff = _contractUldegdel! - sumUnpaid;
+            finalInvoices.insert(0, NekhemjlekhItem(
+              id: 'synthetic-balance-${DateTime.now().millisecondsSinceEpoch}',
+              baiguullagiinNer: 'Эхний үлдэгдэл болон бусад',
+              ovog: gereeToUse['ovog']?.toString() ?? '',
+              ner: gereeToUse['ner']?.toString() ?? '',
+              register: (gereeToUse['register'] ?? gereeToUse['rd'])?.toString() ?? '',
+              khayag: gereeToUse['khayag']?.toString() ?? '',
+              orts: gereeToUse['orts']?.toString() ?? '',
+              gereeniiDugaar: gereeniiDugaar,
+              nekhemjlekhiinOgnoo: DateTime.now().toIso8601String(),
+              niitTulbur: diff,
+              niitTulburOriginal: diff,
+              uldegdel: diff,
+              utas: gereeToUse['utas'] != null ? [gereeToUse['utas'].toString()] : [],
+              dansniiDugaar: '',
+              tuluv: 'Төлөөгүй',
+              bairNer: gereeToUse['bairNer']?.toString() ?? '',
+              toot: gereeToUse['toot']?.toString() ?? '',
+              billingId: gereeToUse['gereeniiDugaar']?.toString() ?? '',
+            ));
+
+          }
         }
+
+        // Sort combined list by date descending
+        finalInvoices.sort((a, b) => b.nekhemjlekhiinOgnoo.compareTo(a.nekhemjlekhiinOgnoo));
+
+        setState(() {
+          invoices = finalInvoices;
+          for (var invoice in invoices) {
+            if (previouslySelectedIds.contains(invoice.id)) {
+              invoice.isSelected = true;
+            }
+          }
+          isLoading = false;
+        });
       } else {
         setState(() {
           isLoading = false;

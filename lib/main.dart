@@ -407,33 +407,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       opacity: isDark ? 0.3 : 0.1, // Very subtle in light mode
                     ),
                   ),
-                  child: _isDecember()
-                      ? SnowEffect(
-                          child: MaterialApp.router(
-                            debugShowCheckedModeBanner: false,
-                            routerConfig: appRouter,
-                            theme: _buildLightTheme(),
-                            darkTheme: _buildDarkTheme(),
-                            themeMode: themeService.themeMode,
-                            builder: (context, child) {
-                              return ShakeHintOverlay(
-                                child: child ?? const SizedBox.shrink(),
-                              );
-                            },
-                          ),
-                        )
-                      : MaterialApp.router(
-                          debugShowCheckedModeBanner: false,
-                          routerConfig: appRouter,
-                          theme: _buildLightTheme(),
-                          darkTheme: _buildDarkTheme(),
-                          themeMode: themeService.themeMode,
-                          builder: (context, child) {
-                            return ShakeHintOverlay(
-                              child: child ?? const SizedBox.shrink(),
-                            );
-                          },
-                        ),
+                  child: MaterialApp.router(
+                    debugShowCheckedModeBanner: false,
+                    routerConfig: appRouter,
+                    theme: _buildLightTheme(),
+                    darkTheme: _buildDarkTheme(),
+                    themeMode: themeService.themeMode,
+                    builder: (context, child) {
+                      Widget content = ShakeHintOverlay(
+                        child: child ?? const SizedBox.shrink(),
+                      );
+                      if (_isDecember()) {
+                        content = SnowEffect(child: content);
+                      }
+                      return content;
+                    },
+                  ),
+
                 ),
               );
             },

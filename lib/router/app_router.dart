@@ -33,6 +33,7 @@ import 'package:sukh_app/screens/Home/utility_add_page.dart';
 import 'package:sukh_app/screens/Home/utility_code_input_page.dart';
 import 'package:sukh_app/screens/Home/payment_history_page.dart';
 import 'package:sukh_app/screens/Home/billing_list_page.dart';
+import 'package:sukh_app/screens/Home/support_chat_page.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/main.dart';
@@ -402,6 +403,16 @@ final GoRouter appRouter = GoRouter(
             onConnect: extra?['onConnect'] ?? () {},
             onRefresh: extra?['onRefresh'] ?? () async {},
           ),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/support-chat',
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: SupportChatPage(extra: extra ?? {}),
         );
       },
     ),
