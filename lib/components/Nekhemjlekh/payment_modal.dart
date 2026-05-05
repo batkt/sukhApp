@@ -408,7 +408,7 @@ class _PaymentModalState extends State<PaymentModal> {
             }
           }
         } catch (e) {
-          print('Error creating QPay invoice: $e');
+
         }
       }
 

@@ -2769,17 +2769,23 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                         children: [
                           // Filters & Month Selector
                           Padding(
-                            padding: EdgeInsets.all(16.w),
-                            child: Row(
-                              children: [
-                                _buildMonthSelector(),
-                                const Spacer(),
-                                FilterTabs(
-                                  selectedFilter: selectedFilter,
-                                  onFilterChanged: (key) => setState(() => selectedFilter = key),
-                                  getFilterCount: _getFilterCount,
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32.w),
+                                child: Row(
+                                  children: [
+                                    _buildMonthSelector(),
+                                    const Spacer(),
+                                    FilterTabs(
+                                      selectedFilter: selectedFilter,
+                                      onFilterChanged: (key) => setState(() => selectedFilter = key),
+                                      getFilterCount: _getFilterCount,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                           

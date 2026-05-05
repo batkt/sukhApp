@@ -231,7 +231,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       }
     };
     SocketService.instance.setNotificationCallback(_notificationCallback!);
-    print('🔔 HOME: Socket listener callback registered');
+
   }
 
   @override
@@ -292,35 +292,35 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   Future<void> _loadNotificationCount() async {
-    print('🔔 HOME: _loadNotificationCount() called');
+
     try {
       // Check if user is logged in first
       final isLoggedIn = await StorageService.isLoggedIn();
       if (!isLoggedIn) {
-        print('🔔 HOME: User not logged in, skipping notification count');
+
         return;
       }
 
-      print('🔔 HOME: Fetching notifications from API...');
+
       final response = await ApiService.fetchMedegdel();
       final medegdelResponse = MedegdelResponse.fromJson(response);
       final unreadCount = medegdelResponse.data
           .where((n) => !n.kharsanEsekh)
           .length;
-      print('🔔 HOME: Unread notification count from API: $unreadCount');
-      print('🔔 HOME: Current badge count: $_unreadNotificationCount');
+
+
 
       if (mounted) {
         // Use API count directly to avoid double counting
         setState(() {
           _unreadNotificationCount = unreadCount;
         });
-        print('🔔 HOME: ✅ Notification badge updated to $unreadCount');
+
       } else {
-        print('⚠️ HOME: Widget not mounted, cannot update badge');
+
       }
     } catch (e) {
-      print('❌ HOME: Error loading notification count: $e');
+
       // Silently fail - notifications are optional
       // Reset count on error
       if (mounted) {
@@ -394,9 +394,20 @@ class _BookingScreenState extends State<NuurKhuudas>
           final userId = await StorageService.getUserId();
           if (userId != null) {
             final gereeResponse = await ApiService.fetchGeree(userId);
+            if (mounted) {
+              setState(() {
+                _gereeResponse = GereeResponse.fromJson(gereeResponse);
+              });
+            }
             if (gereeResponse['jagsaalt'] != null && gereeResponse['jagsaalt'] is List) {
               final contracts = gereeResponse['jagsaalt'] as List;
               
+              // Optimization: Fetch wallet history once before the loop
+              List<Map<String, dynamic>> walletHistory = [];
+              try {
+                walletHistory = await ApiService.fetchWalletQpayList();
+              } catch(_) {}
+
               // Parallel fetch to ensure accuracy for each contract
               final processedResults = await Future.wait(contracts.map((c) async {
                 final contract = c is Map<String, dynamic> ? c : Map<String, dynamic>.from(c as Map);
@@ -423,12 +434,9 @@ class _BookingScreenState extends State<NuurKhuudas>
                     hasData = true;
 
                     // Apply reactive filtering for recently paid bills from the wallet
-                    List<Map<String, dynamic>> walletHistory = [];
-                    try {
-                      walletHistory = await ApiService.fetchWalletQpayList();
-                    } catch(_) {}
+                    // This uses the walletHistory we fetched ONCE outside the loop
                     final Set<String> recentlyPaidBillIds = {};
-                    for (var h in walletHistory.take(10)) {
+                    for (var h in walletHistory.take(15)) {
                       final billIds = h['billIds'] as List?;
                       if (billIds != null) {
                         for(var bid in billIds) recentlyPaidBillIds.add(bid.toString());
@@ -442,12 +450,12 @@ class _BookingScreenState extends State<NuurKhuudas>
                       if (invId != null && recentlyPaidBillIds.contains(invId)) {
                         final item = NekhemjlekhItem.fromJson(inv);
                         invoiceSum -= item.effectiveNiitTulbur;
-                        print(' [REACTIVE] Subtracting just-paid invoice $invId: ${item.effectiveNiitTulbur}');
+
                       }
                     }
 
                   } catch (e) {
-                    print('❌ [ERROR] Home accuracy sync failed for $dugaar: $e');
+
                   }
                 }
 
@@ -493,7 +501,7 @@ class _BookingScreenState extends State<NuurKhuudas>
             }
           }
         } catch (e) {
-          print('❌ [ERROR] Failed to fetch OWN_ORG data: $e');
+
         }
       }
 
@@ -565,7 +573,7 @@ class _BookingScreenState extends State<NuurKhuudas>
               if (topLevelBillNo != null && topLevelBillNo.isNotEmpty) recentlyPaidBillNos.add(topLevelBillNo);
               if (topLevelInvoiceNo != null && topLevelInvoiceNo.isNotEmpty) recentlyPaidBillNos.add(topLevelInvoiceNo);
               
-              print('✅ [WQ SYNC] $checkId is $state — hiding billNos: $recentlyPaidBillNos');
+
             }
           }
         } catch(_) {}
@@ -710,7 +718,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         });
       }
     } catch (e) {
-      print('❌ [ERROR] _refreshBillingInfo: $e');
+
     } finally {
       if (mounted) {
         setState(() {
@@ -738,7 +746,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         setState(() {});
       }
     } catch (e) {
-      print('❌ [ERROR] Immediate refresh failed: $e');
+
     }
   }
 
@@ -1009,7 +1017,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         final walletPaymentId = latest['walletPaymentId']?.toString();
 
         if (walletPaymentId != null && statusStr == 'PENDING') {
-          print('🔎 [HOME] Checking latest pending wallet payment: $walletPaymentId');
+
           
           final statusRes = await ApiService.walletQpayWalletCheck(
             walletPaymentId: walletPaymentId,
@@ -1054,13 +1062,13 @@ class _BookingScreenState extends State<NuurKhuudas>
           }
 
           if (isPaid) {
-            print('✅ [HOME] Latest payment confirmed PAID. Refreshing balance.');
+
             _loadAllBillingPayments();
           }
         }
       }
     } catch (e) {
-      print('Error auto-checking wallet payments: $e');
+
     }
   }
 
@@ -1303,10 +1311,10 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     // Override styling for First Signup users (Bpay signups with no address yet)
     
-    print('🏠 [HOME] _isNonOrgUser: $_isNonOrgUser, hasAnyAddress: $hasAnyAddress');
-    print('🏠 [HOME] _billingList length: ${_billingList.length}');
+
+
     if (_userProfile != null) {
-      print('🏠 [HOME] _userProfile toots: ${_userProfile!['toots']}');
+
     }
                          
     if (_isNonOrgUser && !hasAnyAddress) {
@@ -1317,10 +1325,10 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(24.w),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: accentColor,
-        borderRadius: BorderRadius.circular(32.r),
+        borderRadius: BorderRadius.circular(28.r),
         boxShadow: [
           BoxShadow(
             color: accentColor.withOpacity(0.3),
@@ -1455,7 +1463,7 @@ class _BookingScreenState extends State<NuurKhuudas>
               ],
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
           // Progress bar
           Stack(
             children: [
@@ -1505,7 +1513,7 @@ class _BookingScreenState extends State<NuurKhuudas>
               ),
             ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 10.h),
           // Inline billing row - compact strip
           GestureDetector(
             onTap: onTapBilling,
@@ -1627,7 +1635,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     _loadBillers(),
                     _refreshBillingInfo(forceRefresh: true),
                     _loadNotificationCount(),
-                    _loadGereeData(),
+                    // _loadGereeData is now handled within _refreshBillingInfo
                     _loadNekhemjlekhCron(),
                   ]);
                 },
@@ -1647,7 +1655,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                         Column(
                           children: [
                             SizedBox(
-                              height: (_isNonOrgUser && !hasAnyAddress) ? 220.h : 250.h,
+                              height: (_isNonOrgUser && !hasAnyAddress) ? 200.h : 215.h,
                               child: PageView.builder(
                                 controller: _contractPageController,
                                 itemCount: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)

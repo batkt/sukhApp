@@ -67,7 +67,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     // Path 1: Direct structure (Data is the billing object)
     final directBills = data['newBills'] ?? data['bills'];
     if (directBills is List && (data['billingId']?.toString() == billingId || data['billingId'] == null)) {
-      print('🚀 [EXTRACT] Path 1: Found ${directBills.length} bills');
+
       return {
         'bills': List<Map<String, dynamic>>.from(directBills),
         'billingName': data['billingName'],
@@ -85,7 +85,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         if (matchedItem is Map) {
           final billsList = matchedItem['newBills'] ?? matchedItem['bills'];
           if (billsList is List) {
-            print('🚀 [EXTRACT] Path 2: Found ${billsList.length} bills from nested data');
+
             return {
               'bills': List<Map<String, dynamic>>.from(billsList),
               'billingName': matchedItem['billingName'],
@@ -95,7 +95,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       } else if (rawData is Map) {
         final billsList = rawData['newBills'] ?? rawData['bills'];
         if (billsList is List) {
-          print('🚀 [EXTRACT] Path 2 (Map): Found ${billsList.length} bills');
+
           return {
             'bills': List<Map<String, dynamic>>.from(billsList),
             'billingName': rawData['billingName'],
@@ -110,7 +110,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       if (itemList.isNotEmpty) {
         final first = itemList[0];
         if (first is Map && first.containsKey('billId')) {
-          print('🚀 [EXTRACT] Path 3: Root newBills is a flat list of bills');
+
           return {
             'bills': List<Map<String, dynamic>>.from(itemList),
             'billingName': data['billingName'],
@@ -124,7 +124,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         if (matchedItem is Map) {
           final billsList = matchedItem['newBills'] ?? matchedItem['bills'];
           if (billsList is List) {
-            print('🚀 [EXTRACT] Path 3: Found ${billsList.length} bills from nested list');
+
             return {
               'bills': List<Map<String, dynamic>>.from(billsList),
               'billingName': matchedItem['billingName'],
@@ -134,7 +134,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       }
     }
 
-    print('🚀 [EXTRACT] No bills found for $billingId');
+
     return {'bills': <Map<String, dynamic>>[], 'billingName': null};
   }
 
@@ -149,7 +149,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       // If we have billingData passed from parent, use it instead of re-fetching
       if (widget.billingData != null) {
-        print(' [DEBUG] Using passed billing data instead of re-fetching');
+
 
         final billingData = widget.billingData!;
         final billingId = widget.billing['billingId']?.toString();
@@ -194,7 +194,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       }
 
       // Original logic - only run if no billingData was passed
-      print(' [DEBUG] No billing data passed, fetching from API');
+
 
       // 1. Get the list of billings to process
       final specificBillingId = widget.billing['billingId']?.toString();
@@ -228,10 +228,10 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         final billingId = billing['billingId']?.toString();
         final source = billing['source']?.toString();
         
-        print('🚀 [DETAIL] Processing billing: $billingId, source: $source');
+
         
         if (billingId == null) {
-          print('🚀 [DETAIL] Skipping billing: billingId is null');
+
           continue;
         }
 
@@ -308,7 +308,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
             // If authoritative balance differs from runningSum, we trust the balance
             if (totalUldegdel >= 0 && (totalUldegdel - runningSum).abs() > 10) {
-               print(' [DEBUG] Authoritative balance ($totalUldegdel) differs from sum ($runningSum).');
+
                billing['uldegdel'] = totalUldegdel;
                billing['perItemTotal'] = totalUldegdel;
             }
@@ -336,7 +336,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             }
           }
         } catch (e) {
-          print('Error loading bills for $billingId: $e');
+
         }
       }
 
@@ -345,7 +345,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       setState(() {
         _allBillingsData = targetBillingList;
         _allBills = collectedBills;
-        print('🚀 [DETAIL] _allBills count after load: ${_allBills.length}');
+
         // Auto-select first 5 bills initially
         int count = 0;
         for (var bill in _allBills) {
@@ -448,7 +448,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                 final bId = bill['billId']?.toString() ?? '';
                 final match = paymentBillNos.contains(bNo) || paymentBillNos.contains(bId);
                 if (match) {
-                  print('🚀 [DETAIL] Removing bill from view as it is $state: $bNo / $bId');
+
                 }
                 return match;
               });
@@ -459,11 +459,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             });
           }
         } catch (e) {
-          print('Error checking WQ status for $checkId: $e');
+
         }
       }
     } catch (e) {
-      print('Error in _checkRecentWalletStatuses: $e');
+
     }
   }
 
@@ -587,7 +587,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       if (!mounted) return;
 
       if (qpayResponse['success'] == true) {
-        print('🔍 [BillingDetail] QPay creation response: $qpayResponse');
+
         // Register these IDs as PENDING immediately to skip double-payment risks
         for(var bid in selectedBillIds) {
            _billStatuses[bid] = 'PENDING';
@@ -623,7 +623,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
               closeOnSuccess: true,
               onCheckPaymentAsync: () async {
-                print('🚀 [BillingDetail] onCheckPaymentAsync started. source=$responseSource, qpayInvoiceId=$qpayInvoiceId, walletPaymentId=$walletPaymentId');
+
                 
                 if ((responseSource == 'WALLET_API' || responseSource == 'WALLET_QPAY') && walletPaymentId != null) {
 
@@ -652,11 +652,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                     }
                     return false;
                   } catch (e) {
-                    print('❌ [WALLET-CHECK] Error: $e');
+
                     return null;
                   }
                 } else if (source == 'OWN_ORG') {
-                  print('🔍 [QPay] Checking OWN_ORG status. invoiceId=$qpayInvoiceId');
+
                   bool confirmed = false;
                   
                   // 1. Direct QPay API check (if ID exists)
@@ -667,7 +667,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                         baiguullagiinId: baiguullagiinId,
                         tukhainBaaziinKholbolt: barilgiinId,
                       );
-                      print('🔍 [QPay] Backend response: $status');
+
 
                       final state = status['tuluv']?.toString();
                       final payStatus = status['status']?.toString().toUpperCase() ??
@@ -676,17 +676,17 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                         (status['payments'] is List && (status['payments'] as List).isNotEmpty ? status['payments'][0]['amount'] : null);
 
                       if (state == 'Төлсөн' || payStatus == 'PAID' || (paidAmount != null && num.tryParse(paidAmount.toString()) != null && num.parse(paidAmount.toString()) > 0)) {
-                        print('✅ [QPay] Payment confirmed PAID via QPay Check');
+
                         confirmed = true;
                       }
                     } catch (e) {
-                      print('⚠️ [QPay] direct API status check failed (usually okay if fallback works): $e');
+
                     }
                   }
 
                   // 2. Fallback: Always refresh the billing list to see if the database is updated (mirrors web history logic)
                   try {
-                    print('⏳ [QPay] Refreshing billing list (Web-sync fallback)...');
+
                     await _loadAllBillingsData();
                     final refreshedBilling = _allBillingsData.firstWhere(
                       (b) => b['billingId']?.toString() == firstBillingId,
@@ -694,11 +694,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                     );
                     
                     if (refreshedBilling['tuluv'] == 'Төлсөн' || (refreshedBilling['uldegdel'] ?? 1) <= 0) {
-                      print('✅ [QPay] Payment confirmed via list refresh (Web-sync successful)');
+
                       confirmed = true;
                     }
                   } catch (e) {
-                    print('❌ [QPay] Error refreshing billing list: $e');
+
                   }
 
                   if (confirmed) return true;
@@ -727,7 +727,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                 );
               }
             } catch (e) {
-              print('Error fetching final payment details: $e');
+
             }
           }
           Navigator.of(context).pop(true);

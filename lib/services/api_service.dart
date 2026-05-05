@@ -641,7 +641,7 @@ class ApiService {
           throw Exception('Биллингийн мэдээлэл олдсонгүй');
         }
 
-        print('🔍 [FIND-BILLING] Final data structure: $data');
+
         if (data['success'] == true) {
           // Check if data field is a List and extract first item
           if (data['data'] is List) {
@@ -650,15 +650,15 @@ class ApiService {
               '🔍 [FIND-BILLING] data field is List, length: ${dataList.length}',
             );
             if (dataList.isNotEmpty) {
-              print('🔍 [FIND-BILLING] Extracting first item from List');
+
               final firstItem = dataList[0];
               print(
                 '🔍 [FIND-BILLING] First item type: ${firstItem.runtimeType}',
               );
-              print('🔍 [FIND-BILLING] First item: $firstItem');
+
               if (firstItem is Map<String, dynamic>) {
                 data['data'] = Map<String, dynamic>.from(firstItem);
-                print('✅ [FIND-BILLING] Converted List to single Map object');
+
               } else {
                 print(
                   '❌ [FIND-BILLING] First item is not Map<String, dynamic>',
@@ -666,37 +666,37 @@ class ApiService {
                 throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
               }
             } else {
-              print('❌ [FIND-BILLING] data List is empty');
+
               throw Exception('Биллингийн мэдээлэл олдсонгүй');
             }
           } else {
-            print('🔍 [FIND-BILLING] data field is already a single object');
+
           }
-          print('✅ [FIND-BILLING] Success! Returning data: $data');
+
           return data;
         } else {
-          print('❌ [FIND-BILLING] Success flag is false: ${data['message']}');
+
           throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
         }
       } else if (response.statusCode == 404) {
-        print('❌ [FIND-BILLING] 404 - Not found');
+
         throw Exception('Төлбөр олдсонгүй');
       } else if (response.statusCode == 401) {
-        print('❌ [FIND-BILLING] 401 - Unauthorized');
+
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        print('❌ [FIND-BILLING] Error status: ${response.statusCode}');
+
         throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ [FIND-BILLING] Exception caught: $e');
-      print('❌ [FIND-BILLING] Exception type: ${e.runtimeType}');
+
+
       if (response != null) {}
       if (e.toString().contains('is not a subtype') ||
           e.toString().contains('List<dynamic>') ||
           e.toString().contains('Map<String, dynamic>')) {
-        print('❌ [FIND-BILLING] Type casting error detected');
+
         throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
       }
       // Check if the error already contains "Төлбөр олдсонгүй" to avoid nested messages
@@ -752,16 +752,16 @@ class ApiService {
       final headers = await getWalletApiHeaders();
       final uri = Uri.parse('$baseUrl/wallet/billing/list');
       
-      print('🚀 [WALLET] getWalletBillingList - URL: $uri');
-      print('🚀 [WALLET] getWalletBillingList - Headers: $headers');
+
+
 
       final response = await http.get(
         uri,
         headers: headers,
       );
       
-      print('🚀 [WALLET] getWalletBillingList - Status: ${response.statusCode}');
-      print('🚀 [WALLET] getWalletBillingList - Body: ${response.body}');
+
+
 
       await _checkTokenExpiry(response);
 
@@ -789,7 +789,7 @@ class ApiService {
         return [];
       }
     } catch (e) {
-      print('⚠️ [WALLET] getWalletBillingList error: $e');
+
       return [];
     }
   }
@@ -801,7 +801,7 @@ class ApiService {
     // User-specific billing details must always be fetched fresh.
 
     try {
-      print('🚀 [WALLET] getWalletBillingBills - ID: $billingId');
+
       final headers = await getWalletApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/wallet/billing/bills/$billingId'),
@@ -856,7 +856,7 @@ class ApiService {
         return {};
       }
     } catch (e) {
-      print('⚠️ [WALLET] getWalletBillingBills error: $e');
+
       return {};
     }
   }
@@ -900,11 +900,11 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
       final url = '$baseUrl/walletAddress/details/$bairId/$doorNo';
-      print('🔍 [WALLET ADDRESS] Fetching: $url');
+
       final response = await http.get(Uri.parse(url), headers: headers);
       await _checkTokenExpiry(response);
 
-      print('🔍 [WALLET ADDRESS] Status: ${response.statusCode}');
+
       print(
         '🔍 [WALLET ADDRESS] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
       );
@@ -924,11 +924,11 @@ class ApiService {
           return [];
         }
       } else {
-        print('⚠️ [WALLET ADDRESS] Non-200 status: ${response.statusCode}');
+
         return [];
       }
     } catch (e) {
-      print('❌ [WALLET ADDRESS] Error fetching wallet customers: $e');
+
       return [];
     }
   }
@@ -1679,7 +1679,7 @@ class ApiService {
       final packageInfo = await PackageInfo.fromPlatform();
       version = packageInfo.version;
     } catch (e) {
-      print('Error getting package info: $e');
+
     }
 
     final requestBody = <String, dynamic>{
@@ -1771,11 +1771,11 @@ class ApiService {
   }
 
   static Future<void> handleUnauthorized([String? message, bool showNotification = true]) async {
-    print('🔒 [API] 401 Unauthorized - Token expired, logging out...');
+
 
     final isLoggedIn = await StorageService.isLoggedIn();
     if (!isLoggedIn) {
-      print('🔒 [API] Already logged out, skipping...');
+
       if (showNotification && message != null && message.contains('өөр төхөөрөмж')) {
         await NotificationService.showSessionExpiredNotification(message);
       }
@@ -1799,11 +1799,11 @@ class ApiService {
             }
             navContext.go('/newtrekh');
           } catch (e) {
-            print('⚠️ [API] Error navigating to login: $e');
+
             try {
               navContext.go('/newtrekh');
             } catch (e2) {
-              print('⚠️ [API] Fallback navigation also failed: $e2');
+
             }
           }
         }
@@ -1831,7 +1831,7 @@ class ApiService {
         userId = userProfile['result']['nevtrekhNer'].toString();
       }
     } catch (e) {
-      print('⚠️ [WALLET API] Could not get phone number from profile: $e');
+
       // Try saved phone as fallback
       userId = await StorageService.getSavedPhoneNumber();
     }
@@ -1847,7 +1847,7 @@ class ApiService {
       print(
         '⚠️ [WALLET API] Warning: No phone number available for userId header',
       );
-      print('   This may cause Wallet API calls to fail');
+
     }
 
     return headers;
@@ -1908,7 +1908,7 @@ class ApiService {
             );
           }
         } catch (e) {
-          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+
         }
       }
 
@@ -1927,34 +1927,34 @@ class ApiService {
             },
           );
 
-      print('🔍 [API] getConsumerInfo - URL: $uri');
+
       print(
         '🔍 [API] getConsumerInfo - Identity: $identity (encoded: $encodedIdentity)',
       );
-      print('🔍 [API] getConsumerInfo - baiguullagiinId: $baiguullagiinId');
+
       print(
         '🔍 [API] getConsumerInfo - tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt',
       );
-      print('🔍 [API] getConsumerInfo - Headers: ${headers.keys.toList()}');
+
 
       final response = await http.get(uri, headers: headers);
 
       await _checkTokenExpiry(response);
 
-      print('🔍 [API] getConsumerInfo - Status: ${response.statusCode}');
+
       print(
         '🔍 [API] getConsumerInfo - Response body length: ${response.body.length}',
       );
-      print('🔍 [API] getConsumerInfo - Response body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         if (response.body.isEmpty) {
           throw Exception('Хэрэглэгч олдсонгүй');
         }
         final data = json.decode(response.body);
-        print('✅ [API] getConsumerInfo - Parsed data: $data');
-        print('🔍 [API] getConsumerInfo - Data type: ${data.runtimeType}');
-        print('🔍 [API] getConsumerInfo - Data isEmpty: ${data.isEmpty}');
+
+
+
         print(
           '🔍 [API] getConsumerInfo - Data keys: ${data is Map ? data.keys.toList() : "N/A"}',
         );
@@ -1963,7 +1963,7 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else if (response.statusCode == 404) {
-        print('❌ [API] getConsumerInfo - 404 Not Found');
+
         throw Exception('Хэрэглэгч олдсонгүй');
       } else {
         String errorMessage =
@@ -1971,14 +1971,14 @@ class ApiService {
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['message']?.toString() ?? errorMessage;
-          print('❌ [API] getConsumerInfo - Error data: $errorData');
+
         } catch (_) {
-          print('❌ [API] getConsumerInfo - Could not parse error response');
+
         }
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('❌ [API] getConsumerInfo - Exception: $e');
+
       if (e is Exception) {
         rethrow;
       }
@@ -2012,7 +2012,7 @@ class ApiService {
             );
           }
         } catch (e) {
-          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+
         }
       }
 
@@ -2031,11 +2031,11 @@ class ApiService {
             },
           );
 
-      print('🔍 [API] getForeignerInfo - URL: $uri');
+
       print(
         '🔍 [API] getForeignerInfo - Identity: $identity (encoded: $encodedIdentity)',
       );
-      print('🔍 [API] getForeignerInfo - baiguullagiinId: $baiguullagiinId');
+
       print(
         '🔍 [API] getForeignerInfo - tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt',
       );
@@ -2044,20 +2044,20 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-      print('🔍 [API] getForeignerInfo - Status: ${response.statusCode}');
+
       print(
         '🔍 [API] getForeignerInfo - Response body length: ${response.body.length}',
       );
-      print('🔍 [API] getForeignerInfo - Response body: ${response.body}');
+
 
       if (response.statusCode == 200) {
         if (response.body.isEmpty) {
           throw Exception('Гадаадын иргэн олдсонгүй');
         }
         final data = json.decode(response.body);
-        print('✅ [API] getForeignerInfo - Parsed data: $data');
-        print('🔍 [API] getForeignerInfo - Data type: ${data.runtimeType}');
-        print('🔍 [API] getForeignerInfo - Data isEmpty: ${data.isEmpty}');
+
+
+
         print(
           '🔍 [API] getForeignerInfo - Data keys: ${data is Map ? data.keys.toList() : "N/A"}',
         );
@@ -2066,7 +2066,7 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else if (response.statusCode == 404) {
-        print('❌ [API] getForeignerInfo - 404 Not Found');
+
         throw Exception('Гадаадын иргэн олдсонгүй');
       } else {
         String errorMessage =
@@ -2074,14 +2074,14 @@ class ApiService {
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['message']?.toString() ?? errorMessage;
-          print('❌ [API] getForeignerInfo - Error data: $errorData');
+
         } catch (_) {
-          print('❌ [API] getForeignerInfo - Could not parse error response');
+
         }
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('❌ [API] getForeignerInfo - Exception: $e');
+
       if (e is Exception) {
         rethrow;
       }
@@ -2127,7 +2127,7 @@ class ApiService {
             );
           }
         } catch (e) {
-          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+
         }
       }
 
@@ -2153,8 +2153,8 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrl/easyRegister/user/search');
 
-      print('🔍 [API] easyRegisterUserSearch - URL: $uri');
-      print('🔍 [API] easyRegisterUserSearch - Body: $body');
+
+
 
       final response = await http.post(
         uri,
@@ -2164,8 +2164,8 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-      print('🔍 [API] easyRegisterUserSearch - Status: ${response.statusCode}');
-      print('🔍 [API] easyRegisterUserSearch - Response: ${response.body}');
+
+
 
       if (response.body.isEmpty) {
         throw Exception('Сервер хоосон хариу өглөө');
@@ -2201,7 +2201,7 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('❌ [API] easyRegisterUserSearch - Exception: $e');
+
       if (e is Exception) rethrow;
       throw Exception('Системийн алдаа гарлаа: $e');
     }
@@ -2351,7 +2351,7 @@ class ApiService {
             );
           }
         } catch (e) {
-          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+
         }
       }
 
@@ -2370,7 +2370,7 @@ class ApiService {
             },
           );
 
-      print('🔍 [API] getForeignerInfoByLoginName - URL: $uri');
+
       print(
         '🔍 [API] getForeignerInfoByLoginName - LoginName: $loginName (encoded: $encodedLoginName)',
       );
@@ -2400,7 +2400,7 @@ class ApiService {
           throw Exception('Гадаадын иргэн олдсонгүй');
         }
         final data = json.decode(response.body);
-        print('✅ [API] getForeignerInfoByLoginName - Parsed data: $data');
+
         print(
           '🔍 [API] getForeignerInfoByLoginName - Data type: ${data.runtimeType}',
         );
@@ -2415,7 +2415,7 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else if (response.statusCode == 404) {
-        print('❌ [API] getForeignerInfoByLoginName - 404 Not Found');
+
         throw Exception('Гадаадын иргэн олдсонгүй');
       } else {
         String errorMessage =
@@ -2423,7 +2423,7 @@ class ApiService {
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['message']?.toString() ?? errorMessage;
-          print('❌ [API] getForeignerInfoByLoginName - Error data: $errorData');
+
         } catch (_) {
           print(
             '❌ [API] getForeignerInfoByLoginName - Could not parse error response',
@@ -2432,7 +2432,7 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('❌ [API] getForeignerInfoByLoginName - Exception: $e');
+
       if (e is Exception) {
         rethrow;
       }
@@ -2614,7 +2614,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      print('Error in getUserProfile: $e');
+
       throw Exception('Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -2622,15 +2622,15 @@ class ApiService {
   /// Private helper for background wallet registration
   static Future<void> _autoRegisterWallet(String phone, String email) async {
     try {
-      print('🚀 [WALLET] Background auto-registration for $phone ($email)');
+
       final regResult = await registerWalletUser(utas: phone, mail: email);
       if (regResult['success'] == true && regResult['userId'] != null) {
-        print('✅ [WALLET] Successfully auto-registered in background.');
+
         // Refresh profile to pick up the new walletUserId
         getUserProfile(forceRefresh: true).catchError((_) => null);
       }
     } catch (e) {
-      print('⚠️ [WALLET] Background auto-registration failed: $e');
+
     }
   }
 
@@ -2671,7 +2671,7 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-      print('Error updating plate number: $e');
+
       throw Exception('Дугаар солиход алдаа гарлаа: $e');
     }
   }
@@ -2707,7 +2707,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error updating taniltsuulgaKharakhEsekh: $e');
+
       throw Exception('Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа: $e');
     }
   }
@@ -2717,12 +2717,12 @@ class ApiService {
     required Map<String, dynamic> addressData,
   }) async {
     try {
-      print('📝 [API] updateOrshinSuugchAddress called');
-      print('📝 [API] updateOrshinSuugchAddress data: $addressData');
+
+
 
       final userId = await StorageService.getUserId();
       if (userId == null) {
-        print('❌ [API] updateOrshinSuugchAddress - Missing userId');
+
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
@@ -2736,8 +2736,8 @@ class ApiService {
         requestBody['baiguullagiinId'] = baiguullagiinId;
       }
 
-      print('📝 [API] updateOrshinSuugchAddress - userId: $userId');
-      print('📝 [API] updateOrshinSuugchAddress - Request body: $requestBody');
+
+
       print(
         '📝 [API] updateOrshinSuugchAddress - Endpoint: $baseUrl/orshinSuugch/$userId',
       );
@@ -2755,7 +2755,7 @@ class ApiService {
       );
       return json.decode(response.body);
     } catch (e) {
-      print('Error in updateOrshinSuugchAddress: $e');
+
       rethrow;
     }
   }
@@ -2791,7 +2791,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error updating user profile: $e');
+
       throw Exception('Мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
     }
   }
@@ -2817,8 +2817,8 @@ class ApiService {
         queryParameters: queryParams,
       );
 
-      print('🚀 [API] fetchGeree - URL: $uri');
-      print('🚀 [API] fetchGeree - OrgID: $baiguullagiinId, Kholbolt: $tukhainBaaziinKholbolt');
+
+
 
       final response = await http.get(uri, headers: headers);
 
@@ -2832,7 +2832,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error fetching geree: $e');
+
       throw Exception('Гэрээний мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -2882,7 +2882,7 @@ class ApiService {
           final data = json.decode(response.body);
 
           if (data is String) {
-            print('API returned string instead of JSON: $data');
+
             return {'jagsaalt': []};
           }
           return data;
@@ -2896,7 +2896,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error fetching nekhemjlekhiinTuukh: $e');
+
       throw Exception('Нэхэмжлэхийн түүх татахад алдаа гарлаа: $e');
     }
   }
@@ -2938,7 +2938,7 @@ class ApiService {
       }
       return {'jagsaalt': []};
     } catch (e) {
-      print('Error fetching guilgeeAvlaguud: $e');
+
       return {'jagsaalt': []};
     }
   }
@@ -2960,7 +2960,7 @@ class ApiService {
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
       };
 
-      print('🚀 [API] fetchUldegdelBodyo - Body: $body');
+
 
       final uri = Uri.parse('$baseUrl/uldegdelBodyo');
 
@@ -2986,7 +2986,7 @@ class ApiService {
       }
       return {'jagsaalt': [], 'totalUldegdel': 0.0};
     } catch (e) {
-      print('Error fetching uldegdelBodyo: $e');
+
       return {'jagsaalt': [], 'totalUldegdel': 0.0};
     }
   }
@@ -3106,7 +3106,7 @@ class ApiService {
         'totalAldangi': totalAldangi,
       };
     } catch (e) {
-      print('Error in fetchInvoicesWithItems: $e');
+
       rethrow;
     }
   }
@@ -3145,7 +3145,7 @@ class ApiService {
 
           // If decoded data is a string, it means the API returned a JSON-encoded string
           if (data is String) {
-            print('API returned string instead of JSON object: $data');
+
             return {'jagsaalt': []};
           }
 
@@ -3155,19 +3155,19 @@ class ApiService {
           }
 
           // If it's not a Map, return empty result
-          print('API returned unexpected data type: ${data.runtimeType}');
+
           return {'jagsaalt': []};
         } catch (e) {
           // If JSON decode fails, the response might be a plain string
           // JSON parsing failed
-          print('Error: $e');
+
           return {'jagsaalt': []};
         }
       } else {
         throw Exception('Баримт татахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching ebarimtJagsaaltAvya: $e');
+
       throw Exception('Баримт татахад алдаа гарлаа: $e');
     }
   }
@@ -3214,7 +3214,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error saving ebarimt connection: $e');
+
       throw Exception('E-barimt холболт хадгалахад алдаа гарлаа: $e');
     }
   }
@@ -3225,18 +3225,18 @@ class ApiService {
     required Map<String, dynamic> data,
   }) async {
     try {
-      print('📝 [API] updateConsumerInfo called with identity: $identity');
-      print('📝 [API] updateConsumerInfo data: $data');
+
+
 
       final headers = await getAuthHeaders();
       final userId = await StorageService.getUserId();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
 
-      print('📝 [API] updateConsumerInfo - userId: $userId');
-      print('📝 [API] updateConsumerInfo - baiguullagiinId: $baiguullagiinId');
+
+
 
       if (userId == null || baiguullagiinId == null) {
-        print('❌ [API] updateConsumerInfo - Missing userId or baiguullagiinId');
+
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
@@ -3247,7 +3247,7 @@ class ApiService {
         ...data,
       };
 
-      print('📝 [API] updateConsumerInfo - Request body: $requestBody');
+
       print(
         '📝 [API] updateConsumerInfo - Endpoint: $baseUrl/easy-register/consumer',
       );
@@ -3263,7 +3263,7 @@ class ApiService {
       print(
         '📝 [API] updateConsumerInfo - Response status: ${response.statusCode}',
       );
-      print('📝 [API] updateConsumerInfo - Response body: ${response.body}');
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
@@ -3300,7 +3300,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      print('Error updating consumer info: $e');
+
       throw Exception('Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
     }
   }
@@ -3338,15 +3338,15 @@ class ApiService {
         'tukhainBaaziinKholbolt': dbKholbolt,
       };
 
-      print('[QPAY-LOG] Checking status: $uri');
-      print('[QPAY-LOG] Status check body: $bodyMap');
+
+
       final body = json.encode(bodyMap);
 
       final response = await http.post(uri, headers: headers, body: body);
 
       await _checkTokenExpiry(response);
 
-      print('[QPAY-LOG] Status check response code: ${response.statusCode}');
+
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3356,7 +3356,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error checking payment status: $e');
+
       throw Exception('Төлбөрийн төлөв шалгахад алдаа гарлаа: $e');
     }
   }
@@ -3387,7 +3387,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error fetching baiguullaga: $e');
+
       throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -3426,7 +3426,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error fetching baiguullaga by id: $e');
+
       throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -3503,8 +3503,8 @@ class ApiService {
       }
 
       final endpoint = '$baseUrl/qpayGargaya';
-      print('[QPAY-LOG] Calling OWN_ORG QPay endpoint: $endpoint');
-      print('[QPAY-LOG] Request body: ${json.encode(requestBody)}');
+
+
 
       final response = await http.post(
         Uri.parse(endpoint),
@@ -3514,7 +3514,7 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-      print('[QPAY-LOG] Response status: ${response.statusCode}');
+
       if (response.statusCode != 200 && response.statusCode != 201) {
         print(
           '[QPAY-LOG] Error response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
@@ -3530,7 +3530,7 @@ class ApiService {
 
       if (!isJson) {
         // Server returned string, HTML or other non-JSON response
-        print('QPay API returned non-JSON response: ${response.body}');
+
         // Often QPay API returns a raw string error like "Token abahad aldaa garlaa"
         // Let's truncate and show the string instead of just "status code 200"
         String errorText = response.body.trim();
@@ -3545,7 +3545,7 @@ class ApiService {
         try {
           responseData = json.decode(response.body) as Map<String, dynamic>;
         } catch (e) {
-          print('Failed to parse QPay response as JSON: $e');
+
           print(
             'Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
           );
@@ -3575,7 +3575,7 @@ class ApiService {
           };
 
         }
-        print('🔍 [QPAY] Success with legacy format: $responseData');
+
         // Standardize legacy format to also include invoice_id
         if (responseData.containsKey('id') &&
             !responseData.containsKey('invoice_id')) {
@@ -3589,7 +3589,7 @@ class ApiService {
           errorBody = json.decode(response.body) as Map<String, dynamic>?;
         } catch (e) {
           // If error response is not JSON, use status code
-          print('Failed to parse error response as JSON: $e');
+
           throw Exception(
             'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
           );
@@ -3600,7 +3600,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error creating QPay payment: $e');
+
       // Re-throw if it's already a formatted Exception
       if (e is Exception) {
         rethrow;
@@ -3648,8 +3648,8 @@ class ApiService {
       if (dansniiDugaar != null) requestBody['dansniiDugaar'] = dansniiDugaar;
 
       final endpoint = '$baseUrl/walletQpay/create';
-      print('[QPAY-LOG] [WALLET] Creating payment: $endpoint');
-      print('[QPAY-LOG] [WALLET] Body: ${json.encode(requestBody)}');
+
+
 
       final response = await http.post(
         Uri.parse(endpoint),
@@ -3659,11 +3659,11 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-      print('[QPAY-LOG] [WALLET] Status: ${response.statusCode}');
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body) as Map<String, dynamic>;
-        print('✅ [WALLET QPAY] Response received');
+
 
         if (responseData['success'] != true) {
           String errorMsg =
@@ -3733,7 +3733,7 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('❌ [WALLET QPAY] Exception: $e');
+
       if (e is Exception) rethrow;
       throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
     }
@@ -3747,7 +3747,7 @@ class ApiService {
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/walletQpay/list');
 
-      print('🔍 [WALLET QPAY] Fetching history: $uri');
+
       final response = await http.get(uri, headers: headers);
       await _checkTokenExpiry(response);
 
@@ -3788,7 +3788,7 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/walletQpay/check/$baiguullagiinId/$walletPaymentId',
       );
-      print('🔍 [WALLET QPAY] Checking status: $uri');
+
 
       final response = await http.get(uri, headers: headers);
 
@@ -3796,7 +3796,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
-        print('🔍 [WALLET QPAY] Status: ${data['status']}');
+
         return data;
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
@@ -3830,7 +3830,7 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl/walletQpay/wallet-check/$baiguullagiinId/$walletPaymentId',
       );
-      print('[QPAY-LOG] [WALLET] Checking full wallet status: $uri');
+
 
       final response = await http.get(uri, headers: headers);
 
@@ -3860,7 +3860,7 @@ class ApiService {
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/walletQpay/payment/$walletPaymentId');
 
-      print('🔍 [WALLET QPAY] Getting payment: $uri');
+
       final response = await http.get(uri, headers: headers);
       await _checkTokenExpiry(response);
 
@@ -3960,7 +3960,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error updating nekhemjlekh status: $e');
+
       throw Exception('Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа: $e');
     }
   }
@@ -4004,7 +4004,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error fetching nekhemjlekh cron: $e');
+
       throw Exception('Нэхэмжлэхийн Cron мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -4033,7 +4033,7 @@ class ApiService {
 
       return data;
     } catch (e) {
-      print('Error changing password: $e');
+
       throw Exception('Нууц үг солиход алдаа гарлаа: $e');
     }
   }
@@ -4055,7 +4055,7 @@ class ApiService {
       final data = json.decode(response.body);
       return data;
     } catch (e) {
-      print('Error deleting user: $e');
+
       throw Exception('Бүртгэлтэй хаяг устгахад алдаа гарлаа: $e');
     }
   }
@@ -4078,7 +4078,7 @@ class ApiService {
 
       return {'barilguud': matchingBaiguullaga['barilguud'] as List};
     } catch (e) {
-      print('Error fetching building details: $e');
+
       throw Exception('Барилгын мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -4104,13 +4104,13 @@ class ApiService {
         '$baseUrl/ajiltan',
       ).replace(queryParameters: {'baiguullagiinId': baiguullagiinId});
 
-      print('📞 [API] fetchAjiltan URL: $uri');
+
 
       final response = await http.get(uri, headers: headers);
 
       await _checkTokenExpiry(response);
 
-      print('📞 [API] fetchAjiltan response status: ${response.statusCode}');
+
       print(
         '📞 [API] fetchAjiltan response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...',
       );
@@ -4118,7 +4118,7 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        print('📞 [API] fetchAjiltan data keys: ${data.keys}');
+
         print(
           '📞 [API] fetchAjiltan jagsaalt type: ${data['jagsaalt']?.runtimeType}',
         );
@@ -4135,7 +4135,7 @@ class ApiService {
             return ajiltan['baiguullagiinId'] == baiguullagiinId;
           }).toList();
 
-          print('📞 [API] fetchAjiltan filtered count: ${filteredList.length}');
+
 
           data['jagsaalt'] = filteredList;
           data['niitMur'] = filteredList.length;
@@ -4150,7 +4150,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error fetching ajiltan: $e');
+
       throw Exception('Ажилтны мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -4181,7 +4181,7 @@ class ApiService {
             );
           }
         } catch (e) {
-          print('Could not fetch tukhainBaaziinKholbolt from user profile: $e');
+
         }
       }
 
@@ -4227,8 +4227,8 @@ class ApiService {
         '$baseUrl$endpoint',
       ).replace(queryParameters: queryParams);
 
-      print('🚀 [API] fetchMedegdel - URL: $uri');
-      print('🚀 [API] fetchMedegdel - OrgID: $baiguullagiinId, Kholbolt: $tukhainBaaziinKholbolt');
+
+
 
       final response = await http.get(uri, headers: headers);
 
@@ -4454,9 +4454,9 @@ class ApiService {
         }
       }
 
-      print('=== Submitting ${turul} ===');
-      print('Endpoint: /medegdelIlgeeye');
-      print('With image: ${imageFile != null}');
+
+
+
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
@@ -4828,7 +4828,7 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-      print('Error saving guest: $e');
+
       throw Exception('Зочин хадгалахад алдаа гарлаа: $e');
     }
   }
@@ -4884,7 +4884,7 @@ class ApiService {
         "tukhainBaaziinKholbolt": tukhainBaaziinKholbolt ?? "amarSukh",
       };
 
-      print('🚗 [INVITE] Pattern implementation: ${json.encode(requestBody)}');
+
 
       final response = await http.post(
         Uri.parse('$baseUrl/ezenUrisanMashin'),
@@ -4931,7 +4931,7 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-      print('Error inviting guest: $e');
+
       rethrow;
     }
   }
@@ -4968,7 +4968,7 @@ class ApiService {
         );
       }
     } catch (e) {
-      print('Error fetching guest history: $e');
+
       throw Exception('Зочны түүх татахад алдаа гарлаа: $e');
     }
   }
@@ -5017,7 +5017,7 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-      print('Error deleting guest invitation: $e');
+
       throw Exception('Урилга цуцлахад алдаа гарлаа: $e');
     }
   }
@@ -5083,7 +5083,7 @@ class ApiService {
         throw Exception('Квот шалгахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching quota status: $e');
+
       throw Exception('Квот шалгахад алдаа гарлаа: $e');
     }
   }
