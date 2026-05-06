@@ -12,6 +12,7 @@
     <application
         android:label="Amarhome"
         android:usesCleartextTraffic="true"
+        android:extractNativeLibs="true"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <service

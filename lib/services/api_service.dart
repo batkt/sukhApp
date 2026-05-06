@@ -554,7 +554,6 @@ class ApiService {
 
   // Biller Services
   static Future<List<Map<String, dynamic>>> getWalletBillers() async {
-    return []; // Temporarily disabled for testing
     try {
       final headers = await getWalletApiHeaders();
       final response = await http.get(
@@ -2998,17 +2997,16 @@ class ApiService {
     required String baiguullagiinId,
   }) async {
     try {
-      // 1. Fetch Invoices (nekhemjlekhiinTuukh)
-      final invoicesResponse = await fetchNekhemjlekhiinTuukh(
-        gereeniiDugaar: gereeniiDugaar,
-      );
-      final List<dynamic> invoices = invoicesResponse['jagsaalt'] ?? [];
+      // 1 & 2. Fetch Invoices and Ledger Items in parallel
+      final results = await Future.wait([
+        fetchNekhemjlekhiinTuukh(gereeniiDugaar: gereeniiDugaar),
+        fetchUldegdelBodyo(gereeniiId: gereeniiId, baiguullagiinId: baiguullagiinId),
+      ]);
 
-      // 2. Fetch Ledger Items (uldegdelBodyo)
-      final itemsResponse = await fetchUldegdelBodyo(
-        gereeniiId: gereeniiId,
-        baiguullagiinId: baiguullagiinId,
-      );
+      final invoicesResponse = results[0];
+      final itemsResponse = results[1];
+
+      final List<dynamic> invoices = invoicesResponse['jagsaalt'] ?? [];
       final List<dynamic> items = itemsResponse['jagsaalt'] ?? [];
       final summary = itemsResponse['summary'] ?? {};
       final List<dynamic> nekhemjlekhuudSummary = summary['nekhemjlekhuud'] ?? [];
@@ -3741,7 +3739,6 @@ class ApiService {
 
   /// Fetch Wallet QPay payment history list (with 15s cache)
   static Future<List<Map<String, dynamic>>> fetchWalletQpayList() async {
-    return []; // Temporarily disabled for testing
     // Payment history is user-specific. Always fetch fresh.
     try {
       final headers = await getAuthHeaders();

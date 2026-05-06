@@ -371,15 +371,27 @@ class _BookingScreenState extends State<NuurKhuudas>
 
       List<Map<String, dynamic>> finalBillingList = [];
 
-      // Fetch user profile to identify user type
-      final userProfile = await ApiService.getUserProfile(forceRefresh: forceRefresh);
+      // 1. Parallel Initial Fetch for core data
+      final userId = await StorageService.getUserId();
+      final initialData = await Future.wait([
+        ApiService.getUserProfile(forceRefresh: forceRefresh),
+        ApiService.getWalletBillingList(forceRefresh: forceRefresh),
+        ApiService.fetchWalletQpayList(),
+        if (userId != null && !isWalletOnlyOrg) ApiService.fetchGeree(userId) else Future.value({'jagsaalt': []}),
+      ]);
+
+      final userProfile = initialData[0] as Map<String, dynamic>;
+      final rawBillingList = initialData[1] as List<Map<String, dynamic>>;
+      final walletHistory = initialData[2] as List<Map<String, dynamic>>;
+      final gereeResponse = initialData[3] as Map<String, dynamic>;
+
       final user = userProfile['result'];
 
       if (mounted) {
         setState(() {
           _userProfile = user;
+          _gereeResponse = GereeResponse.fromJson(gereeResponse);
           // Identify non-organization users (Bpay signups or users with no linked org)
-          // Include '698e7fd3b6dd386b6c56a808' which is the default Wallet-only organization
           final String? baigIdValue = user?['baiguullagiinId']?.toString();
           _isNonOrgUser = baigIdValue == null ||
               baigIdValue == "null" ||
@@ -388,25 +400,11 @@ class _BookingScreenState extends State<NuurKhuudas>
         });
       }
 
-      // 1. Load Local Residency Contracts (OWN_ORG)
-      if (!isWalletOnlyOrg) {
+      // Load Local Residency Contracts (OWN_ORG)
+      if (!isWalletOnlyOrg && gereeResponse['jagsaalt'] != null && gereeResponse['jagsaalt'] is List) {
         try {
-          final userId = await StorageService.getUserId();
-          if (userId != null) {
-            final gereeResponse = await ApiService.fetchGeree(userId);
-            if (mounted) {
-              setState(() {
-                _gereeResponse = GereeResponse.fromJson(gereeResponse);
-              });
-            }
-            if (gereeResponse['jagsaalt'] != null && gereeResponse['jagsaalt'] is List) {
-              final contracts = gereeResponse['jagsaalt'] as List;
-              
-              // Optimization: Fetch wallet history once before the loop
-              List<Map<String, dynamic>> walletHistory = [];
-              try {
-                walletHistory = await ApiService.fetchWalletQpayList();
-              } catch(_) {}
+          final contracts = gereeResponse['jagsaalt'] as List;
+
 
               // Parallel fetch to ensure accuracy for each contract
               final processedResults = await Future.wait(contracts.map((c) async {
@@ -498,86 +496,67 @@ class _BookingScreenState extends State<NuurKhuudas>
                   'barilgiinId': contract['barilgiinId']?.toString() ?? currentBarilgiinId,
                 });
               }
+            } catch (e) {
+              // Silent fail for individual org fetch
             }
           }
-        } catch (e) {
 
-        }
-      }
-
-      total = ownOrgTotal;
-      totalAldangi = ownOrgAldangi;
-
-      // 2. Fetch data from Wallet API
-      final rawBillingList = await ApiService.getWalletBillingList(forceRefresh: forceRefresh);
-      
-      // Fetch recent wallet history to filter out already paid/pending bills
-      List<Map<String, dynamic>> walletHistory = [];
-      try {
-        walletHistory = await ApiService.fetchWalletQpayList();
-      } catch(_) {}
-      
-      // Identify bill numbers that have recent successful or pending payments
-      // KEY: We match by billNo (string) not billId (UUID), since wallet API returns billNo in lines
+            // Identify bill numbers that have recent successful or pending payments
+      // PARALLEL STATUS CHECKS
       final Set<String> recentlyPaidBillNos = {};
-      for (var h in walletHistory.take(5)) {
-        // Get the walletPaymentId to call wallet-check
+      final List<Future<void>> statusChecks = walletHistory.take(5).map((h) async {
         final walletPaymentId = h['walletPaymentId']?.toString() ?? '';
         final zakhialgiinDugaar = h['zakhialgiinDugaar']?.toString() ?? '';
         final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
 
-        if (checkId.isEmpty) continue;
-
-        try {
-          // walletQpayWalletCheck has 30s cache - won't spam the API
-          final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
-          if (st['success'] == true && st['data'] != null) {
-            final walletData = st['data'];
-            final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
-            
-            // Check for successful transactions at the top level
-            final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) => 
-              (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
-              (trx['trxStatusName']?.toString() == 'Амжилттай')
-            ) ?? false;
-            
-            // Check within lines for bundled payments
-            bool hasSuccessfulTrxInLines = false;
-            final lines = walletData['lines'] as List?;
-            if (lines != null) {
-              for (var line in lines) {
-                final lineTrx = line['billTransactions'] as List?;
-                if (lineTrx != null && lineTrx.any((trx) => 
-                  (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
-                  (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
-                  hasSuccessfulTrxInLines = true;
-                  break;
-                }
-              }
-            }
-
-            // If PAID, PENDING, or has a successful transaction — mark associated bills as paid
-            if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx || hasSuccessfulTrxInLines) {
-              // Extract billNo from each line (this is the primary identifier)
+        if (checkId.isNotEmpty) {
+          try {
+            final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+            if (st['success'] == true && st['data'] != null) {
+              final walletData = st['data'];
+              final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
+              
+              final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) => 
+                (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
+                (trx['trxStatusName']?.toString() == 'Амжилттай')
+              ) ?? false;
+              
+              bool hasSuccessfulTrxInLines = false;
+              final lines = walletData['lines'] as List?;
               if (lines != null) {
                 for (var line in lines) {
-                  final billNo = line['billNo']?.toString();
-                  final billId = line['billId']?.toString();
-                  if (billNo != null && billNo.isNotEmpty) recentlyPaidBillNos.add(billNo);
-                  if (billId != null && billId.isNotEmpty) recentlyPaidBillNos.add(billId);
+                  final lineTrx = line['billTransactions'] as List?;
+                  if (lineTrx != null && lineTrx.any((trx) => 
+                    (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') || 
+                    (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
+                    hasSuccessfulTrxInLines = true;
+                    break;
+                  }
                 }
               }
-              // Also add the invoice-level billNo if present
-              final topLevelBillNo = walletData['billNo']?.toString();
-              final topLevelInvoiceNo = walletData['invoiceNo']?.toString();
-              if (topLevelBillNo != null && topLevelBillNo.isNotEmpty) recentlyPaidBillNos.add(topLevelBillNo);
-              if (topLevelInvoiceNo != null && topLevelInvoiceNo.isNotEmpty) recentlyPaidBillNos.add(topLevelInvoiceNo);
-              
 
+              if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx || hasSuccessfulTrxInLines) {
+                if (lines != null) {
+                  for (var line in lines) {
+                    final billNo = line['billNo']?.toString();
+                    final billId = line['billId']?.toString();
+                    if (billNo != null && billNo.isNotEmpty) recentlyPaidBillNos.add(billNo);
+                    if (billId != null && billId.isNotEmpty) recentlyPaidBillNos.add(billId);
+                  }
+                }
+                final topLevelBillNo = walletData['billNo']?.toString();
+                final topLevelInvoiceNo = walletData['invoiceNo']?.toString();
+                if (topLevelBillNo != null && topLevelBillNo.isNotEmpty) recentlyPaidBillNos.add(topLevelBillNo);
+                if (topLevelInvoiceNo != null && topLevelInvoiceNo.isNotEmpty) recentlyPaidBillNos.add(topLevelInvoiceNo);
+              }
             }
-          }
-        } catch(_) {}
-      }
+          } catch(_) {}
+        }
+      }).toList();
+
+      await Future.wait(statusChecks);
+      total = ownOrgTotal;
+      totalAldangi = ownOrgAldangi;
 
       // Fetch details for each wallet billing concurrently
       final walletFutures = rawBillingList.map((billing) async {
@@ -681,12 +660,12 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (total == 0.0) {
         double recalculatedTotal = 0.0;
         double recalculatedAldangi = 0.0;
-        for (var billing in updatedWalletBillings) {
+        
+        await Future.wait(updatedWalletBillings.map((billing) async {
           final billingId = billing['billingId']?.toString();
           if (billingId != null) {
             try {
               final billsResponse = await ApiService.getWalletBillingBills(billingId: billingId);
-              // Extract bills list from response - it could be under 'newBills' or 'bills' key
               List<Map<String, dynamic>> bills = [];
               if (billsResponse['newBills'] is List) {
                 bills = List<Map<String, dynamic>>.from(billsResponse['newBills']);
@@ -702,7 +681,8 @@ class _BookingScreenState extends State<NuurKhuudas>
               }
             } catch (_) {}
           }
-        }
+        }));
+
         if (recalculatedTotal > 0.0) {
           total = recalculatedTotal;
           totalAldangi = recalculatedAldangi;
