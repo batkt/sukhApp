@@ -174,17 +174,75 @@ class NekhemjlekhItem {
     return false;
   }
 
-  /// The amount that needs to be paid (Remaining balance)
+  /// The amount that needs to be paid (Remaining balance) - used for payment selection
   double get effectiveNiitTulbur => uldegdel;
 
+  /// The original total charge amount - used for display ("Нийт төлбөр")
+  double get displayNiitTulbur => niitTulbur > 0 ? niitTulbur : niitTulburOriginal;
+
   String get formattedAmount {
-    final total = effectiveNiitTulbur;
+    // For paid invoices show the original total, for unpaid show remaining
+    final total = isPaid ? displayNiitTulbur : effectiveNiitTulbur;
     return '${formatNumber(total, 2)}₮';
   }
 
   String get displayName =>
       '$ovog $ner'.trim().isNotEmpty ? '$ovog $ner' : baiguullagiinNer;
   String get phoneNumber => utas.isNotEmpty ? utas.first : '';
+
+  NekhemjlekhItem copyWith({
+    String? id,
+    String? baiguullagiinNer,
+    String? baiguullagiinUtas,
+    String? baiguullagiinKhayag,
+    String? ovog,
+    String? ner,
+    String? register,
+    String? khayag,
+    String? orts,
+    String? gereeniiDugaar,
+    String? nekhemjlekhiinOgnoo,
+    double? niitTulbur,
+    double? niitTulburOriginal,
+    double? uldegdel,
+    List<String>? utas,
+    String? dansniiDugaar,
+    String? tuluv,
+    String? bairNer,
+    String? toot,
+    String? billingId,
+    NekhemjlekhMedeelel? medeelel,
+    double? ekhniiUldegdel,
+    bool? isSelected,
+    bool? isExpanded,
+  }) {
+    return NekhemjlekhItem(
+      id: id ?? this.id,
+      baiguullagiinNer: baiguullagiinNer ?? this.baiguullagiinNer,
+      baiguullagiinUtas: baiguullagiinUtas ?? this.baiguullagiinUtas,
+      baiguullagiinKhayag: baiguullagiinKhayag ?? this.baiguullagiinKhayag,
+      ovog: ovog ?? this.ovog,
+      ner: ner ?? this.ner,
+      register: register ?? this.register,
+      khayag: khayag ?? this.khayag,
+      orts: orts ?? this.orts,
+      gereeniiDugaar: gereeniiDugaar ?? this.gereeniiDugaar,
+      nekhemjlekhiinOgnoo: nekhemjlekhiinOgnoo ?? this.nekhemjlekhiinOgnoo,
+      niitTulbur: niitTulbur ?? this.niitTulbur,
+      niitTulburOriginal: niitTulburOriginal ?? this.niitTulburOriginal,
+      uldegdel: uldegdel ?? this.uldegdel,
+      utas: utas ?? this.utas,
+      dansniiDugaar: dansniiDugaar ?? this.dansniiDugaar,
+      tuluv: tuluv ?? this.tuluv,
+      bairNer: bairNer ?? this.bairNer,
+      toot: toot ?? this.toot,
+      billingId: billingId ?? this.billingId,
+      medeelel: medeelel ?? this.medeelel,
+      ekhniiUldegdel: ekhniiUldegdel ?? this.ekhniiUldegdel,
+      isSelected: isSelected ?? this.isSelected,
+      isExpanded: isExpanded ?? this.isExpanded,
+    );
+  }
 }
 
 class NekhemjlekhMedeelel {

@@ -643,17 +643,17 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                 textBaseline: TextBaseline.alphabetic,
                                 crossAxisAlignment: CrossAxisAlignment.baseline,
                                 children: [
-                                  Text(
-                                    month.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: isDark
-                                          ? const Color(0xFF94A3B8)
-                                          : const Color(0xFF475569),
-                                      letterSpacing: 1.2,
+                                    Text(
+                                      month.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B),
+                                        letterSpacing: 1.0,
+                                      ),
                                     ),
-                                  ),
                                   // Text(
                                   //   '${NumberFormat('#,##0').format(monthTotal)} ₮',
                                   //   style: TextStyle(
@@ -749,18 +749,19 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                         Text(
                           DateFormat('MMM', 'mn_MN').format(payment.paymentStatusDate).toUpperCase(),
                           style: TextStyle(
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white70 : accentColor.withOpacity(0.6),
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white60 : accentColor.withOpacity(0.5),
+                            letterSpacing: 0.5,
                           ),
                         ),
                         Text(
                           dayStr,
                           style: TextStyle(
                             fontSize: 18.sp,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             color: isDark ? Colors.white : accentColor,
-                            height: 1,
+                            height: 1.1,
                           ),
                         ),
                       ],
@@ -778,10 +779,11 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             : payment.bills.first.billType,
                         style: TextStyle(
                           fontSize: 15.sp,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: isDark
                               ? Colors.white
-                              : const Color(0xFF334155),
+                              : const Color(0xFF1E293B),
+                          letterSpacing: -0.3,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -790,20 +792,20 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       Row(
                         children: [
                           Flexible(
-                            child: Text(
-                              payment.paymentStatus == 'PENDING'
-                                  ? 'Хүлээгдэж байна'
-                                  : 'Төлөгдсөн',
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                fontWeight: FontWeight.w600,
-                                color: payment.paymentStatus == 'PENDING'
-                                    ? Colors.orange
-                                    : (isDark ? accentColor : accentColor),
+                              child: Text(
+                                payment.paymentStatus == 'PENDING'
+                                    ? 'Хүлээгдэж байна'
+                                    : 'Амжилттай төлөгдсөн',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: payment.paymentStatus == 'PENDING'
+                                      ? Colors.orange
+                                      : (isDark ? accentColor.withOpacity(0.8) : accentColor.withOpacity(0.9)),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
                           ),
                         ],
                       ),
@@ -816,8 +818,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                   '${NumberFormat('#,##0').format(payment.paymentAmount)} ₮',
                   style: TextStyle(
                     fontSize: 16.sp,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : const Color(0xFF334155),
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
                   ),
                 ),
                 SizedBox(width: 8.w),
@@ -845,7 +847,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           child: Text(
                             bill.billNo.isNotEmpty ? '${bill.billType} (${bill.billNo})' : bill.billType,
                             style: TextStyle(
-                              fontSize: 12.sp,
+                              fontSize: 13.sp,
                               color: isDark ? Colors.white70 : Colors.black87,
                             ),
                           ),
@@ -854,7 +856,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           '${NumberFormat('#,##0').format(bill.billTotalAmount)} ₮',
                           style: TextStyle(
                             fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             color: isDark ? Colors.white : Colors.black87,
                           ),
                         ),
@@ -894,12 +896,12 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           ),
                           SizedBox(width: 10.w),
                           Text(
-                            'ЦАХИМ ТӨЛБӨРИЙН БАРИМТ ХАРАХ',
+                            'ЦАХИМ БАРИМТ ХАРАХ',
                             style: TextStyle(
                               color: isDark ? Colors.white : accentColor,
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ],

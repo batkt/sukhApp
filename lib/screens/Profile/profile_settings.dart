@@ -581,6 +581,96 @@ class _ProfileSettingsState extends State<ProfileSettings>
     }
   }
 
+  Future<void> _handleRemoveToot(Map<String, dynamic> tootData) async {
+    final residentId = _userData?['_id'];
+    final baiguullagiinId = tootData['baiguullagiinId'];
+    final barilgiinId = tootData['barilgiinId'];
+    final toot = tootData['toot'];
+
+    if (residentId == null || baiguullagiinId == null || toot == null) {
+      showGlassSnackBar(
+        context,
+        message: 'Мэдээлэл дутуу байна',
+        icon: Icons.error,
+      );
+      return;
+    }
+
+    final isDark = context.isDarkMode;
+
+    // Confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        title: Text(
+          'Бүртгэл цуцлах',
+          style: TextStyle(
+            color: context.textPrimaryColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          '$toot тоот бүртгэлийг цуцлахдаа итгэлтэй байна уу?',
+          style: TextStyle(color: context.textSecondaryColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Үгүй',
+              style: TextStyle(color: context.textSecondaryColor),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Тийм, цуцлах',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await ApiService.removeToot(
+        residentId: residentId.toString(),
+        baiguullagiinId: baiguullagiinId.toString(),
+        barilgiinId: barilgiinId?.toString(),
+        toot: toot.toString(),
+      );
+
+      showGlassSnackBar(
+        context,
+        message: 'Бүртгэл амжилттай цуцлагдлаа',
+        icon: Icons.check_circle,
+        iconColor: Colors.green,
+      );
+
+      await _loadUserProfile();
+    } catch (e) {
+      showGlassSnackBar(
+        context,
+        message: 'Алдаа гарлаа: $e',
+        icon: Icons.error,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> _handleChangePassword(
     void Function(void Function())? setModalState,
   ) async {
@@ -2418,42 +2508,67 @@ class _ProfileSettingsState extends State<ProfileSettings>
   Widget _buildUserDataGrid() {
     if (_userData == null) return const SizedBox.shrink();
 
-    // Build list of data items - only bair, toot
+    // Build list of data items
     List<Map<String, dynamic>> dataItems = [];
 
-    // Байр (Address)
-    String? bairText;
-    if (_userData!['bairniiNer'] != null &&
-        _userData!['bairniiNer'].toString().isNotEmpty) {
-      bairText = _userData!['bairniiNer'].toString();
-    }
+    // Check for multiple toots (units)
+    final List toots =
+        (_userData!['toots'] != null && _userData!['toots'] is List)
+            ? List.from(_userData!['toots'])
+            : [];
 
-    // Always add Address row — only show 'Хаяг сонгох' as a link if user truly has no address
-    final hasAddress = bairText != null && bairText.isNotEmpty;
-    dataItems.add({
-      'icon': Icons.location_on_outlined,
-      'label': 'Байр',
-      'value': hasAddress ? bairText! : 'Хаяг сонгох',
-      'action': !hasAddress
-          ? () {
-              _handleUpdateAddress();
-            }
-          : null,
-      'isLink': !hasAddress,
-    });
+    if (toots.isNotEmpty) {
+      // Group toots by building to avoid repeating building name if multiple toots in same building
+      // Or just list them all as separate unit entries
+      for (var t in toots) {
+        final bName = t['bairniiNer'] ?? t['baiguullagiinNer'] ?? 'Тодорхойгүй';
+        final tNo = t['toot'] ?? '???';
 
-    // Тоот (Door number)
-    String? tootText;
-    if (_userData!['walletDoorNo'] != null &&
-        _userData!['walletDoorNo'].toString().isNotEmpty) {
-      tootText = _userData!['walletDoorNo'].toString();
-    }
-    if (tootText != null && tootText.isNotEmpty) {
+        dataItems.add({
+          'icon': Icons.home_rounded,
+          'label': '$bName',
+          'value': '$tNo тоот',
+          'action': toots.length > 1
+              ? () {
+                  _handleRemoveToot(Map<String, dynamic>.from(t));
+                }
+              : null,
+          'isRemovable': toots.length > 1,
+        });
+      }
+    } else {
+      // Fallback to top-level fields if toots array is empty
+      String? bairText;
+      if (_userData!['bairniiNer'] != null &&
+          _userData!['bairniiNer'].toString().isNotEmpty) {
+        bairText = _userData!['bairniiNer'].toString();
+      }
+
+      final hasAddress = bairText != null && bairText.isNotEmpty;
       dataItems.add({
-        'icon': Icons.home_outlined,
-        'label': 'Тоот',
-        'value': tootText,
+        'icon': Icons.location_on_outlined,
+        'label': 'Байр',
+        'value': hasAddress ? bairText! : 'Хаяг сонгох',
+        'action': !hasAddress
+            ? () {
+                _handleUpdateAddress();
+              }
+            : null,
+        'isLink': !hasAddress,
       });
+
+      String? tootText;
+      if (_userData!['walletDoorNo'] != null &&
+          _userData!['walletDoorNo'].toString().isNotEmpty) {
+        tootText = _userData!['walletDoorNo'].toString();
+      }
+      if (tootText != null && tootText.isNotEmpty) {
+        dataItems.add({
+          'icon': Icons.home_outlined,
+          'label': 'Тоот',
+          'value': tootText,
+        });
+      }
     }
 
     if (dataItems.isEmpty) {
@@ -2465,7 +2580,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
     final isDark = context.isDarkMode;
 
-    // Build list layout with icon next to text
     return Column(
       children: dataItems.asMap().entries.map((entry) {
         final index = entry.key;
@@ -2473,77 +2587,90 @@ class _ProfileSettingsState extends State<ProfileSettings>
         final isLast = index == dataItems.length - 1;
         final action = item['action'] as VoidCallback?;
         final isLink = item['isLink'] == true;
+        final isRemovable = item['isRemovable'] == true;
 
-        return InkWell(
-          onTap: action,
-          child: Container(
-            padding: EdgeInsets.symmetric(vertical: 10.h),
-            decoration: BoxDecoration(
-              border: isLast
-                  ? null
-                  : Border(
-                      bottom: BorderSide(
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 10.h),
+          decoration: BoxDecoration(
+            border: isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: isRemovable
+                      ? Colors.red.withOpacity(0.1)
+                      : AppColors.deepGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  item['icon'] as IconData,
+                  color: isRemovable ? Colors.red[400] : AppColors.deepGreen,
+                  size: 18.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['label'] as String,
+                      style: TextStyle(
                         color: isDark
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.2),
-                        width: 1,
+                            ? Colors.white.withOpacity(0.6)
+                            : Colors.grey[600],
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: AppColors.deepGreen.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Icon(
-                    item['icon'] as IconData,
-                    color: AppColors.deepGreen,
-                    size: 18.sp,
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item['label'] as String,
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.6)
-                              : Colors.grey[600],
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      item['value'] as String,
+                      style: TextStyle(
+                        color: isLink
+                            ? AppColors.deepGreen
+                            : (isDark ? Colors.white : Colors.black87),
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        decoration: isLink ? TextDecoration.underline : null,
                       ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        item['value'] as String,
-                        style: TextStyle(
-                          color: isLink
-                              ? AppColors.deepGreen
-                              : (isDark ? Colors.white : Colors.black87),
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                          decoration: isLink ? TextDecoration.underline : null,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                if (isLink)
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.deepGreen,
+              ),
+              if (isLink)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.deepGreen,
+                  size: 20.sp,
+                ),
+              if (isRemovable)
+                IconButton(
+                  onPressed: action,
+                  icon: Icon(
+                    Icons.cancel_outlined,
+                    color: Colors.red[400],
                     size: 20.sp,
                   ),
-              ],
-            ),
+                  tooltip: 'Цуцлах',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  splashRadius: 20.r,
+                ),
+            ],
           ),
         );
       }).toList(),
@@ -3109,7 +3236,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 _buildSettingsTile(
                                   icon: Icons.account_circle_outlined,
                                   title: 'Хувийн мэдээлэл',
-                                  subtitle: 'Овог нэр, утас, хаягийн мэдээлэл',
+                                  subtitle: 'Утас, хаягийн мэдээлэл',
                                   onTap: () => _showPersonalInfoModal(context),
                                 ),
                                 _buildSettingsTile(

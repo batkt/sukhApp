@@ -409,32 +409,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
             final List<NekhemjlekhItem> unitInvoices = jagsaalt.map((item) {
               final inv = NekhemjlekhItem.fromJson(item);
-              // Ensure bairNer and toot are set from contract if missing in invoice
-              return NekhemjlekhItem(
-                id: inv.id,
-                baiguullagiinNer: inv.baiguullagiinNer,
-                baiguullagiinUtas: inv.baiguullagiinUtas,
-                baiguullagiinKhayag: inv.baiguullagiinKhayag,
-                ovog: inv.ovog,
-                ner: inv.ner,
-                register: inv.register,
-                khayag: inv.khayag,
-                orts: inv.orts,
-                gereeniiDugaar: inv.gereeniiDugaar,
-                nekhemjlekhiinOgnoo: inv.nekhemjlekhiinOgnoo,
-                niitTulbur: inv.niitTulbur,
-                niitTulburOriginal: inv.niitTulburOriginal,
-                uldegdel: inv.uldegdel,
-                utas: inv.utas,
-                dansniiDugaar: inv.dansniiDugaar,
-                tuluv: inv.tuluv,
-                bairNer: inv.bairNer.isNotEmpty ? inv.bairNer : (contract['bairNer']?.toString() ?? ''),
-                toot: inv.toot.isNotEmpty ? inv.toot : (contract['toot']?.toString() ?? ''),
+              // Authoritatively use contract info if available to ensure multi-unit separation is clear
+              return inv.copyWith(
+                bairNer: contract['bairNer']?.toString() ?? inv.bairNer,
+                toot: contract['toot']?.toString() ?? inv.toot,
                 billingId: inv.billingId.isNotEmpty ? inv.billingId : (contract['gereeniiDugaar']?.toString() ?? ''),
-                medeelel: inv.medeelel,
-                ekhniiUldegdel: inv.ekhniiUldegdel,
               );
-
             }).toList();
 
             // Handle synthetic balance for this unit
@@ -482,7 +462,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           }
 
           selectedGereeniiDugaar = gereeniiDugaar;
-          selectedContractDisplay = '${gereeToUse['bairNer'] ?? gereeniiDugaar}';
+          final bn = gereeToUse['bairNer']?.toString() ?? '';
+          final tt = gereeToUse['toot']?.toString() ?? '';
+          if (bn.isNotEmpty && tt.isNotEmpty) {
+            selectedContractDisplay = '$bn - $tt тоот';
+          } else {
+            selectedContractDisplay = bn.isNotEmpty ? bn : gereeniiDugaar;
+          }
           
           final baiguullagiinId = gereeToUse['baiguullagiinId']?.toString() ?? await StorageService.getBaiguullagiinId();
           final gereeniiId = gereeToUse['_id']?.toString();
@@ -497,7 +483,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           _contractUldegdel = (unifiedResponse['totalUldegdel'] ?? 0.0).toDouble();
 
           for (var item in mergedInvoices) {
-            finalInvoices.add(NekhemjlekhItem.fromJson(item));
+            final inv = NekhemjlekhItem.fromJson(item);
+            finalInvoices.add(inv.copyWith(
+              bairNer: inv.bairNer.isNotEmpty ? inv.bairNer : (gereeToUse['bairNer']?.toString() ?? ''),
+              toot: inv.toot.isNotEmpty ? inv.toot : (gereeToUse['toot']?.toString() ?? ''),
+            ));
           }
 
           double sumUnpaid = finalInvoices.where((inv) => !inv.isPaid).fold(0, (s, inv) => s + inv.effectiveNiitTulbur);
@@ -572,11 +562,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   }
 
   bool get allSelected {
-    final unpaidInvoices = invoices
+    final filteredUnpaid = _getFilteredInvoices()
         .where((invoice) => !invoice.isPaid)
         .toList();
-    return unpaidInvoices.isNotEmpty &&
-        unpaidInvoices.every((invoice) => invoice.isSelected);
+    return filteredUnpaid.isNotEmpty &&
+        filteredUnpaid.every((invoice) => invoice.isSelected);
   }
 
   int get selectedCount =>
@@ -613,9 +603,10 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   }
 
   void toggleSelectAll() {
+    final filteredInvoices = _getFilteredInvoices();
     setState(() {
       bool newValue = !allSelected;
-      for (var invoice in invoices) {
+      for (var invoice in filteredInvoices) {
         // Only select/deselect invoices that are not paid
         if (!invoice.isPaid) {
           invoice.isSelected = newValue;
@@ -2690,7 +2681,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     GestureDetector(
-                      onTap: () => context.pop(),
+                      onTap: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/nuur');
+                        }
+                      },
                       child: Container(
                         padding: EdgeInsets.all(10.w),
                         decoration: BoxDecoration(
@@ -2777,7 +2774,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                 child: Row(
                                   children: [
                                     _buildMonthSelector(),
-                                    const Spacer(),
+                                    SizedBox(width: 12.w), // Replaced Spacer() with fixed gap
                                     FilterTabs(
                                       selectedFilter: selectedFilter,
                                       onFilterChanged: (key) => setState(() => selectedFilter = key),

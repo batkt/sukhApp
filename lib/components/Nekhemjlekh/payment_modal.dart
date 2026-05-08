@@ -189,14 +189,14 @@ class _PaymentModalState extends State<PaymentModal> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Гэрээ',
+                                'Нэхэмжлэх',
                                 style: TextStyle(
                                   fontSize: 11.sp,
                                   color: context.textSecondaryColor,
                                 ),
                               ),
                               Text(
-                                '${widget.selectedCount} гэрээ',
+                                '${widget.selectedCount} нэхэмжлэх',
                                 style: TextStyle(
                                   fontSize: 12.sp,
                                   color: context.textPrimaryColor,

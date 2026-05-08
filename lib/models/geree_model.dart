@@ -102,7 +102,7 @@ class Geree {
       ashiglaltiinZardal: (json['ashiglaltiinZardal'] ?? 0).toDouble(),
       niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),
       bairNer: json['bairNer'] ?? '',
-      toot: json['toot'] ?? 0,
+      toot: json['toot']?.toString() ?? '',
       davkhar: json['davkhar'] ?? '',
       burtgesenAjiltan: json['burtgesenAjiltan'] ?? '',
       orshinSuugchId: json['orshinSuugchId'] ?? '',

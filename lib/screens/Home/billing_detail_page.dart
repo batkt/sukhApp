@@ -565,13 +565,14 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           barilgiinId: barilgiinId,
           dun: totalAmount,
           gereeniiId: billingEntry['gereeniiId']?.toString(),
-          nekhemjlekhiinId: selectedBillIds.join(','),
+          nekhemjlekhiinIds: selectedBillIds,
           turul: gereeniiDugaar.isNotEmpty
               ? gereeniiDugaar
               : 'Орон сууцны төлбөр',
         );
-        qpayResponse['success'] =
-            true; // qpayGargaya doesn't always wrap in success: true
+        if (qpayResponse != null) {
+          qpayResponse!['success'] = true;
+        }
       } else {
         // Standard Wallet API payout
         qpayResponse = await ApiService.createWalletQPayPayment(
@@ -586,7 +587,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       if (!mounted) return;
 
-      if (qpayResponse['success'] == true) {
+      if (qpayResponse?['success'] == true) {
 
         // Register these IDs as PENDING immediately to skip double-payment risks
         for(var bid in selectedBillIds) {
@@ -595,20 +596,20 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
            _billStatusColors[bid] = Colors.orange;
         }
         
-        final walletPaymentId = qpayResponse['walletPaymentId']?.toString();
+        final walletPaymentId = qpayResponse?['walletPaymentId']?.toString();
         final qpayInvoiceId =
-            qpayResponse['invoice_id']?.toString() ??
-            qpayResponse['invoiceId']?.toString() ??
-            qpayResponse['id']?.toString(); // Legacy/v2 field
-        final paymentAmount = _toSafeDouble(qpayResponse['paymentAmount']) ??
-            _toSafeDouble(qpayResponse['amount']) ??
+            qpayResponse?['invoice_id']?.toString() ??
+            qpayResponse?['invoiceId']?.toString() ??
+            qpayResponse?['id']?.toString(); // Legacy/v2 field
+        final paymentAmount = _toSafeDouble(qpayResponse?['paymentAmount']) ??
+            _toSafeDouble(qpayResponse?['amount']) ??
             totalAmount;
         final qrText =
-            qpayResponse['qrText']?.toString() ??
-            qpayResponse['qr_text']?.toString();
-        final qrImage = qpayResponse['qr_image']?.toString();
-        final urls = qpayResponse['urls'] as List<dynamic>?;
-        final responseSource = qpayResponse['source']?.toString() ?? source;
+            qpayResponse?['qrText']?.toString() ??
+            qpayResponse?['qr_text']?.toString();
+        final qrImage = qpayResponse?['qr_image']?.toString();
+        final urls = qpayResponse?['urls'] as List<dynamic>?;
+        final responseSource = qpayResponse?['source']?.toString() ?? source;
 
         final paid = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
@@ -734,8 +735,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         }
       } else {
         throw Exception(
-          qpayResponse['message'] ??
-              qpayResponse['aldaa'] ??
+          qpayResponse?['message'] ??
+              qpayResponse?['aldaa'] ??
               'Төлбөр үүсгэхэд алдаа гарлаа',
         );
       }

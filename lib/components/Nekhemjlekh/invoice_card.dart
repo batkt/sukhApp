@@ -166,20 +166,30 @@ class InvoiceCard extends StatelessWidget {
                                     ),
                                   ),
                                   if (invoice.bairNer.isNotEmpty || invoice.toot.isNotEmpty) ...[
-                                    SizedBox(height: 2.h),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.home_work_outlined, size: 12.sp, color: AppColors.deepGreen.withOpacity(0.6)),
-                                        SizedBox(width: 4.w),
-                                        Text(
-                                          '${invoice.bairNer} - ${invoice.toot} тоот',
-                                          style: TextStyle(
-                                            color: AppColors.deepGreen,
-                                            fontSize: 11.sp,
-                                            fontWeight: FontWeight.w600,
+                                    SizedBox(height: 6.h),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.deepGreen.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6.r),
+                                        border: Border.all(color: AppColors.deepGreen.withOpacity(0.2), width: 0.5),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.home_work_rounded, size: 10.sp, color: AppColors.deepGreen),
+                                          SizedBox(width: 4.w),
+                                          Text(
+                                            '${invoice.bairNer} - ${invoice.toot} тоот',
+                                            style: TextStyle(
+                                              color: AppColors.deepGreen,
+                                              fontSize: 10.sp,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.2,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -214,14 +224,16 @@ class InvoiceCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Нийт төлөх',
+                                invoice.isPaid ? 'Төлсөн дүн' : 'Нийт төлөх',
                                 style: TextStyle(
                                   color: context.textSecondaryColor,
                                   fontSize: 12.sp,
                                 ),
                               ),
                               Text(
-                                invoice.formattedAmount,
+                                invoice.isPaid 
+                                    ? '${formatNumber(invoice.displayNiitTulbur, 2)}₮' 
+                                    : invoice.formattedAmount,
                                 style: TextStyle(
                                   color: context.textPrimaryColor,
                                   fontSize: 18.sp,
@@ -392,7 +404,7 @@ class InvoiceCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  invoice.formattedAmount,
+                  '${formatNumber(invoice.displayNiitTulbur, 2)}₮',
                   style: TextStyle(
                     color: AppColors.deepGreen,
                     fontSize: 18.sp,

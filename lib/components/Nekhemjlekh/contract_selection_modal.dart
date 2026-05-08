@@ -125,13 +125,25 @@ class ContractSelectionModal extends StatelessWidget {
                 // Adjust index if "All" is present
                 final contractIndex = availableContracts.length > 1 ? index - 1 : index;
                 final contract = availableContracts[contractIndex];
-                final gereeniiDugaar = contract['gereeniiDugaar'] as String;
-                final bairNer = contract['bairNer'] ?? gereeniiDugaar;
-                final isSelected = gereeniiDugaar == selectedGereeniiDugaar;
+                final dugaar = contract['gereeniiDugaar'] as String;
+                final bairNer = contract['bairNer']?.toString() ?? '';
+                final toot = contract['toot']?.toString() ?? '';
+                final isSelected = dugaar == selectedGereeniiDugaar;
+
+                String displayName;
+                if (bairNer.isNotEmpty && toot.isNotEmpty) {
+                  displayName = '$bairNer - $toot тоот';
+                } else if (bairNer.isNotEmpty) {
+                  displayName = bairNer;
+                } else if (toot.isNotEmpty) {
+                  displayName = '$toot тоот';
+                } else {
+                  displayName = dugaar;
+                }
 
                 return GestureDetector(
                   onTap: () {
-                    onContractSelected(gereeniiDugaar);
+                    onContractSelected(dugaar);
                     Navigator.pop(context);
                   },
                   child: Container(
@@ -155,18 +167,41 @@ class ContractSelectionModal extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
+                        Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.deepGreen.withOpacity(0.1) : Colors.transparent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.home_work_rounded,
+                            size: 16.sp,
+                            color: isSelected ? AppColors.deepGreen : (isDarkMode ? Colors.white54 : Colors.black38),
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                bairNer,
+                                displayName,
                                 style: TextStyle(
                                   color: isDarkMode ? Colors.white : Colors.black87,
                                   fontSize: 13.sp,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                 ),
                               ),
-                              SizedBox(height: 3.h),
+                              if (displayName != dugaar) ...[
+                                SizedBox(height: 2.h),
+                                Text(
+                                  dugaar,
+                                  style: TextStyle(
+                                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                                    fontSize: 11.sp,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),

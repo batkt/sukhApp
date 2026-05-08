@@ -104,7 +104,10 @@ class _BillingCardState extends State<BillingCard>
         widget.billing['bairniiNer']?.toString() ??
         widget.billing['customerAddress']?.toString() ??
         '';
-    final doorNo = widget.billing['walletDoorNo']?.toString() ?? '';
+    final doorNo = widget.billing['walletDoorNo']?.toString() ?? 
+                   widget.billing['tootNum']?.toString() ?? 
+                   widget.billing['toot']?.toString() ?? 
+                   '';
     final billerName = widget.billing['billerName']?.toString();
     final nickname = widget.billing['nickname']?.toString();
 

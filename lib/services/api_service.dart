@@ -2706,8 +2706,51 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> removeToot({
+    required String residentId,
+    required String baiguullagiinId,
+    String? barilgiinId,
+    required String toot,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/orshinSuugch/remove-toot'),
+        headers: headers,
+        body: json.encode({
+          'residentId': residentId,
+          'baiguullagiinId': baiguullagiinId,
+          if (barilgiinId != null) 'barilgiinId': barilgiinId,
+          'toot': toot,
+        }),
+      );
+
+      await _checkTokenExpiry(response);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data['success'] == true) {
+          return data;
+        } else {
+          throw Exception(
+            data['message'] ?? data['aldaa'] ?? 'Тоот устгахад алдаа гарлаа',
+          );
+        }
+      } else {
+        throw Exception(
+          data['message'] ??
+              data['aldaa'] ??
+              'Тоот устгахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Тоот устгахад алдаа гарлаа: $e');
     }
   }
 
@@ -3034,10 +3077,17 @@ class ApiService {
         );
         if (summaryMatch != null) {
           final ledgerUldegdel = (summaryMatch['uldegdel'] ?? 0.0).toDouble();
+          final ledgerTotal = (summaryMatch['niitTulbur'] ?? 0.0).toDouble();
+          
+          // Preserve the original DB amount if not already set
+          invoice['niitTulburOriginal'] ??= invoice['niitTulbur'];
+          
           invoice['uldegdel'] = ledgerUldegdel;
-          // Synchronize niitTulbur as well to prevent legacy UI components from showing the old total
-          invoice['niitTulbur'] = ledgerUldegdel;
-
+          // Synchronize niitTulbur from the ledger ONLY if ledger has positive charges, 
+          // otherwise keep the original invoice amount.
+          if (ledgerTotal > 0) {
+            invoice['niitTulbur'] = ledgerTotal;
+          }
         }
 
         for (var item in linked) {
@@ -3441,6 +3491,7 @@ class ApiService {
     String? turul, // Optional for Wallet QPay
     String? zakhialgiinDugaar, // Optional
     String? nekhemjlekhiinId, // Single invoice ID (for Custom QPay)
+    List<String>? nekhemjlekhiinIds, // Multiple invoice IDs
     String? dansniiDugaar, // Account number (for Custom QPay)
     String? burtgeliinDugaar, // Registration number (for Custom QPay)
     String? customerTin, // B2B registration number
@@ -3469,6 +3520,10 @@ class ApiService {
 
         if (nekhemjlekhiinId != null && nekhemjlekhiinId.isNotEmpty) {
           requestBody['nekhemjlekhiinId'] = nekhemjlekhiinId;
+        }
+
+        if (nekhemjlekhiinIds != null && nekhemjlekhiinIds.isNotEmpty) {
+          requestBody['nekhemjlekhiinTuukh'] = nekhemjlekhiinIds;
         }
 
         if (turul != null && turul.isNotEmpty) {
