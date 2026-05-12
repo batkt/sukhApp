@@ -2058,7 +2058,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       {
         'name': 'parkease',
         'label': 'ParkEase',
-        'imageAsset': 'lib/assets/img/parkease_logo.png',
+        'icon': Icons.local_parking_rounded,
         'color': const Color(0xFF3B82F6),
       }, // Bright Blue
       {

@@ -74,7 +74,7 @@ class ParkingSite {
         .toList();
     return ParkingSite(
       id: json['_id'] ?? '',
-      name: json['ner'] ?? 'Зогсоол',
+      name: json['ner'] ?? 'ParkEase',
       barilgiinId: json['barilgiinId']?.toString(),
       gates: gateList,
     );
@@ -328,14 +328,14 @@ class _ParkEasePageState extends State<ParkEasePage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Зогсоолын мэдээлэл авахад алдаа гарлаа';
+          _errorMessage = 'ParkEase мэдээлэл авахад алдаа гарлаа';
         });
       }
       debugPrint('❌ [ParkEase] LoadSettings Error: $e');
     } finally {
       if (mounted) {
         if (_sites.isEmpty && _errorMessage == null) {
-          _errorMessage = 'Зогсоолын мэдээлэл олдсонгүй';
+          _errorMessage = 'ParkEase мэдээлэл олдсонгүй';
         }
 
         setState(() {
