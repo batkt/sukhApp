@@ -2626,7 +2626,7 @@ class ApiService {
       if (regResult['success'] == true && regResult['userId'] != null) {
 
         // Refresh profile to pick up the new walletUserId
-        getUserProfile(forceRefresh: true).catchError((_) => null);
+        getUserProfile(forceRefresh: true).catchError((_) => <String, dynamic>{});
       }
     } catch (e) {
 
