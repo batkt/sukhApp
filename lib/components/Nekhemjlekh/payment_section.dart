@@ -20,70 +20,87 @@ class PaymentSection extends StatelessWidget {
     final bool hasSelection = selectedCount > 0;
     
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.h),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutBack,
         decoration: BoxDecoration(
           color: context.cardBackgroundColor,
-          borderRadius: BorderRadius.circular(24.r),
+          borderRadius: BorderRadius.circular(28.r),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: context.isDarkMode 
+                ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.02)]
+                : [Colors.black.withOpacity(0.04), Colors.black.withOpacity(0.01)],
+          ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.deepGreen.withOpacity(hasSelection ? 0.12 : 0.04),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
+              color: hasSelection 
+                  ? AppColors.deepGreen.withOpacity(context.isDarkMode ? 0.25 : 0.15)
+                  : Colors.black.withOpacity(0.06),
+              blurRadius: hasSelection ? 32 : 24,
+              offset: Offset(0, hasSelection ? 12 : 8),
             ),
           ],
           border: Border.all(
             color: hasSelection 
-                ? AppColors.deepGreen.withOpacity(0.2) 
-                : context.borderColor.withOpacity(0.5),
-            width: 1,
+                ? AppColors.deepGreen.withOpacity(0.4) 
+                : context.borderColor.withOpacity(0.2),
+            width: 1.5,
           ),
         ),
         child: Padding(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(14.w),
           child: Row(
             children: [
               Container(
-                width: 48.w,
-                height: 48.w,
+                width: 44.w,
+                height: 44.w,
                 decoration: BoxDecoration(
-                  color: AppColors.deepGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16.r),
+                  gradient: LinearGradient(
+                    colors: [AppColors.deepGreen.withOpacity(0.2), AppColors.deepGreen.withOpacity(0.05)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: AppColors.deepGreen.withOpacity(0.1), width: 1),
                 ),
                 child: Icon(
                   Icons.account_balance_wallet_rounded,
                   color: AppColors.deepGreen,
-                  size: 24.sp,
+                  size: 22.sp,
                 ),
               ),
-              SizedBox(width: 16.w),
+              SizedBox(width: 14.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      hasSelection ? totalSelectedAmount : '0.00₮',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
+                      Text(
+                        hasSelection ? totalSelectedAmount : '0.00₮',
+                        style: TextStyle(
+                          color: context.textPrimaryColor,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
+                    SizedBox(height: 1.h),
                     Text(
-                      hasSelection ? '$selectedCount нэхэмжлэх сонгосон' : 'Нэхэмжлэл сонгоно уу',
+                      hasSelection ? '$selectedCount нэхэмжлэх сонгосон' : 'Төлбөр сонгоно уу',
                       style: TextStyle(
                         color: context.textSecondaryColor,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: 10.w),
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -93,23 +110,40 @@ class PaymentSection extends StatelessWidget {
                     duration: const Duration(milliseconds: 300),
                     padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                     decoration: BoxDecoration(
-                      color: hasSelection ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.1),
+                      gradient: hasSelection 
+                          ? const LinearGradient(
+                              colors: [AppColors.deepGreen, Color(0xFF10B981)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: hasSelection ? null : context.textSecondaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(16.r),
                       boxShadow: hasSelection ? [
                         BoxShadow(
-                          color: AppColors.deepGreen.withOpacity(0.3),
+                          color: AppColors.deepGreen.withOpacity(0.4),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         )
                       ] : null,
                     ),
-                    child: Text(
-                      'Төлөх',
-                      style: TextStyle(
-                        color: hasSelection ? Colors.white : context.textSecondaryColor.withOpacity(0.5),
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                          Text(
+                            'ТӨЛӨХ',
+                            style: TextStyle(
+                              color: hasSelection ? Colors.white : context.textSecondaryColor.withOpacity(0.5),
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        if (hasSelection) ...[
+                          SizedBox(width: 6.w),
+                          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 10),
+                        ],
+                      ],
                     ),
                   ),
                 ),

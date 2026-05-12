@@ -58,163 +58,213 @@ class InvoiceCard extends StatelessWidget {
     final effectiveTuluv = invoice.isPaid ? 'Төлсөн' : invoice.tuluv;
     final statusColor = _getStatusColor(effectiveTuluv);
     final statusLabel = _getStatusLabel(effectiveTuluv);
+    final isSelected = invoice.isSelected;
 
     return RepaintBoundary(
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         margin: EdgeInsets.only(
           bottom: context.responsiveSpacing(
-            small: 12,
-            medium: 14,
-            large: 16,
-            tablet: 18,
-            veryNarrow: 10,
+            small: 16,
+            medium: 18,
+            large: 20,
+            tablet: 22,
+            veryNarrow: 12,
           ),
         ),
         decoration: BoxDecoration(
           color: context.cardBackgroundColor,
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(28.r),
+          gradient: isSelected 
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: context.isDarkMode 
+                      ? [AppColors.deepGreen.withOpacity(0.15), context.cardBackgroundColor]
+                      : [AppColors.deepGreen.withOpacity(0.08), context.cardBackgroundColor],
+                )
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
+              color: isSelected 
+                  ? AppColors.deepGreen.withOpacity(context.isDarkMode ? 0.2 : 0.1)
+                  : Colors.black.withOpacity(context.isDarkMode ? 0.3 : 0.04),
+              blurRadius: isSelected ? 24 : 20,
+              offset: Offset(0, isSelected ? 8 : 4),
             ),
           ],
           border: Border.all(
-            color: context.isDarkMode
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
-            width: 1,
+            color: isSelected 
+                ? AppColors.deepGreen.withOpacity(0.5)
+                : context.isDarkMode
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.05),
+            width: isSelected ? 1.5 : 1,
           ),
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onToggleExpand,
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(28.r),
             child: Column(
               children: [
                 Padding(
-                  padding: EdgeInsets.all(16.w),
+                  padding: EdgeInsets.all(20.w),
                   child: Column(
                     children: [
                       // Top Row: Date and Selection/Logo
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              if (!isHistory && onToggleSelect != null && !invoice.isPaid) ...[
-                                GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    onToggleSelect!();
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    width: 22.w,
-                                    height: 22.w,
-                                    decoration: BoxDecoration(
-                                      color: invoice.isSelected ? AppColors.deepGreen : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(6.r),
-                                      border: Border.all(
-                                        color: invoice.isSelected ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.3),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: invoice.isSelected
-                                        ? const Icon(Icons.check, color: Colors.white, size: 14)
-                                        : null,
-                                  ),
-                                ),
-                                SizedBox(width: 12.w),
-                              ],
-                              Container(
-                                width: 40.w,
-                                height: 40.w,
-                                decoration: BoxDecoration(
-                                  color: AppColors.deepGreen.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: ClipOval(
-                                  child: SelectableLogoImage(
-                                    width: 40.w,
-                                    height: 40.w,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12.w),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    invoice.displayName,
-                                    style: TextStyle(
-                                      color: context.textPrimaryColor,
-                                      fontSize: 15.sp,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                  Text(
-                                    invoice.formattedDate,
-                                    style: TextStyle(
-                                      color: context.textSecondaryColor,
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                  if (invoice.bairNer.isNotEmpty || invoice.toot.isNotEmpty) ...[
-                                    SizedBox(height: 6.h),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                if (!isHistory && onToggleSelect != null && !invoice.isPaid) ...[
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      onToggleSelect!();
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      width: 24.w,
+                                      height: 24.w,
                                       decoration: BoxDecoration(
-                                        color: AppColors.deepGreen.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6.r),
-                                        border: Border.all(color: AppColors.deepGreen.withOpacity(0.2), width: 0.5),
+                                        color: invoice.isSelected ? AppColors.deepGreen : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8.r),
+                                        border: Border.all(
+                                          color: invoice.isSelected ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.3),
+                                          width: 2,
+                                        ),
+                                        boxShadow: invoice.isSelected ? [
+                                          BoxShadow(
+                                            color: AppColors.deepGreen.withOpacity(0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          )
+                                        ] : null,
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.home_work_rounded, size: 10.sp, color: AppColors.deepGreen),
-                                          SizedBox(width: 4.w),
-                                          Text(
-                                            '${invoice.bairNer} - ${invoice.toot} тоот',
-                                            style: TextStyle(
-                                              color: AppColors.deepGreen,
-                                              fontSize: 10.sp,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.2,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                      child: invoice.isSelected
+                                          ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                          : null,
                                     ),
-                                  ],
+                                  ),
+                                  SizedBox(width: 14.w),
                                 ],
-                              ),
-                            ],
+                                Container(
+                                  width: 44.w,
+                                  height: 44.w,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [AppColors.deepGreen.withOpacity(0.2), AppColors.deepGreen.withOpacity(0.05)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppColors.deepGreen.withOpacity(0.1), width: 1),
+                                  ),
+                                  child: Center(
+                                    child: Icon(Icons.receipt_long_rounded, color: AppColors.deepGreen, size: 22.sp),
+                                  ),
+                                ),
+                                SizedBox(width: 14.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        invoice.displayName,
+                                        style: TextStyle(
+                                          color: context.textPrimaryColor,
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.5,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      SizedBox(height: 2.h),
+                                      Text(
+                                        invoice.formattedDate,
+                                        style: TextStyle(
+                                          color: context.textSecondaryColor,
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           // Status Badge
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                            child: Text(
-                              statusLabel,
-                              style: TextStyle(
-                                color: statusColor,
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w600,
+                              gradient: LinearGradient(
+                                colors: [statusColor.withOpacity(0.15), statusColor.withOpacity(0.05)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(color: statusColor.withOpacity(0.2), width: 0.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6.w,
+                                  height: 6.w,
+                                  decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                                ),
+                                SizedBox(width: 6.w),
+                                Text(
+                                  statusLabel,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 16.h),
+                      
+                      if (invoice.bairNer.isNotEmpty || invoice.toot.isNotEmpty) ...[
+                        SizedBox(height: 16.h),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                          decoration: BoxDecoration(
+                            color: context.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                            borderRadius: BorderRadius.circular(14.r),
+                            border: Border.all(color: context.borderColor.withOpacity(0.2), width: 0.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.home_work_rounded, size: 14.sp, color: context.textSecondaryColor),
+                              SizedBox(width: 8.w),
+                              Text(
+                                '${invoice.bairNer} - ${invoice.toot} тоот',
+                                style: TextStyle(
+                                  color: context.textPrimaryColor,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      SizedBox(height: 20.h),
+                      
                       // Bottom Row: Amount and Expand Icon
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -227,32 +277,37 @@ class InvoiceCard extends StatelessWidget {
                                 invoice.isPaid ? 'Төлсөн дүн' : 'Нийт төлөх',
                                 style: TextStyle(
                                   color: context.textSecondaryColor,
-                                  fontSize: 12.sp,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
+                              SizedBox(height: 4.h),
                               Text(
                                 invoice.isPaid 
-                                    ? '${formatNumber(invoice.displayNiitTulbur, 2)}₮' 
+                                    ? '${formatNumber(invoice.displayNiitTulbur.abs(), 2)}₮' 
                                     : invoice.formattedAmount,
                                 style: TextStyle(
-                                  color: context.textPrimaryColor,
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.w700,
+                                  color: invoice.isPaid ? AppColors.deepGreen : context.textPrimaryColor,
+                                  fontSize: 22.sp,
+                                  fontWeight: FontWeight.w600,
                                   letterSpacing: -0.5,
                                 ),
                               ),
                             ],
                           ),
                           Container(
-                            padding: EdgeInsets.all(4.w),
+                            padding: EdgeInsets.all(8.w),
                             decoration: BoxDecoration(
-                              color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                              color: isSelected 
+                                  ? AppColors.deepGreen.withOpacity(0.1)
+                                  : context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               invoice.isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                              color: context.textSecondaryColor,
-                              size: 20.sp,
+                              color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
+                              size: 22.sp,
                             ),
                           ),
                         ],
@@ -261,7 +316,10 @@ class InvoiceCard extends StatelessWidget {
                   ),
                 ),
                 if (invoice.isExpanded) ...[
-                  Divider(height: 1, color: context.borderColor.withOpacity(0.5)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Divider(height: 1, color: context.borderColor.withOpacity(0.3)),
+                  ),
                   _buildExpandedSection(context),
                 ],
               ],
@@ -274,7 +332,6 @@ class InvoiceCard extends StatelessWidget {
 
   Widget _buildExpandedSection(BuildContext context) {
     final guilgeenuud = invoice.medeelel?.guilgeenuud?.where((g) {
-          // Use 'dun' or negative 'tulsunDun' for payments, otherwise use charge amount
           final baseAmt = (g.turul == 'tulult' || g.turul == 'buun_tulult')
               ? -(g.tulsunDun ?? 0.0)
               : (g.tulukhDun ?? g.undsenDun ?? g.dun ?? 0.0);
@@ -287,40 +344,41 @@ class InvoiceCard extends StatelessWidget {
     final additionalZardluud = invoice.medeelel?.zardluud.where((z) => z.isDisplayable && !z.isEkhniiUldegdel).toList() ?? [];
 
     return Padding(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Detailed Location Info
           Container(
-            padding: EdgeInsets.all(12.w),
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               color: context.isDarkMode ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
-              borderRadius: BorderRadius.circular(16.r),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(color: context.borderColor.withOpacity(0.1), width: 1),
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    Icon(Icons.business_rounded, size: 16.sp, color: AppColors.deepGreen),
-                    SizedBox(width: 8.w),
+                    Icon(Icons.business_rounded, size: 18.sp, color: AppColors.deepGreen),
+                    SizedBox(width: 10.w),
                     Expanded(
                       child: Text(
                         invoice.baiguullagiinNer,
-                        style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: context.textPrimaryColor, fontSize: 14.sp, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 10.h),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 16.sp, color: context.textSecondaryColor),
-                    SizedBox(width: 8.w),
+                    Icon(Icons.location_on_rounded, size: 18.sp, color: context.textSecondaryColor),
+                    SizedBox(width: 10.w),
                     Expanded(
                       child: Text(
                         '${invoice.khayag}, ${invoice.orts}-р орц, ${invoice.medeelel?.toot ?? ""} тоот',
-                        style: TextStyle(color: context.textSecondaryColor, fontSize: 12.sp),
+                        style: TextStyle(color: context.textSecondaryColor, fontSize: 13.sp, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -328,21 +386,33 @@ class InvoiceCard extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(height: 24.h),
-          Text(
-            'ТӨЛБӨРИЙН ДЭЛГЭРЭНГҮЙ',
-            style: TextStyle(
-              color: context.textSecondaryColor.withOpacity(0.6),
-              fontSize: 10.sp,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
+          SizedBox(height: 28.h),
+          Row(
+            children: [
+              Container(
+                width: 3.w,
+                height: 12.h,
+                decoration: BoxDecoration(color: AppColors.deepGreen, borderRadius: BorderRadius.circular(2)),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                'ТӨЛБӨРИЙН ДЭЛГЭРЭНГҮЙ',
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 16.h),
           // Starting Balance
           if ((invoice.ekhniiUldegdel ?? 0) != 0) ...[
             _buildModernChargeRow(context, 'Эхний үлдэгдэл', invoice.ekhniiUldegdel!, isStartingBalance: true),
-            Divider(height: 24.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+            SizedBox(height: 12.h),
+            Divider(height: 1, thickness: 1, color: context.borderColor.withOpacity(0.2)),
+            SizedBox(height: 12.h),
           ],
           // Ledger Items
           ...guilgeenuud.asMap().entries.map((entry) {
@@ -362,7 +432,11 @@ class InvoiceCard extends StatelessWidget {
             return Column(
               children: [
                 _buildModernChargeRow(context, label, amt),
-                if (idx < guilgeenuud.length - 1 || additionalZardluud.isNotEmpty) Divider(height: 20.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+                if (idx < guilgeenuud.length - 1 || additionalZardluud.isNotEmpty) 
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    child: Divider(height: 1, thickness: 1, color: context.borderColor.withOpacity(0.1)),
+                  ),
               ],
             );
           }),
@@ -372,24 +446,32 @@ class InvoiceCard extends StatelessWidget {
             final z = entry.value;
             return Column(
               children: [
-                if (idx == 0 && guilgeenuud.isNotEmpty) Divider(height: 20.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+                if (idx == 0 && guilgeenuud.isNotEmpty) 
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    child: Divider(height: 1, thickness: 1, color: context.borderColor.withOpacity(0.1)),
+                  ),
                 _buildModernChargeRow(context, z.ner, z.displayAmount),
-                if (idx < additionalZardluud.length - 1) Divider(height: 20.h, thickness: 1, color: context.borderColor.withOpacity(0.3)),
+                if (idx < additionalZardluud.length - 1) 
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    child: Divider(height: 1, thickness: 1, color: context.borderColor.withOpacity(0.1)),
+                  ),
               ],
             );
           }),
-          SizedBox(height: 24.h),
+          SizedBox(height: 32.h),
           // Final Total Section
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: context.isDarkMode
-                    ? [Colors.white.withOpacity(0.08), Colors.white.withOpacity(0.03)]
-                    : [Colors.black.withOpacity(0.04), Colors.black.withOpacity(0.01)],
+                    ? [AppColors.deepGreen.withOpacity(0.2), AppColors.deepGreen.withOpacity(0.05)]
+                    : [AppColors.deepGreen.withOpacity(0.1), AppColors.deepGreen.withOpacity(0.02)],
               ),
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: AppColors.deepGreen.withOpacity(0.1)),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(color: AppColors.deepGreen.withOpacity(0.3), width: 1),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -398,37 +480,40 @@ class InvoiceCard extends StatelessWidget {
                   'НИЙТ ТӨЛБӨР',
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
                 Text(
-                  '${formatNumber(invoice.displayNiitTulbur, 2)}₮',
+                  '${formatNumber(invoice.displayNiitTulbur.abs(), 2)}₮',
                   style: TextStyle(
                     color: AppColors.deepGreen,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
           if (isHistory && onShowVATReceipt != null) ...[
-            SizedBox(height: 16.h),
+            SizedBox(height: 20.h),
             SizedBox(
               width: double.infinity,
+              height: 56.h,
               child: ElevatedButton.icon(
                 onPressed: onShowVATReceipt,
-                icon: const Icon(Icons.receipt_long_rounded, size: 18),
-                label: const Text('И-Баримт харах'),
+                icon: const Icon(Icons.receipt_long_rounded, size: 22, color: Colors.white),
+                label: Text(
+                  'И-БАРИМТ ХАРАХ',
+                  style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.deepGreen,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 14.h),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-                  elevation: 4,
-                  shadowColor: AppColors.deepGreen.withOpacity(0.3),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+                  elevation: 8,
+                  shadowColor: AppColors.deepGreen.withOpacity(0.4),
                 ),
               ),
             ),
@@ -439,6 +524,7 @@ class InvoiceCard extends StatelessWidget {
   }
 
   Widget _buildModernChargeRow(BuildContext context, String label, double amount, {bool isStartingBalance = false}) {
+    final isNegative = amount < 0;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -447,18 +533,17 @@ class InvoiceCard extends StatelessWidget {
             label,
             style: TextStyle(
               color: isStartingBalance ? context.textPrimaryColor : context.textSecondaryColor,
-              fontSize: 13.sp,
+              fontSize: 14.sp,
               fontWeight: isStartingBalance ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
         ),
         Text(
-          '${formatNumber(amount, 2)}₮',
+          '${formatNumber(amount.abs(), 2)}₮',
           style: TextStyle(
-            color: context.textPrimaryColor,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
-            fontFamily: 'Roboto', // Mono-like spacing for numbers if available
+            color: isNegative ? AppColors.deepGreen : context.textPrimaryColor,
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],

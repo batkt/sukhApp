@@ -46,6 +46,8 @@ class Geree {
   final String davkhar;
   final String burtgesenAjiltan;
   final String orshinSuugchId;
+  final String baiguullagiinId;
+  final String barilgiinId;
   final String temdeglel;
   final double baritsaaniiUldegdel;
   final List<dynamic> zardluud;
@@ -72,6 +74,8 @@ class Geree {
     required this.davkhar,
     required this.burtgesenAjiltan,
     required this.orshinSuugchId,
+    required this.baiguullagiinId,
+    required this.barilgiinId,
     required this.temdeglel,
     required this.baritsaaniiUldegdel,
     required this.zardluud,
@@ -106,6 +110,8 @@ class Geree {
       davkhar: json['davkhar'] ?? '',
       burtgesenAjiltan: json['burtgesenAjiltan'] ?? '',
       orshinSuugchId: json['orshinSuugchId'] ?? '',
+      baiguullagiinId: json['baiguullagiinId'] ?? '',
+      barilgiinId: json['barilgiinId'] ?? '',
       temdeglel: json['temdeglel'] ?? '',
       baritsaaniiUldegdel: (json['baritsaaniiUldegdel'] ?? 0).toDouble(),
       zardluud: json['zardluud'] ?? [],

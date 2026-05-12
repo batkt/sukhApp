@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -23,58 +24,45 @@ class BankSelectionModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // For tablets/iPads, limit width and center the modal
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final modalWidth = isTablet ? 500.0 : screenWidth;
     
-    return Center(
-      child: Container(
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, scrollController) => Container(
         width: modalWidth,
-        height: MediaQuery.of(context).size.height * 1,
         decoration: BoxDecoration(
-          color: context.isDarkMode
-              ? const Color(0xFF1A1A1A)
-              : Colors.white,
-          borderRadius: isTablet
-              ? BorderRadius.circular(16.r)
-              : BorderRadius.only(
-                  topLeft: Radius.circular(16.r),
-                  topRight: Radius.circular(16.r),
-                ),
-          border: Border.all(
-            color: context.isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.08),
-            width: 1,
-          ),
-          boxShadow: isTablet
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ]
-              : null,
+          color: context.backgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(36.r)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 40,
+              offset: const Offset(0, -10),
+            ),
+          ],
         ),
-      child: Column(
-        children: [
+        child: Column(
+          children: [
             // Handle bar
             Container(
-              margin: EdgeInsets.only(top: 10.h), 
-              width: 36.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: context.isDarkMode
-                      ? Colors.white.withOpacity(0.3)
-                      : Colors.black.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
+              margin: EdgeInsets.only(top: 14.h),
+              width: 44.w,
+              height: 5.h,
+              decoration: BoxDecoration(
+                color: context.isDarkMode
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.black.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10.r),
               ),
-              // Header
-            Padding(                                                                    
-              padding: EdgeInsets.all(16.w),
+            ),
+            
+            // Header
+            Padding(
+              padding: EdgeInsets.fromLTRB(28.w, 20.h, 28.w, 10.h),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -82,133 +70,56 @@ class BankSelectionModal extends StatelessWidget {
                     'Банк сонгох',
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: 16.sp,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: context.textSecondaryColor,
-                      size: 20.sp,
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: EdgeInsets.all(8.w),
+                      decoration: BoxDecoration(
+                        color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: context.textSecondaryColor,
+                        size: 18.sp,
+                      ),
                     ),
-                    onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-            // Bank grid
+            
             Expanded(
               child: isLoadingQPay
                   ? Center(
                       child: CircularProgressIndicator(
                         color: AppColors.deepGreen,
+                        strokeWidth: 3,
                       ),
                     )
                   : qpayBanks.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.w),
-                            child: Text(
-                              contactPhone.isNotEmpty
-                                  ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
-                                  : 'Банкны мэдээлэл олдсонгүй',
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: 12.sp,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
+                      ? _buildEmptyState(context)
                       : GridView.builder(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 8.h,
-                          ),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
+                          controller: scrollController,
+                          padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 40.h),
+                          physics: const BouncingScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
-                            crossAxisSpacing: 10.w,
-                            mainAxisSpacing: 10.h,
-                            childAspectRatio: 0.9,
+                            crossAxisSpacing: 16.w,
+                            mainAxisSpacing: 16.h,
+                            childAspectRatio: 0.85,
                           ),
                           itemCount: qpayBanks.length,
                           itemBuilder: (context, index) {
                             final bank = qpayBanks[index];
-                            return _buildQPayBankItem(context, bank);
+                            return _buildQPayBankItem(context, bank, index);
                           },
                         ),
-            ),
-        ],
-      ),
-    ),
-    );
-  }
-
-  Widget _buildQPayBankItem(BuildContext context, QPayBank bank) {
-    return GestureDetector(
-      onTap: () {
-        // Check if it's qPay wallet - show QR code
-        if (bank.description.contains('qPay хэтэвч') ||
-            bank.name.toLowerCase().contains('qpay wallet')) {
-          onQPayWalletTap();
-        } else {
-          onBankTap(bank);
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.isDarkMode
-              ? Colors.white.withOpacity(0.05)
-              : const Color(0xFFF8F8F8),
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(
-            color: context.isDarkMode
-                ? AppColors.deepGreen.withOpacity(0.15)
-                : AppColors.deepGreen.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Bank logo
-            Container(
-              width: 48.w,
-              height: 48.w,
-              decoration: BoxDecoration(
-                color: context.isDarkMode ? Colors.white : Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.r),
-                child: Image.network(
-                  _getLogoUrl(bank.logo),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.account_balance,
-                      color: context.textSecondaryColor,
-                      size: 22.sp,
-                    );
-                  },
-                ),
-              ),
-            ),
-            SizedBox(height: 6.h),
-            // Bank name
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w),
-              child: Text(
-                bank.description,
-                style: TextStyle(
-                  color: context.textPrimaryColor,
-                  fontSize: 9.sp,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
             ),
           ],
         ),
@@ -216,7 +127,124 @@ class BankSelectionModal extends StatelessWidget {
     );
   }
 
-  /// Helper to handle CORS issues for bank logos on Web
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(40.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.account_balance_rounded, size: 64.sp, color: context.textSecondaryColor.withOpacity(0.2)),
+            SizedBox(height: 20.h),
+            Text(
+              contactPhone.isNotEmpty
+                  ? 'Банкны мэдээлэл олдсонгүй та СӨХ ийн $contactPhone дугаар луу холбогдоно уу!'
+                  : 'Банкны мэдээлэл олдсонгүй',
+              style: TextStyle(
+                color: context.textSecondaryColor,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQPayBankItem(BuildContext context, QPayBank bank, int index) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (index * 50).clamp(0, 400)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.8 + (0.2 * value),
+          child: Opacity(opacity: value, child: child),
+        );
+      },
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          if (bank.description.contains('qPay хэтэвч') ||
+              bank.name.toLowerCase().contains('qpay wallet')) {
+            onQPayWalletTap();
+          } else {
+            onBankTap(bank);
+          }
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.cardBackgroundColor,
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(
+              color: context.borderColor.withOpacity(0.08),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52.w,
+                height: 52.w,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Image.network(
+                    _getLogoUrl(bank.logo),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.account_balance,
+                        color: context.textSecondaryColor.withOpacity(0.5),
+                        size: 24.sp,
+                      );
+                    },
+                  ),
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                child: Text(
+                  bank.description,
+                  style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   static String _getLogoUrl(String url) {
     if (kIsWeb && url.isNotEmpty && url.startsWith('http')) {
       return 'https://images.weserv.nl/?url=${Uri.encodeComponent(url)}';

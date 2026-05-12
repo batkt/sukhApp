@@ -2848,7 +2848,7 @@ class ApiService {
       final tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: true);
 
       final queryParams = <String, String>{
-        'query': '{"orshinSuugchId":"$orshinSuugchId"}',
+        'query': '{"orshinSuugchId":"$orshinSuugchId","tuluv":"Идэвхтэй"}',
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
       };
 
@@ -2858,9 +2858,6 @@ class ApiService {
       final uri = Uri.parse('$baseUrl/geree').replace(
         queryParameters: queryParams,
       );
-
-
-
 
       final response = await http.get(uri, headers: headers);
 
@@ -2874,11 +2871,9 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Гэрээний мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
-
 
 
   static Future<Map<String, dynamic>> fetchNekhemjlekhiinTuukh({
@@ -5247,6 +5242,178 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Мессеж илгээхэд алдаа гарлаа: $e');
+    }
+  }
+
+  // Parking (ParkEase) Methods
+  static Future<Map<String, dynamic>> fetchParkingSettings() async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+      final headers = await getAuthHeaders();
+
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/parking?baiguullagiinId=$baiguullagiinId${barilgiinId != null ? "&barilgiinId=$barilgiinId" : ""}&khuudasniiDugaar=1&khuudasniiKhemjee=100',
+        ),
+        headers: headers,
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception(
+          'Зогсоолын мэдээлэл авахад алдаа гарлаа: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Зогсоолын мэдээлэл авахад алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<bool> openParkingGate(String ip, {String? barilgiinId}) async {
+    try {
+      final headers = await getAuthHeaders();
+      final url = barilgiinId != null 
+          ? '$baseUrl/neeye/$ip?barilgiinId=$barilgiinId' 
+          : '$baseUrl/neeye/$ip';
+          
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+      await _checkTokenExpiry(response);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ [API] openParkingGate Error: $e');
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>> fetchParkingPaymentInfo(
+      String plateNumber) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/tulburMedeelelAvya'),
+        headers: headers,
+        body: json.encode({
+          'plate_number': plateNumber,
+          'baiguullagiinId': baiguullagiinId,
+        }),
+      );
+      await _checkTokenExpiry(response);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {'success': false, 'message': 'Мэдээлэл олдсонгүй'};
+    } catch (e) {
+      print('❌ [API] fetchParkingPaymentInfo Error: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  static Future<bool> addParkingFeeToInvoice({
+    required String plateNumber,
+    required double amount,
+    required String sessionId,
+    required String parkingId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/add_to_invoice'), // Placeholder or derived from zogsoolUilchluulegch update
+        headers: headers,
+        body: json.encode({
+          'plate_number': plateNumber,
+          'amount': amount,
+          'session_id': sessionId,
+          'parking_id': parkingId,
+          'baiguullagiinId': baiguullagiinId,
+          'type': 'parking_to_invoice',
+        }),
+      );
+      await _checkTokenExpiry(response);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ [API] addParkingFeeToInvoice Error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> payParkingFeeDirectly({
+    required String plateNumber,
+    required double amount,
+    required String sessionId,
+    required String parkingId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/pay'),
+        headers: headers,
+        body: json.encode({
+          'plate_number': plateNumber,
+          'paid_amount': amount,
+          'session_id': sessionId,
+          'parking_id': parkingId,
+          'baiguullagiinId': baiguullagiinId,
+          'individual': true,
+        }),
+      );
+      await _checkTokenExpiry(response);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ [API] payParkingFeeDirectly Error: $e');
+      return false;
+    }
+  }
+
+  /// Fetch the latest active parking entry (most recent plate recognized)
+  static Future<Map<String, dynamic>?> fetchLatestParkingEntry() async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+
+      final now = DateTime.now();
+      final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final query = json.encode({
+        'baiguullagiinId': baiguullagiinId,
+        if (barilgiinId != null) 'barilgiinId': barilgiinId,
+        'createdAt': {
+          '\$gte': '$today 00:00:00',
+          '\$lte': '$today 23:59:59',
+        },
+      });
+      final order = json.encode({
+        'createdAt': -1,
+      });
+
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/zogsoolUilchluulegch?khuudasniiDugaar=1&khuudasniiKhemjee=1&query=${Uri.encodeComponent(query)}&order=${Uri.encodeComponent(order)}',
+        ),
+        headers: headers,
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final list = data['jagsaalt'] as List<dynamic>? ?? [];
+        if (list.isNotEmpty) {
+          return Map<String, dynamic>.from(list.first);
+        }
+      }
+      return null;
+    } catch (e) {
+      print('❌ [API] fetchLatestParkingEntry Error: $e');
+      return null;
     }
   }
 }

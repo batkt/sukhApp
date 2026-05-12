@@ -113,7 +113,8 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                               'НӨАТ-ын баримт',
                               style: TextStyle(
                                 color: context.textPrimaryColor,
-                                fontSize: 16.sp,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             IconButton(
@@ -154,7 +155,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                                         style: TextStyle(
                                           color: Colors.green,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 12.sp,
+                                          fontSize: 11.sp,
                                         ),
                                       ),
                                     ],
@@ -240,31 +241,37 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                                 ),
                               ),
                               SizedBox(height: 16.h),
-                              // Print Button
+                              // Share button instead of print
                               SizedBox(
                                 width: double.infinity,
-                                height: 48.h,
+                                height: 54.h,
                                 child: ElevatedButton.icon(
                                   onPressed: () {
-                                    // Mock print action for now as requested
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Баримтыг хэвлэхэд бэлдэж байна...')),
-                                    );
+                                    // Only copy lottery number as requested
+                                    final lottery = widget.receipt.lottery ?? '';
+                                    if (lottery.isNotEmpty) {
+                                      Clipboard.setData(ClipboardData(text: lottery));
+                                      _triggerCopied();
+                                    }
                                   },
-                                  icon: Icon(Icons.print_rounded, size: 18.sp),
+                                  icon: Icon(Icons.copy_rounded, size: 20.sp),
                                   label: Text(
-                                    'ХЭВЛЭХ / ХАДГАЛАХ',
-                                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
+                                    'СУГАЛААНЫ ДУГААР ХУУЛАХ',
+                                    style: TextStyle(
+                                      fontSize: 11.sp, 
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.deepGreen,
                                     foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
                                     elevation: 0,
                                   ),
                                 ),
                               ),
-                              SizedBox(height: 16.h),
+                              SizedBox(height: 24.h),
                             ],
                           ),
                         ),
@@ -317,7 +324,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                         'Амжилттай хуулагдлаа',
                         style: TextStyle(
                           color: context.textPrimaryColor,
-                          fontSize: 14.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -359,7 +366,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: context.textPrimaryColor,
-                fontSize: 13.sp,
+                fontSize: 11.sp,
                 fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
               ),
               overflow: TextOverflow.visible,
@@ -406,7 +413,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: context.textPrimaryColor,
-                        fontSize: 13.sp,
+                        fontSize: 11.sp,
                         fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
                         decoration: TextDecoration.underline,
                         decorationColor: context.textSecondaryColor.withOpacity(0.3),

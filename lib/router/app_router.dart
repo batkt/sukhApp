@@ -28,6 +28,7 @@ import 'package:sukh_app/screens/ebarimt/ebarimt_page.dart';
 import 'package:sukh_app/screens/contact/contact_page.dart';
 import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
 import 'package:sukh_app/screens/zochin_urikh/zochin_urikh_page.dart';
+import 'package:sukh_app/screens/parking/parkease_page.dart';
 import 'package:sukh_app/screens/blog/blog_screen.dart';
 import 'package:sukh_app/screens/Home/utility_add_page.dart';
 import 'package:sukh_app/screens/Home/utility_code_input_page.dart';
@@ -415,6 +416,14 @@ final GoRouter appRouter = GoRouter(
           child: SupportChatPage(extra: extra ?? {}),
         );
       },
+    ),
+    GoRoute(
+      path: '/parkease',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const ParkEasePage(),
+          ),
     ),
   ],
 );

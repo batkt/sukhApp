@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
@@ -44,215 +45,216 @@ class _PaymentModalState extends State<PaymentModal> {
 
   @override
   Widget build(BuildContext context) {
-    // For tablets/iPads, limit width and center the modal
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final modalWidth = isTablet ? 500.0 : screenWidth;
     
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Center(
-          child: Container(
-            width: modalWidth,
-            height: constraints.maxHeight * 1,
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? const Color(0xFF1A1A1A)
-                  : Colors.white,
-              borderRadius: isTablet
-                  ? BorderRadius.circular(16.r)
-                  : BorderRadius.only(
-                      topLeft: Radius.circular(16.r),
-                      topRight: Radius.circular(16.r),
-                    ),
-              border: Border.all(
-                color: context.isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.08),
-              ),
-              boxShadow: isTablet
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ]
-                  : null,
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      builder: (_, scrollController) => Container(
+        width: modalWidth,
+        decoration: BoxDecoration(
+          color: context.backgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(36.r)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 40,
+              offset: const Offset(0, -10),
             ),
-            child: Column(
-              children: [
-                // Handle bar
-                Container(
-                  margin: EdgeInsets.only(top: 10.h),
-                  width: 36.w,
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    color: context.isDarkMode
-                        ? Colors.white.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2.r),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: EdgeInsets.only(top: 14.h),
+              width: 44.w,
+              height: 5.h,
+              decoration: BoxDecoration(
+                color: context.isDarkMode
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.black.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            
+            // Header
+            Padding(
+              padding: EdgeInsets.fromLTRB(28.w, 20.h, 28.w, 10.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Төлбөрийн мэдээлэл',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                // Header
-                Container(
-                  padding: EdgeInsets.all(14.w),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: context.isDarkMode
-                            ? Colors.white.withOpacity(0.1)
-                            : Colors.black.withOpacity(0.08),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: EdgeInsets.all(8.w),
+                      decoration: BoxDecoration(
+                        color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: context.textSecondaryColor,
+                        size: 18.sp,
                       ),
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Төлбөрийн мэдээлэл',
-                        style: TextStyle(
-                          color: context.textPrimaryColor,
-                          fontSize: 14.sp,
-                        ),
+                ],
+              ),
+            ),
+            
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 20.h),
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  // Summary Card
+                  Container(
+                    padding: EdgeInsets.all(24.w),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: context.isDarkMode 
+                            ? [AppColors.deepGreen.withOpacity(0.15), AppColors.deepGreen.withOpacity(0.05)]
+                            : [AppColors.deepGreen.withOpacity(0.08), AppColors.deepGreen.withOpacity(0.02)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.close,
-                          color: context.textSecondaryColor,
-                          size: 20.sp,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
+                      borderRadius: BorderRadius.circular(28.r),
+                      border: Border.all(
+                        color: AppColors.deepGreen.withOpacity(0.2),
+                        width: 1.5,
                       ),
-                    ],
-                  ),
-                ),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.all(14.w),
+                    ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Price information panel
-                        Container(
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: context.isDarkMode
-                                ? Colors.white.withOpacity(0.05)
-                                : const Color(0xFFF8F8F8),
-                            borderRadius: BorderRadius.circular(10.r),
-                            border: Border.all(
-                              color: context.isDarkMode
-                                  ? AppColors.deepGreen.withOpacity(0.15)
-                                  : AppColors.deepGreen.withOpacity(0.1),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Төлөх дүн',
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: context.textSecondaryColor,
-                                ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Нийт төлөх',
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                                color: context.textSecondaryColor,
+                                letterSpacing: 0.5,
                               ),
-                              Text(
-                                widget.totalSelectedAmount,
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.deepGreen.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                              child: Text(
+                                '${widget.selectedCount} нэхэмжлэх',
                                 style: TextStyle(
-                                  fontSize: 14.sp,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.deepGreen,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        // Contract information panel
-                        Container(
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: context.isDarkMode
-                                ? Colors.white.withOpacity(0.05)
-                                : const Color(0xFFF8F8F8),
-                            borderRadius: BorderRadius.circular(10.r),
-                            border: Border.all(
-                              color: context.isDarkMode
-                                  ? Colors.white.withOpacity(0.1)
-                                  : Colors.black.withOpacity(0.08),
                             ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Нэхэмжлэх',
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: context.textSecondaryColor,
-                                ),
-                              ),
-                              Text(
-                                '${widget.selectedCount} нэхэмжлэх',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: context.textPrimaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
-                        SizedBox(height: 14.h),
-                        _buildVATSelector(context),
-                        SizedBox(height: 14.h),
-                        // Payment button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isLoadingQPay
-                                ? null
-                                : () async {
-                                    await _createQPayAndShowBankList();
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.deepGreen,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 12.h),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.r),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            Text(
+                              widget.totalSelectedAmount,
+                              style: TextStyle(
+                                fontSize: 28.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.deepGreen,
+                                letterSpacing: -0.5,
                               ),
                             ),
-                            child: _isLoadingQPay
-                                ? SizedBox(
-                                    height: 16.h,
-                                    width: 16.w,
-                                    child: const CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
-                                      ),
-                                    ),
-                                  )
-                                : Text(
-                                    'Төлбөр төлөх',
-                                    style: TextStyle(
-                                      fontSize: 12.sp,
-                                    ),
-                                  ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  
+                  SizedBox(height: 32.h),
+                  _buildVATSelector(context),
+                  SizedBox(height: 40.h),
+                  
+                  // Payment button
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: double.infinity,
+                    height: 56.h,
+                    child: ElevatedButton(
+                      onPressed: _isLoadingQPay
+                          ? null
+                          : () => _createQPayAndShowBankList(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                      ),
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.deepGreen, Color(0xFF10B981)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.deepGreen.withOpacity(0.35),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: _isLoadingQPay
+                              ? SizedBox(
+                                  height: 20.h,
+                                  width: 20.h,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  'ТӨЛБӨР ТӨЛӨХ',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 
@@ -547,88 +549,104 @@ class _PaymentModalState extends State<PaymentModal> {
   }
 
   Widget _buildVATSelector(BuildContext context) {
-    final isDark = context.isDarkMode;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.only(bottom: 8.h),
+          padding: EdgeInsets.only(left: 4.w, bottom: 12.h),
           child: Text(
             'И-баримт хүлээн авах',
             style: TextStyle(
-              fontSize: 11.sp,
-              color: context.textPrimaryColor.withOpacity(0.8),
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w800,
+              color: context.textPrimaryColor.withOpacity(0.9),
+              letterSpacing: 0.2,
             ),
           ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _buildVatOption(
-                context,
-                title: 'Хувь хүн',
-                isSelected: _vatReceiveType == 'CITIZEN',
-                onTap: () {
-                  setState(() {
-                    _vatReceiveType = 'CITIZEN';
-                  });
-                },
+        Container(
+          padding: EdgeInsets.all(6.w),
+          decoration: BoxDecoration(
+            color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildVatOption(
+                  context,
+                  title: 'Хувь хүн',
+                  isSelected: _vatReceiveType == 'CITIZEN',
+                  onTap: () => setState(() => _vatReceiveType = 'CITIZEN'),
+                ),
               ),
-            ),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: _buildVatOption(
-                context,
-                title: 'Байгууллага',
-                isSelected: _vatReceiveType == 'COMPANY',
-                onTap: () {
-                  setState(() {
-                    _vatReceiveType = 'COMPANY';
-                  });
-                },
+              SizedBox(width: 6.w),
+              Expanded(
+                child: _buildVatOption(
+                  context,
+                  title: 'Байгууллага',
+                  isSelected: _vatReceiveType == 'COMPANY',
+                  onTap: () => setState(() => _vatReceiveType = 'COMPANY'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         if (_vatReceiveType == 'COMPANY') ...[
-          SizedBox(height: 10.h),
-          TextField(
-            controller: _vatTinController,
-            keyboardType: TextInputType.number,
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: context.textPrimaryColor,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Байгууллагын РД оруулна уу',
-              hintStyle: TextStyle(
-                fontSize: 11.sp,
-                color: context.textSecondaryColor.withOpacity(0.5),
-              ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 10.w,
-                vertical: 8.h,
-              ),
-              filled: true,
-              fillColor: isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.03),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(
-                  color: context.borderColor.withOpacity(0.5),
+          SizedBox(height: 20.h),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 10 * (1 - value)),
+                  child: child,
                 ),
+              );
+            },
+            child: TextField(
+              controller: _vatTinController,
+              keyboardType: TextInputType.number,
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: context.textPrimaryColor,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(
-                  color: context.borderColor.withOpacity(0.3),
+              decoration: InputDecoration(
+                hintText: 'Байгууллагын РД оруулна уу',
+                hintStyle: TextStyle(
+                  fontSize: 13.sp,
+                  color: context.textSecondaryColor.withOpacity(0.4),
                 ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(
-                  color: AppColors.deepGreen,
+                prefixIcon: Icon(Icons.business_rounded, 
+                    size: 18.sp, color: AppColors.deepGreen.withOpacity(0.6)),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 20.w,
+                  vertical: 16.h,
+                ),
+                filled: true,
+                fillColor: context.isDarkMode
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.02),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18.r),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18.r),
+                  borderSide: BorderSide(
+                    color: context.borderColor.withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18.r),
+                  borderSide: const BorderSide(
+                    color: AppColors.deepGreen,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -644,29 +662,41 @@ class _PaymentModalState extends State<PaymentModal> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final isDark = context.isDarkMode;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 10.h),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(vertical: 12.h),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.deepGreen.withOpacity(0.1)
-              : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
-          borderRadius: BorderRadius.circular(8.r),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.deepGreen
-                : context.borderColor.withOpacity(0.3),
-            width: isSelected ? 1.5 : 1,
-          ),
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [AppColors.deepGreen, Color(0xFF10B981)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.deepGreen.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : null,
         ),
         child: Center(
           child: Text(
             title,
             style: TextStyle(
-              fontSize: 11.sp,
-              color: isSelected ? AppColors.deepGreen : context.textSecondaryColor,
+              fontSize: 13.sp,
+              fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+              color: isSelected ? Colors.white : context.textSecondaryColor,
             ),
           ),
         ),

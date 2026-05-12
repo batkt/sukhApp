@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
@@ -36,7 +37,7 @@ class SocketService {
       socket = IO.io(
         serverUrl,
         IO.OptionBuilder()
-            .setTransports(['websocket', 'polling'])
+            .setTransports(['websocket'])
             .enableAutoConnect()
             .setTimeout(20000)
             .setPath('/socket.io')
@@ -47,6 +48,7 @@ class SocketService {
 
       socket!.onConnect((_) {
         _isConnected = true;
+        debugPrint('✅ [Socket] Connected to: amarhome.mn');
 
         // Listen for user notifications after connection
         if (_userId != null) {
@@ -61,16 +63,24 @@ class SocketService {
         }
       });
 
+      // DEBUG: Listen to ALL incoming events
+      socket!.onAny((event, data) {
+        debugPrint('📡 [Socket] ANY EVENT: $event -> $data');
+      });
+
       socket!.onDisconnect((_) {
         _isConnected = false;
+        debugPrint('❌ [Socket] Disconnected');
       });
 
       socket!.onError((error) {
         _isConnected = false;
+        debugPrint('⚠️ [Socket] Error: $error');
       });
 
       socket!.onConnectError((error) {
         _isConnected = false;
+        debugPrint('⚠️ [Socket] Connect Error: $error');
       });
     } catch (e) {
       _isConnected = false;
@@ -195,6 +205,53 @@ class SocketService {
     socket!.off(eventName);
     socket!.on(eventName, (data) {
       callback(data);
+    });
+  }
+
+  /// Listen for Zogsool (ANPR) general updates
+  void listenForZogsoolUpdates(
+    String baiguullagiinId,
+    Function(Map<String, dynamic>) callback,
+  ) {
+    if (socket == null) return;
+    final eventName = 'zogsool$baiguullagiinId';
+    socket!.off(eventName);
+    socket!.on(eventName, (data) {
+      if (data is Map) {
+        callback(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  /// Listen for Zogsool Entry (Oroh) events
+  void listenForZogsoolOroh(
+    String baiguullagiinId,
+    String cameraIP,
+    Function(Map<String, dynamic>) callback,
+  ) {
+    if (socket == null) return;
+    final eventName = 'zogsoolOroh$baiguullagiinId$cameraIP';
+    socket!.off(eventName);
+    socket!.on(eventName, (data) {
+      if (data is Map) {
+        callback(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  /// Listen for Zogsool Exit (Garah) events
+  void listenForZogsoolGarah(
+    String baiguullagiinId,
+    String cameraIP,
+    Function(Map<String, dynamic>) callback,
+  ) {
+    if (socket == null) return;
+    final eventName = 'zogsoolGarakh$baiguullagiinId$cameraIP';
+    socket!.off(eventName);
+    socket!.on(eventName, (data) {
+      if (data is Map) {
+        callback(Map<String, dynamic>.from(data));
+      }
     });
   }
 

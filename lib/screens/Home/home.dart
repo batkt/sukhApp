@@ -2146,6 +2146,10 @@ class _BookingScreenState extends State<NuurKhuudas>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
+        if (service['name'] == 'parkease') {
+          context.push('/parkease');
+          return;
+        }
         // Disabled for now - show "Тун удахгүй" message
         showGlassSnackBar(
           context,

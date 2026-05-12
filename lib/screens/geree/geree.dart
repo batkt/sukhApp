@@ -99,6 +99,70 @@ class _GereeState extends State<Geree> {
     }
   }
 
+  Future<void> _handleRemoveToot(model.Geree geree) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Text(
+          'Бүртгэл цуцлах',
+          style: TextStyle(color: context.textPrimaryColor, fontSize: 18.sp, fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          '${geree.bairNer} ${geree.toot} тоот бүртгэлийг цуцлахдаа итгэлтэй байна уу?',
+          style: TextStyle(color: context.textSecondaryColor, fontSize: 14.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Үгүй', style: TextStyle(color: context.textSecondaryColor)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Тийм, цуцлах', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        setState(() => _isLoading = true);
+        await ApiService.removeToot(
+          residentId: geree.orshinSuugchId,
+          baiguullagiinId: geree.baiguullagiinId,
+          barilgiinId: geree.barilgiinId,
+          toot: geree.toot,
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Бүртгэл амжилттай цуцлагдлаа'),
+              backgroundColor: AppColors.deepGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+            ),
+          );
+          _fetchGereeData();
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -559,6 +623,34 @@ class _GereeState extends State<Geree> {
             SizedBox(
               height: context.responsiveSpacing(
                 small: 20, medium: 24, large: 28, tablet: 32, veryNarrow: 14,
+              ),
+            ),
+
+          if (hasMultiple)
+            Padding(
+              padding: EdgeInsets.only(bottom: 40.h),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _handleRemoveToot(geree),
+                  icon: Icon(Icons.cancel_outlined, size: 20.sp, color: Colors.white),
+                  label: Text(
+                    'Бүртгэл цуцлах',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent.withOpacity(0.8),
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
               ),
             ),
         ],

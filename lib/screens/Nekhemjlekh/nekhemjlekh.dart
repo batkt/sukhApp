@@ -2659,166 +2659,242 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.backgroundColor,
-      body: Column(
+      body: Stack(
         children: [
-          // Premium Custom Header
-          Container(
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 16.h, left: 16.w, right: 16.w, bottom: 20.h),
-            decoration: BoxDecoration(
-              color: context.cardBackgroundColor,
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(32.r), bottomRight: Radius.circular(32.r)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+          // Background Mesh/Gradient (Subtle)
+          Positioned(
+            top: -100.h,
+            right: -100.w,
+            child: Container(
+              width: 300.w,
+              height: 300.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.deepGreen.withOpacity(0.03),
+              ),
             ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.go('/nuur');
-                        }
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(10.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.deepGreen.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.arrow_back_ios_new_rounded, size: 20.sp, color: AppColors.deepGreen),
-                      ),
-                    ),
-                    Text(
-                      'Миний төлбөр',
-                      style: TextStyle(
-                        color: context.textPrimaryColor,
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.8,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        if (availableContracts.length > 1)
-                          IconButton(
-                            onPressed: _showContractSelectionModal,
-                            icon: Icon(Icons.swap_horiz_rounded, color: context.textPrimaryColor),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        IconButton(
-                          onPressed: isLoading ? null : () => _loadNekhemjlekh(),
-                          icon: Icon(Icons.refresh_rounded, color: context.textPrimaryColor),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
+          ),
+          
+          Column(
+            children: [
+              // Premium Custom Header
+              Container(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.of(context).padding.top + 16.h,
+                  left: 20.w,
+                  right: 20.w,
+                  bottom: 24.h,
+                ),
+                decoration: BoxDecoration(
+                  color: context.cardBackgroundColor,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(36.r),
+                    bottomRight: Radius.circular(36.r),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                if (selectedContractDisplay != null && availableContracts.length > 1) ...[
-                  SizedBox(height: 16.h),
-                  GestureDetector(
-                    onTap: _showContractSelectionModal,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                      decoration: BoxDecoration(
-                        color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                        borderRadius: BorderRadius.circular(16.r),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.business_rounded, size: 14.sp, color: AppColors.deepGreen),
-                          SizedBox(width: 8.w),
-                          Flexible(
-                            child: Text(
-                              selectedContractDisplay!,
-                              style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp, fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go('/nuur');
+                            }
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(12.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.deepGreen.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(16.r),
                             ),
+                            child: Icon(Icons.arrow_back_ios_new_rounded,
+                                size: 18.sp, color: AppColors.deepGreen),
                           ),
-                          SizedBox(width: 4.w),
-                          Icon(Icons.keyboard_arrow_down_rounded, size: 14.sp, color: context.textSecondaryColor),
-                        ],
-                      ),
+                        ),
+                        Text(
+                          'Миний төлбөр',
+                          style: TextStyle(
+                            color: context.textPrimaryColor,
+                            fontSize: 22.sp,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(width: 48), // Placeholder to keep title centered
+                      ],
                     ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+                    if (selectedContractDisplay != null &&
+                        availableContracts.isNotEmpty) ...[
+                      SizedBox(height: 20.h),
+                      GestureDetector(
+                        onTap: _showContractSelectionModal,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 12.h),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: context.isDarkMode
+                                  ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.02)]
+                                  : [Colors.black.withOpacity(0.04), Colors.black.withOpacity(0.01)],
+                            ),
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(
+                                color: context.borderColor.withOpacity(0.1),
+                                width: 1),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(8.w),
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                child: Icon(Icons.business_rounded,
+                                    size: 16.sp, color: AppColors.deepGreen),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Сонгосон тоот',
+                                      style: TextStyle(
+                                          color: context.textSecondaryColor,
+                                          fontSize: 10.sp,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.5),
+                                    ),
+                                    Text(
+                                      selectedContractDisplay!,
+                                      style: TextStyle(
+                                          color: context.textPrimaryColor,
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w800),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.keyboard_arrow_down_rounded,
+                                  size: 20.sp,
+                                  color: context.textSecondaryColor),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
 
-          // Main Content
-          Expanded(
-            child: isLoading
-                ? Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.deepGreen)))
-                : errorMessage != null
-                    ? _buildErrorState()
-                    : Column(
-                        children: [
-                          // Filters & Month Selector
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32.w),
+              // Main Content
+              Expanded(
+                child: isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.deepGreen)))
+                    : errorMessage != null
+                        ? _buildErrorState()
+                        : Column(
+                            children: [
+                              // Filters & Month Selector
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20.w, vertical: 16.h),
                                 child: Row(
                                   children: [
-                                    _buildMonthSelector(),
-                                    SizedBox(width: 12.w), // Replaced Spacer() with fixed gap
+                                    Expanded(child: _buildMonthSelector()),
+                                    SizedBox(width: 12.w),
                                     FilterTabs(
                                       selectedFilter: selectedFilter,
-                                      onFilterChanged: (key) => setState(() => selectedFilter = key),
+                                      onFilterChanged: (key) => setState(
+                                          () => selectedFilter = key),
                                       getFilterCount: _getFilterCount,
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                          ),
-                          
-                          // Payment Bar
-                          if (selectedFilter != 'Paid')
-                            PaymentSection(
-                              selectedCount: selectedCount,
-                              totalSelectedAmount: totalSelectedAmount,
-                              onPaymentTap: selectedCount > 0 ? _showPaymentModal : null,
-                            ),
 
-                          // List
-                          Expanded(
-                            child: _buildInvoiceList(),
+                              // Payment Bar
+                              if (selectedFilter != 'Paid')
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: PaymentSection(
+                                    selectedCount: selectedCount,
+                                    totalSelectedAmount: totalSelectedAmount,
+                                    onPaymentTap: selectedCount > 0
+                                        ? _showPaymentModal
+                                        : null,
+                                  ),
+                                ),
+
+                              // List
+                              Expanded(
+                                child: _buildInvoiceList(),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+
   Widget _buildErrorState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline_rounded, size: 64.sp, color: Colors.red.withOpacity(0.5)),
-          SizedBox(height: 16.h),
-          Text(errorMessage!, style: TextStyle(color: context.textPrimaryColor, fontSize: 15.sp), textAlign: TextAlign.center),
+          Container(
+            padding: EdgeInsets.all(24.w),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.error_outline_rounded,
+                size: 64.sp, color: Colors.red.withOpacity(0.5)),
+          ),
           SizedBox(height: 24.h),
-          ElevatedButton(
-            onPressed: _loadNekhemjlekh,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.deepGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r))),
-            child: const Text('Дахин оролдох', style: TextStyle(color: Colors.white)),
+          Text(errorMessage!,
+              style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center),
+          SizedBox(height: 32.h),
+          SizedBox(
+            width: 200.w,
+            height: 50.h,
+            child: ElevatedButton(
+              onPressed: _loadNekhemjlekh,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.deepGreen,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r)),
+                elevation: 4,
+              ),
+              child: const Text('Дахин оролдох',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
           ),
         ],
       ),
@@ -2833,15 +2909,29 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              selectedFilter == 'Paid' ? Icons.history_rounded : Icons.receipt_long_rounded,
-              size: 64.sp,
-              color: context.textSecondaryColor.withOpacity(0.2),
+            Container(
+              padding: EdgeInsets.all(32.w),
+              decoration: BoxDecoration(
+                color: context.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                selectedFilter == 'Paid'
+                    ? Icons.history_rounded
+                    : Icons.receipt_long_rounded,
+                size: 80.sp,
+                color: context.textSecondaryColor.withOpacity(0.1),
+              ),
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: 24.h),
             Text(
-              selectedFilter == 'Paid' ? 'Төлөгдсөн нэхэмжлэл байхгүй' : 'Одоогоор нэхэмжлэл байхгүй',
-              style: TextStyle(color: context.textSecondaryColor, fontSize: 14.sp),
+              selectedFilter == 'Paid'
+                  ? 'Төлөгдсөн нэхэмжлэл байхгүй'
+                  : 'Одоогоор нэхэмжлэл байхгүй',
+              style: TextStyle(
+                  color: context.textSecondaryColor,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -2851,20 +2941,46 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     return RefreshIndicator(
       onRefresh: _loadNekhemjlekh,
       color: AppColors.deepGreen,
+      backgroundColor: context.cardBackgroundColor,
+      edgeOffset: 20,
       child: ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 100.h),
+        physics: const BouncingScrollPhysics(),
         itemCount: filteredInvoices.length + (selectedFilter != 'Paid' ? 1 : 0),
         itemBuilder: (context, index) {
           if (selectedFilter != 'Paid' && index == 0) {
             return _buildSelectAllBar();
           }
-          final invoice = filteredInvoices[selectedFilter != 'Paid' ? index - 1 : index];
-          return InvoiceCard(
-            invoice: invoice,
-            isHistory: selectedFilter == 'Paid',
-            onToggleExpand: () => setState(() => invoice.isExpanded = !invoice.isExpanded),
-            onToggleSelect: selectedFilter != 'Paid' ? () => setState(() => invoice.isSelected = !invoice.isSelected) : null,
-            onShowVATReceipt: selectedFilter == 'Paid' ? () => _showVATReceiptModal(invoice.id) : null,
+          
+          final invoiceIndex = selectedFilter != 'Paid' ? index - 1 : index;
+          final invoice = filteredInvoices[invoiceIndex];
+          
+          // Entry animation wrapper
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(milliseconds: 400 + (index * 100).clamp(0, 400)),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, 30 * (1 - value)),
+                child: Opacity(
+                  opacity: value,
+                  child: child,
+                ),
+              );
+            },
+            child: InvoiceCard(
+              invoice: invoice,
+              isHistory: selectedFilter == 'Paid',
+              onToggleExpand: () =>
+                  setState(() => invoice.isExpanded = !invoice.isExpanded),
+              onToggleSelect: selectedFilter != 'Paid'
+                  ? () => setState(() => invoice.isSelected = !invoice.isSelected)
+                  : null,
+              onShowVATReceipt: selectedFilter == 'Paid'
+                  ? () => _showVATReceiptModal(invoice.id)
+                  : null,
+            ),
           );
         },
       ),
@@ -2873,35 +2989,73 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
   Widget _buildSelectAllBar() {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h, left: 4.w),
+      padding: EdgeInsets.only(bottom: 20.h, left: 4.w),
       child: GestureDetector(
-        onTap: toggleSelectAll,
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 20.w,
-              height: 20.w,
-              decoration: BoxDecoration(
-                color: allSelected ? AppColors.deepGreen : Colors.transparent,
-                borderRadius: BorderRadius.circular(6.r),
-                border: Border.all(color: allSelected ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.3), width: 2),
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          toggleSelectAll();
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: allSelected ? AppColors.deepGreen.withOpacity(0.05) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: allSelected ? AppColors.deepGreen.withOpacity(0.2) : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 24.w,
+                height: 24.w,
+                decoration: BoxDecoration(
+                  color: allSelected ? AppColors.deepGreen : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                      color: allSelected
+                          ? AppColors.deepGreen
+                          : context.textSecondaryColor.withOpacity(0.3),
+                      width: 2),
+                  boxShadow: allSelected ? [
+                    BoxShadow(
+                      color: AppColors.deepGreen.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ] : null,
+                ),
+                child: allSelected
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : null,
               ),
-              child: allSelected ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
-            ),
-            SizedBox(width: 12.w),
-            Text(
-              'Бүгдийг сонгох',
-              style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp, fontWeight: FontWeight.w600),
-            ),
-          ],
+              SizedBox(width: 14.w),
+              Text(
+                'Бүгдийг сонгох',
+                style: TextStyle(
+                    color: context.textPrimaryColor,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3),
+              ),
+              const Spacer(),
+              if (allSelected)
+                Text(
+                  'Сонгосон',
+                  style: TextStyle(
+                    color: AppColors.deepGreen,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
-
-  // _buildInvoiceCard moved to components/Nekhemjlekh/invoice_card.dart
-  // Removed old implementation - using InvoiceCard component instead
 
   /// Helper to handle CORS issues for bank logos on Web
   String _getLogoUrl(String url) {

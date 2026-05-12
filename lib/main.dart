@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:media_kit/media_kit.dart';
 import 'router/app_router.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/services/session_service.dart';
@@ -19,6 +20,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
 
   await initializeDateFormatting('mn_MN', null);
   await NotificationService.initialize();
@@ -32,6 +34,7 @@ void main() async {
 
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});

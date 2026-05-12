@@ -71,7 +71,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
           _savedUsers = response['jagsaalt'] ?? [];
           _isLoadingSavedUsers = false;
           
-          if (_consumerInfo == null && _foreignerInfo == null && _savedUsers.length == 1) {
+          if (!_skipAutoSearch && _consumerInfo == null && _foreignerInfo == null && _savedUsers.length == 1) {
             final user = _savedUsers[0];
             final identity = (user['regNo']?.toString().isNotEmpty == true 
                 ? user['regNo'] 
@@ -81,6 +81,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
               _searchConsumerInfo();
             }
           }
+          _skipAutoSearch = false; // Reset after checking
         });
       }
     } catch (e) {
@@ -130,17 +131,35 @@ class _EbarimtPageState extends State<EbarimtPage> {
     }
   }
 
+  bool _skipAutoSearch = false;
+
   Future<void> _disconnectCurrentUser() async {
-    // Clear locally stored ebarimt info
+    // 1. Get current info to find what to delete
+    final currentInfo = _infoType == 'consumer' ? _consumerInfo : _foreignerInfo;
+    final currentIdentity = currentInfo?['register']?.toString() ?? 
+                           currentInfo?['loginName']?.toString() ?? 
+                           currentInfo?['regNo']?.toString();
+
+    // 2. Clear locally stored info immediately for UI responsiveness
     await StorageService.clearEbarimtInfo();
-    
-    // Also delete from server if we have the user ID
-    final info = _infoType == 'consumer' ? _consumerInfo : _foreignerInfo;
-    if (info != null && info['_id'] != null) {
-      try {
-        await ApiService.easyRegisterDeleteUser(userId: info['_id'].toString());
-      } catch (e) {
-        print('Server delete failed: $e');
+
+    // 3. Find and delete from server
+    if (currentIdentity != null) {
+      // Find matching IDs in _savedUsers
+      final idsToDelete = _savedUsers
+          .where((u) => u['regNo']?.toString() == currentIdentity || 
+                         u['loginName']?.toString() == currentIdentity)
+          .map((u) => u['_id']?.toString())
+          .whereType<String>()
+          .toList();
+
+      for (final id in idsToDelete) {
+        try {
+          await ApiService.easyRegisterDeleteUser(userId: id);
+          print('✅ [EBARIMT] Successfully deleted server link for ID: $id');
+        } catch (e) {
+          print('❌ [EBARIMT] Server delete failed for ID $id: $e');
+        }
       }
     }
 
@@ -150,8 +169,9 @@ class _EbarimtPageState extends State<EbarimtPage> {
         _foreignerInfo = null;
         _infoType = null;
         _citizenCodeController.clear();
+        _skipAutoSearch = true; // Prevent auto-reloading after manual disconnect
       });
-      _loadSavedUsers(); // Refresh dropdown
+      await _loadSavedUsers(); // Refresh dropdown and list
     }
   }
 
@@ -368,13 +388,10 @@ class _EbarimtPageState extends State<EbarimtPage> {
   }
 
   Future<void> _searchConsumerInfo() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_formKey.currentState == null || !_formKey.currentState!.validate()) return;
 
     setState(() {
       _isSearching = true;
-      _consumerInfo = null;
-      _foreignerInfo = null;
-      _infoType = null;
     });
 
     final identity = _citizenCodeController.text.trim();
@@ -399,24 +416,55 @@ class _EbarimtPageState extends State<EbarimtPage> {
       // Fetch current user ID to link with ITC profile
       final userId = await StorageService.getUserId();
 
+      // Decide whether to send as identity (RegNo) or customerNo (Login Name)
+      final isLoginName = identity.length == 8 && RegExp(r'^[0-9]+$').hasMatch(identity);
+
       // Use unified Easy Register search
       final data = await ApiService.easyRegisterUserSearch(
-        identity: identity,
+        identity: isLoginName ? null : identity,
+        customerNo: isLoginName ? identity : null,
         orshinSuugchiinId: userId,
         turul: _infoType,
       );
       print('✅ [EBARIMT] Easy Register data received: $data');
 
+      // Validate data before proceeding
+      if (data['code'] != 'success' && 
+          data['status']?.toString() != '200' && 
+          data['status']?.toString() != 'success') {
+        throw Exception(data['msg'] ?? data['message'] ?? 'Илэрц олдсонгүй');
+      }
+
       if (mounted) {
         setState(() {
-          // Map backend fields to UI fields if necessary
+          // Map backend fields to UI fields
+          // Fix: If loginName is empty but we have an identity or mislabeled phoneNum, use it
+          final loginName = (data['loginName']?.toString().isNotEmpty == true 
+                            ? data['loginName'] 
+                            : (data['regNo'] ?? data['identity'] ?? data['phoneNum'] ?? identity)).toString();
+
           final mappedInfo = Map<String, dynamic>.from({
             ...data,
+            'loginName': loginName,
             'name': data['givenName'] ?? data['name'],
             'surname': data['familyName'] ?? data['surname'],
-            'register': data['regNo'] ?? data['register'] ?? data['identity'],
-            'phone': data['phoneNum'] ?? data['phone'],
+            'register': data['regNo'] ?? data['register'] ?? data['identity'] ?? loginName,
+            'phone': data['phoneNum'] == loginName ? '' : (data['phoneNum'] ?? data['phone']),
           });
+
+          // Try to find the matching _id from _savedUsers if it exists
+          String? savedId;
+          final identityToMatch = mappedInfo['register']?.toString() ?? mappedInfo['loginName']?.toString();
+          if (identityToMatch != null) {
+            for (var user in _savedUsers) {
+               if (user['regNo']?.toString() == identityToMatch || 
+                   user['loginName']?.toString() == identityToMatch) {
+                 savedId = user['_id']?.toString();
+                 break;
+               }
+            }
+          }
+          if (savedId != null) mappedInfo['_id'] = savedId;
 
           if (_infoType == 'foreigner') {
             _foreignerInfo = mappedInfo;
@@ -437,8 +485,6 @@ class _EbarimtPageState extends State<EbarimtPage> {
       if (mounted) {
         setState(() {
           _isSearching = false;
-          _consumerInfo = null;
-          _foreignerInfo = null;
         });
         
         final cleanMsg = _cleanErrorMessage(e.toString());
@@ -474,226 +520,13 @@ class _EbarimtPageState extends State<EbarimtPage> {
       body: SafeArea(
         child: Column(
           children: [
-            if (_consumerInfo == null && _foreignerInfo == null)
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                padding: EdgeInsets.all(20.w),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(24.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.4 : 0.06),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(10.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.deepGreen.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.person_search_rounded,
-                            color: AppColors.deepGreen,
-                            size: 20.sp,
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Иргэний мэдээлэл',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                                ),
-                              ),
-                              Text(
-                                'И-Баримт авах иргэн эсвэл ААН-ийн хайлтыг энд хийнэ үү',
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: isDark ? Colors.blueGrey.shade400 : const Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 24.h),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _citizenCodeController,
-                            keyboardType: TextInputType.text,
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF334155),
-                            ),
-                            decoration: InputDecoration(
-                              labelText: _infoType == 'foreigner' ? 'Байгууллагын РД' : 'Иргэний код / Утас',
-                              hintText: _infoType == 'foreigner' ? 'Байгууллагын код' : '88... эсвэл Иргэний код',
-                              prefixIcon: Icon(Icons.qr_code_scanner_rounded, size: 20.sp, color: AppColors.deepGreen),
-                              suffixIcon: (_savedUsers.isEmpty || _consumerInfo != null || _foreignerInfo != null)
-                                  ? null
-                                  : PopupMenuButton<dynamic>(
-                                      icon: Icon(
-                                        Icons.arrow_drop_down_circle_outlined,
-                                        color: AppColors.deepGreen,
-                                        size: 24.sp,
-                                      ),
-                                      onSelected: (user) {
-                                        setState(() {
-                                          final identity =
-                                              (user['regNo']?.toString().isNotEmpty == true
-                                                      ? user['regNo']
-                                                      : user['loginName']) ??
-                                                  '';
-                                          _citizenCodeController.text = identity.toString();
-                                          
-                                          // Auto-trigger search with selection
-                                          _searchConsumerInfo();
-                                        });
-                                      },
-                                      itemBuilder: (context) => _savedUsers
-                                          .map((user) => PopupMenuItem<dynamic>(
-                                                value: user,
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      user['turul'] == 'foreigner'
-                                                          ? Icons.public_rounded
-                                                          : Icons.person_rounded,
-                                                      size: 18.sp,
-                                                      color: AppColors.deepGreen,
-                                                    ),
-                                                    SizedBox(width: 12.w),
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            '${user['givenName'] ?? ''} ${user['familyName'] ?? ''}'
-                                                                .toUpperCase(),
-                                                            style: const TextStyle(fontWeight: FontWeight.w600),
-                                                          ),
-                                                          Text(
-                                                            (user['regNo'] ?? user['loginName'] ?? '').toString(),
-                                                            style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    GestureDetector(
-                                                      onTap: () {
-                                                        Navigator.pop(context);
-                                                        _deleteEasyRegisterUser(user);
-                                                      },
-                                                      child: Padding(
-                                                        padding: EdgeInsets.all(4.w),
-                                                        child: Icon(
-                                                          Icons.delete_outline_rounded,
-                                                          size: 18.sp,
-                                                          color: Colors.red.withOpacity(0.7),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ))
-                                          .toList(),
-                                    ),
-                              filled: true,
-                              fillColor: isDark ? Colors.black26 : Colors.grey.shade50,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16.r),
-                                borderSide: const BorderSide(color: AppColors.deepGreen, width: 1.5),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-                            ),
-                            validator: (val) => val == null || val.isEmpty ? 'Мэдээлэл оруулна уу' : null,
-                          ),
-                          SizedBox(height: 16.h),
-                          
-                          // Type selection for more accurate search
-                          Row(
-                            children: [
-                              _buildTypeChip('Иргэн', 'consumer', isDark),
-                              SizedBox(width: 8.w),
-                              _buildTypeChip('Байгууллага', 'foreigner', isDark),
-                            ],
-                          ),
-                          
-                          SizedBox(height: 20.h),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52.h,
-                            child: ElevatedButton(
-                              onPressed: _isSearching ? null : _searchConsumerInfo,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.deepGreen,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                              ),
-                              child: _isSearching
-                                  ? SizedBox(
-                                      height: 20.h,
-                                      width: 20.h,
-                                      child: const CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(
-                                      'БҮРТГЭГДСЭН БАРИМТ',
-                                      style: TextStyle(
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
-                child: _buildInfoCard(),
-              ),
+            // Persistent Header / Search / Info Section
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: _consumerInfo == null && _foreignerInfo == null
+                  ? _buildSearchCard(isDark)
+                  : _buildInfoCard(),
+            ),
 
             // Ebarimt Receipts List Header
             Padding(
@@ -705,7 +538,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     'Илгээгдсэн баримтууд',
                     style: TextStyle(
                       color: context.textPrimaryColor,
-                      fontSize: 16.sp,
+                      fontSize: 11.sp,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -785,7 +618,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: context.textSecondaryColor,
-                                  fontSize: 13.sp,
+                                  fontSize: 11.sp,
                                   height: 1.4,
                                 ),
                               ),
@@ -814,15 +647,19 @@ class _EbarimtPageState extends State<EbarimtPage> {
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
         color: context.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
-            blurRadius: 15,
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            blurRadius: 20,
             spreadRadius: 0,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+          width: 1,
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -875,7 +712,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                         textAlign: TextAlign.left,
                         style: TextStyle(
                           color: context.textPrimaryColor,
-                          fontSize: 13.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
@@ -915,7 +752,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                       receipt.formattedAmount,
                       style: TextStyle(
                         color: AppColors.deepGreen,
-                        fontSize: 15.sp,
+                        fontSize: 13.sp,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -933,7 +770,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             (receipt.id.isNotEmpty || (receipt.receiptId?.isNotEmpty ?? false)) ? 'ИБАРИМТ БҮРТГЭГДСЭН' : 'И-БАРИМТ',
                             style: TextStyle(
                               color: AppColors.deepGreen,
-                              fontSize: 9.sp,
+                              fontSize: 11.sp,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -950,6 +787,206 @@ class _EbarimtPageState extends State<EbarimtPage> {
     );
   }
 
+  Widget _buildSearchCard(bool isDark) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark 
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [Colors.white, const Color(0xFFF1F5F9)],
+        ),
+        borderRadius: BorderRadius.circular(24.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: AppColors.deepGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.person_search_rounded,
+                  color: AppColors.deepGreen,
+                  size: 16.sp,
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Иргэний код',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      ),
+                    ),
+                    Text(
+                      'И-Баримт авах иргэний кодоо оруулна уу',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: isDark ? Colors.blueGrey.shade400 : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16.h),
+          Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _citizenCodeController,
+                  keyboardType: TextInputType.text,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF334155),
+                  ),
+                  decoration: InputDecoration(
+                    labelText: _infoType == 'foreigner' ? 'Байгууллагын код' : 'Иргэний код',
+                    labelStyle: TextStyle(fontSize: 10.sp, color: AppColors.deepGreen),
+                    hintText: _infoType == 'foreigner' ? 'Код оруулна уу' : 'Иргэний код оруулна уу',
+                    hintStyle: TextStyle(fontSize: 10.sp, color: Colors.grey.shade400),
+                    prefixIcon: Icon(Icons.badge_outlined, size: 16.sp, color: AppColors.deepGreen),
+                    suffixIcon: _savedUsers.isEmpty
+                        ? null
+                        : PopupMenuButton<dynamic>(
+                            icon: Icon(
+                              Icons.arrow_drop_down_circle_outlined,
+                              color: AppColors.deepGreen,
+                              size: 20.sp,
+                            ),
+                            onSelected: (user) {
+                              setState(() {
+                                final identity =
+                                    (user['regNo']?.toString().isNotEmpty == true
+                                            ? user['regNo']
+                                            : user['loginName']) ??
+                                        '';
+                                _citizenCodeController.text = identity.toString();
+                                _searchConsumerInfo();
+                              });
+                            },
+                            itemBuilder: (context) => _savedUsers
+                                .map((user) => PopupMenuItem<dynamic>(
+                                      value: user,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            user['turul'] == 'foreigner'
+                                                ? Icons.public_rounded
+                                                : Icons.person_rounded,
+                                            size: 14.sp,
+                                            color: AppColors.deepGreen,
+                                          ),
+                                          SizedBox(width: 10.w),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '${user['givenName'] ?? ''} ${user['familyName'] ?? ''}'
+                                                      .toUpperCase(),
+                                                  style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600),
+                                                ),
+                                                Text(
+                                                  (user['regNo'] ?? user['loginName'] ?? '').toString(),
+                                                  style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+                    filled: true,
+                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  ),
+                  validator: (val) => val == null || val.isEmpty ? 'Мэдээлэл оруулна уу' : null,
+                ),
+                SizedBox(height: 12.h),
+                Row(
+                  children: [
+                    _buildTypeChip('Иргэн', 'consumer', isDark),
+                    SizedBox(width: 8.w),
+                    _buildTypeChip('Байгууллага', 'foreigner', isDark),
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isSearching ? null : _searchConsumerInfo,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepGreen,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                    ),
+                    child: _isSearching
+                        ? SizedBox(
+                            height: 16.h,
+                            width: 16.h,
+                            child: const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            'Холбох',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInfoCard() {
     final info = _infoType == 'consumer' ? _consumerInfo : _foreignerInfo;
     if (info == null) return const SizedBox.shrink();
@@ -957,12 +994,26 @@ class _EbarimtPageState extends State<EbarimtPage> {
     final isDark = context.isDarkMode;
 
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16.r),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark 
+              ? [const Color(0xFF1E293B), const Color(0xFF334155)]
+              : [const Color(0xFFF8FAFC), Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(28.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
         border: Border.all(
-          color: context.borderColor.withOpacity(isDark ? 0.2 : 0.5),
+          color: isDark ? Colors.white.withOpacity(0.1) : Colors.white,
+          width: 1.5,
         ),
       ),
       child: Column(
@@ -995,11 +1046,11 @@ class _EbarimtPageState extends State<EbarimtPage> {
               Expanded(
                 child: Text(
                   _infoType == 'consumer'
-                      ? 'Иргэний мэдээлэл'
-                      : 'Гадаадын иргэний мэдээлэл',
+                      ? 'Холбогдсон иргэн'
+                      : 'Холбогдсон байгууллага',
                   style: TextStyle(
                     color: context.textPrimaryColor,
-                    fontSize: 14.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1019,29 +1070,18 @@ class _EbarimtPageState extends State<EbarimtPage> {
           ),
           SizedBox(height: 16.h),
           if (_infoType == 'consumer') ...[
-            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
-            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
             _buildInfoRow(
-              'Регистр',
-              info['register']?.toString() ??
-                  info['customerNo']?.toString() ??
-                  '-',
-            ),
-            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
-            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
-          ] else ...[
-            _buildInfoRow('Нэр', info['name']?.toString() ?? '-'),
-            _buildInfoRow('Овог', info['surname']?.toString() ?? '-'),
-            _buildInfoRow(
-              'Паспорт',
-              info['passportNo']?.toString() ?? '-',
-            ),
-            _buildInfoRow(
-              'Харилцагч №',
+              'Иргэний код',
+              info['loginName']?.toString() ?? 
+              info['register']?.toString() ?? 
               info['customerNo']?.toString() ?? '-',
             ),
-            _buildInfoRow('Утас', info['phone']?.toString() ?? '-'),
-            _buildInfoRow('Имэйл', info['email']?.toString() ?? '-'),
+          ] else ...[
+            _buildInfoRow(
+              'Байгууллагын код',
+              info['loginName']?.toString() ?? 
+              info['customerNo']?.toString() ?? '-',
+            ),
           ],
         ],
       ),
@@ -1060,7 +1100,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
               label,
               style: TextStyle(
                 color: context.textSecondaryColor,
-                fontSize: 13.sp,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1070,7 +1110,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
               value.toUpperCase(),
               style: TextStyle(
                 color: context.textPrimaryColor,
-                fontSize: 13.sp,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.right,
@@ -1100,7 +1140,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 12.sp,
+            fontSize: 11.sp,
             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
             color: isSelected 
                 ? AppColors.deepGreen 
