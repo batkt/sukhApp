@@ -5,7 +5,6 @@ version: 2.1.20+58
 
 environment:
   sdk: ^3.9.2
-
 dependencies:
   flutter:
     sdk: flutter
@@ -44,6 +43,8 @@ dependencies:
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
   flutter_webrtc: ^1.4.1
+  intl: ^0.20.2
+
 
 # record_linux 0.7.2 does not implement record_platform_interface 1.5.0 (startStream, hasPermission signature).
 # Force a newer record_linux that implements the interface so iOS build succeeds.
