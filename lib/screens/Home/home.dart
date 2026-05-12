@@ -2057,7 +2057,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     final services = [
       {
         'name': 'parkease',
-        'label': 'ParkEase',
+        'label': 'Зогсоол',
         'icon': Icons.local_parking_rounded,
         'color': const Color(0xFF3B82F6),
       }, // Bright Blue
