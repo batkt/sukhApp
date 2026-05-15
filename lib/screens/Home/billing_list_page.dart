@@ -9,6 +9,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 import 'package:sukh_app/services/socket_service.dart';
 
@@ -56,6 +57,40 @@ class _BillingListPageState extends State<BillingListPage> {
 
   void Function(Map<String, dynamic>)? _notificationCallback;
 
+  String _resolveWalletPaymentState(Map<String, dynamic> walletData) {
+    final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
+    if (state == 'REFUNDED') return 'REFUNDED';
+    if (state == 'PAID' || state == 'PENDING') return state;
+
+    final hasSuccessfulTrx =
+        (walletData['paymentTransactions'] as List?)?.any((trx) {
+          final trxStatus = trx['trxStatus']?.toString().toUpperCase() ?? '';
+          return trxStatus == 'SUCCESS' || trx['trxStatusName']?.toString() == 'Амжилттай';
+        }) ??
+        false;
+
+    bool hasSuccessfulTrxInLines = false;
+    final lines = walletData['lines'] as List?;
+    if (lines != null) {
+      for (final line in lines) {
+        final lineTrx = line['billTransactions'] as List?;
+        if (lineTrx != null &&
+            lineTrx.any((trx) {
+              final trxStatus = trx['trxStatus']?.toString().toUpperCase() ?? '';
+              return trxStatus == 'SUCCESS' || trx['trxStatusName']?.toString() == 'Амжилттай';
+            })) {
+          hasSuccessfulTrxInLines = true;
+          break;
+        }
+      }
+    }
+
+    if (hasSuccessfulTrx || hasSuccessfulTrxInLines) {
+      return 'PAID';
+    }
+    return state;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -100,7 +135,10 @@ class _BillingListPageState extends State<BillingListPage> {
     super.didUpdateWidget(oldWidget);
     final dataChanged =
         oldWidget.billingList.length != widget.billingList.length ||
-        oldWidget.userBillingData != widget.userBillingData;
+        oldWidget.billingList != widget.billingList ||
+        oldWidget.userBillingData != widget.userBillingData ||
+        oldWidget.totalBalance != widget.totalBalance ||
+        oldWidget.totalAldangi != widget.totalAldangi;
     final loadingChanged = oldWidget.isLoading != widget.isLoading;
 
     if (dataChanged || loadingChanged) {
@@ -109,6 +147,10 @@ class _BillingListPageState extends State<BillingListPage> {
           final hasData =
               widget.billingList.isNotEmpty || widget.userBillingData != null;
           setState(() {
+            _localBillingList = List.from(widget.billingList);
+            _localUserBillingData = widget.userBillingData;
+            _localTotalBalance = widget.totalBalance;
+            _localTotalAldangi = widget.totalAldangi;
             _localIsLoading = widget.isLoading && !hasData;
           });
         }
@@ -141,40 +183,55 @@ class _BillingListPageState extends State<BillingListPage> {
 
         // Match by billNo — wallet-check returns billNo in lines[], not billIds
         final Set<String> recentlyPaidBillNos = {};
-        for (var h in walletHistory.take(5)) {
+        final recentItems = walletHistory.take(10).toList();
+        final Set<String> refundedBillNos = {};
+
+        // Pass 1: collect refunded bill keys (absolute override)
+        for (final h in recentItems) {
           final walletPaymentId = h['walletPaymentId']?.toString() ?? '';
           final zakhialgiinDugaar = h['zakhialgiinDugaar']?.toString() ?? '';
           final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
-
           if (checkId.isEmpty) continue;
 
           try {
-            // 30s cache in ApiService — won't spam the API
             final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
             if (st['success'] == true && st['data'] != null) {
               final walletData = st['data'];
-              final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
-
-              final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) =>
-                (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                (trx['trxStatusName']?.toString() == 'Амжилттай')
-              ) ?? false;
-
-              bool hasSuccessfulTrxInLines = false;
+              final resolvedState = _resolveWalletPaymentState(walletData);
               final lines = walletData['lines'] as List?;
-              if (lines != null) {
-                for (var line in lines) {
-                  final lineTrx = line['billTransactions'] as List?;
-                  if (lineTrx != null && lineTrx.any((trx) =>
-                    (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                    (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
-                    hasSuccessfulTrxInLines = true;
-                    break;
-                  }
+              if (resolvedState == 'REFUNDED' && lines != null) {
+                for (final line in lines) {
+                  final billNo = line['billNo']?.toString();
+                  final billId = line['billId']?.toString();
+                  if (billNo != null && billNo.isNotEmpty) refundedBillNos.add(billNo);
+                  if (billId != null && billId.isNotEmpty) refundedBillNos.add(billId);
                 }
               }
+            }
+          } catch (_) {}
+        }
 
-              if (state == 'PAID' || state == 'PENDING' || hasSuccessfulTrx || hasSuccessfulTrxInLines) {
+        // Pass 2: mark active paid/pending unless refunded exists for same bill
+        for (final h in recentItems) {
+          final walletPaymentId = h['walletPaymentId']?.toString() ?? '';
+          final zakhialgiinDugaar = h['zakhialgiinDugaar']?.toString() ?? '';
+          final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
+          if (checkId.isEmpty) continue;
+
+          try {
+            final st = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+            if (st['success'] == true && st['data'] != null) {
+              final walletData = st['data'];
+              final resolvedState = _resolveWalletPaymentState(walletData);
+              final lines = walletData['lines'] as List?;
+              if (resolvedState == 'PAID' || resolvedState == 'PENDING') {
+                final hasRefundedOverride = (lines ?? []).any((line) {
+                  final billNo = line['billNo']?.toString() ?? '';
+                  final billId = line['billId']?.toString() ?? '';
+                  return refundedBillNos.contains(billNo) || refundedBillNos.contains(billId);
+                });
+                if (hasRefundedOverride) continue;
+
                 // Extract billNo from lines (primary match key)
                 if (lines != null) {
                   for (var line in lines) {
@@ -207,26 +264,21 @@ class _BillingListPageState extends State<BillingListPage> {
                 // Server sets newBillsAmount=0 when bills are PENDING/PAID.
                 final serverAmount = details['newBillsAmount'];
                 final serverAldangi = details['newBillsAldangi'];
-                if (serverAmount != null) {
-                  t = (serverAmount is num) ? serverAmount.toDouble() : double.tryParse(serverAmount.toString()) ?? 0.0;
+                final parsedServerAmount = (serverAmount is num)
+                    ? serverAmount.toDouble()
+                    : double.tryParse(serverAmount?.toString() ?? '') ?? 0.0;
+                if (serverAmount != null && parsedServerAmount > 0) {
+                  t = parsedServerAmount;
                   a = (serverAldangi is num) ? serverAldangi.toDouble() : 0.0;
-                  // For display: only show bills the server considers active (isNew != false)
+                  // Temporary override: show all bills while backend status sync is unstable.
                   final originalBills = details['newBills'] as List? ?? [];
                   for (var bill in originalBills) {
-                    if (bill['isNew'] == false) continue; // server says not new/active
                     filteredBills.add(bill);
                   }
                 } else {
-                  // FALLBACK: manual sum — skip isNew=false or paid/pending bills
+                  // FALLBACK: manual sum — do not hide bills by backend transient flags.
                   final originalBills = details['newBills'] as List? ?? [];
                   for (var bill in originalBills) {
-                    if (bill['isNew'] == false) continue;
-                    final billId = bill['billId']?.toString();
-                    final billNo = bill['billNo']?.toString();
-                    if ((billId != null && recentlyPaidBillNos.contains(billId)) ||
-                        (billNo != null && recentlyPaidBillNos.contains(billNo))) {
-                      continue;
-                    }
                     filteredBills.add(bill);
                     t += (bill['billTotalAmount'] is num) ? (bill['billTotalAmount'] as num).toDouble() : 0.0;
                     a += (bill['billLateFee'] is num) ? (bill['billLateFee'] as num).toDouble() : 0.0;
@@ -336,13 +388,12 @@ class _BillingListPageState extends State<BillingListPage> {
   }
 
   String _formatNumberWithComma(dynamic value) {
-    if (value == null) return '0.00';
+    if (value == null) return '0';
     try {
       final number = double.parse(value.toString());
-      final formatter = NumberFormat('#,##0.00', 'en_US');
-      return formatter.format(number);
+      return formatNumber(number);
     } catch (e) {
-      return '0.00';
+      return '0';
     }
   }
 

@@ -174,6 +174,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     _setupSocketListener();
     _loadGereeData();
     _loadNekhemjlekhCron();
+    _initNonOrgCheck(); // Early check so green card shows immediately
     _refreshBillingInfo(); // Consolidated refresh  
     _checkRecentWalletPayments();
 
@@ -188,6 +189,27 @@ class _BookingScreenState extends State<NuurKhuudas>
         _progressAnimationController.forward();
       }
     });
+  }
+
+  /// Early async check to set _isNonOrgUser from StorageService
+  /// so the green card shows immediately, before _refreshBillingInfo completes.
+  Future<void> _initNonOrgCheck() async {
+    try {
+      final baigId = await StorageService.getBaiguullagiinId();
+      print('🔧 [INIT] Early baiguullagiinId from storage: $baigId');
+      final isNonOrg = baigId == null ||
+          baigId == 'null' ||
+          baigId.isEmpty ||
+          baigId == '698e7fd3b6dd386b6c56a808';
+      if (mounted && isNonOrg != _isNonOrgUser) {
+        setState(() {
+          _isNonOrgUser = isNonOrg;
+        });
+        print('🔧 [INIT] _isNonOrgUser set to $isNonOrg early');
+      }
+    } catch (e) {
+      print('🔧 [INIT] Early org check failed: $e');
+    }
   }
 
   DateTime? _lastBalanceRefresh;
@@ -351,7 +373,9 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   Future<void> _refreshBillingInfo({bool forceRefresh = false}) async {
-    if (!mounted || _isRefreshing) return;
+    if (!mounted || _isRefreshing) {
+      return;
+    }
     _isRefreshing = true;
 
     // Only show full loading state on the very first load
@@ -375,9 +399,18 @@ class _BookingScreenState extends State<NuurKhuudas>
       final userId = await StorageService.getUserId();
       final initialData = await Future.wait([
         ApiService.getUserProfile(forceRefresh: forceRefresh),
-        ApiService.getWalletBillingList(forceRefresh: forceRefresh),
-        ApiService.fetchWalletQpayList(),
-        if (userId != null && !isWalletOnlyOrg) ApiService.fetchGeree(userId) else Future.value({'jagsaalt': []}),
+        ApiService.getWalletBillingList(forceRefresh: forceRefresh).catchError((e) {
+          print('⚠️ [REFRESH] getWalletBillingList failed: $e');
+          return <Map<String, dynamic>>[];
+        }),
+        ApiService.fetchWalletQpayList().catchError((e) {
+          print('⚠️ [REFRESH] fetchWalletQpayList failed (non-fatal): $e');
+          return <Map<String, dynamic>>[];
+        }),
+        if (userId != null && !isWalletOnlyOrg) ApiService.fetchGeree(userId).catchError((e) {
+          print('⚠️ [REFRESH] fetchGeree failed: $e');
+          return <String, dynamic>{'jagsaalt': []};
+        }) else Future.value({'jagsaalt': []}),
       ]);
 
       final userProfile = initialData[0] as Map<String, dynamic>;
@@ -386,7 +419,6 @@ class _BookingScreenState extends State<NuurKhuudas>
       final gereeResponse = initialData[3] as Map<String, dynamic>;
 
       final user = userProfile['result'];
-
       if (mounted) {
         setState(() {
           _userProfile = user;
@@ -614,9 +646,13 @@ class _BookingScreenState extends State<NuurKhuudas>
         final billingTotal = _parseNum(billing['perItemTotal']);
         final billingAldangi = _parseNum(billing['perItemAldangi']);
 
-        if (ownOrgTotal > 0 && (billingName.contains('Орон сууцны') || billingName.contains('Property'))) {
-          // If we already have OWN_ORG for residential, skip adding wallet entry as total already includes it
-          // Or we can add it but skip from sums. Here we just add to list for UI visibility.
+        // Only skip adding to TOTALS if it's a residential duplicate of OWN_ORG
+        final isResidential = billingName.toLowerCase().contains('орон сууц') || 
+                            billingName.toLowerCase().contains('property') ||
+                            billingName.toLowerCase().contains('сөх');
+        
+        if (ownOrgTotal > 0 && isResidential) {
+          // Skip from sums if we already have authoritative data from OWN_ORG
         } else {
           total += billingTotal;
           totalAldangi += billingAldangi;
@@ -698,7 +734,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         });
       }
     } catch (e) {
-
+      // Refresh error handling
     } finally {
       if (mounted) {
         setState(() {
@@ -999,47 +1035,9 @@ class _BookingScreenState extends State<NuurKhuudas>
         if (walletPaymentId != null && statusStr == 'PENDING') {
 
           
-          final statusRes = await ApiService.walletQpayWalletCheck(
+          final isPaid = await ApiService.checkWalletQPayStatus(
             walletPaymentId: walletPaymentId,
           );
-          
-          bool isPaid = false;
-          if (statusRes['success'] == true && statusRes['data'] != null) {
-            final walletData = statusRes['data'];
-            
-            // 1. Check top-level payment status
-            final state = walletData['paymentStatus']?.toString().toUpperCase();
-            
-            // 2. Check for success in top-level transactions list
-            final transactions = walletData['paymentTransactions'] as List?;
-            bool hasSuccessfulTrx = false;
-            if (transactions != null) {
-              hasSuccessfulTrx = transactions.any((trx) => 
-                (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                (trx['trxStatusName']?.toString() == 'Амжилттай')
-              );
-            }
-
-            // 3. Deep Check: Search within individual lines for line-level transactions (e.g. Housing)
-            if (!hasSuccessfulTrx) {
-              final lines = walletData['lines'] as List?;
-              if (lines != null) {
-                for (var line in lines) {
-                  final lineTrx = line['billTransactions'] as List?;
-                  if (lineTrx != null && lineTrx.any((trx) => 
-                    (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                    (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
-                    hasSuccessfulTrx = true;
-                    break;
-                  }
-                }
-              }
-            }
-
-            if (state == 'PAID' || hasSuccessfulTrx) {
-              isPaid = true;
-            }
-          }
 
           if (isPaid) {
 
@@ -1653,10 +1651,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                       SizedBox(height: 4.h),
 
                       // 1. Merged Remaining Days & Billing Box - PageView for multiple contracts
-                      if (_isNonOrgUser || 
-                          (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ||
-                          _billingList.isNotEmpty)
-                        Column(
+                      Builder(builder: (context) {
+                        final showCard = _isNonOrgUser || 
+                            (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ||
+                            _billingList.isNotEmpty;
+                        
+                        if (!showCard) return const SizedBox.shrink();
+                        
+                        return Column(
                           children: [
                             SizedBox(
                               // Granular responsive height to support various devices (iPhone, iPad, Surface Duo)
@@ -1699,6 +1701,34 @@ class _BookingScreenState extends State<NuurKhuudas>
                                     }
                                   }
 
+                                  // Fallback: If no geree, use wallet toots from profile for address display
+                                  String? displayBairNer = g?.bairNer;
+                                  String? displayToot = g?.toot.toString();
+                                  
+                                  if (g == null && _userProfile != null && _userProfile!['toots'] != null) {
+                                    final profileToots = _userProfile!['toots'] as List;
+                                    if (profileToots.isNotEmpty) {
+                                      final firstToot = profileToots[0] is Map<String, dynamic> 
+                                          ? profileToots[0] as Map<String, dynamic>
+                                          : Map<String, dynamic>.from(profileToots[0] as Map);
+                                      displayBairNer = firstToot['bairniiNer']?.toString();
+                                      displayToot = firstToot['toot']?.toString();
+                                    }
+                                  }
+                                  
+                                  // Also try from billingList if still null
+                                  if (displayBairNer == null && _billingList.isNotEmpty) {
+                                    displayBairNer = _billingList.first['bairniiNer']?.toString() ?? 
+                                                     _billingList.first['billingName']?.toString();
+                                    displayToot ??= _billingList.first['tootNum']?.toString();
+                                  }
+                                  
+                                  // Also try root-level profile fields
+                                  if (displayBairNer == null && _userProfile != null) {
+                                    displayBairNer = _userProfile!['bairniiNer']?.toString();
+                                    displayToot ??= _userProfile!['toot']?.toString();
+                                  }
+
                                   return Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 4.w),
                                     child: _buildRemainingDaysWidget(
@@ -1708,8 +1738,8 @@ class _BookingScreenState extends State<NuurKhuudas>
                                           : () => context.push('/address_selection'),
                                       totalBalance: unitBalance,
                                       totalAldangi: unitAldangi,
-                                      bairNer: g?.bairNer,
-                                      toot: g?.toot.toString(),
+                                      bairNer: displayBairNer,
+                                      toot: displayToot,
                                     ),
                                   );
                                 },
@@ -1748,9 +1778,8 @@ class _BookingScreenState extends State<NuurKhuudas>
                               ),
                             ],
                           ],
-                        )
-                      else
-                        const SizedBox.shrink(),
+                        );
+                      }),
 
                       SizedBox(height: 16.h),
 

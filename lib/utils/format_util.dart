@@ -12,7 +12,7 @@ String formatNumber(double number, [int decimalDigits = 2]) {
     // Fallback if intl fails or has issues
     final parts = number.toStringAsFixed(decimalDigits).split('.');
     final integerPart = parts[0];
-    final decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
+    final decimalPart = decimalDigits > 0 ? '.${parts[1]}' : '';
     
     final regex = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     final formattedInteger = integerPart.replaceAllMapped(regex, (match) => '${match[1]},');
@@ -66,4 +66,35 @@ String formatBillPeriod(String period) {
   }
 
   return period;
+}
+
+/// Extracts only the given name from a full name or patronymic string.
+/// Priority: Mongolian naming convention (Given name is usually the last part).
+/// Examples: 
+///   "Ч. Ганзориг" -> "Ганзориг"
+///   "Ч.Ганзориг" -> "Ганзориг"
+///   "Баатар Ганзориг" -> "Ганзориг"
+///   "Ганзориг" -> "Ганзориг"
+String formatDisplayName(String? name) {
+  if (name == null || name.isEmpty) return 'Хэрэглэгч';
+  
+  String trimmed = name.trim();
+  
+  // Case 1: Split by space and take the last part
+  if (trimmed.contains(' ')) {
+    List<String> parts = trimmed.split(' ').where((s) => s.isNotEmpty).toList();
+    if (parts.isNotEmpty) {
+      return parts.last;
+    }
+  }
+  
+  // Case 2: Split by dot (e.g. "Ч.Ганзориг") and take the last part
+  if (trimmed.contains('.')) {
+    List<String> parts = trimmed.split('.').where((s) => s.isNotEmpty).toList();
+    if (parts.isNotEmpty) {
+      return parts.last;
+    }
+  }
+  
+  return trimmed;
 }

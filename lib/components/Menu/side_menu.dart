@@ -9,6 +9,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/screens/contact/contact_bottom_sheet.dart';
 import 'package:sukh_app/services/version_service.dart';
+import 'package:sukh_app/utils/format_util.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({super.key});
@@ -45,7 +46,7 @@ class _SideMenuState extends State<SideMenu> {
     final name = await StorageService.getUserName();
     if (mounted && name != null) {
       setState(() {
-        _userName = name;
+        _userName = formatDisplayName(name);
       });
     }
   }

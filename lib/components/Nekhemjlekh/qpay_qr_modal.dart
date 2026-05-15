@@ -11,6 +11,7 @@ import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import 'package:sukh_app/utils/format_util.dart';
 import 'package:go_router/go_router.dart';
 class QPayQRModal extends StatefulWidget {
   final String? qrImageOwnOrg;
@@ -144,7 +145,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
       } else if (result == false) {
         _resultMessage = 'Төлбөр төлөгдөөгүй байна';
       } else {
-        _resultMessage = 'Төлбөр шалгалаа. Жагсаалтаас дахин шалгана уу.';
+        _resultMessage = 'Төлбөр төлөгдөөгүй байна.';
       }
       _isChecking = false;
     });
@@ -154,13 +155,11 @@ class _QPayQRModalState extends State<QPayQRModal> {
       if (result == true && widget.closeOnSuccess) {
         await Future.delayed(const Duration(milliseconds: 1500));
         Navigator.of(context).pop(true);
-        context.push('/payment-history');
       } else if (result == true) {
         Navigator.of(context).pop(true);
-        context.push('/payment-history');
       } else {
-        Navigator.of(context).pop(result);
-        context.push('/payment-history');
+        // Only pop if the user manually wants to close or if logic requires
+        // Navigator.of(context).pop(result);
       }
     }
   }
@@ -367,7 +366,7 @@ class _QPayQRModalState extends State<QPayQRModal> {
         ),
         SizedBox(height: 10.h),
         Text(
-          '${widget.amount != null ? NumberFormat('#,###').format(widget.amount) : '0'}₮',
+          '${widget.amount != null ? formatNumber(widget.amount!) : '0'}₮',
           style: TextStyle(
             color: textPrimary,
             fontSize: 32.sp,

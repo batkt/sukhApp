@@ -477,6 +477,7 @@ class VATReceipt {
   final String id;
   final String qrData;
   final String? lottery;
+  final double amount;
   final double totalAmount;
   final double totalVAT;
   final double totalCityTax;
@@ -498,6 +499,7 @@ class VATReceipt {
     required this.id,
     required this.qrData,
     this.lottery,
+    required this.amount,
     required this.totalAmount,
     required this.totalVAT,
     required this.totalCityTax,
@@ -543,6 +545,7 @@ class VATReceipt {
       id: json['id'] ?? json['_id'] ?? '',
       qrData: json['qrData'] ?? '',
       lottery: json['lottery'],
+      amount: safeToDouble(json['amount'] ?? json['totalAmount']),
       totalAmount: safeToDouble(json['totalAmount']),
       totalVAT: safeToDouble(json['totalVAT']),
       totalCityTax: safeToDouble(json['totalCityTax']),
@@ -585,7 +588,8 @@ class VATReceipt {
       id: vat?['vatDdtd'] ?? '',
       qrData: vat?['vatQrData'] ?? '',
       lottery: vat?['vatLotteryNo'],
-      totalAmount: totalAmountValue,
+      amount: (json['amount'] ?? 0).toDouble(),
+      totalAmount: (json['totalAmount'] ?? json['amount'] ?? 0).toDouble(),
       totalVAT: totalAmountValue / 11, // Standard VAT calculation if not provided separately
       totalCityTax: 0,
       districtCode: '',
@@ -605,7 +609,7 @@ class VATReceipt {
   }
 
   String get formattedAmount {
-    return '${formatNumber(totalAmount, 2)}₮';
+    return '${formatNumber(amount, 2)}₮';
   }
 
   String get formattedDate {

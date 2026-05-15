@@ -135,34 +135,34 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                           child: Column(
                             children: [
                               // Scanned Status Indicator
-                               if (widget.receipt.id.isNotEmpty || (widget.receipt.receiptId?.isNotEmpty ?? false))
-                                Container(
-                                  width: double.infinity,
-                                  margin: EdgeInsets.only(bottom: 12.h),
-                                  padding: EdgeInsets.symmetric(vertical: 8.h),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8.r),
-                                    border: Border.all(color: Colors.green.withOpacity(0.3)),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.check_circle_outline, color: Colors.green, size: 16.sp),
-                                      SizedBox(width: 8.w),
-                                      Text(
-                                        'ИБаримт бүртгэгдсэн байна',
-                                        style: TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11.sp,
+                                if (widget.receipt.qrData == "FALSE" || widget.receipt.qrData.isEmpty)
+                                  Container(
+                                    width: double.infinity,
+                                    margin: EdgeInsets.only(bottom: 12.h),
+                                    padding: EdgeInsets.all(16.w),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.info_outline_rounded, color: Colors.orange, size: 32.sp),
+                                        SizedBox(height: 8.h),
+                                        Text(
+                                          'Тухайн төлбөрт баримт бодогдоогүй байна',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.orange.shade800,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12.sp,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
                               // QR Code
-                              if (widget.receipt.qrData.isNotEmpty) ...[
+                              if (widget.receipt.qrData.isNotEmpty && widget.receipt.qrData != "FALSE") ...[
                                 Container(
                                   padding: EdgeInsets.all(14.w),
                                   decoration: BoxDecoration(
@@ -178,99 +178,109 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                                 ),
                                 SizedBox(height: 14.h),
                               ],
-                              // Receipt Info
-                              Container(
-                                padding: EdgeInsets.all(14.w),
-                                decoration: BoxDecoration(
-                                  color: context.isDarkMode
-                                      ? Colors.white.withOpacity(0.05)
-                                      : const Color(0xFFF8F8F8),
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  border: Border.all(
+                              // Receipt Info & Action Section
+                              if ((widget.receipt.qrData.isNotEmpty && widget.receipt.qrData != "FALSE") || 
+                                  (widget.receipt.id.isNotEmpty && widget.receipt.id != "FALSE") ||
+                                  (widget.receipt.lottery != null && widget.receipt.lottery!.isNotEmpty && widget.receipt.lottery != "FALSE")) ...[
+                                Container(
+                                  padding: EdgeInsets.all(14.w),
+                                  decoration: BoxDecoration(
                                     color: context.isDarkMode
-                                        ? Colors.white.withOpacity(0.1)
-                                        : Colors.black.withOpacity(0.08),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (widget.receipt.lottery != null)
-                                      _buildCopyableReceiptInfoRow(
-                                        context,
-                                        'СУГАЛААНЫ ДУГААР:',
-                                        widget.receipt.lottery!,
-                                      ),
-                                    _buildReceiptInfoRow(
-                                      context,
-                                      'ОГНОО:',
-                                      widget.receipt.formattedDate,
-                                    ),
-                                    _buildCopyableReceiptInfoRow(
-                                      context,
-                                      'ДДТД:',
-                                      widget.receipt.id.isNotEmpty
-                                          ? widget.receipt.id
-                                          : (widget.receipt.receiptId ?? ''),
-                                    ),
-                                    Divider(
+                                        ? Colors.white.withOpacity(0.05)
+                                        : const Color(0xFFF8F8F8),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
                                       color: context.isDarkMode
                                           ? Colors.white.withOpacity(0.1)
                                           : Colors.black.withOpacity(0.08),
-                                      height: 20.h,
+                                      width: 1,
                                     ),
-                                    _buildCopyableReceiptInfoRow(
-                                      context,
-                                      'НИЙТ ДҮН:',
-                                      widget.receipt.formattedAmount,
-                                      isBold: true,
-                                    ),
-                                    _buildReceiptInfoRow(
-                                      context,
-                                      'НӨАТ:',
-                                      '${widget.receipt.totalVAT.toStringAsFixed(2)}₮',
-                                    ),
-                                    if (widget.receipt.totalCityTax > 0)
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (widget.receipt.lottery != null && 
+                                          widget.receipt.lottery!.isNotEmpty && 
+                                          widget.receipt.lottery != "FALSE")
+                                        _buildCopyableReceiptInfoRow(
+                                          context,
+                                          'СУГАЛААНЫ ДУГААР:',
+                                          widget.receipt.lottery!,
+                                        ),
                                       _buildReceiptInfoRow(
                                         context,
-                                        'ХОТЫН ТАТВАР:',
-                                        '${widget.receipt.totalCityTax.toStringAsFixed(2)}₮',
+                                        'ОГНОО:',
+                                        widget.receipt.formattedDate,
                                       ),
-                                  ],
+                                      if ((widget.receipt.id.isNotEmpty && widget.receipt.id != "FALSE") || 
+                                          (widget.receipt.receiptId?.isNotEmpty ?? false))
+                                        _buildCopyableReceiptInfoRow(
+                                          context,
+                                          'ДДТД:',
+                                          widget.receipt.id.isNotEmpty && widget.receipt.id != "FALSE"
+                                              ? widget.receipt.id
+                                              : (widget.receipt.receiptId ?? ''),
+                                        ),
+                                      Divider(
+                                        color: context.isDarkMode
+                                            ? Colors.white.withOpacity(0.1)
+                                            : Colors.black.withOpacity(0.08),
+                                        height: 20.h,
+                                      ),
+                                      _buildReceiptInfoRow(
+                                        context,
+                                        'НИЙТ ДҮН:',
+                                        widget.receipt.formattedAmount,
+                                        isBold: true,
+                                      ),
+                                      _buildReceiptInfoRow(
+                                        context,
+                                        'НӨАТ:',
+                                        '${widget.receipt.totalVAT.toStringAsFixed(2)}₮',
+                                      ),
+                                      if (widget.receipt.totalCityTax > 0)
+                                        _buildReceiptInfoRow(
+                                          context,
+                                          'ХОТЫН ТАТВАР:',
+                                          '${widget.receipt.totalCityTax.toStringAsFixed(2)}₮',
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 16.h),
-                              // Share button instead of print
-                              SizedBox(
-                                width: double.infinity,
-                                height: 54.h,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    // Only copy lottery number as requested
-                                    final lottery = widget.receipt.lottery ?? '';
-                                    if (lottery.isNotEmpty) {
-                                      Clipboard.setData(ClipboardData(text: lottery));
-                                      _triggerCopied();
-                                    }
-                                  },
-                                  icon: Icon(Icons.copy_rounded, size: 20.sp),
-                                  label: Text(
-                                    'СУГАЛААНЫ ДУГААР ХУУЛАХ',
-                                    style: TextStyle(
-                                      fontSize: 11.sp, 
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.5,
+                                SizedBox(height: 16.h),
+                                // Copy button
+                                if (widget.receipt.lottery != null && 
+                                    widget.receipt.lottery!.isNotEmpty && 
+                                    widget.receipt.lottery != "FALSE")
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 54.h,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        final lottery = widget.receipt.lottery ?? '';
+                                        if (lottery.isNotEmpty) {
+                                          Clipboard.setData(ClipboardData(text: lottery));
+                                          _triggerCopied();
+                                        }
+                                      },
+                                      icon: Icon(Icons.copy_rounded, size: 20.sp),
+                                      label: Text(
+                                        'СУГАЛААНЫ ДУГААР ХУУЛАХ',
+                                        style: TextStyle(
+                                          fontSize: 11.sp, 
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.deepGreen,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+                                        elevation: 0,
+                                      ),
                                     ),
                                   ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.deepGreen,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-                                    elevation: 0,
-                                  ),
-                                ),
-                              ),
+                              ],
                               SizedBox(height: 24.h),
                             ],
                           ),

@@ -99,7 +99,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
   final Map<String, Map<String, dynamic>> _pendingPayments = {};
   final Map<String, bool> _isProcessingPayment = {};
   Map<String, dynamic>? _overallLatestRecognition;
-  String? _expandedCameraIP;
+  String? _expandedGateKey;
 
   bool _isSocketConnected = false;
   late final StreamSubscription _socketStatusSub;
@@ -660,7 +660,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
             separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final gate = site.gates[index];
-              return _buildGateItem(gate, site);
+              return _buildGateItem(gate, site, index);
             },
           ),
         ],
@@ -668,15 +668,15 @@ class _ParkEasePageState extends State<ParkEasePage> {
     );
   }
 
-  Widget _buildGateItem(ParkingGate gate, ParkingSite site) {
+  Widget _buildGateItem(ParkingGate gate, ParkingSite site, int index) {
     final primaryCamera = gate.cameras.isNotEmpty ? gate.cameras[0] : null;
+    final gateKey = '${site.id}_$index';
+    final isExpanded = _expandedGateKey == gateKey;
     final cameraIP = primaryCamera?.ip;
     final isOpening = cameraIP != null && (_openingGates[cameraIP] ?? false);
     
     final recognition = cameraIP != null ? _lastRecognitions[cameraIP] : null;
     final pendingPayment = cameraIP != null ? _pendingPayments[cameraIP] : null;
-
-    final isExpanded = cameraIP != null && _expandedCameraIP == cameraIP;
     final effectiveBarilgiinId = site.barilgiinId ?? site.id;
 
     return Column(
@@ -688,7 +688,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
               GestureDetector(
                 onTap: () {
                   if (cameraIP != null) {
-                    setState(() { _expandedCameraIP = isExpanded ? null : cameraIP; });
+                    setState(() { _expandedGateKey = isExpanded ? null : gateKey; });
                   }
                 },
                 child: Container(
@@ -741,7 +741,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
           ),
         ),
         if (pendingPayment != null && cameraIP != null) _buildPaymentCard(cameraIP, pendingPayment),
-        if (isExpanded && primaryCamera != null) _buildCameraStream(primaryCamera, recognition),
+        if (isExpanded && primaryCamera != null) _buildCameraStream(primaryCamera, recognition, effectiveBarilgiinId, gateKey),
       ],
     );
   }
@@ -795,7 +795,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
     );
   }
 
-  Widget _buildCameraStream(ParkingCamera camera, Map<String, dynamic>? recognition) {
+  Widget _buildCameraStream(ParkingCamera camera, Map<String, dynamic>? recognition, String barilgiinId, String gateKey) {
     return Container(
       width: double.infinity,
       height: 220.h,
@@ -819,20 +819,9 @@ class _ParkEasePageState extends State<ParkEasePage> {
 
             // rtsp://user:pass@ip:port/root
             final rtspUrl = 'rtsp://$user:$pass@$ip:$port/$root';
-            
-            // Find the site ID for this camera (needed for signaling room)
-            String barilgiinId = '';
-            for (var site in _sites) {
-              for (var gate in site.gates) {
-                if (gate.cameras.any((c) => c.ip == ip)) {
-                  // Prioritize barilgiinId over site.id for local worker registration
-                  barilgiinId = site.barilgiinId ?? site.id;
-                  break;
-                }
-              }
-            }
 
             return WebRTCPlayer(
+              key: ValueKey('player_$gateKey'),
               rtspUrl: rtspUrl,
               barilgiinId: barilgiinId,
             );

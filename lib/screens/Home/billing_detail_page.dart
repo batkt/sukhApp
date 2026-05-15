@@ -50,6 +50,40 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
   final Map<String, String> _billStatusTexts = {};
   final Map<String, Color> _billStatusColors = {};
 
+  String _resolveWalletPaymentState(Map<String, dynamic> walletData) {
+    final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
+    if (state == 'REFUNDED') return 'REFUNDED';
+    if (state == 'PAID' || state == 'PENDING') return state;
+
+    final hasSuccessfulTrx =
+        (walletData['paymentTransactions'] as List?)?.any((trx) {
+          final trxStatus = trx['trxStatus']?.toString().toUpperCase() ?? '';
+          return trxStatus == 'SUCCESS' || trx['trxStatusName']?.toString() == 'Амжилттай';
+        }) ??
+        false;
+
+    bool hasSuccessfulTrxInLines = false;
+    final lines = walletData['lines'] as List?;
+    if (lines != null) {
+      for (final line in lines) {
+        final lineTrx = line['billTransactions'] as List?;
+        if (lineTrx != null &&
+            lineTrx.any((trx) {
+              final trxStatus = trx['trxStatus']?.toString().toUpperCase() ?? '';
+              return trxStatus == 'SUCCESS' || trx['trxStatusName']?.toString() == 'Амжилттай';
+            })) {
+          hasSuccessfulTrxInLines = true;
+          break;
+        }
+      }
+    }
+
+    if (hasSuccessfulTrx || hasSuccessfulTrxInLines) {
+      return 'PAID';
+    }
+    return state;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -60,16 +94,77 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     Map<String, dynamic> data,
     String? billingId,
   ) {
+    List<Map<String, dynamic>> _collectBillsFrom(dynamic source) {
+      if (source is! Map) return <Map<String, dynamic>>[];
+      final candidates = [
+        source['newBills'],
+        source['bills'],
+        source['hiddenNewBills'],
+      ];
+      for (final candidate in candidates) {
+        if (candidate is List && candidate.isNotEmpty) {
+          return candidate
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+        }
+      }
+      return <Map<String, dynamic>>[];
+    }
+
+    bool _looksLikeBillRow(Map<String, dynamic> row) {
+      return row.containsKey('billId') ||
+          row.containsKey('billNo') ||
+          row.containsKey('billAmount') ||
+          row.containsKey('billTotalAmount') ||
+          row.containsKey('billPeriod') ||
+          row.containsKey('lineId');
+    }
+
+    List<Map<String, dynamic>> _deepFindBills(dynamic node) {
+      final results = <Map<String, dynamic>>[];
+      if (node is List) {
+        final maps = node.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+        if (maps.isNotEmpty && maps.every(_looksLikeBillRow)) {
+          return maps;
+        }
+        for (final item in node) {
+          final sub = _deepFindBills(item);
+          if (sub.isNotEmpty) return sub;
+        }
+      } else if (node is Map) {
+        final mapNode = Map<String, dynamic>.from(node);
+        final direct = _collectBillsFrom(mapNode);
+        if (direct.isNotEmpty) return direct;
+
+        // Also consider Wallet "lines" as bill rows.
+        final lines = mapNode['lines'];
+        if (lines is List) {
+          final lineMaps = lines.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+          if (lineMaps.isNotEmpty && lineMaps.every(_looksLikeBillRow)) {
+            return lineMaps;
+          }
+        }
+
+        for (final value in mapNode.values) {
+          final sub = _deepFindBills(value);
+          if (sub.isNotEmpty) return sub;
+        }
+      }
+      return results;
+    }
+
     if (billingId == null) {
       return {'bills': <Map<String, dynamic>>[], 'billingName': null};
     }
 
     // Path 1: Direct structure (Data is the billing object)
-    final directBills = data['newBills'] ?? data['bills'];
-    if (directBills is List && (data['billingId']?.toString() == billingId || data['billingId'] == null)) {
+    final directBills = _collectBillsFrom(data);
+    if (directBills.isNotEmpty &&
+        (data['billingId']?.toString() == billingId || data['billingId'] == null)) {
 
       return {
-        'bills': List<Map<String, dynamic>>.from(directBills),
+        'bills': directBills,
         'billingName': data['billingName'],
       };
     }
@@ -83,21 +178,21 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           orElse: () => rawData.isNotEmpty ? rawData[0] : null,
         );
         if (matchedItem is Map) {
-          final billsList = matchedItem['newBills'] ?? matchedItem['bills'];
-          if (billsList is List) {
+          final billsList = _collectBillsFrom(matchedItem);
+          if (billsList.isNotEmpty) {
 
             return {
-              'bills': List<Map<String, dynamic>>.from(billsList),
+              'bills': billsList,
               'billingName': matchedItem['billingName'],
             };
           }
         }
       } else if (rawData is Map) {
-        final billsList = rawData['newBills'] ?? rawData['bills'];
-        if (billsList is List) {
+        final billsList = _collectBillsFrom(rawData);
+        if (billsList.isNotEmpty) {
 
           return {
-            'bills': List<Map<String, dynamic>>.from(billsList),
+            'bills': billsList,
             'billingName': rawData['billingName'],
           };
         }
@@ -122,11 +217,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           orElse: () => itemList[0],
         );
         if (matchedItem is Map) {
-          final billsList = matchedItem['newBills'] ?? matchedItem['bills'];
-          if (billsList is List) {
+          final billsList = _collectBillsFrom(matchedItem);
+          if (billsList.isNotEmpty) {
 
             return {
-              'bills': List<Map<String, dynamic>>.from(billsList),
+              'bills': billsList,
               'billingName': matchedItem['billingName'],
             };
           }
@@ -134,6 +229,14 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       }
     }
 
+
+    final deepFallback = _deepFindBills(data);
+    if (deepFallback.isNotEmpty) {
+      return {
+        'bills': deepFallback,
+        'billingName': data['billingName'] ?? data['billerName'],
+      };
+    }
 
     return {'bills': <Map<String, dynamic>>[], 'billingName': null};
   }
@@ -375,6 +478,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
   }
 
   Future<void> _checkRecentWalletStatuses() async {
+    // Temporary override: do not auto-hide bills by wallet status until backend is fixed.
+    return;
     try {
       // Collect all billNos currently shown in detail view for quick lookup
       final Set<String> shownBillNos = {};
@@ -390,7 +495,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       final history = await ApiService.fetchWalletQpayList();
       if (history.isEmpty) return;
 
-      for (var payment in history.take(10)) {
+      final recentPayments = history.take(10).toList();
+      final Set<String> refundedBillKeys = {};
+
+      // Pass 1: gather refunded bill keys (absolute override)
+      for (final payment in recentPayments) {
         final walletPaymentId = payment['walletPaymentId']?.toString() ?? '';
         final zakhialgiinDugaar = payment['zakhialgiinDugaar']?.toString() ?? '';
         final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
@@ -401,28 +510,50 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           if (statusRes['success'] != true || statusRes['data'] == null) continue;
 
           final walletData = statusRes['data'];
-          final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
-
-          final hasSuccessfulTrx = (walletData['paymentTransactions'] as List?)?.any((trx) =>
-            (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-            (trx['trxStatusName']?.toString() == 'Амжилттай')
-          ) ?? false;
-
-          bool hasSuccessfulTrxInLines = false;
+          final state = _resolveWalletPaymentState(walletData);
           final lines = walletData['lines'] as List?;
-          if (lines != null) {
-            for (var line in lines) {
-              final lineTrx = line['billTransactions'] as List?;
-              if (lineTrx != null && lineTrx.any((trx) =>
-                (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                (trx['trxStatusName']?.toString() == 'Амжилттай'))) {
-                hasSuccessfulTrxInLines = true;
-                break;
-              }
+          if (state == 'REFUNDED' && lines != null) {
+            for (final line in lines) {
+              final lBillNo = line['billNo']?.toString();
+              final lBillId = line['billId']?.toString();
+              if (lBillNo != null && lBillNo.isNotEmpty) refundedBillKeys.add(lBillNo);
+              if (lBillId != null && lBillId.isNotEmpty) refundedBillKeys.add(lBillId);
             }
           }
+        } catch (e) {
 
-          if (state != 'PAID' && state != 'PENDING' && !hasSuccessfulTrx && !hasSuccessfulTrxInLines) continue;
+        }
+      }
+
+      // Pass 2: apply ONLY paid statuses unless refunded exists for same bill
+      for (final payment in recentPayments) {
+        final walletPaymentId = payment['walletPaymentId']?.toString() ?? '';
+        final zakhialgiinDugaar = payment['zakhialgiinDugaar']?.toString() ?? '';
+        final checkId = walletPaymentId.isNotEmpty ? walletPaymentId : zakhialgiinDugaar;
+        if (checkId.isEmpty) continue;
+
+        try {
+          final statusRes = await ApiService.walletQpayWalletCheck(walletPaymentId: checkId);
+          if (statusRes['success'] != true || statusRes['data'] == null) continue;
+
+          final walletData = statusRes['data'];
+          final state = _resolveWalletPaymentState(walletData);
+          final lines = walletData['lines'] as List?;
+
+          final isPaid = state == 'PAID';
+          final isPending = state == 'PENDING';
+          final isRefunded = state == 'REFUNDED';
+
+          if (!isPaid && !isPending && !isRefunded) continue;
+
+          final hasRefundedOverride = (lines ?? []).any((line) {
+            final lBillNo = line['billNo']?.toString() ?? '';
+            final lBillId = line['billId']?.toString() ?? '';
+            return refundedBillKeys.contains(lBillNo) || refundedBillKeys.contains(lBillId);
+          });
+
+          // If a bill was refunded, we treat any other status for that bill as invalid
+          if (hasRefundedOverride && !isRefunded) continue;
 
           // Extract billNos from lines — check if any match shown bills
           final Set<String> paymentBillNos = {};
@@ -440,21 +571,28 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
             shownBillNos.contains(no) || shownBillIds.contains(no));
           if (!hasMatch) continue;
 
-          // Mark matched bills as paid/pending — remove them from the view
           if (mounted) {
             setState(() {
-              _allBills.removeWhere((bill) {
-                final bNo = bill['billNo']?.toString() ?? '';
-                final bId = bill['billId']?.toString() ?? '';
-                final match = paymentBillNos.contains(bNo) || paymentBillNos.contains(bId);
-                if (match) {
-
+              if (isPaid) {
+                // Remove matched bills if PAID
+                _allBills.removeWhere((bill) {
+                  final bNo = bill['billNo']?.toString() ?? '';
+                  final bId = bill['billId']?.toString() ?? '';
+                  final match = paymentBillNos.contains(bNo) || paymentBillNos.contains(bId);
+                  return match;
+                });
+                // Also deselect them
+                for (var no in paymentBillNos) {
+                  _selectedBillIds.remove(no);
                 }
-                return match;
-              });
-              // Also deselect them
-              for (var no in paymentBillNos) {
-                _selectedBillIds.remove(no);
+              } else {
+                // Just update status for PENDING/REFUNDED
+                for (var no in paymentBillNos) {
+                  _billStatuses[no] = state;
+                  _billStatusTexts[no] = walletData['paymentStatusText']?.toString() ?? 
+                                       (isPending ? 'Хүлээгдэж байна' : 'Төлбөр буцаагдсан');
+                  _billStatusColors[no] = isPending ? Colors.orange : Colors.red;
+                }
               }
             });
           }
@@ -589,11 +727,11 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
 
       if (qpayResponse?['success'] == true) {
 
-        // Register these IDs as PENDING immediately to skip double-payment risks
-        for(var bid in selectedBillIds) {
-           _billStatuses[bid] = 'PENDING';
-           _billStatusTexts[bid] = 'Төлбөр хүлээгдэж байна';
-           _billStatusColors[bid] = Colors.orange;
+        // Register these IDs as PENDING immediately to prevent duplicate payment attempts.
+        for (var bid in selectedBillIds) {
+          _billStatuses[bid] = 'PENDING';
+          _billStatusTexts[bid] = 'Төлбөр хүлээгдэж байна';
+          _billStatusColors[bid] = Colors.orange;
         }
         
         final walletPaymentId = qpayResponse?['walletPaymentId']?.toString();
@@ -629,31 +767,15 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                 if ((responseSource == 'WALLET_API' || responseSource == 'WALLET_QPAY') && walletPaymentId != null) {
 
                   try {
-                    // Check the full wallet status including transactions
-                    final statusRes = await ApiService.walletQpayWalletCheck(
+                    // Use the new robust backend check which triggers settlement
+                    final isPaid = await ApiService.checkWalletQPayStatus(
                       walletPaymentId: walletPaymentId,
+                      baiguullagiinId: baiguullagiinId,
                     );
                     
-                    if (statusRes['success'] == true && statusRes['data'] != null) {
-                      final walletData = statusRes['data'];
-                      final state = walletData['paymentStatus']?.toString().toUpperCase();
-                      
-                      // Check for success transactions in paymentTransactions list
-                      final transactions = walletData['paymentTransactions'] as List?;
-                      bool hasSuccessfulTrx = false;
-                      if (transactions != null) {
-                        hasSuccessfulTrx = transactions.any((trx) => 
-                          (trx['trxStatus']?.toString().toUpperCase() == 'SUCCESS') ||
-                          (trx['trxStatusName']?.toString() == 'Амжилттай')
-                        );
-                      }
-
-                      if (state == 'PAID' || hasSuccessfulTrx) return true;
-                      if (state == 'PENDING') return null;
-                    }
-                    return false;
+                    if (isPaid) return true;
+                    return null; // Keep checking
                   } catch (e) {
-
                     return null;
                   }
                 } else if (source == 'OWN_ORG') {
@@ -758,6 +880,44 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
     }
   }
 
+  Future<void> _openSupportChat({String? billId, String? billNo, double? amount}) async {
+    final billingId = widget.billing['billingId']?.toString();
+    final billingName = widget.billing['billingName']?.toString() ?? 
+                        widget.billing['bairniiNer']?.toString() ?? 
+                        widget.billing['customerName']?.toString() ?? 
+                        widget.billing['ner']?.toString() ?? 
+                        'Төлбөр';
+    
+    // Use billId/billNo if provided, otherwise fallback to billingId
+    final objectId = billId ?? billingId;
+
+    if (objectId == null || objectId.isEmpty) {
+      showGlassSnackBar(
+        context,
+        message: 'Биллер ID олдсонгүй',
+        icon: Icons.error_outline,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+
+    try {
+      context.push('/support-chat', extra: {
+        'objectId': objectId,
+        'billingName': billingName,
+        'amount': amount ?? (widget.billing['uldegdel'] ?? 0.0).toDouble(),
+        'invoiceNo': billNo ?? billingId,
+        'isUnpaid': true,
+      });
+    } catch (e) {
+      showGlassSnackBar(
+        context,
+        message: 'Чат нээхэд алдаа гарлаа.',
+        icon: Icons.error_outline,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryColor = context.isDarkMode
@@ -790,12 +950,20 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
         title: 'Төлбөрийн дэлгэрэнгүй',
         onBackPressed: () => Navigator.of(context).pop(),
         actions: [
+          
           IconButton(
             onPressed: () {
-              final billingId = widget.billing['billingId']?.toString() ?? '';
-              final billingName =
-                  widget.billing['billingName']?.toString() ??
-                  'Хэрэглээний төлбөр';
+              final source = widget.billing['source']?.toString();
+              final billingId = (source == 'OWN_ORG')
+                  ? (widget.billing['customerCode'] ??
+                          widget.billing['gereeniiDugaar'] ??
+                          widget.billing['billingId'])
+                      .toString()
+                  : widget.billing['billingId']?.toString() ?? '';
+              final billingName = widget.billing['billingName']?.toString() ?? 
+                                  widget.billing['bairniiNer']?.toString() ?? 
+                                  widget.billing['customerName']?.toString() ?? 
+                                  'Хэрэглээний төлбөр';
 
               if (billingId.isNotEmpty) {
                 Navigator.push(
@@ -804,7 +972,8 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                     builder: (_) => PaymentHistoryPage(
                       billingId: billingId,
                       billingName: billingName,
-                      source: widget.billing['source']?.toString(),
+                      source: source,
+                      baiguullagiinId: widget.billing['baiguullagiinId']?.toString(),
                       customerName:
                           widget.billing['customerName']?.toString() ??
                           widget.billing['ner']?.toString() ??
@@ -1136,20 +1305,19 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                               child: GestureDetector(
                                 onTap: () {
                                   if (id == null) return;
-                                  
-                                  // Prevent selecting already paid or pending bills
+
                                   if (_billStatuses[id] == 'PAID' || _billStatuses[id] == 'PENDING') {
                                     showGlassSnackBar(
                                       context,
-                                      message: _billStatuses[id] == 'PAID' 
-                                        ? 'Энэ нэхэмжлэх аль хэдийн төлөгдсөн байна.' 
-                                        : 'Энэ нэхэмжлэх төлөгдөж (хүлээгдэж) байна.',
+                                      message: _billStatuses[id] == 'PAID'
+                                          ? 'Энэ нэхэмжлэх аль хэдийн төлөгдсөн байна.'
+                                          : 'Энэ нэхэмжлэх төлөгдөж (хүлээгдэж) байна.',
                                       icon: Icons.info_outline,
                                       iconColor: _billStatusColors[id] ?? Colors.orange,
                                     );
                                     return;
                                   }
-
+                                  
                                   setState(() {
                                     if (isSelected) {
                                       _selectedBillIds.remove(id);
@@ -1285,6 +1453,33 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                                 ),
                                               ),
                                             ],
+                                            if (bill['isLocallyPaid'] == true) ...[
+                                              SizedBox(height: 4.h),
+                                              Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 6.w,
+                                                  vertical: 2.h,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4.r),
+                                                  border: Border.all(
+                                                    color: Colors.green
+                                                        .withOpacity(0.3),
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  'ТӨЛӨГДСӨН',
+                                                  style: TextStyle(
+                                                    color: Colors.green,
+                                                    fontSize: 8.sp,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       ),
@@ -1303,21 +1498,21 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                               fontSize: 14.sp,
                                             ),
                                           ),
-                                          Text(
-                                            'Алданги: ${widget.formatNumberWithComma(billLateFee)}',
-                                            style: TextStyle(
-                                              color: AppColors.error,
-                                              fontSize: 10.sp,
+                                            Text(
+                                              'Алданги: ${widget.formatNumberWithComma(billLateFee)}',
+                                              style: TextStyle(
+                                                color: AppColors.error,
+                                                fontSize: 10.sp,
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }, childCount: _allBills.length),
+                              );
+                            }, childCount: _allBills.length),
                         ),
                       ),
                       SliverToBoxAdapter(

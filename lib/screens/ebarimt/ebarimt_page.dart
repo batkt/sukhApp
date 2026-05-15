@@ -299,7 +299,8 @@ class _EbarimtPageState extends State<EbarimtPage> {
             final paymentId = (item['paymentId'] ?? item['walletPaymentId'])?.toString();
             if (paymentId == null) return null;
             
-            // Otherwise check status to get vatInformation
+            // Otherwise check status to get vatInformation (triggers sync if needed)
+            await ApiService.checkWalletQPayStatus(walletPaymentId: paymentId);
             final statusRes = await ApiService.walletQpayWalletCheck(walletPaymentId: paymentId);
             
             if (statusRes['success'] == true && statusRes['data'] != null) {

@@ -485,42 +485,25 @@ class _PaymentModalState extends State<PaymentModal> {
                 invoiceNumber: _senderInvoiceNoForSocket,
                 amount: totalAmount,
                 onCheckPaymentAsync: () async {
-
-
-                  // Refresh invoice list first (caller handles it)
-                  await widget.onPaymentTap();
-
-                  // Now check whether selected invoices became paid
-                  if (_gereeniiDugaarForCheck == null ||
-                      _gereeniiDugaarForCheck!.isEmpty ||
-                      _selectedInvoiceIdsForCheck.isEmpty) {
-                    return null;
+                  final wId = finalResponse?['walletPaymentId']?.toString();
+                  if (wId != null && wId.isNotEmpty) {
+                    // New high-fidelity check via backend poll
+                    return await ApiService.checkWalletQPayStatus(walletPaymentId: wId);
                   }
 
+                  // Fallback: Legacy check (History list)
+                  await widget.onPaymentTap();
+                  if (_gereeniiDugaarForCheck == null || _gereeniiDugaarForCheck!.isEmpty || _selectedInvoiceIdsForCheck.isEmpty) {
+                    return null;
+                  }
                   try {
                     final resp = await ApiService.fetchNekhemjlekhiinTuukh(
                       gereeniiDugaar: _gereeniiDugaarForCheck!,
-                      khuudasniiKhemjee: 1000,
+                      khuudasniiKhemjee: 10,
                     );
-
-                    final list = resp['jagsaalt'];
-                    if (list is! List) return null;
-
-                    final byId = <String, Map<String, dynamic>>{};
-                    for (final item in list) {
-                      if (item is Map<String, dynamic>) {
-                        final id = item['_id']?.toString();
-                        if (id != null && id.isNotEmpty) byId[id] = item;
-                      }
-                    }
-
-                    final allPaid = _selectedInvoiceIdsForCheck.every((id) {
-                      final item = byId[id];
-                      final status = item?['tuluv']?.toString();
-                      return status == 'Төлсөн';
-                    });
-
-                    return allPaid;
+                    final list = resp['jagsaalt'] as List<dynamic>? ?? [];
+                    final byId = {for (var item in list) item['_id']?.toString(): item};
+                    return _selectedInvoiceIdsForCheck.every((id) => byId[id]?['tuluv'] == 'Төлсөн');
                   } catch (_) {
                     return null;
                   }

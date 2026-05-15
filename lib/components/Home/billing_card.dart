@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/format_util.dart';
 
 class BillingCard extends StatefulWidget {
   final Map<String, dynamic> billing;
@@ -143,16 +144,8 @@ class _BillingCardState extends State<BillingCard>
     // DEBUG LOG
 
 
-    // Fallback for residential bills that haven't been merged yet
-    if (cardBalance == 0 &&
-        widget.totalBalance > 0 &&
-        (widget.billing['isLocalData'] == true ||
-            billingName.toLowerCase().contains('орон сууц') ||
-            billingName.toLowerCase().contains('сөх'))) {
-
-      cardBalance = widget.totalBalance;
-      cardAldangi = widget.totalAldangi ?? 0.0;
-    }
+    // Removed fallback that used widget.totalBalance for individual cards
+    // to prevent cross-apartment balance leakage.
 
     final shouldShowBalance =
         cardBalance != 0 ||
@@ -160,10 +153,11 @@ class _BillingCardState extends State<BillingCard>
         widget.billing['isLocalData'] == true;
     final hasActions = widget.onEditTap != null || widget.onDeleteTap != null;
 
-    // FIX: Show the bottom pills row if there are new bills OR a non-zero balance
+    // FIX: Show the bottom pills row if there are new bills OR a balance (even 0)
     final bool hasBalance = cardBalance != 0;
     final bool isCredit = cardBalance < 0;
-    final showPillsRow = (hasNewBills && newBillsCount > 0) || hasBalance;
+    final bool isPaid = cardBalance == 0;
+    final showPillsRow = (hasNewBills && newBillsCount > 0) || hasBalance || isPaid;
 
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
@@ -316,6 +310,13 @@ class _BillingCardState extends State<BillingCard>
                                           : AppColors.error,
                                       isPrimary: false,
                                     ),
+                                  if (isPaid && !(hasNewBills && newBillsCount > 0))
+                                    _buildStatusPill(
+                                      icon: Icons.check_circle_rounded,
+                                      label: 'Төлөгдсөн',
+                                      color: Colors.green[600]!,
+                                      isPrimary: false,
+                                    ),
                                 ],
                               ),
                             ],
@@ -439,8 +440,6 @@ class _BillingCardState extends State<BillingCard>
   }
 
   String _formatNumber(double number) {
-    String str = number.toStringAsFixed(0);
-    final RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
-    return str.replaceAllMapped(reg, (Match match) => '${match[1]},');
+    return formatNumber(number);
   }
 }

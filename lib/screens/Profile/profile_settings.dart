@@ -11,6 +11,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/screens/settings/app_icon_selection_sheet.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:provider/provider.dart';
@@ -2863,10 +2864,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
   }
 
   Widget _buildProfileHero() {
-    String displayName = _nameController.text.isNotEmpty
+    String rawName = _nameController.text.isNotEmpty
         ? _nameController.text
         : 'Хэрэглэгч';
-    String initialSource = displayName;
+    String initialSource = rawName;
 
     // Try to get both initials from userData if possible
     if (_userData != null) {
@@ -2878,6 +2879,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     }
 
     final initials = _getInitials(initialSource);
+    final displayName = formatDisplayName(rawName);
 
     return Container(
       width: double.infinity,

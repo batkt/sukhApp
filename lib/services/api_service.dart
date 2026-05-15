@@ -860,7 +860,7 @@ class ApiService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getWalletBillingPayments({
+  static Future<Map<String, dynamic>> getWalletBillingPayments({
     required String billingId,
   }) async {
     try {
@@ -874,11 +874,14 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['data'] != null) {
-          if (data['data'] is List) {
-            return List<Map<String, dynamic>>.from(data['data']);
+          if (data['data'] is Map) {
+            return Map<String, dynamic>.from(data['data']);
+          } else if (data['data'] is List) {
+            // Edge case: if it returns a list directly, wrap it in a map
+            return {'payments': data['data']};
           }
         }
-        return [];
+        return {};
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
@@ -2626,7 +2629,7 @@ class ApiService {
       if (regResult['success'] == true && regResult['userId'] != null) {
 
         // Refresh profile to pick up the new walletUserId
-        getUserProfile(forceRefresh: true).catchError((_) => <String, dynamic>{});
+        getUserProfile(forceRefresh: true).catchError((_) => null);
       }
     } catch (e) {
 
@@ -3064,8 +3067,40 @@ class ApiService {
         
         // Also keep at root for legacy reasons
         invoice['guilgeenuud'] = linked;
+
+        // KEY FIX 1: Prioritize item dates for display. 
+        // If the invoice has no date or its date is newer than the charges it contains,
+        // we use the date of the charges to represent the correct billing period.
+        if (linked.isNotEmpty) {
+          // Sort linked items by date to find the most representative one (usually they share the same month)
+          final sortedItems = List<Map<String, dynamic>>.from(linked);
+          sortedItems.sort((a, b) => (a['ognoo']?.toString() ?? '').compareTo(b['ognoo']?.toString() ?? ''));
+          
+          final oldestItemDate = sortedItems.first['ognoo']?.toString();
+          if (oldestItemDate != null && oldestItemDate.isNotEmpty) {
+            final invDate = invoice['nekhemjlekhiinOgnoo']?.toString() ?? invoice['ognoo']?.toString() ?? '';
+            
+            // If invoice has no date, or is significantly newer (different month/year) than its items,
+            // override the invoice date with the item date for correct 'billPeriod' display.
+            bool shouldOverride = invDate.isEmpty;
+            if (!shouldOverride) {
+               try {
+                 final dInv = DateTime.parse(invDate);
+                 final dItem = DateTime.parse(oldestItemDate);
+                 if (dInv.year != dItem.year || dInv.month != dItem.month) {
+                   shouldOverride = true;
+                 }
+               } catch (_) {}
+            }
+
+            if (shouldOverride) {
+              invoice['ognoo'] = oldestItemDate;
+              invoice['nekhemjlekhiinOgnoo'] = oldestItemDate;
+            }
+          }
+        }
         
-        // KEY FIX: Update the invoice uldegdel from the authoritative ledger summary
+        // KEY FIX 2: Update the invoice uldegdel from the authoritative ledger summary
         final summaryMatch = nekhemjlekhuudSummary.firstWhere(
           (s) => s['nekhemjlekhId'] == invoiceId,
           orElse: () => null,
@@ -3097,8 +3132,9 @@ class ApiService {
 
       for (var item in standaloneItems) {
         // Create a synthetic invoice for standalone items
+        final itemDate = item['ognoo']?.toString() ?? DateTime.now().toIso8601String();
         invoices.add({
-          '_id': item['_id']?.toString() ?? 'standalone-${item['ognoo']}',
+          '_id': item['_id']?.toString() ?? 'standalone-$itemDate',
           'baiguullagiinNer': 'Авлага / Гүйцэтгэл',
           'ovog': '',
           'ner': '',
@@ -3106,9 +3142,8 @@ class ApiService {
           'khayag': '',
           'toot': '',
           'gereeniiDugaar': gereeniiDugaar,
-          'ognoo': item['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
-          'nekhemjlekhiinOgnoo':
-              item['ognoo']?.toString() ?? DateTime.now().toIso8601String(),
+          'ognoo': itemDate,
+          'nekhemjlekhiinOgnoo': itemDate,
           'niitTulbur': (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
               (item['tulsunDun'] ?? 0.0).toDouble(),
           'uldegdel': (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
@@ -3117,7 +3152,6 @@ class ApiService {
           'guilgeenuud': [item],
           'billingId': gereeniiDugaar,
           'isStandaloneAvlaga': true,
-
         });
       }
 
@@ -3784,6 +3818,38 @@ class ApiService {
 
       if (e is Exception) rethrow;
       throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+    }
+  }
+  
+  /// Check Wallet QPay status (Poll)
+  /// Endpoint: GET /api/walletQpay/check/:baiguullagiinId/:walletPaymentId
+  static Future<bool> checkWalletQPayStatus({
+    required String walletPaymentId,
+    String? baiguullagiinId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final effectiveOrgId = baiguullagiinId ?? await StorageService.getBaiguullagiinId();
+      
+      if (effectiveOrgId == null) return false;
+      
+      final endpoint = '$baseUrl/walletQpay/check/$effectiveOrgId/$walletPaymentId';
+      
+      print('🔍 [API] Checking Wallet QPay Status: $walletPaymentId for Org: $effectiveOrgId');
+      
+      final response = await http.get(Uri.parse(endpoint), headers: headers);
+      await _checkTokenExpiry(response);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final status = data['status']?.toString();
+        print('📊 [API] QPay Status Result: $status');
+        return status == 'PAID';
+      }
+      return false;
+    } catch (e) {
+      print('❌ [API] checkWalletQPayStatus Error: $e');
+      return false;
     }
   }
 
@@ -5137,18 +5203,28 @@ class ApiService {
 
   // Support Chat Services
   static Future<Map<String, dynamic>> createWalletChat({
-    required String paymentId,
+    String? paymentId,
+    String? objectId,
     required String reason,
+    String? subject,
+    String? description,
   }) async {
     try {
       final headers = await getWalletApiHeaders();
+      final Map<String, dynamic> body = {
+        'reason': reason,
+        if (subject != null) 'Subject': subject,
+        if (description != null) 'description': description,
+      };
+      if (paymentId != null && paymentId.isNotEmpty) body['paymentId'] = paymentId;
+      if (objectId != null && objectId.isNotEmpty) body['objectId'] = objectId;
+      
+      print('📤 [API] POST /wallet/chat | Body: ${json.encode(body)}');
+
       final response = await http.post(
         Uri.parse('$baseUrl/wallet/chat'),
         headers: headers,
-        body: json.encode({
-          'paymentId': paymentId,
-          'reason': reason,
-        }),
+        body: json.encode(body),
       );
       await _checkTokenExpiry(response);
 
@@ -5222,7 +5298,8 @@ class ApiService {
   }) async {
     try {
       final headers = await getWalletApiHeaders();
-      final response = await http.put(
+      // Using POST as per requirement
+      final response = await http.post(
         Uri.parse('$baseUrl/wallet/chat/$chatId'),
         headers: headers,
         body: json.encode({'message': message}),
@@ -5242,6 +5319,30 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Мессеж илгээхэд алдаа гарлаа: $e');
+    }
+  }
+
+  static Future<List<dynamic>> getWalletNotifications() async {
+    try {
+      final headers = await getWalletApiHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet/notifications'),
+        headers: headers,
+      );
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return List<dynamic>.from(data['data']);
+        }
+        return [];
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print('❌ [API] getWalletNotifications Error: $e');
+      return [];
     }
   }
 

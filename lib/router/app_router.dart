@@ -379,6 +379,8 @@ final GoRouter appRouter = GoRouter(
             billingName: extra?['billingName'] ?? 'Хэрэглээний төлбөр',
             customerName: extra?['customerName'] ?? '',
             customerAddress: extra?['customerAddress'] ?? '',
+            source: extra?['source'],
+            baiguullagiinId: extra?['baiguullagiinId'],
           ),
         );
       },
