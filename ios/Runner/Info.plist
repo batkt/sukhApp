@@ -71,6 +71,8 @@
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Дуу мессеж бичих боломжтой болгохын тулд микрофон ашиглана</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Аппликейшн дотор зураг авах болон илгээхийн тулд камер ашиглана</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Нэвтрэхийн тулд Face ID ашиглана уу</string>
 	<key>CFBundleIcons</key>
