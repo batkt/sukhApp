@@ -34,6 +34,7 @@ import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'support_chat_page.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -1837,6 +1838,21 @@ class _BookingScreenState extends State<NuurKhuudas>
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SupportChatPage(extra: const {}),
+            ),
+          );
+        },
+        backgroundColor: AppColors.deepGreen,
+        foregroundColor: Colors.white,
+        elevation: 6,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.support_agent_rounded, size: 28),
       ),
     );
   }
