@@ -213,19 +213,8 @@ class _CameraPageState extends State<CameraPage> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 24.h),
-                  ElevatedButton.icon(
-                    onPressed: _load,
-                    icon: Icon(Icons.refresh_rounded, size: 18.sp),
-                    label: Text('Дахин оролдох', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 14.h),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-                      elevation: 0,
-                    ),
-                  ),
+                 
+                 
                 ],
               ),
             ),
