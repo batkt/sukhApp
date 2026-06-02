@@ -15,6 +15,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:sukh_app/utils/restore_app_icon.dart';
 import 'package:provider/provider.dart';
+import 'package:sukh_app/utils/responsive_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -139,43 +140,43 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         onBackground: AppColors.lightTextPrimary,
         outline: AppColors.lightInputGray,
       ),
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         bodyMedium: TextStyle(
           fontWeight: FontWeight.w400,
           color: AppColors.lightTextPrimary,
-          fontSize: 24, // Increased from 18 for better readability
+          fontSize: 16,
         ),
         bodyLarge: TextStyle(
           color: AppColors.lightTextPrimary,
-          fontSize: 26, // Increased from 20
+          fontSize: 18,
           fontWeight: FontWeight.w400,
         ),
         bodySmall: TextStyle(
           color: AppColors.lightTextSecondary,
-          fontSize: 20,
-        ), // Increased from 16
+          fontSize: 14,
+        ),
         titleLarge: TextStyle(
           color: AppColors.lightTextPrimary,
-          fontSize: 36, // Increased from 28
+          fontSize: 26,
           fontWeight: FontWeight.w600,
         ),
         titleMedium: TextStyle(
           color: AppColors.lightTextPrimary,
-          fontSize: 28, // Increased from 22
+          fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
         titleSmall: TextStyle(
           color: AppColors.lightTextSecondary,
-          fontSize: 24, // Increased from 18
+          fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
         labelLarge: TextStyle(
           color: AppColors.lightTextPrimary,
-          fontSize: 24, // Increased from 18
+          fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
       ),
-      iconTheme: IconThemeData(color: AppColors.deepGreen, size: 24),
+      iconTheme: const IconThemeData(color: AppColors.deepGreen, size: 24),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent, // Transparent to show gradient
         foregroundColor: AppColors.getDeepGreen(false), // false = light mode
@@ -184,7 +185,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         centerTitle: false,
         titleTextStyle: TextStyle(
           color: AppColors.getDeepGreen(false), // false = light mode
-          fontSize: 26, // Increased from 20 for better readability
+          fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -194,35 +195,35 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.lightBorderColor, width: 1),
+          side: const BorderSide(color: AppColors.lightBorderColor, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.lightSurface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
+          horizontal: 16,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.lightInputGray),
+          borderSide: const BorderSide(color: AppColors.lightInputGray),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.lightInputGray),
+          borderSide: const BorderSide(color: AppColors.lightInputGray),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.deepGreen, width: 2),
+          borderSide: const BorderSide(color: AppColors.deepGreen, width: 2),
         ),
-        labelStyle: TextStyle(
+        labelStyle: const TextStyle(
           color: AppColors.lightTextSecondary,
-          fontSize: 20, // Increased from 16 for better readability
+          fontSize: 14,
         ),
-        hintStyle: TextStyle(
+        hintStyle: const TextStyle(
           color: AppColors.lightTextSecondary,
-          fontSize: 20, // Increased from 16
+          fontSize: 14,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -230,11 +231,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           backgroundColor: AppColors.deepGreen,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: const TextStyle(
-            fontSize: 24,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
-          ), // Increased from 18
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -250,7 +251,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       primaryColor: AppColors.deepGreen,
       scaffoldBackgroundColor: AppColors.darkBackground,
       useMaterial3: true, // Modern Material 3 design
-      colorScheme: ColorScheme.dark(
+      colorScheme: const ColorScheme.dark(
         primary: AppColors.deepGreen,
         secondary: AppColors.deepGreenAccent,
         surface: AppColors.darkSurface,
@@ -261,40 +262,40 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         onBackground: AppColors.darkTextPrimary,
         outline: AppColors.darkInputGray,
       ),
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         bodyMedium: TextStyle(
           fontWeight: FontWeight.w400,
           color: AppColors.darkTextPrimary,
-          fontSize: 18,
+          fontSize: 16,
         ),
         bodyLarge: TextStyle(
           color: AppColors.darkTextPrimary,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w400,
         ),
-        bodySmall: TextStyle(color: AppColors.darkTextSecondary, fontSize: 16),
+        bodySmall: TextStyle(color: AppColors.darkTextSecondary, fontSize: 14),
         titleLarge: TextStyle(
           color: AppColors.darkTextPrimary,
-          fontSize: 28,
+          fontSize: 26,
           fontWeight: FontWeight.w600,
         ),
         titleMedium: TextStyle(
           color: AppColors.darkTextPrimary,
-          fontSize: 22,
+          fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
         titleSmall: TextStyle(
           color: AppColors.darkTextSecondary,
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
         labelLarge: TextStyle(
           color: AppColors.darkTextPrimary,
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
       ),
-      iconTheme: IconThemeData(color: AppColors.darkTextPrimary, size: 24),
+      iconTheme: const IconThemeData(color: AppColors.darkTextPrimary, size: 24),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.darkBackground,
         foregroundColor: AppColors.getDeepGreen(true), // true = dark mode
@@ -303,7 +304,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         centerTitle: false,
         titleTextStyle: TextStyle(
           color: AppColors.getDeepGreen(true), // true = dark mode
-          fontSize: 26, // Increased from 20 for better readability
+          fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -313,35 +314,35 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: AppColors.darkBorderColor, width: 1),
+          side: const BorderSide(color: AppColors.darkBorderColor, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkSurface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
+          horizontal: 16,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.darkInputGray),
+          borderSide: const BorderSide(color: AppColors.darkInputGray),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.darkInputGray),
+          borderSide: const BorderSide(color: AppColors.darkInputGray),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.deepGreen, width: 2),
+          borderSide: const BorderSide(color: AppColors.deepGreen, width: 2),
         ),
-        labelStyle: TextStyle(
+        labelStyle: const TextStyle(
           color: AppColors.darkTextSecondary,
-          fontSize: 20, // Increased from 16 for better readability
+          fontSize: 14,
         ),
-        hintStyle: TextStyle(
+        hintStyle: const TextStyle(
           color: AppColors.darkTextSecondary,
-          fontSize: 20, // Increased from 16
+          fontSize: 14,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -349,11 +350,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           backgroundColor: AppColors.deepGreen,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: const TextStyle(
-            fontSize: 24,
+            fontSize: 16,
             fontWeight: FontWeight.w600,
-          ), // Increased from 18
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -369,8 +370,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       value: _themeService,
       child: Consumer<ThemeService>(
         builder: (context, themeService, _) {
+          final mediaQuery = MediaQuery.of(context);
+          final isTablet = mediaQuery.size.width >= 600;
+          final designSize = isTablet
+              ? const Size(768, 1024)
+              : const Size(375, 812);
+
           return ScreenUtilInit(
-            designSize: const Size(375, 812),
+            designSize: designSize,
             minTextAdapt: true,
             splitScreenMode: true,
             builder: (context, child) {
@@ -417,8 +424,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     darkTheme: _buildDarkTheme(),
                     themeMode: themeService.themeMode,
                     builder: (context, child) {
-                      Widget content = ShakeHintOverlay(
-                        child: child ?? const SizedBox.shrink(),
+                      Widget content = child ?? const SizedBox.shrink();
+
+                      // Constrain and center layouts on tablet/iPad
+                      if (ResponsiveHelper.isTablet(context)) {
+                        content = Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 650, // Standard premium width for tablet devices
+                            ),
+                            child: content,
+                          ),
+                        );
+                      }
+
+                      content = ShakeHintOverlay(
+                        child: content,
                       );
                       if (_isDecember()) {
                         content = SnowEffect(child: content);
@@ -426,7 +447,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       return content;
                     },
                   ),
-
                 ),
               );
             },

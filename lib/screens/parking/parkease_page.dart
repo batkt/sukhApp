@@ -421,7 +421,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
       backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
       appBar: buildStandardAppBar(
         context,
-        title: 'ParkEase',
+        title: 'Зогсоол',
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -867,6 +867,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
               key: ValueKey('player_$gateKey'),
               rtspUrl: rtspUrl,
               barilgiinId: barilgiinId,
+              autoStart: true,
             );
           },
         ),

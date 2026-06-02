@@ -88,6 +88,7 @@ List<CameraConfig> _defaultCameras(String nvrIp) => List.generate(16, (i) {
         username: 'admin',
         password: 'Admin123',
         root: 'Streaming/Channels/${ch}02',
+        enabled: true, // Enable all cameras by default
       );
     });
 
@@ -110,6 +111,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _loading = true;
   int? _fullscreenIndex; // index in enabled list
   String? _errorMessage;
+  int _currentPage = 0;
 
   @override
   void initState() {
@@ -144,7 +146,10 @@ class _CameraPageState extends State<CameraPage> {
     if (saved != null) {
       try {
         final list = jsonDecode(saved) as List<dynamic>;
-        cameras = list.map((e) => CameraConfig.fromJson(e as Map<String, dynamic>)).toList();
+        cameras = list.map((e) {
+          final cfg = CameraConfig.fromJson(e as Map<String, dynamic>);
+          return cfg.copyWith(enabled: true); // Force enable all cameras as requested
+        }).toList();
         // Migrate: ensure always 16 entries
         if (cameras.length != 16) cameras = _defaultCameras(nvrIp);
       } catch (_) {
@@ -325,21 +330,125 @@ class _CameraPageState extends State<CameraPage> {
                       ),
                     ),
                   )
-                : GridView.builder(
-                    padding: EdgeInsets.all(6.w),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 16 / 9,
-                      crossAxisSpacing: 4.w,
-                      mainAxisSpacing: 4.h,
-                    ),
-                    itemCount: _enabled.length,
-                    itemBuilder: (ctx, i) => _CameraCard(
-                      camera: _enabled[i],
-                      barilgiinId: _barilgiinId,
-                      onFullscreen: () => setState(() => _fullscreenIndex = i),
-                    ),
+                : Builder(
+                    builder: (context) {
+                      int totalPages = (_enabled.length / 6).ceil();
+                      if (totalPages == 0) totalPages = 1;
+                      if (_currentPage >= totalPages) {
+                        _currentPage = totalPages - 1;
+                      }
+                      if (_currentPage < 0) {
+                        _currentPage = 0;
+                      }
+
+                      final startIndex = _currentPage * 6;
+                      final endIndex = (startIndex + 6) < _enabled.length ? (startIndex + 6) : _enabled.length;
+                      final pageCameras = _enabled.sublist(startIndex, endIndex);
+
+                      return Column(
+                        children: [
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, gridConstraints) {
+                                final gridHeight = gridConstraints.maxHeight;
+                                final gridWidth = gridConstraints.maxWidth;
+                                
+                                const rowsCount = 3;
+                                final spacingH = 4.h;
+                                final paddingH = 12.h; // top + bottom padding of GridView
+                                final availableHeight = gridHeight - paddingH - ((rowsCount - 1) * spacingH);
+                                
+                                final cardHeight = availableHeight / rowsCount;
+                                final cardWidth = (gridWidth - 4.w) / 2;
+                                final childAspectRatio = cardWidth / cardHeight;
+
+                                return GridView.builder(
+                                  physics: const NeverScrollableScrollPhysics(), // No need to scroll since they fit exactly
+                                  cacheExtent: 0.0, // Strictly render only visible cards to optimize memory and data usage
+                                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 6.h),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    childAspectRatio: childAspectRatio,
+                                    crossAxisSpacing: 4.w,
+                                    mainAxisSpacing: spacingH,
+                                  ),
+                                  itemCount: pageCameras.length,
+                                  itemBuilder: (ctx, i) {
+                                    final absoluteIndex = startIndex + i;
+                                    return _CameraCard(
+                                      camera: pageCameras[i],
+                                      barilgiinId: _barilgiinId,
+                                      delay: Duration(milliseconds: i * 300), // Stagger WebRTC signaling handshakes to avoid worker timeouts
+                                      onFullscreen: () => setState(() => _fullscreenIndex = absoluteIndex),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                          _buildPagination(totalPages),
+                        ],
+                      );
+                    },
                   ),
+      ),
+    );
+  }
+
+  Widget _buildPagination(int totalPages) {
+    if (totalPages <= 1) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.black26 : Colors.black.withOpacity(0.03),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.white10 : Colors.black12,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: Icon(Icons.chevron_left_rounded, size: 24.sp),
+            color: textColor,
+            disabledColor: isDark ? Colors.white24 : Colors.black26,
+            onPressed: _currentPage > 0
+                ? () => setState(() => _currentPage--)
+                : null,
+            style: IconButton.styleFrom(
+              backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            ),
+          ),
+          Text(
+            '${_currentPage + 1} / $totalPages',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.chevron_right_rounded, size: 24.sp),
+            color: textColor,
+            disabledColor: isDark ? Colors.white24 : Colors.black26,
+            onPressed: _currentPage < totalPages - 1
+                ? () => setState(() => _currentPage++)
+                : null,
+            style: IconButton.styleFrom(
+              backgroundColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -372,11 +481,13 @@ class _CameraCard extends StatelessWidget {
   final CameraConfig camera;
   final String barilgiinId;
   final VoidCallback onFullscreen;
+  final Duration? delay;
 
   const _CameraCard({
     required this.camera,
     required this.barilgiinId,
     required this.onFullscreen,
+    this.delay,
   });
 
   @override
@@ -395,6 +506,8 @@ class _CameraCard extends StatelessWidget {
               key: ValueKey('cam_${camera.id}'),
               rtspUrl: camera.rtspUrl,
               barilgiinId: barilgiinId,
+              autoStart: true,
+              delay: delay,
             ),
             // Name label
             Positioned(
@@ -451,14 +564,31 @@ class _FullscreenView extends StatefulWidget {
 }
 
 class _FullscreenViewState extends State<_FullscreenView> {
+  bool _isLandscape = false;
+
   @override
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
     ]);
+  }
+
+  void _toggleRotation() {
+    setState(() {
+      _isLandscape = !_isLandscape;
+      if (_isLandscape) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      } else {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+        ]);
+      }
+    });
   }
 
   @override
@@ -478,6 +608,7 @@ class _FullscreenViewState extends State<_FullscreenView> {
             key: ValueKey('fs_${widget.camera.id}'),
             rtspUrl: widget.camera.rtspUrl,
             barilgiinId: widget.barilgiinId,
+            autoStart: true,
           ),
           // Top bar
           Positioned(
@@ -506,6 +637,15 @@ class _FullscreenViewState extends State<_FullscreenView> {
                       color: Colors.white,
                       fontSize: 14.sp,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _toggleRotation,
+                    child: Icon(
+                      Icons.screen_rotation_rounded,
+                      color: Colors.white,
+                      size: 24.sp,
                     ),
                   ),
                 ],

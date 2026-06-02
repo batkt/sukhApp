@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
@@ -9,11 +11,15 @@ import 'package:sukh_app/constants/constants.dart';
 class WebRTCPlayer extends StatefulWidget {
   final String rtspUrl;
   final String barilgiinId;
+  final bool autoStart;
+  final Duration? delay;
 
   const WebRTCPlayer({
     super.key,
     required this.rtspUrl,
     required this.barilgiinId,
+    this.autoStart = false,
+    this.delay,
   });
 
   @override
@@ -29,24 +35,50 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
   bool _loading = true;
   String? _error;
   bool _isHandshaking = false;
+  bool _started = false;
+  Timer? _delayTimer;
 
   @override
   void initState() {
     super.initState();
     debugPrint('🎬 [WebRTC Player #$_instanceId] Created for: ${widget.rtspUrl}');
+    _started = widget.autoStart;
+    if (_started) {
+      if (widget.delay != null) {
+        _delayTimer = Timer(widget.delay!, () {
+          if (mounted) _initRenderer();
+        });
+      } else {
+        _initRenderer();
+      }
+    }
+  }
+
+  void _startPlay() {
+    if (_started) return;
+    setState(() {
+      _started = true;
+    });
     _initRenderer();
   }
 
   @override
   void dispose() {
     debugPrint('⚰️ [WebRTC Player #$_instanceId] Disposing...');
+    _delayTimer?.cancel();
     _stopEverything();
     super.dispose();
   }
 
   Future<void> _stopEverything() async {
-    _peerConnection?.dispose();
-    _localRenderer.dispose();
+    try {
+      _localRenderer.srcObject = null;
+      await _peerConnection?.close();
+      await _peerConnection?.dispose();
+      await _localRenderer.dispose();
+    } catch (e) {
+      debugPrint('Error cleaning up WebRTC resources: $e');
+    }
   }
 
   Future<void> _initRenderer() async {
@@ -183,17 +215,100 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_started) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmall = constraints.maxHeight < 150;
+          return Container(
+            color: const Color(0xFF0F172A),
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _startPlay,
+                      child: Container(
+                        padding: EdgeInsets.all(isSmall ? 8.w : 12.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5),
+                        ),
+                        child: Icon(
+                          Icons.play_arrow_rounded,
+                          color: AppColors.primary,
+                          size: isSmall ? 24.w : 32.w,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isSmall ? 4.h : 8.h),
+                    Text(
+                      'Тоглуулах',
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: isSmall ? 10.sp : 12.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 40),
-            const SizedBox(height: 10),
-            Text(_error!, style: const TextStyle(color: Colors.white70), textAlign: TextAlign.center),
-            TextButton(onPressed: _startHandshake, child: const Text('Дахин оролдох', style: TextStyle(color: AppColors.primary))),
-          ],
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmall = constraints.maxHeight < 150;
+          return Container(
+            color: const Color(0xFF0F172A),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: _startHandshake,
+                        child: Container(
+                          padding: EdgeInsets.all(isSmall ? 8.w : 12.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5),
+                          ),
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            color: AppColors.primary,
+                            size: isSmall ? 24.w : 32.w,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: isSmall ? 4.h : 8.h),
+                      GestureDetector(
+                        onTap: _startHandshake,
+                        child: Text(
+                          'Дахин оролдох',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: isSmall ? 10.sp : 12.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       );
     }
 

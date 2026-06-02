@@ -2164,7 +2164,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     final services = [
       {
-        'name': 'parkease',
+        'name': 'Зогсоол',
         'label': 'Зогсоол',
         'icon': Icons.local_parking_rounded,
         'color': const Color(0xFF3B82F6),
@@ -2254,7 +2254,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        if (service['name'] == 'parkease') {
+        if (service['name'] == 'Зогсоол') {
           context.push('/parkease');
           return;
         }
