@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/webrtc_player.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart' show buildStandardAppBar;
@@ -19,6 +18,7 @@ class CameraConfig {
   final String password;
   final String root;
   final bool enabled;
+  final bool isMain;
 
   const CameraConfig({
     required this.id,
@@ -29,6 +29,7 @@ class CameraConfig {
     this.password = 'Admin123',
     this.root = 'stream',
     this.enabled = true,
+    this.isMain = false,
   });
 
   String get rtspUrl =>
@@ -42,6 +43,7 @@ class CameraConfig {
     String? password,
     String? root,
     bool? enabled,
+    bool? isMain,
   }) =>
       CameraConfig(
         id: id,
@@ -52,6 +54,7 @@ class CameraConfig {
         password: password ?? this.password,
         root: root ?? this.root,
         enabled: enabled ?? this.enabled,
+        isMain: isMain ?? this.isMain,
       );
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +66,7 @@ class CameraConfig {
         'password': password,
         'root': root,
         'enabled': enabled,
+        'isMain': isMain,
       };
 
   factory CameraConfig.fromJson(Map<String, dynamic> j) => CameraConfig(
@@ -74,26 +78,11 @@ class CameraConfig {
         password: j['password']?.toString() ?? 'Admin123',
         root: j['root']?.toString() ?? 'stream',
         enabled: j['enabled'] as bool? ?? true,
+        isMain: j['isMain'] as bool? ?? false,
       );
 }
 
-// Default 16-channel Hikvision NVR sub-streams (H.264)
-List<CameraConfig> _defaultCameras(String nvrIp) => List.generate(16, (i) {
-      final ch = i + 1;
-      return CameraConfig(
-        id: 'cam-$ch',
-        name: 'Камер $ch',
-        ip: nvrIp,
-        port: 554,
-        username: 'admin',
-        password: 'Admin123',
-        root: 'Streaming/Channels/${ch}02',
-        enabled: true, // Enable all cameras by default
-      );
-    });
 
-const _prefsKey = 'sukh_camera_configs_v1';
-const _nvrIpKey = 'sukh_nvr_ip';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -106,7 +95,6 @@ class CameraPage extends StatefulWidget {
 
 class _CameraPageState extends State<CameraPage> {
   List<CameraConfig> _cameras = [];
-  String _nvrIp = '192.168.1.228';
   String _barilgiinId = '';
   bool _loading = true;
   int? _fullscreenIndex; // index in enabled list
@@ -120,8 +108,9 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() { _loading = true; _errorMessage = null; });
+
     final barilgiinId = await StorageService.getBarilgiinId() ?? '';
-    
     final baigId = await StorageService.getBaiguullagiinId();
     final isNonOrg = baigId == null ||
         baigId == 'null' ||
@@ -138,60 +127,41 @@ class _CameraPageState extends State<CameraPage> {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    final nvrIp = prefs.getString(_nvrIpKey) ?? '192.168.1.228';
-    final saved = prefs.getString(_prefsKey);
+    try {
+      final camMaps = await ApiService.fetchBuildingCameras(
+        baiguullagiinId: baigId!,
+        barilgiinId: barilgiinId,
+      );
 
-    List<CameraConfig> cameras;
-    if (saved != null) {
-      try {
-        final list = jsonDecode(saved) as List<dynamic>;
-        cameras = list.map((e) {
-          final cfg = CameraConfig.fromJson(e as Map<String, dynamic>);
-          return cfg.copyWith(enabled: true); // Force enable all cameras as requested
-        }).toList();
-        // Migrate: ensure always 16 entries
-        if (cameras.length != 16) cameras = _defaultCameras(nvrIp);
-      } catch (_) {
-        cameras = _defaultCameras(nvrIp);
+      final cameras = camMaps.map((c) => CameraConfig.fromJson(c)).toList();
+
+      if (mounted) {
+        setState(() {
+          _barilgiinId = barilgiinId;
+          _cameras = cameras;
+          _loading = false;
+        });
       }
-    } else {
-      cameras = _defaultCameras(nvrIp);
-    }
-
-    if (mounted) {
-      setState(() {
-        _barilgiinId = barilgiinId;
-        _nvrIp = nvrIp;
-        _cameras = cameras;
-        _loading = false;
-      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Камерын мэдээлэл татахад алдаа гарлаа.';
+          _loading = false;
+        });
+      }
     }
   }
 
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, jsonEncode(_cameras.map((c) => c.toJson()).toList()));
-    await prefs.setString(_nvrIpKey, _nvrIp);
-  }
-
-  void _updateCamera(CameraConfig updated) {
-    setState(() {
-      _cameras = _cameras.map((c) => c.id == updated.id ? updated : c).toList();
+  List<CameraConfig> get _enabled {
+    final list = _cameras.where((c) => c.enabled).toList();
+    list.sort((a, b) {
+      if (a.isMain && !b.isMain) return -1;
+      if (!a.isMain && b.isMain) return 1;
+      return 0;
     });
-    _save();
+    return list;
   }
 
-  void _resetToDefaults() {
-    setState(() {
-      _cameras = _defaultCameras(_nvrIp);
-    });
-    _save();
-  }
-
-  List<CameraConfig> get _enabled => _cameras.where((c) => c.enabled).toList();
-
-  @override
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -243,6 +213,19 @@ class _CameraPageState extends State<CameraPage> {
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  SizedBox(height: 24.h),
+                  ElevatedButton.icon(
+                    onPressed: _load,
+                    icon: Icon(Icons.refresh_rounded, size: 18.sp),
+                    label: Text('Дахин оролдох', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 14.h),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                      elevation: 0,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -266,9 +249,9 @@ class _CameraPageState extends State<CameraPage> {
         title: 'Камерууд',
         actions: [
           IconButton(
-            icon: Icon(Icons.settings, color: isDark ? Colors.white70 : Colors.black87),
-            onPressed: () => _openSettings(context),
-            tooltip: 'Тохиргоо',
+            icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white70 : Colors.black87),
+            onPressed: _load,
+            tooltip: 'Шинэчлэх',
           ),
         ],
       ),
@@ -305,7 +288,7 @@ class _CameraPageState extends State<CameraPage> {
                           ),
                           SizedBox(height: 24.h),
                           Text(
-                            'Идэвхтэй камер байхгүй',
+                            'Баазанас камер байхгүй',
                             style: TextStyle(
                               fontSize: 16.sp,
                               color: isDark ? Colors.white70 : Colors.black87,
@@ -314,9 +297,21 @@ class _CameraPageState extends State<CameraPage> {
                             ),
                             textAlign: TextAlign.center,
                           ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            'Тохиргоо → Камерийн тохиргоо рүү орж камеруудаа бүртгэнэ үү',
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: isDark ? Colors.white38 : Colors.black54,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                           SizedBox(height: 24.h),
-                          ElevatedButton(
-                            onPressed: () => _openSettings(context),
+                          ElevatedButton.icon(
+                            onPressed: _load,
+                            icon: Icon(Icons.refresh_rounded, size: 18.sp),
+                            label: Text('Шинэчлэх', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
@@ -324,7 +319,6 @@ class _CameraPageState extends State<CameraPage> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
                               elevation: 0,
                             ),
-                            child: Text('Тохиргоо нээх', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
@@ -453,26 +447,6 @@ class _CameraPageState extends State<CameraPage> {
     );
   }
 
-  void _openSettings(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _SettingsSheet(
-        cameras: _cameras,
-        nvrIp: _nvrIp,
-        onNvrIpChanged: (ip) {
-          setState(() => _nvrIp = ip);
-          _save();
-        },
-        onCameraToggled: (id, enabled) {
-          final cam = _cameras.firstWhere((c) => c.id == id);
-          _updateCamera(cam.copyWith(enabled: enabled));
-        },
-        onReset: _resetToDefaults,
-      ),
-    );
-  }
 }
 
 // ─── Camera Card ──────────────────────────────────────────────────────────────
@@ -523,13 +497,25 @@ class _CameraCard extends StatelessWidget {
                     colors: [Colors.black87, Colors.transparent],
                   ),
                 ),
-                child: Text(
-                  camera.name,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  children: [
+                    if (camera.isMain) ...[
+                      Icon(Icons.star_rounded, color: Colors.amber, size: 10.sp),
+                      SizedBox(width: 2.w),
+                    ],
+                    Expanded(
+                      child: Text(
+                        camera.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -653,170 +639,6 @@ class _FullscreenViewState extends State<_FullscreenView> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Settings Sheet ───────────────────────────────────────────────────────────
-
-class _SettingsSheet extends StatefulWidget {
-  final List<CameraConfig> cameras;
-  final String nvrIp;
-  final ValueChanged<String> onNvrIpChanged;
-  final void Function(String id, bool enabled) onCameraToggled;
-  final VoidCallback onReset;
-
-  const _SettingsSheet({
-    required this.cameras,
-    required this.nvrIp,
-    required this.onNvrIpChanged,
-    required this.onCameraToggled,
-    required this.onReset,
-  });
-
-  @override
-  State<_SettingsSheet> createState() => _SettingsSheetState();
-}
-
-class _SettingsSheetState extends State<_SettingsSheet> {
-  late TextEditingController _ipCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ipCtrl = TextEditingController(text: widget.nvrIp);
-  }
-
-  @override
-  void dispose() {
-    _ipCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (_, controller) => Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F172A),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        ),
-        child: Column(
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                margin: EdgeInsets.only(top: 10.h, bottom: 8.h),
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-            ),
-            // Header
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-              child: Row(
-                children: [
-                  Text(
-                    'Камер тохиргоо',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      widget.onReset();
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Анхдагч',
-                      style: TextStyle(color: AppColors.primary, fontSize: 12.sp),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // NVR IP input
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Row(
-                children: [
-                  Text(
-                    'NVR IP:',
-                    style: TextStyle(color: Colors.white70, fontSize: 12.sp),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: TextField(
-                      controller: _ipCtrl,
-                      style: TextStyle(color: Colors.white, fontSize: 13.sp, fontFamily: 'monospace'),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white10,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                          borderSide: BorderSide.none,
-                        ),
-                        hintText: '192.168.1.228',
-                        hintStyle: const TextStyle(color: Colors.white24),
-                      ),
-                      onSubmitted: widget.onNvrIpChanged,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Divider(color: Colors.white10, height: 1.h),
-            // Camera list
-            Expanded(
-              child: ListView.builder(
-                controller: controller,
-                itemCount: widget.cameras.length,
-                itemBuilder: (_, i) {
-                  final cam = widget.cameras[i];
-                  return ListTile(
-                    dense: true,
-                    leading: Icon(
-                      Icons.videocam,
-                      color: cam.enabled ? AppColors.primary : Colors.white24,
-                      size: 20.sp,
-                    ),
-                    title: Text(
-                      cam.name,
-                      style: TextStyle(
-                        color: cam.enabled ? Colors.white : Colors.white38,
-                        fontSize: 13.sp,
-                      ),
-                    ),
-                    subtitle: Text(
-                      cam.root,
-                      style: TextStyle(color: Colors.white24, fontSize: 10.sp, fontFamily: 'monospace'),
-                    ),
-                    trailing: Switch(
-                      value: cam.enabled,
-                      onChanged: (v) {
-                        setState(() {});
-                        widget.onCameraToggled(cam.id, v);
-                      },
-                      activeColor: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

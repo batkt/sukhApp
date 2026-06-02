@@ -3508,7 +3508,39 @@ class ApiService {
     }
   }
 
+  /// Fetch camera list for a specific building
+  /// Returns the `cameruud` array from barilga subdocument
+  static Future<List<Map<String, dynamic>>> fetchBuildingCameras({
+    required String baiguullagiinId,
+    required String barilgiinId,
+  }) async {
+    try {
+      final data = await fetchBaiguullagaById(
+        baiguullagiinId,
+        barilgiinId: barilgiinId,
+      );
+
+      final barilguud = data['barilguud'];
+      if (barilguud == null || barilguud is! List || barilguud.isEmpty) {
+        return [];
+      }
+
+      final barilga = barilguud.first as Map<String, dynamic>?;
+      if (barilga == null) return [];
+
+      final cameruud = barilga['cameruud'];
+      if (cameruud == null || cameruud is! List) return [];
+
+      return List<Map<String, dynamic>>.from(
+        cameruud.map((c) => Map<String, dynamic>.from(c as Map)),
+      );
+    } catch (e) {
+      throw Exception('Камерын мэдээлэл татахад алдаа гарлаа: $e');
+    }
+  }
+
   /// Create QPay invoice
+
   /// Supports both Custom QPay (OWN_ORG) and Wallet QPay
   /// Auto-detects based on presence of walletUserId/walletBairId
   static Future<Map<String, dynamic>> qpayGargaya({
