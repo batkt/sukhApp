@@ -29,6 +29,8 @@ import 'package:sukh_app/screens/contact/contact_page.dart';
 import 'package:sukh_app/screens/nuutsUg/password_sergeekh.dart';
 import 'package:sukh_app/screens/zochin_urikh/zochin_urikh_page.dart';
 import 'package:sukh_app/screens/parking/parkease_page.dart';
+import 'package:sukh_app/screens/camera/camera_page.dart';
+import 'package:sukh_app/screens/lift/lift_page.dart';
 import 'package:sukh_app/screens/blog/blog_screen.dart';
 import 'package:sukh_app/screens/Home/utility_add_page.dart';
 import 'package:sukh_app/screens/Home/utility_code_input_page.dart';
@@ -425,6 +427,22 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: const ParkEasePage(),
+          ),
+    ),
+    GoRoute(
+      path: '/camera',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const CameraPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/lift',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const LiftPage(),
           ),
     ),
   ],

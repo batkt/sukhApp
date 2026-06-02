@@ -173,9 +173,8 @@ class _BookingScreenState extends State<NuurKhuudas>
     _loadBillers();
     _loadNotificationCount();
     _setupSocketListener();
-    _loadGereeData();
+    _loadLocalCache(); // Load local cache instantly so the card shows cached data immediately!
     _loadNekhemjlekhCron();
-    _initNonOrgCheck(); // Early check so green card shows immediately
     _refreshBillingInfo(); // Consolidated refresh  
     _checkRecentWalletPayments();
 
@@ -192,24 +191,54 @@ class _BookingScreenState extends State<NuurKhuudas>
     });
   }
 
-  /// Early async check to set _isNonOrgUser from StorageService
-  /// so the green card shows immediately, before _refreshBillingInfo completes.
-  Future<void> _initNonOrgCheck() async {
+  /// Load cached data from StorageService immediately for instant startup display
+  Future<void> _loadLocalCache() async {
     try {
+      final userId = await StorageService.getUserId();
+      if (userId == null || userId.isEmpty) {
+        print('🔧 [CACHE] No logged-in user, skipping local cache load.');
+        return;
+      }
+
+      // 1. Load isNonOrgUser early
       final baigId = await StorageService.getBaiguullagiinId();
-      print('🔧 [INIT] Early baiguullagiinId from storage: $baigId');
       final isNonOrg = baigId == null ||
           baigId == 'null' ||
           baigId.isEmpty ||
           baigId == '698e7fd3b6dd386b6c56a808';
-      if (mounted && isNonOrg != _isNonOrgUser) {
+
+      // 2. Load cached toots
+      final cachedToots = await StorageService.getToots();
+
+      // 3. Load other cached fields (account-scoped by userId)
+      final cachedBillingList = await StorageService.getCachedBillingList(userId);
+      final cachedGereeData = await StorageService.getCachedGereeResponse(userId);
+      final cachedTotals = await StorageService.getCachedTotals(userId);
+
+      if (mounted) {
         setState(() {
           _isNonOrgUser = isNonOrg;
+          if (cachedToots.isNotEmpty) {
+            _userProfile = {'toots': cachedToots};
+            _isInitialBillingLoaded = true;
+          }
+          if (cachedBillingList.isNotEmpty) {
+            _billingList = cachedBillingList;
+            _isInitialBillingLoaded = true;
+            _isLoadingBillingList = false; // Stop loading spinner since we have cached data
+          }
+          if (cachedGereeData != null && cachedGereeData.isNotEmpty) {
+            _gereeResponse = GereeResponse.fromJson(cachedGereeData);
+            _isInitialBillingLoaded = true;
+            _progressAnimationController.forward(); // Animate early
+          }
+          totalNiitTulbur = cachedTotals['total'] ?? 0.0;
+          totalNiitAldangi = cachedTotals['aldangi'] ?? 0.0;
         });
-        print('🔧 [INIT] _isNonOrgUser set to $isNonOrg early');
+        print('🔧 [CACHE] Loaded local cache for user $userId: isNonOrg=$isNonOrg, billingListCount=${cachedBillingList.length}');
       }
     } catch (e) {
-      print('🔧 [INIT] Early org check failed: $e');
+      print('🔧 [CACHE] Failed to load local cache: $e');
     }
   }
 
@@ -733,6 +762,16 @@ class _BookingScreenState extends State<NuurKhuudas>
           totalNiitAldangi = totalAldangi;
           _isInitialBillingLoaded = true;
         });
+        _progressAnimationController.forward(); // Forward animation on fresh data
+      }
+
+      // Save to local cache for instant loading next time (scoped by userId to prevent cross-account leakage)
+      if (userId != null && userId.isNotEmpty) {
+        StorageService.saveCachedBillingList(userId, finalBillingList);
+        if (gereeResponse.isNotEmpty) {
+          StorageService.saveCachedGereeResponse(userId, gereeResponse);
+        }
+        StorageService.saveCachedTotals(userId, total, totalAldangi);
       }
     } catch (e) {
       // Refresh error handling
@@ -1653,6 +1692,29 @@ class _BookingScreenState extends State<NuurKhuudas>
 
                       // 1. Merged Remaining Days & Billing Box - PageView for multiple contracts
                       Builder(builder: (context) {
+                        // While both cache and network have not loaded at all, show a premium glass loading card
+                        if (!_isInitialBillingLoaded) {
+                          final isDark = context.isDarkMode;
+                          return Container(
+                            height: 200.h,
+                            width: double.infinity,
+                            margin: EdgeInsets.symmetric(vertical: 6.h),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                              borderRadius: BorderRadius.circular(28.r),
+                              border: Border.all(
+                                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.deepGreen,
+                              ),
+                            ),
+                          );
+                        }
+
                         final showCard = _isNonOrgUser || 
                             (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ||
                             _billingList.isNotEmpty;
@@ -1668,13 +1730,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                                 final isLargePhone = context.screenWidth >= 400 && !context.isTablet;
                                 
                                 if (context.isTablet || context.isFoldable) {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 240.h : 310.h;
+                                  return (_isNonOrgUser && !hasAnyAddress) ? 255.h : 330.h;
                                 } else if (isLargePhone) {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 190.h : 210.h;
+                                  return (_isNonOrgUser && !hasAnyAddress) ? 205.h : 230.h;
+                                  // Small devices (e.g. iPhone SE) need slightly more space relatively
                                 } else if (isSmall) {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 180.h : 195.h;
+                                  return (_isNonOrgUser && !hasAnyAddress) ? 195.h : 215.h;
                                 } else {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 185.h : 205.h;
+                                  return (_isNonOrgUser && !hasAnyAddress) ? 200.h : 225.h;
                                 }
                               }(),
                               child: PageView.builder(
@@ -2195,6 +2258,15 @@ class _BookingScreenState extends State<NuurKhuudas>
           context.push('/parkease');
           return;
         }
+        if (service['name'] == 'камер') {
+          context.push('/camera');
+          return;
+        }
+        if (service['name'] == 'лифт') {
+          context.push('/lift');
+          return;
+        }
+
         // Disabled for now - show "Тун удахгүй" message
         showGlassSnackBar(
           context,

@@ -55,6 +55,77 @@ class StorageService {
   static const String _ebarimtInfoKey = 'ebarimt_info';
   static const String _tootsKey = 'user_toots';
   static const String _billNicknamesKey = 'bill_nicknames';
+  static const String _cachedBillingListKey = 'cached_billing_list';
+  static const String _cachedGereeResponseKey = 'cached_geree_response';
+  static const String _cachedTotalNiitTulburKey = 'cached_total_niit_tulbur';
+  static const String _cachedTotalNiitAldangiKey = 'cached_total_niit_aldangi';
+
+  static Future<bool> saveCachedBillingList(String userId, List<Map<String, dynamic>> list) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString('${_cachedBillingListKey}_$userId', json.encode(list));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getCachedBillingList(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final str = prefs.getString('${_cachedBillingListKey}_$userId');
+      if (str != null) {
+        final decoded = json.decode(str) as List;
+        return decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<bool> saveCachedGereeResponse(String userId, Map<String, dynamic> response) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString('${_cachedGereeResponseKey}_$userId', json.encode(response));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getCachedGereeResponse(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final str = prefs.getString('${_cachedGereeResponseKey}_$userId');
+      if (str != null) {
+        return json.decode(str) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<bool> saveCachedTotals(String userId, double total, double aldangi) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('${_cachedTotalNiitTulburKey}_$userId', total);
+      await prefs.setDouble('${_cachedTotalNiitAldangiKey}_$userId', aldangi);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<Map<String, double>> getCachedTotals(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final total = prefs.getDouble('${_cachedTotalNiitTulburKey}_$userId') ?? 0.0;
+      final aldangi = prefs.getDouble('${_cachedTotalNiitAldangiKey}_$userId') ?? 0.0;
+      return {'total': total, 'aldangi': aldangi};
+    } catch (e) {
+      return {'total': 0.0, 'aldangi': 0.0};
+    }
+  }
 
   static Future<bool> saveToots(List<dynamic> toots) async {
     try {
@@ -360,6 +431,16 @@ class StorageService {
   static Future<bool> clearAuthData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      
+      // Clear account-scoped cache data before removing user id
+      final userId = prefs.getString(_userIdKey);
+      if (userId != null && userId.isNotEmpty) {
+        await prefs.remove('${_cachedBillingListKey}_$userId');
+        await prefs.remove('${_cachedGereeResponseKey}_$userId');
+        await prefs.remove('${_cachedTotalNiitTulburKey}_$userId');
+        await prefs.remove('${_cachedTotalNiitAldangiKey}_$userId');
+      }
+
       await prefs.remove(_tokenKey);
       await prefs.remove(_userIdKey);
       await prefs.remove(_userNerKey);

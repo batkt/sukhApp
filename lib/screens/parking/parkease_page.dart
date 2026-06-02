@@ -313,6 +313,22 @@ class _ParkEasePageState extends State<ParkEasePage> {
     }
 
     try {
+      final baigId = await StorageService.getBaiguullagiinId();
+      final isNonOrg = baigId == null ||
+          baigId == 'null' ||
+          baigId.isEmpty ||
+          baigId == '698e7fd3b6dd386b6c56a808';
+      
+      if (isNonOrg) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
       final response = await ApiService.fetchParkingSettings();
       debugPrint('📩 [ParkEase] API Response: $response');
       final List<dynamic> list = response['jagsaalt'] ?? [];
@@ -328,14 +344,14 @@ class _ParkEasePageState extends State<ParkEasePage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'ParkEase мэдээлэл авахад алдаа гарлаа';
+          _errorMessage = 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.';
         });
       }
       debugPrint('❌ [ParkEase] LoadSettings Error: $e');
     } finally {
       if (mounted) {
         if (_sites.isEmpty && _errorMessage == null) {
-          _errorMessage = 'ParkEase мэдээлэл олдсонгүй';
+          _errorMessage = 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.';
         }
 
         setState(() {
@@ -428,29 +444,35 @@ class _ParkEasePageState extends State<ParkEasePage> {
     }
 
     if (_errorMessage != null && _sites.isEmpty) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       return Center(
         child: Padding(
           padding: EdgeInsets.all(30.w),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.cloud_off_rounded, size: 64.w, color: Colors.grey.withOpacity(0.5)),
-              SizedBox(height: 20.h),
+              Container(
+                padding: EdgeInsets.all(20.w),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF97316).withOpacity(isDark ? 0.2 : 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.directions_car_rounded,
+                  size: 64.w,
+                  color: const Color(0xFFF97316),
+                ),
+              ),
+              SizedBox(height: 24.h),
               Text(
                 _errorMessage!,
-                style: TextStyle(fontSize: 16.sp, color: Colors.grey[600], fontWeight: FontWeight.w500),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 30.h),
-              ElevatedButton(
-                onPressed: _loadSettings,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 14.h),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
                 ),
-                child: Text('Дахин оролдох', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -459,17 +481,38 @@ class _ParkEasePageState extends State<ParkEasePage> {
     }
 
     if (_sites.isEmpty) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.layers_clear_outlined, size: 80.w, color: Colors.grey.withOpacity(0.2)),
-            SizedBox(height: 16.h),
-            Text(
-              'Мэдээлэл олдсонгүй',
-              style: TextStyle(fontSize: 16.sp, color: Colors.grey, fontWeight: FontWeight.w500),
-            ),
-          ],
+        child: Padding(
+          padding: EdgeInsets.all(30.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(20.w),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF97316).withOpacity(isDark ? 0.2 : 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.layers_clear_outlined,
+                  size: 64.w,
+                  color: const Color(0xFFF97316),
+                ),
+              ),
+              SizedBox(height: 24.h),
+              Text(
+                'Мэдээлэл олдсонгүй',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       );
     }
