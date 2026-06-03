@@ -3,8 +3,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/utils/responsive_helper.dart';
-import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/components/Home/biller_utils.dart';
 
 class BillerDetailScreen extends StatefulWidget {
   final String billerCode;
@@ -22,801 +21,399 @@ class BillerDetailScreen extends StatefulWidget {
   State<BillerDetailScreen> createState() => _BillerDetailScreenState();
 }
 
-class _BillerDetailScreenState extends State<BillerDetailScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
+class _BillerDetailScreenState extends State<BillerDetailScreen> {
   List<Map<String, dynamic>> _billings = [];
-  Map<String, dynamic>? _selectedBilling;
-
   bool _isLoadingBillings = true;
+  bool _isSearching = false;
   final TextEditingController _customerCodeController = TextEditingController();
-  bool _isBillingFound = false; // Track if billing is found from search
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 1, vsync: this);
     _loadBillings();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _customerCodeController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   Future<void> _loadBillings() async {
-    setState(() {
-      _isLoadingBillings = true;
-    });
-
+    setState(() => _isLoadingBillings = true);
     try {
       final billings = await ApiService.getWalletBillingList();
-      
-      // Filter billings to show only those matching current biller
-      final filteredBillings = billings.where((b) {
+      final filtered = billings.where((b) {
         final bCode = b['billerCode']?.toString().trim().toUpperCase() ?? '';
         final bName = b['billerName']?.toString().trim().toUpperCase() ?? '';
         final wCode = widget.billerCode.trim().toUpperCase();
         final wName = widget.billerName.trim().toUpperCase();
-        
-        return bCode == wCode || 
-               bName == wName || 
-               (bCode.isNotEmpty && wCode.isNotEmpty && (bCode.contains(wCode) || wCode.contains(bCode))) ||
-               (bName.isNotEmpty && wName.isNotEmpty && (bName.contains(wName) || wName.contains(bName)));
+        return bCode == wCode ||
+            bName == wName ||
+            (bCode.isNotEmpty && wCode.isNotEmpty && (bCode.contains(wCode) || wCode.contains(bCode))) ||
+            (bName.isNotEmpty && wName.isNotEmpty && (bName.contains(wName) || wName.contains(bName)));
       }).toList();
-
-      if (mounted) {
-        setState(() {
-          _billings = filteredBillings;
-          _isLoadingBillings = false;
-        });
-      }
+      if (mounted) setState(() { _billings = filtered; _isLoadingBillings = false; });
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _isLoadingBillings = false;
-        });
-        showGlassSnackBar(
-          context,
-          message: 'Биллингийн жагсаалт авахад алдаа гарлаа: $e',
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
+        setState(() => _isLoadingBillings = false);
+        _showSnack('Жагсаалт авахад алдаа: $e', Colors.red);
       }
     }
   }
 
-  Future<void> _findBillingByCustomerCode() async {
-    if (_customerCodeController.text.trim().isEmpty) {
-      showGlassSnackBar(
-        context,
-        message: 'Харилцагчийн код оруулна уу',
-        icon: Icons.warning,
-        iconColor: Colors.orange,
-      );
+  Future<void> _findBilling() async {
+    final code = _customerCodeController.text.trim();
+    if (code.isEmpty) {
+      _showSnack('Харилцагчийн код оруулна уу', Colors.orange);
       return;
     }
-
-    setState(() {
-      _isLoadingBillings = true;
-    });
-
+    setState(() => _isSearching = true);
     try {
       final response = await ApiService.findBillingByBillerAndCustomerCode(
         billerCode: widget.billerCode,
-        customerCode: _customerCodeController.text.trim(),
+        customerCode: code,
       );
+      if (!mounted) return;
+      if (response['success'] == true && response['data'] != null) {
+        dynamic dataField = response['data'];
+        Map<String, dynamic> billingData;
+        if (dataField is List) {
+          if (dataField.isEmpty) throw Exception('Биллинг олдсонгүй');
+          billingData = Map<String, dynamic>.from(dataField[0] as Map);
+        } else {
+          billingData = Map<String, dynamic>.from(dataField as Map);
+        }
 
-      if (mounted) {
-        if (response['success'] == true && response['data'] != null) {
-          dynamic dataField = response['data'];
+        final identifier = billingData['billingId'] ?? billingData['customerId'] ?? billingData['customerCode'];
+        final exists = _billings.any((b) => (b['billingId'] ?? b['customerId'] ?? b['customerCode']) == identifier);
 
-          // Handle if data is a List
-          Map<String, dynamic> billingData;
-          if (dataField is List) {
-            if (dataField.isEmpty) {
-              throw Exception('Биллингийн мэдээлэл олдсонгүй');
-            }
-            billingData = Map<String, dynamic>.from(dataField[0] as Map);
-          } else if (dataField is Map<String, dynamic>) {
-            billingData = dataField;
-          } else {
-            throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
-          }
-
-          // Check if billing already exists in list
-          final identifier =
-              billingData['billingId'] ??
-              billingData['customerId'] ??
-              billingData['customerCode'];
-          final existingIndex = _billings.indexWhere(
-            (b) =>
-                (b['billingId'] ?? b['customerId'] ?? b['customerCode']) ==
-                identifier,
-          );
-
-          if (existingIndex == -1) {
-            // Save billing to wallet
-            try {
-              // If backend already returned a billingId, it means it was auto-saved
-              if (billingData['billingId'] != null && billingData['billingId'].toString().isNotEmpty) {
-                 showGlassSnackBar(
-                  context,
-                  message: 'Биллинг амжилттай нэмэгдлээ',
-                  icon: Icons.check_circle,
-                  iconColor: Colors.green,
-                );
-              } else if (billingData['customerId'] != null) {
-                // Otherwise manually save it, but don't send billingId if it's new
-                await ApiService.saveWalletBilling(
-                  billingName: billingData['billingName'] ?? billingData['customerName'] ?? 'Шинэ биллинг',
-                  customerId: billingData['customerId'],
-                  customerCode: billingData['customerCode'],
-                );
-                showGlassSnackBar(
-                  context,
-                  message: 'Биллинг амжилттай нэмэгдлээ',
-                  icon: Icons.check_circle,
-                  iconColor: Colors.green,
-                );
-              }
-            } catch (e) {
-               showGlassSnackBar(
-                context,
-                message: 'Биллинг хадгалахад алдаа гарлаа: $e',
-                icon: Icons.error,
-                iconColor: Colors.red,
-              );
-              // Fallback to updating UI anyway, but show warning
-            }
-
-            setState(() {
-              _billings.add(billingData);
-              _selectedBilling = billingData;
-              _isLoadingBillings = false;
-            });
-            
-          } else {
-            setState(() {
-              _selectedBilling = _billings[existingIndex];
-              _isLoadingBillings = false;
-            });
-            showGlassSnackBar(
-              context,
-              message: 'Биллинг аль хэдийн нэмэгдсэн байна',
-              icon: Icons.info,
-              iconColor: Colors.blue,
+        if (!exists) {
+          if (billingData['customerId'] != null && billingData['billingId'] == null) {
+            await ApiService.saveWalletBilling(
+              billingName: billingData['billingName'] ?? billingData['customerName'] ?? 'Шинэ биллинг',
+              customerId: billingData['customerId'],
+              customerCode: billingData['customerCode'],
             );
           }
-
-          _customerCodeController.clear();
+          setState(() => _billings.add(billingData));
+          _showSnack('Биллинг амжилттай нэмэгдлээ', AppColors.deepGreen);
         } else {
-          setState(() {
-            _isLoadingBillings = false;
-          });
-          showGlassSnackBar(
-            context,
-            message: response['message'] ?? 'Биллинг олдсонгүй',
-            icon: Icons.error,
-            iconColor: Colors.red,
-          );
+          _showSnack('Биллинг аль хэдийн нэмэгдсэн байна', Colors.blue);
         }
+        _customerCodeController.clear();
+        _focusNode.unfocus();
+      } else {
+        _showSnack(response['message'] ?? 'Биллинг олдсонгүй', Colors.red);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingBillings = false;
-        });
-        showGlassSnackBar(
-          context,
-          message: e.toString().replaceAll("Exception: ", ""),
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
+      if (mounted) _showSnack(e.toString().replaceAll('Exception: ', ''), Colors.red);
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
     }
   }
 
   Future<void> _deleteBilling(Map<String, dynamic> billing) async {
     final billingId = billing['billingId'];
-    if (billingId == null) {
-      showGlassSnackBar(
-        context,
-        message: 'Биллингийн ID байхгүй байна',
-        icon: Icons.error,
-        iconColor: Colors.red,
-      );
-      return;
-    }
+    if (billingId == null) return;
 
-    // Show confirmation dialog before deleting
-    final bool? confirm = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Биллинг устгах', 
-          style: TextStyle(color: context.textPrimaryColor)),
-        content: Text('Та энэ биллингийг устгахдаа итгэлтэй байна уу?',
-          style: TextStyle(color: context.textSecondaryColor)),
-        backgroundColor: context.backgroundColor,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.cardBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Биллинг устгах', style: TextStyle(color: context.textPrimaryColor, fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Text('Та энэ биллингийг устгахдаа итгэлтэй байна уу?', style: TextStyle(color: context.textSecondaryColor, fontSize: 14)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Үгүй', style: TextStyle(color: AppColors.deepGreen)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Тийм', style: TextStyle(color: Colors.redAccent)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Үгүй', style: TextStyle(color: AppColors.deepGreen))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Устгах', style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
-
     if (confirm != true) return;
-
-    setState(() {
-      _isLoadingBillings = true;
-    });
 
     try {
       await ApiService.removeWalletBilling(billingId: billingId);
-      
-      // Update local state without fetching all billings again
       if (mounted) {
-        setState(() {
-          _billings.removeWhere((b) => b['billingId'] == billingId);
-          if (_selectedBilling?['billingId'] == billingId) {
-            _selectedBilling = null;
-          }
-          _isLoadingBillings = false;
-        });
-
-        showGlassSnackBar(
-          context,
-          message: 'Биллинг амжилттай устгагдлаа',
-          icon: Icons.check_circle,
-          iconColor: Colors.green,
-        );
+        setState(() => _billings.removeWhere((b) => b['billingId'] == billingId));
+        _showSnack('Биллинг устгагдлаа', AppColors.deepGreen);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingBillings = false;
-        });
-        showGlassSnackBar(
-          context,
-          message: e.toString().replaceAll("Exception: ", ""),
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
+      if (mounted) _showSnack(e.toString().replaceAll('Exception: ', ''), Colors.red);
     }
+  }
+
+  void _showSnack(String msg, Color color) {
+    showGlassSnackBar(context, message: msg,
+        icon: color == Colors.red ? Icons.error : Icons.check_circle,
+        iconColor: color);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+
     return Scaffold(
       backgroundColor: context.backgroundColor,
-      appBar: buildStandardAppBar(context, title: widget.billerName),
-      body: Container(
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Tabs
-              Container(
-                height: context.responsiveSpacing(
-                  small: 40,
-                  medium: 42,
-                  large: 44,
-                  tablet: 48,
-                  veryNarrow: 36,
-                ),
-                decoration: BoxDecoration(
-                  color: context.isDarkMode
-                      ? const Color(0xFF252525)
-                      : const Color(0xFFF5F5F5),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.deepGreen.withOpacity(0.1),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: AppColors.deepGreen,
-                  indicatorWeight: 2,
-                  labelColor: AppColors.deepGreen,
-                  unselectedLabelColor: context.textSecondaryColor,
-                  labelStyle: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      small: 13,
-                      medium: 14,
-                      large: 15,
-                      tablet: 16,
-                      veryNarrow: 12,
-                    ),
-                  ),
-                  unselectedLabelStyle: TextStyle(
-                    fontSize: context.responsiveFontSize(
-                      small: 13,
-                      medium: 14,
-                      large: 15,
-                      tablet: 16,
-                      veryNarrow: 12,
-                    ),
-                  ),
-                  tabs: const [Tab(text: 'Биллинг')],
-                ),
-              ),
-
-              // Tab Content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [_buildBillingsTab()],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBillingsTab() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(
-        context.responsiveSpacing(
-          small: 14,
-          medium: 15,
-          large: 16,
-          tablet: 18,
-          veryNarrow: 10,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Find Billing Section
-          Container(
-            padding: EdgeInsets.all(
-              context.responsiveSpacing(
-                small: 12,
-                medium: 13,
-                large: 14,
-                tablet: 16,
-                veryNarrow: 10,
-              ),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            backgroundColor: AppColors.deepGreen,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? const Color(0xFF252525)
-                  : const Color(0xFFF8F8F8),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 12,
-                  medium: 13,
-                  large: 14,
-                  tablet: 16,
-                  veryNarrow: 10,
-                ),
-              ),
-              border: Border.all(
-                color: AppColors.deepGreen.withOpacity(0.15),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            title: Row(
               children: [
-                Text(
-                  'Харилцагчийн код оруулах',
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 13,
+                ClipRect(
+                  child: SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: BillerUtils.buildBillerLogo(
+                      widget.billerName,
+                      transformedName: BillerUtils.transformBillerName(widget.billerName),
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 10,
-                    medium: 11,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 8,
-                  ),
-                ),
-                TextField(
-                  controller: _customerCodeController,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 14,
-                      medium: 15,
-                      large: 16,
-                      tablet: 17,
-                      veryNarrow: 13,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    BillerUtils.transformBillerName(widget.billerName),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Харилцагчийн код',
-                    hintStyle: TextStyle(
-                      color: context.textSecondaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 13,
-                        medium: 14,
-                        large: 15,
-                        tablet: 16,
-                        veryNarrow: 12,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: context.isDarkMode
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.white,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: context.responsiveSpacing(
-                        small: 12,
-                        medium: 13,
-                        large: 14,
-                        tablet: 16,
-                        veryNarrow: 10,
-                      ),
-                      vertical: context.responsiveSpacing(
-                        small: 10,
-                        medium: 11,
-                        large: 12,
-                        tablet: 14,
-                        veryNarrow: 8,
-                      ),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 10,
-                          medium: 11,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 8,
-                        ),
-                      ),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 10,
-                          medium: 11,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 8,
-                        ),
-                      ),
-                      borderSide: BorderSide(
-                        color: AppColors.deepGreen.withOpacity(0.1),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        context.responsiveBorderRadius(
-                          small: 10,
-                          medium: 11,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 8,
-                        ),
-                      ),
-                      borderSide: BorderSide(
-                        color: AppColors.deepGreen,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: context.responsiveSpacing(
-                    small: 10,
-                    medium: 11,
-                    large: 12,
-                    tablet: 14,
-                    veryNarrow: 8,
-                  ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _findBillingByCustomerCode,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepGreen,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        vertical: context.responsiveSpacing(
-                          small: 10,
-                          medium: 11,
-                          large: 12,
-                          tablet: 14,
-                          veryNarrow: 8,
-                        ),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          context.responsiveBorderRadius(
-                            small: 10,
-                            medium: 11,
-                            large: 12,
-                            tablet: 14,
-                            veryNarrow: 8,
-                          ),
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      'Хайж нэмэх',
-                      style: TextStyle(
-                        fontSize: context.responsiveFontSize(
-                          small: 14,
-                          medium: 15,
-                          large: 16,
-                          tablet: 17,
-                          veryNarrow: 13,
-                        ),
-                      ),
-                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
           ),
 
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 14,
-              medium: 15,
-              large: 16,
-              tablet: 18,
-              veryNarrow: 10,
-            ),
-          ),
-
-          Text(
-            'Миний биллингууд',
-            style: TextStyle(
-              color: context.textPrimaryColor,
-              fontSize: context.responsiveFontSize(
-                small: 15,
-                medium: 16,
-                large: 17,
-                tablet: 18,
-                veryNarrow: 14,
-              ),
-            ),
-          ),
-
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 10,
-              medium: 11,
-              large: 12,
-              tablet: 14,
-              veryNarrow: 8,
-            ),
-          ),
-
-          if (_isLoadingBillings)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(
-                  context.responsiveSpacing(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 28,
-                    veryNarrow: 16,
-                  ),
-                ),
-                child: CircularProgressIndicator(
-                  color: AppColors.deepGreen,
-                  strokeWidth: 2,
-                ),
-              ),
-            )
-          else if (_billings.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(
-                  context.responsiveSpacing(
-                    small: 20,
-                    medium: 22,
-                    large: 24,
-                    tablet: 28,
-                    veryNarrow: 16,
-                  ),
-                ),
-                child: Text(
-                  'Биллинг олдсонгүй',
-                  style: TextStyle(
-                    color: context.textSecondaryColor,
-                    fontSize: context.responsiveFontSize(
-                      small: 13,
-                      medium: 14,
-                      large: 15,
-                      tablet: 16,
-                      veryNarrow: 12,
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Search card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.cardBackgroundColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: context.borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Харилцагчийн кодоор хайх',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _customerCodeController,
+                                focusNode: _focusNode,
+                                style: TextStyle(color: context.textPrimaryColor, fontSize: 14),
+                                decoration: InputDecoration(
+                                  hintText: 'Жишээ: 123456789',
+                                  hintStyle: TextStyle(color: context.textSecondaryColor, fontSize: 13),
+                                  filled: true,
+                                  fillColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF4F4F4),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: AppColors.deepGreen, width: 1.5),
+                                  ),
+                                ),
+                                onSubmitted: (_) => _findBilling(),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: _isSearching ? null : _findBilling,
+                              child: Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  color: AppColors.deepGreen,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: _isSearching
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      )
+                                    : const Icon(Icons.search_rounded, color: Colors.white, size: 22),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 24),
+
+                  // Billings header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Миний биллингууд',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      if (_billings.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.deepGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text('${_billings.length}',
+                              style: TextStyle(fontSize: 12, color: AppColors.deepGreen, fontWeight: FontWeight.w700)),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  if (_isLoadingBillings)
+                    const Center(child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(color: AppColors.deepGreen, strokeWidth: 2),
+                    ))
+                  else if (_billings.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      decoration: BoxDecoration(
+                        color: context.cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: context.borderColor),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.receipt_long_outlined, size: 40,
+                              color: context.textSecondaryColor.withOpacity(0.4)),
+                          const SizedBox(height: 10),
+                          Text('Биллинг байхгүй байна',
+                              style: TextStyle(color: context.textSecondaryColor, fontSize: 14)),
+                          const SizedBox(height: 4),
+                          Text('Кодоор хайж нэмнэ үү',
+                              style: TextStyle(color: context.textSecondaryColor.withOpacity(0.6), fontSize: 12)),
+                        ],
+                      ),
+                    )
+                  else
+                    ...List.generate(_billings.length, (i) => _buildBillingRow(_billings[i])),
+                ],
               ),
-            )
-          else
-            ..._billings.map((billing) => _buildBillingCard(billing)),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBillingCard(Map<String, dynamic> billing) {
-    final isSelected = _selectedBilling?['billingId'] == billing['billingId'];
+  Widget _buildBillingRow(Map<String, dynamic> billing) {
+    final name = billing['billingName']?.toString() ?? billing['customerName']?.toString() ?? 'Биллинг';
+    final code = billing['customerCode']?.toString() ?? billing['customerId']?.toString() ?? '';
+    final address = billing['customerAddress']?.toString();
+    final isDark = context.isDarkMode;
 
-    return Container(
-      margin: EdgeInsets.only(
-        bottom: context.responsiveSpacing(
-          small: 10,
-          medium: 11,
-          large: 12,
-          tablet: 14,
-          veryNarrow: 8,
+    return Dismissible(
+      key: Key(billing['billingId']?.toString() ?? name),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) async {
+        await _deleteBilling(billing);
+        return false;
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
         ),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
       ),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? AppColors.deepGreen.withOpacity(0.1)
-            : context.isDarkMode
-            ? const Color(0xFF252525)
-            : const Color(0xFFF8F8F8),
-        borderRadius: BorderRadius.circular(
-          context.responsiveBorderRadius(
-            small: 12,
-            medium: 13,
-            large: 14,
-            tablet: 16,
-            veryNarrow: 10,
-          ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.cardBackgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.borderColor),
         ),
-        border: Border.all(
-          color: isSelected
-              ? AppColors.deepGreen
-              : AppColors.deepGreen.withOpacity(0.1),
-          width: isSelected ? 1.5 : 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            setState(() {
-              _selectedBilling = billing;
-            });
-          },
-          borderRadius: BorderRadius.circular(
-            context.responsiveBorderRadius(
-              small: 12,
-              medium: 13,
-              large: 14,
-              tablet: 16,
-              veryNarrow: 10,
-            ),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(
-              context.responsiveSpacing(
-                small: 12,
-                medium: 13,
-                large: 14,
-                tablet: 16,
-                veryNarrow: 10,
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'Б',
+                  style: TextStyle(
+                    color: AppColors.deepGreen,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        billing['billingName']?.toString() ?? 'Биллинг',
-                        style: TextStyle(
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: TextStyle(
                           color: context.textPrimaryColor,
-                          fontSize: context.responsiveFontSize(
-                            small: 14,
-                            medium: 15,
-                            large: 16,
-                            tablet: 17,
-                            veryNarrow: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (isSelected)
-                      Icon(
-                        Icons.check_circle,
-                        color: AppColors.deepGreen,
-                        size: context.responsiveFontSize(
-                          small: 16,
-                          medium: 17,
-                          large: 18,
-                          tablet: 20,
-                          veryNarrow: 14,
-                        ),
-                      ),
-                    SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                      onPressed: () => _deleteBilling(billing),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+                  if (code.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text('Код: $code',
+                        style: TextStyle(color: context.textSecondaryColor, fontSize: 12)),
                   ],
-                ),
-                if (billing['customerName'] != null) ...[
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 6,
-                      medium: 7,
-                      large: 8,
-                      tablet: 10,
-                      veryNarrow: 4,
-                    ),
-                  ),
-                  Text(
-                    'Харилцагч: ${billing['customerName']}',
-                    style: TextStyle(
-                      color: context.textSecondaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 12,
-                        medium: 13,
-                        large: 14,
-                        tablet: 15,
-                        veryNarrow: 11,
-                      ),
-                    ),
-                  ),
+                  if (address != null) ...[
+                    const SizedBox(height: 1),
+                    Text(address,
+                        style: TextStyle(color: context.textSecondaryColor.withOpacity(0.7), fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ],
                 ],
-                if (billing['customerAddress'] != null) ...[
-                  SizedBox(
-                    height: context.responsiveSpacing(
-                      small: 3,
-                      medium: 4,
-                      large: 5,
-                      tablet: 6,
-                      veryNarrow: 2,
-                    ),
-                  ),
-                  Text(
-                    'Хаяг: ${billing['customerAddress']}',
-                    style: TextStyle(
-                      color: context.textSecondaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 11,
-                        medium: 12,
-                        large: 13,
-                        tablet: 14,
-                        veryNarrow: 10,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
+            // Delete
+            GestureDetector(
+              onTap: () => _deleteBilling(billing),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+              ),
+            ),
+          ],
         ),
       ),
     );

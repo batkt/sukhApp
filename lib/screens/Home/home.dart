@@ -1287,43 +1287,22 @@ class _BookingScreenState extends State<NuurKhuudas>
           nextUnitDateText = _getNextUnitDate(geree.gereeniiOgnoo);
         }
       } else {
-        // Mock data for user without org
         displayDays = 0;
         rightLabel = 'Өдөр';
         centerLabel = 'Мэдээлэл байхгүй';
-        accentColor = const Color(0xFF6C5CE7); // Deep Purple for First Signup
+        accentColor = AppColors.deepGreen;
         targetProgress = 0.0;
         nextUnitDateText = '---';
       }
     }
-
-    // Override styling for First Signup users (Bpay signups with no address yet)
-    
-
-
-    if (_userProfile != null) {
-
-    }
-                         
-    if (_isNonOrgUser && !hasAnyAddress) {
-       accentColor = const Color(0xFF6C5CE7); // Premium Purple/Indigo
-    }
-
     final isDark = context.isDarkMode;
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 6.h),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(
         color: accentColor,
-        borderRadius: BorderRadius.circular(28.r),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1331,7 +1310,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         children: [
           if (bairNer != null || toot != null) ...[
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(100),
@@ -1339,24 +1318,24 @@ class _BookingScreenState extends State<NuurKhuudas>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.home_work_rounded, size: 14.sp, color: Colors.white),
-                  SizedBox(width: 6.w),
+                  const Icon(Icons.home_work_rounded, size: 14, color: Colors.white),
+                  const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       '${bairNer ?? ""} - ${toot ?? ""} тоот',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11.sp,
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 4.h),
+            const SizedBox(height: 6),
           ],
           IntrinsicHeight(
             child: Row(
@@ -1372,26 +1351,21 @@ class _BookingScreenState extends State<NuurKhuudas>
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          Flexible(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                '$displayDays',
-                                style: TextStyle(
-                                  fontSize: 36.sp,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  height: 1.0,
-                                  letterSpacing: -1,
-                                ),
-                              ),
+                          Text(
+                            '$displayDays',
+                            style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1.0,
+                              letterSpacing: -1,
                             ),
                           ),
-                          SizedBox(width: 8.w),
+                          const SizedBox(width: 6),
                           Text(
                             rightLabel,
                             style: TextStyle(
-                              fontSize: 12.sp,
+                              fontSize: 12,
                               fontWeight: FontWeight.w800,
                               color: Colors.white.withOpacity(0.8),
                               letterSpacing: 0.5,
@@ -1399,18 +1373,13 @@ class _BookingScreenState extends State<NuurKhuudas>
                           ),
                         ],
                       ),
-                      SizedBox(height: 6.h),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          centerLabel,
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white.withOpacity(0.8),
-                            letterSpacing: 0.5,
-                          ),
+                      const SizedBox(height: 2),
+                      Text(
+                        centerLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withOpacity(0.8),
                         ),
                       ),
                     ],
@@ -1420,7 +1389,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                 // Vertical Divider
                 Container(
                   width: 1.5,
-                  margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   color: Colors.white.withOpacity(0.2),
                 ),
 
@@ -1436,31 +1405,27 @@ class _BookingScreenState extends State<NuurKhuudas>
                           Icon(
                             Icons.calendar_today_rounded,
                             color: Colors.white.withOpacity(0.6),
-                            size: 14.sp,
+                            size: 13,
                           ),
-                          SizedBox(width: 8.w),
+                          const SizedBox(width: 6),
                           Text(
                             'Дараагийн төлөлт',
                             style: TextStyle(
-                              fontSize: 11.sp,
+                              fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: Colors.white.withOpacity(0.7),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 4.h),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          nextUnitDateText,
-                          style: TextStyle(
-                            fontSize: 17.sp,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        nextUnitDateText,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
                         ),
                       ),
                     ],
@@ -1469,12 +1434,12 @@ class _BookingScreenState extends State<NuurKhuudas>
               ],
             ),
           ),
-          SizedBox(height: 4.h),
+          const SizedBox(height: 8),
           // Progress bar
           Stack(
             children: [
               Container(
-                height: 6.h,
+                height: 6,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
@@ -1487,7 +1452,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   return FractionallySizedBox(
                     widthFactor: targetProgress * _progressAnimation.value,
                     child: Container(
-                      height: 6.h,
+                      height: 6,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -1498,88 +1463,84 @@ class _BookingScreenState extends State<NuurKhuudas>
               ),
             ],
           ),
-          SizedBox(height: 4.h),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Мөчлөгийн явц',
                 style: TextStyle(
-                  fontSize: 10.sp,
+                  fontSize: 10,
                   color: Colors.white.withOpacity(0.5),
                 ),
               ),
               Text(
                 '${(targetProgress * 100).toInt()}%',
-                style: TextStyle(
-                  fontSize: 11.sp,
+                style: const TextStyle(
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 4.h),
-          // Inline billing row - compact strip
+          const SizedBox(height: 6),
+          // Inline billing row
           GestureDetector(
             onTap: onTapBilling,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16.r),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
               ),
               child: Row(
                 children: [
                   Icon(
-                    _isNonOrgUser && !hasAnyAddress 
-                        ? Icons.location_on_outlined 
-                        : Icons.account_balance_wallet_outlined, 
-                    color: Colors.white, 
-                    size: 16.sp
+                    _isNonOrgUser && !hasAnyAddress
+                        ? Icons.location_on_outlined
+                        : Icons.account_balance_wallet_outlined,
+                    color: Colors.white,
+                    size: 16,
                   ),
-                  SizedBox(width: 10.w),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          !hasAnyAddress 
-                              ? 'Бүртгэлгүй байна' 
-                              : 'Байрны төлбөр',
+                          !hasAnyAddress ? 'Бүртгэлгүй байна' : 'Байрны төлбөр',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.7),
-                            fontSize: 11.sp,
+                            fontSize: 11,
                           ),
                         ),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            !hasAnyAddress 
-                                ? 'Хаяг сонгох' 
-                                : () {
-                                    final numBalance = double.tryParse(
-                                      totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
-                                    ) ?? 0.0;
-                                    if (numBalance < 0) return '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт';
-                                    if (numBalance == 0) return 'Төлбөр байхгүй';
-                                    return '$totalBalance₮';
-                                  }(),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          !hasAnyAddress
+                              ? 'Хаяг сонгох'
+                              : () {
+                                  final numBalance = double.tryParse(
+                                        totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
+                                      ) ??
+                                      0.0;
+                                  if (numBalance < 0) return '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт';
+                                  if (numBalance == 0) return 'Төлбөр байхгүй';
+                                  return '$totalBalance₮';
+                                }(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withOpacity(0.6), size: 12.sp),
+                  Icon(Icons.arrow_forward_ios_rounded,
+                      color: Colors.white.withOpacity(0.6), size: 12),
                 ],
               ),
             ),
@@ -1694,22 +1655,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                         return Column(
                           children: [
                             SizedBox(
-                              // Granular responsive height to support various devices (iPhone, iPad, Surface Duo)
-                              height: () {
-                                final isSmall = context.screenWidth < 360;
-                                final isLargePhone = context.screenWidth >= 400 && !context.isTablet;
-                                
-                                if (context.isTablet || context.isFoldable) {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 255.h : 330.h;
-                                } else if (isLargePhone) {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 205.h : 230.h;
-                                  // Small devices (e.g. iPhone SE) need slightly more space relatively
-                                } else if (isSmall) {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 195.h : 215.h;
-                                } else {
-                                  return (_isNonOrgUser && !hasAnyAddress) ? 200.h : 225.h;
-                                }
-                              }(),
+                              height: (_isNonOrgUser && !hasAnyAddress) ? 162.0 : 202.0,
                               child: PageView.builder(
                                 controller: _contractPageController,
                                 itemCount: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)

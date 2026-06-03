@@ -282,7 +282,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
             itemCount: widget.blogs.length > 2 ? 10000 : widget.blogs.length,
             itemBuilder: (context, index) {
               final realIndex = widget.blogs.isNotEmpty ? index % widget.blogs.length : 0;
-              final blog = widget.blogs[realIndex];
+              final blog = (realIndex == _currentIndex) ? _currentBlog : widget.blogs[realIndex];
               
               final isDark = context.isDarkMode;
               final imageUrl = blog.images.isNotEmpty

@@ -109,7 +109,6 @@ class _ParkEasePageState extends State<ParkEasePage> {
   @override
   void initState() {
     super.initState();
-    debugPrint('🚀 [ParkEase] initState called');
     _initData();
     
     // Track socket connection status
@@ -176,7 +175,6 @@ class _ParkEasePageState extends State<ParkEasePage> {
         final entryId = entry['_id']?.toString();
         
         if (plate != null && plate.isNotEmpty && (plate != currentPlate || entryId != currentId)) {
-          debugPrint('📋 [ParkEase] New plate from REST: $plate (was: $currentPlate)');
           
           // Find barilgiinId for this camera
           String? barilgiinId;
@@ -213,11 +211,9 @@ class _ParkEasePageState extends State<ParkEasePage> {
   void _setupSockets() {
     if (_baiguullagiinId == null) return;
     final socket = SocketService.instance;
-    debugPrint('🔌 [ParkEase] Setting up sockets for Org: $_baiguullagiinId');
 
     // 1. General listener for all organization parking events
     socket.listenForZogsoolUpdates(_baiguullagiinId!, (data) {
-      debugPrint('📩 [ParkEase] Received Global Socket Data: $data');
       final cameraIP = data['cameraIP']?.toString();
       if (cameraIP != null) {
         _handleRecognition(cameraIP, data);
@@ -232,19 +228,14 @@ class _ParkEasePageState extends State<ParkEasePage> {
           final type = gate.type.toLowerCase();
           
           if (type.contains('орох') || type.contains('entry') || type.contains('in')) {
-            debugPrint('📡 [ParkEase] Listening for Entry at ${camera.ip}');
             socket.listenForZogsoolOroh(_baiguullagiinId!, camera.ip, (data) {
-              debugPrint('📥 [ParkEase] Entry Detected: $data');
               _handleRecognition(camera.ip, data);
             });
           } else if (type.contains('гарах') || type.contains('exit') || type.contains('out')) {
-            debugPrint('📡 [ParkEase] Listening for Exit at ${camera.ip}');
             socket.listenForZogsoolGarah(_baiguullagiinId!, camera.ip, (data) {
-              debugPrint('📥 [ParkEase] Exit Detected: $data');
               _handleRecognition(camera.ip, data);
             });
           } else {
-            debugPrint('⚠️ [ParkEase] Unknown gate type: ${gate.type}. Listening for both.');
             socket.listenForZogsoolOroh(_baiguullagiinId!, camera.ip, (data) => _handleRecognition(camera.ip, data));
             socket.listenForZogsoolGarah(_baiguullagiinId!, camera.ip, (data) => _handleRecognition(camera.ip, data));
           }
@@ -253,15 +244,10 @@ class _ParkEasePageState extends State<ParkEasePage> {
     }
   }
 
-  void _cleanupSockets() {
-    debugPrint('🔌 [ParkEase] Cleaning up sockets');
-    // Implementation for specific cleanup if needed
-  }
+  void _cleanupSockets() {}
 
   void _handleRecognition(String cameraIP, Map<String, dynamic> data) {
     if (!mounted) return;
-    debugPrint('🎯 [ParkEase] Handling Recognition for $cameraIP: $data');
-    
     // Try to get entry time from data, fallback to now
     DateTime timestamp = DateTime.now();
     final orsonTsag = data['tuukh']?[0]?['tsagiinTuukh']?[0]?['orsonTsag'] ?? data['orsonTsag'];
@@ -304,7 +290,6 @@ class _ParkEasePageState extends State<ParkEasePage> {
   }
 
   Future<void> _loadSettings() async {
-    debugPrint('🔄 [ParkEase] _loadSettings started');
     if (mounted) {
       setState(() {
         _isLoading = true;
@@ -330,16 +315,12 @@ class _ParkEasePageState extends State<ParkEasePage> {
       }
 
       final response = await ApiService.fetchParkingSettings();
-      debugPrint('📩 [ParkEase] API Response: $response');
       final List<dynamic> list = response['jagsaalt'] ?? [];
       if (list.isNotEmpty) {
         _sites = list
             .map((s) => ParkingSite.fromJson(s))
             .where((s) => s.gates.isNotEmpty)
             .toList();
-        debugPrint('✅ [ParkEase] Loaded ${_sites.length} sites (filtered)');
-      } else {
-        debugPrint('⚠️ [ParkEase] API returned empty list');
       }
     } catch (e) {
       if (mounted) {
@@ -347,7 +328,6 @@ class _ParkEasePageState extends State<ParkEasePage> {
           _errorMessage = 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.';
         });
       }
-      debugPrint('❌ [ParkEase] LoadSettings Error: $e');
     } finally {
       if (mounted) {
         if (_sites.isEmpty && _errorMessage == null) {

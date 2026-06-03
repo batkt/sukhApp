@@ -19,6 +19,18 @@ class BillerUtils {
     return name;
   }
 
+  /// Returns true if this biller's logo image has a white/light background
+  /// (meaning it shouldn't be placed on a white tile — use a colored tile instead)
+  static bool hasWhiteBackgroundLogo(String billerName) {
+    final n = billerName.toLowerCase().trim();
+    return n.contains('цахилгаан') ||
+        n.contains('tsakhilgaan') ||
+        n.contains('tukh') ||
+        n.contains('төрийн банк') ||
+        n.contains('toriin bank') ||
+        n.contains('state bank');
+  }
+
   /// Build logo or icon for biller
   static Widget buildBillerLogo(String billerName, {String? transformedName}) {
     // Check both raw and transformed names
@@ -72,10 +84,10 @@ class BillerUtils {
         return Transform.scale(
           scale: 3.0,
           child: Image.asset(
-            'lib/assets/img/skynobg.png',
-            width: double.infinity,
-            height: double.infinity,
-            fit: BoxFit.contain,
+          'lib/assets/img/skynobg.png',
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.contain,
           ),
         );
       }

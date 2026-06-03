@@ -41,7 +41,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
   @override
   void initState() {
     super.initState();
-    debugPrint('🎬 [WebRTC Player #$_instanceId] Created for: ${widget.rtspUrl}');
     _started = widget.autoStart;
     if (_started) {
       if (widget.delay != null) {
@@ -64,7 +63,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
 
   @override
   void dispose() {
-    debugPrint('⚰️ [WebRTC Player #$_instanceId] Disposing...');
     _delayTimer?.cancel();
     _stopEverything();
     super.dispose();
@@ -94,8 +92,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
     if (_isHandshaking) return;
     _isHandshaking = true;
 
-    debugPrint('🚀 [WebRTC Player #$_instanceId] Starting handshake...');
-    
     try {
       if (!mounted) return;
       setState(() {
@@ -114,7 +110,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
 
       _peerConnection!.onTrack = (RTCTrackEvent event) {
         if (event.track.kind == 'video' && event.streams.isNotEmpty) {
-          debugPrint('📹 [WebRTC Player #$_instanceId] Received Video Track');
           if (mounted) {
             setState(() {
               _localRenderer.srcObject = event.streams[0];
@@ -125,12 +120,8 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
       };
 
       _peerConnection!.onConnectionState = (state) {
-        debugPrint('🌐 [WebRTC Player #$_instanceId] State: $state');
         if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
           if (mounted) setState(() => _loading = false);
-        } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected || 
-                   state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
-          debugPrint('⚠️ [WebRTC Player #$_instanceId] Connection dropped: $state');
         }
       };
 
@@ -165,10 +156,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
         'url': widget.rtspUrl,
       });
       
-      debugPrint('📤 [WebRTC Player #$_instanceId] Signaling Request:');
-      debugPrint('   URL: $url');
-      debugPrint('   Payload: sdp64 length=${sdpBase64.length}, rtsp=${widget.rtspUrl}');
-      
       final response = await http.post(
         url,
         headers: {
@@ -177,9 +164,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
         },
         body: body,
       );
-
-      debugPrint('📥 [WebRTC Player #$_instanceId] Signaling Response: ${response.statusCode}');
-      debugPrint('   Response: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -192,7 +176,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
         }
 
         if (answerSdp != null) {
-          debugPrint('✅ [WebRTC Player #$_instanceId] Received Answer');
           await _peerConnection!.setRemoteDescription(
             RTCSessionDescription(answerSdp, 'answer'),
           );
@@ -201,7 +184,6 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
         throw 'Server error: ${response.statusCode}';
       }
     } catch (e) {
-      debugPrint('❌ [WebRTC Player #$_instanceId] Error: $e');
       if (mounted) {
         setState(() {
           _error = 'Холболт амжилтгүй: $e';
