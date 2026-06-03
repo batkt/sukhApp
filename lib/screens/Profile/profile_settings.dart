@@ -2800,15 +2800,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.4)
-                : AppColors.deepGreen.withOpacity(0.06),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
         border: Border.all(
           color: isDark
               ? Colors.white.withOpacity(0.05)
@@ -3034,17 +3025,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
         onTap: onTap,
         child: Container(
           padding: EdgeInsets.symmetric(vertical: 16.h),
-          decoration: BoxDecoration(
-            border: showBorder
-                ? Border(
-                    bottom: BorderSide(
-                      color: isDark
-                          ? Colors.white10
-                          : Colors.black.withOpacity(0.05),
-                    ),
-                  )
-                : null,
-          ),
           child: Row(
             children: [
               Container(
