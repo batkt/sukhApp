@@ -2302,51 +2302,8 @@ class _BookingScreenState extends State<NuurKhuudas>
           return;
         }
         if (service['name'] == 'зочин') {
-          // Show progress spinner
           if (context.mounted) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (dialogCtx) => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-            );
-          }
-
-          try {
-            final response = await ApiService.fetchZochinQuotaStatus();
-            
-            if (context.mounted && Navigator.canPop(context)) {
-              Navigator.pop(context); // Dismiss spinner
-            }
-
-            final hasRight = response['hasRight'] ?? response['zochinUrikhEsekh'] ?? true;
-            if (response['success'] == false || hasRight == false) {
-              if (context.mounted) {
-                showGlassSnackBar(
-                  context,
-                  message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
-                  icon: Icons.info_outline,
-                  iconColor: Colors.orange,
-                );
-              }
-            } else {
-              if (context.mounted) {
-                context.push('/zochin-urikh');
-              }
-            }
-          } catch (e) {
-            if (context.mounted && Navigator.canPop(context)) {
-              Navigator.pop(context); // Dismiss spinner
-            }
-            if (context.mounted) {
-              showGlassSnackBar(
-                context,
-                message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
-                icon: Icons.info_outline,
-                iconColor: Colors.orange,
-              );
-            }
+            context.push('/zochin-urikh');
           }
           return;
         }

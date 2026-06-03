@@ -509,7 +509,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
               _billingDay = int.tryParse(
                 firstCron['nekhemjlekhUusgekhOgnoo'].toString(),
               );
-              debugPrint('📅 [BILLING] Reset day set to: $_billingDay');
             });
           }
         }
