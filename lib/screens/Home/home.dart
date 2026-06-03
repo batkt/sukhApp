@@ -690,37 +690,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         finalBillingList.add(billing);
       }
 
-      // 4. Fallback: If no billings were found but user has 'toots' in profile, add them as placeholders
-      if (user?['toots'] != null && user!['toots'] is List) {
-        final profileToots = user['toots'] as List;
-        for (var toot in profileToots) {
-          final t = toot is Map<String, dynamic> ? toot : Map<String, dynamic>.from(toot as Map);
-          final billingId = t['billingId']?.toString();
-          
-          // Check if this billing is already in the list
-          bool alreadyExists = finalBillingList.any((b) => 
-            b['billingId']?.toString() == billingId || 
-            (b['gereeniiDugaar'] != null && b['gereeniiDugaar'] == t['walletCustomerCode'])
-          );
-          
-          if (!alreadyExists) {
-            finalBillingList.add({
-              'billingId': billingId,
-              'billingName': t['bairniiNer']?.toString() ?? 'Орон сууцны төлбөр',
-              'customerName': '${t['ovog'] ?? ''} ${t['ner'] ?? ''}'.trim(),
-              'bairniiNer': t['bairniiNer']?.toString() ?? '',
-              'tootNum': t['toot']?.toString() ?? '',
-              'perItemTotal': 0.0, // Will load detail on tap
-              'uldegdel': 0.0,
-              'perItemAldangi': 0.0,
-              'source': t['source'] ?? 'WALLET_API',
-              'isPlaceholder': true,
-              'baiguullagiinId': t['baiguullagiinId']?.toString() ?? currentBaiguullagiinId,
-              'barilgiinId': t['barilgiinId']?.toString() ?? currentBarilgiinId,
-            });
-          }
-        }
-      }
+
 
       // If total is 0, double-check by fetching bills directly to ensure consistency with detail page
       if (total == 0.0) {
@@ -2182,6 +2152,12 @@ class _BookingScreenState extends State<NuurKhuudas>
         'color': const Color(0xFFF97316),
       }, // Bright Orange
       {
+        'name': 'зочин',
+        'label': 'Зочин',
+        'icon': Icons.people_alt_rounded,
+        'color': const Color(0xFF0EA5E9),
+      }, // Sky Blue
+      {
         'name': 'дуудлага',
         'label': 'Дуудлага',
         'icon': Icons.build_circle_rounded,
@@ -2253,13 +2229,125 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
+      onTap: () async {
         if (service['name'] == 'Зогсоол') {
-          context.push('/parkease');
+          final baigId = await StorageService.getBaiguullagiinId();
+          final isNonOrg = baigId == null ||
+              baigId == 'null' ||
+              baigId.isEmpty ||
+              baigId == '698e7fd3b6dd386b6c56a808';
+
+          if (isNonOrg) {
+            if (context.mounted) {
+              showGlassSnackBar(
+                context,
+                message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+                icon: Icons.info_outline,
+                iconColor: Colors.orange,
+              );
+            }
+            return;
+          }
+
+          // Show a progress indicator while checking settings
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogCtx) => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            );
+          }
+
+          try {
+            final response = await ApiService.fetchParkingSettings();
+            final List<dynamic> list = response['jagsaalt'] ?? [];
+            
+            if (context.mounted && Navigator.canPop(context)) {
+              Navigator.pop(context); // Dismiss spinner
+            }
+
+            if (list.isEmpty || !list.any((s) => (s['khaalga'] as List? ?? []).isNotEmpty)) {
+              if (context.mounted) {
+                showGlassSnackBar(
+                  context,
+                  message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+                  icon: Icons.info_outline,
+                  iconColor: Colors.orange,
+                );
+              }
+            } else {
+              if (context.mounted) {
+                context.push('/parkease');
+              }
+            }
+          } catch (e) {
+            if (context.mounted && Navigator.canPop(context)) {
+              Navigator.pop(context); // Dismiss spinner
+            }
+            if (context.mounted) {
+              showGlassSnackBar(
+                context,
+                message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+                icon: Icons.info_outline,
+                iconColor: Colors.orange,
+              );
+            }
+          }
           return;
         }
         if (service['name'] == 'камер') {
           context.push('/camera');
+          return;
+        }
+        if (service['name'] == 'зочин') {
+          // Show progress spinner
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogCtx) => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            );
+          }
+
+          try {
+            final response = await ApiService.fetchZochinQuotaStatus();
+            
+            if (context.mounted && Navigator.canPop(context)) {
+              Navigator.pop(context); // Dismiss spinner
+            }
+
+            final hasRight = response['hasRight'] ?? response['zochinUrikhEsekh'] ?? true;
+            if (response['success'] == false || hasRight == false) {
+              if (context.mounted) {
+                showGlassSnackBar(
+                  context,
+                  message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+                  icon: Icons.info_outline,
+                  iconColor: Colors.orange,
+                );
+              }
+            } else {
+              if (context.mounted) {
+                context.push('/zochin-urikh');
+              }
+            }
+          } catch (e) {
+            if (context.mounted && Navigator.canPop(context)) {
+              Navigator.pop(context); // Dismiss spinner
+            }
+            if (context.mounted) {
+              showGlassSnackBar(
+                context,
+                message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+                icon: Icons.info_outline,
+                iconColor: Colors.orange,
+              );
+            }
+          }
           return;
         }
         if (service['name'] == 'лифт') {

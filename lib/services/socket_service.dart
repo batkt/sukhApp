@@ -64,9 +64,9 @@ class SocketService {
       });
 
       // DEBUG: Listen to ALL incoming events
-      socket!.onAny((event, data) {
-        debugPrint('📡 [Socket] ANY EVENT: $event -> $data');
-      });
+      // socket!.onAny((event, data) {
+      //   debugPrint('📡 [Socket] ANY EVENT: $event -> $data');
+      // });
 
       socket!.onDisconnect((_) {
         _isConnected = false;

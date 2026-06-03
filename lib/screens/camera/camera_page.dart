@@ -275,20 +275,10 @@ class _CameraPageState extends State<CameraPage> {
                               color: const Color(0xFFF97316),
                             ),
                           ),
-                          SizedBox(height: 24.h),
-                          Text(
-                            'Баазанас камер байхгүй',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: isDark ? Colors.white70 : Colors.black87,
-                              fontWeight: FontWeight.w600,
-                              height: 1.5,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+                         
                           SizedBox(height: 8.h),
                           Text(
-                            'Тохиргоо → Камерийн тохиргоо рүү орж камеруудаа бүртгэнэ үү',
+                            'Тухайн СӨХ нь камерийн холболт хийгээгүй байна.',
                             style: TextStyle(
                               fontSize: 13.sp,
                               color: isDark ? Colors.white38 : Colors.black54,
@@ -296,19 +286,7 @@ class _CameraPageState extends State<CameraPage> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          SizedBox(height: 24.h),
-                          ElevatedButton.icon(
-                            onPressed: _load,
-                            icon: Icon(Icons.refresh_rounded, size: 18.sp),
-                            label: Text('Шинэчлэх', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 14.h),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-                              elevation: 0,
-                            ),
-                          ),
+                        
                         ],
                       ),
                     ),

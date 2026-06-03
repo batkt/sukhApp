@@ -107,7 +107,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = GoRouterState.of(context);
       if (state.uri.queryParameters['action'] == 'edit_email') {
-        _showPersonalInfoModal(context);
+        context.push('/personal_info');
       }
     });
   }
@@ -132,7 +132,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
         _biometricEnabled = isEnabled;
       });
     }
-  }
+  } 
 
   Future<void> _handleBiometricToggle(bool value) async {
     if (value) {
@@ -3239,7 +3239,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   icon: Icons.account_circle_outlined,
                                   title: 'Хувийн мэдээлэл',
                                   subtitle: 'Утас, хаягийн мэдээлэл',
-                                  onTap: () => _showPersonalInfoModal(context),
+                                  onTap: () async {
+                                    await context.push('/personal_info');
+                                    _loadUserProfile();
+                                    _loadCurrentAddress();
+                                  },
                                 ),
                                 _buildSettingsTile(
                                   icon: Icons.directions_car_filled_outlined,
@@ -3262,7 +3266,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 _buildSettingsTile(
                                   icon: Icons.lock_reset_rounded,
                                   title: 'Нууц код солих',
-                                  subtitle: 'Нэвтрэх 4 оронтой код хадгалах',
+                                  subtitle: 'Нэвтрэх 4 оронтой код солих',
                                   showBorder: !_biometricAvailable,
                                   onTap: () =>
                                       _showChangePasswordModal(context),

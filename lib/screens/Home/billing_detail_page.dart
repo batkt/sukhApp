@@ -974,6 +974,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                       billingName: billingName,
                       source: source,
                       baiguullagiinId: widget.billing['baiguullagiinId']?.toString(),
+                      gereeniiId: widget.billing['gereeniiId']?.toString(),
                       customerName:
                           widget.billing['customerName']?.toString() ??
                           widget.billing['ner']?.toString() ??

@@ -4237,10 +4237,6 @@ class ApiService {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
 
-      print(
-        '📞 [API] fetchAjiltan - baiguullagiinId: $baiguullagiinId, barilgiinId: $barilgiinId',
-      );
-
       if (baiguullagiinId == null || barilgiinId == null) {
         throw Exception('Байгууллага эсвэл барилгын мэдээлэл олдсонгүй');
       }
@@ -4249,38 +4245,18 @@ class ApiService {
         '$baseUrl/ajiltan',
       ).replace(queryParameters: {'baiguullagiinId': baiguullagiinId});
 
-
-
       final response = await http.get(uri, headers: headers);
 
       await _checkTokenExpiry(response);
 
-
-      print(
-        '📞 [API] fetchAjiltan response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...',
-      );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-
-        print(
-          '📞 [API] fetchAjiltan jagsaalt type: ${data['jagsaalt']?.runtimeType}',
-        );
-        print(
-          '📞 [API] fetchAjiltan jagsaalt length: ${data['jagsaalt']?.length}',
-        );
 
         // Filter jagsaalt by baiguullagiinId on client side
         if (data['jagsaalt'] != null && data['jagsaalt'] is List) {
           final filteredList = (data['jagsaalt'] as List).where((ajiltan) {
-            print(
-              '📞 [API] Checking ajiltan: ${ajiltan['ner']}, baiguullagiinId: ${ajiltan['baiguullagiinId']}',
-            );
             return ajiltan['baiguullagiinId'] == baiguullagiinId;
           }).toList();
-
-
 
           data['jagsaalt'] = filteredList;
           data['niitMur'] = filteredList.length;

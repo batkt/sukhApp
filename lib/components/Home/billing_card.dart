@@ -136,10 +136,18 @@ class _BillingCardState extends State<BillingCard>
         ? _parseNum(widget.billing['uldegdelAldangi'])
         : _parseNum(widget.billing['perItemAldangi']);
 
-    final displayName = (nickname != null && nickname.isNotEmpty)
-        ? nickname
-        : billingName;
-    final showSubtitle = (nickname != null && nickname.isNotEmpty);
+    final bool isPlaceholder = widget.billing['isPlaceholder'] == true;
+
+    final String displayName;
+    if (isPlaceholder) {
+      final orgName = widget.billing['baiguullagiinNer']?.toString() ?? '';
+      displayName = orgName.isNotEmpty ? orgName : 'Орон сууцны төлбөр';
+    } else {
+      displayName = (nickname != null && nickname.isNotEmpty)
+          ? nickname
+          : billingName;
+    }
+    final showSubtitle = !isPlaceholder && (nickname != null && nickname.isNotEmpty);
 
     // DEBUG LOG
 
@@ -151,13 +159,12 @@ class _BillingCardState extends State<BillingCard>
         cardBalance != 0 ||
         isEBillConnected ||
         widget.billing['isLocalData'] == true;
-    final hasActions = widget.onEditTap != null || widget.onDeleteTap != null;
+    final hasActions = !isPlaceholder && (widget.onEditTap != null || widget.onDeleteTap != null);
 
-    // FIX: Show the bottom pills row if there are new bills OR a balance (even 0)
     final bool hasBalance = cardBalance != 0;
     final bool isCredit = cardBalance < 0;
     final bool isPaid = cardBalance == 0;
-    final showPillsRow = (hasNewBills && newBillsCount > 0) || hasBalance || isPaid;
+    final showPillsRow = (hasNewBills && newBillsCount > 0) || hasBalance || isPaid || isPlaceholder;
 
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
@@ -176,13 +183,15 @@ class _BillingCardState extends State<BillingCard>
                     vertical: 12.h,
                   ),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1C2229) : Colors.white,
+                    color: isPlaceholder
+                        ? (isDark ? const Color(0xFF24201A) : const Color(0xFFFFFBF8))
+                        : (isDark ? const Color(0xFF1C2229) : Colors.white),
                     borderRadius: BorderRadius.circular(16.r),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.06)
-                          : const Color(0xFFE8ECF0),
-                      width: 1,
+                      color: isPlaceholder
+                          ? (isDark ? Colors.orange.withOpacity(0.25) : Colors.orange.withOpacity(0.35))
+                          : (isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE8ECF0)),
+                      width: isPlaceholder ? 1.5 : 1,
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -215,7 +224,8 @@ class _BillingCardState extends State<BillingCard>
                             ),
 
                             // Billing name subtitle (only when no nickname)
-                            if (!showSubtitle &&
+                            if (!isPlaceholder &&
+                                !showSubtitle &&
                                 billingName.isNotEmpty &&
                                 billingName != displayName) ...[
                               SizedBox(height: 4.h),
@@ -235,38 +245,64 @@ class _BillingCardState extends State<BillingCard>
                             SizedBox(height: 4.h),
 
                             // Address line
-                            Text(
-                              () {
-                                final expanded = widget.expandAddressAbbreviations(bairniiNer);
-                                if (expanded.isEmpty) {
-                                  return customerCode.isNotEmpty ? 'Код: $customerCode' : 'Хаяг сонгоно уу';
-                                }
-                                if (doorNo.isNotEmpty) {
-                                  // Avoid duplication (e.g., "8, 8")
-                                  final cleanExpanded = expanded.trim();
-                                  final cleanDoor = doorNo.trim();
-                                  if (cleanExpanded.endsWith(cleanDoor) || 
-                                      cleanExpanded.endsWith(' $cleanDoor') || 
-                                      cleanExpanded.endsWith(', $cleanDoor') ||
-                                      cleanExpanded.endsWith('-$cleanDoor')) {
-                                    return cleanExpanded;
+                            if (!isPlaceholder) ...[
+                              Text(
+                                () {
+                                  final expanded = widget.expandAddressAbbreviations(bairniiNer);
+                                  if (expanded.isEmpty) {
+                                    return customerCode.isNotEmpty ? 'Код: $customerCode' : 'Хаяг сонгоно уу';
                                   }
-                                  return '$cleanExpanded, $cleanDoor тоот';
-                                }
-                                return expanded.endsWith('тоот') ? expanded : (expanded.isNotEmpty ? '$expanded тоот' : expanded);
-                              }(),
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: 13.sp,
-                                height: 1.3,
+                                  if (doorNo.isNotEmpty) {
+                                    // Avoid duplication (e.g., "8, 8")
+                                    final cleanExpanded = expanded.trim();
+                                    final cleanDoor = doorNo.trim();
+                                    if (cleanExpanded.endsWith(cleanDoor) || 
+                                        cleanExpanded.endsWith(' $cleanDoor') || 
+                                        cleanExpanded.endsWith(', $cleanDoor') ||
+                                        cleanExpanded.endsWith('-$cleanDoor')) {
+                                      return cleanExpanded;
+                                    }
+                                    return '$cleanExpanded, $cleanDoor тоот';
+                                  }
+                                  return expanded.endsWith('тоот') ? expanded : (expanded.isNotEmpty ? '$expanded тоот' : expanded);
+                                }(),
+                                style: TextStyle(
+                                  color: context.textSecondaryColor,
+                                  fontSize: 13.sp,
+                                  height: 1.3,
+                                ),
+                                softWrap: true,
+                                maxLines: null,
+                                overflow: TextOverflow.visible,
                               ),
-                              softWrap: true,
-                              maxLines: null,
-                              overflow: TextOverflow.visible,
-                            ),
+                            ],
 
-                            // Biller name
-                            if (billerName != null &&
+                            if (isPlaceholder) ...[
+                              SizedBox(height: 6.h),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    size: 14.sp,
+                                    color: Colors.orange[700],
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  Expanded(
+                                    child: Text(
+                                      'Хэрэглээний төлбөр холбогдоогүй байна',
+                                      style: TextStyle(
+                                        color: isDark ? Colors.orange[300] : Colors.orange[800],
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                            if (!isPlaceholder &&
+                                billerName != null &&
                                 billerName.isNotEmpty) ...[
                               SizedBox(height: 4.h),
                               Text(
@@ -290,14 +326,21 @@ class _BillingCardState extends State<BillingCard>
                                 runSpacing: 8.h,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  if (hasNewBills && newBillsCount > 0)
+                                  if (isPlaceholder)
+                                    _buildStatusPill(
+                                      icon: Icons.add_link_rounded,
+                                      label: 'Төлбөр холбох',
+                                      color: Colors.orange[600]!,
+                                      isPrimary: true,
+                                    ),
+                                  if (!isPlaceholder && hasNewBills && newBillsCount > 0)
                                     _buildStatusPill(
                                       icon: Icons.notifications_active_rounded,
                                       label: '$newBillsCount шинэ',
                                       color: Colors.blue[600]!,
                                       isPrimary: false,
                                     ),
-                                  if (hasBalance)
+                                  if (!isPlaceholder && hasBalance)
                                     _buildStatusPill(
                                       icon: isCredit
                                           ? Icons.trending_up_rounded
@@ -310,7 +353,7 @@ class _BillingCardState extends State<BillingCard>
                                           : AppColors.error,
                                       isPrimary: false,
                                     ),
-                                  if (isPaid && !(hasNewBills && newBillsCount > 0))
+                                  if (!isPlaceholder && isPaid && !(hasNewBills && newBillsCount > 0))
                                     _buildStatusPill(
                                       icon: Icons.check_circle_rounded,
                                       label: 'Төлөгдсөн',

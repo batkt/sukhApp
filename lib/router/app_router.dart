@@ -14,6 +14,7 @@ import 'package:sukh_app/screens/taniltsuulga/ehniih.dart';
 import 'package:sukh_app/screens/taniltsuulga/hoyrdah.dart';
 import 'package:sukh_app/screens/Home/home.dart';
 import 'package:sukh_app/screens/Profile/profile_settings.dart';
+import 'package:sukh_app/screens/Profile/personal_info_page.dart';
 import 'package:sukh_app/screens/geree/geree.dart';
 import 'package:sukh_app/screens/nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
@@ -220,6 +221,14 @@ final GoRouter appRouter = GoRouter(
           ),
     ),
     GoRoute(
+      path: '/personal_info',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const PersonalInfoPage(),
+          ),
+    ),
+    GoRoute(
       path: '/zochin-urikh',
       pageBuilder: (context, state) =>
           PageTransitions.buildFadeThroughTransition(
@@ -383,6 +392,7 @@ final GoRouter appRouter = GoRouter(
             customerAddress: extra?['customerAddress'] ?? '',
             source: extra?['source'],
             baiguullagiinId: extra?['baiguullagiinId'],
+            gereeniiId: extra?['gereeniiId'],
           ),
         );
       },

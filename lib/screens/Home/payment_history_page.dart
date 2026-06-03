@@ -20,6 +20,7 @@ class PaymentHistoryPage extends StatefulWidget {
   final String customerAddress;
   final String? source;
   final String? baiguullagiinId;
+  final String? gereeniiId;
 
   const PaymentHistoryPage({
     super.key,
@@ -29,6 +30,7 @@ class PaymentHistoryPage extends StatefulWidget {
     required this.customerAddress,
     this.source,
     this.baiguullagiinId,
+    this.gereeniiId,
   });
 
   @override
@@ -182,80 +184,48 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
       List<PaymentHistory> history = [];
 
       if (widget.source == 'OWN_ORG') {
-        final baiguullagiinId =
-            widget.baiguullagiinId ?? await StorageService.getBaiguullagiinId();
-        final gereeResponse = await ApiService.fetchGeree(
-          await StorageService.getUserId() ?? '',
+        final invoicesRes = await ApiService.fetchNekhemjlekhiinTuukh(
+          gereeniiDugaar: widget.billingId,
         );
-        String? gereeniiId;
-        if (gereeResponse['jagsaalt'] != null &&
-            (gereeResponse['jagsaalt'] as List).isNotEmpty) {
-          final myGeree = (gereeResponse['jagsaalt'] as List).firstWhere(
-            (g) => g['gereeniiDugaar'] == widget.billingId,
-            orElse: () => null,
-          );
-          if (myGeree != null) gereeniiId = myGeree['_id']?.toString();
-        }
 
-        if (baiguullagiinId != null && gereeniiId != null) {
-          final ledgerRes = await ApiService.fetchGuilgeeAvlaguud(
-            gereeniiId: gereeniiId,
-            baiguullagiinId: baiguullagiinId,
-          );
+        if (invoicesRes['jagsaalt'] != null && invoicesRes['jagsaalt'] is List) {
+          final List<dynamic> invoices = invoicesRes['jagsaalt'];
+          List<PaymentHistory> flattenedHistory = [];
 
-          if (ledgerRes['jagsaalt'] != null && ledgerRes['jagsaalt'] is List) {
-            final List<dynamic> ledgerRows = ledgerRes['jagsaalt'];
-            List<PaymentHistory> flattenedHistory = [];
-
-            for (var item in ledgerRows) {
-              final String khelber = item['khelber']?.toString() ?? '';
-
-              if (khelber == 'Орлого' || khelber == 'Төлөлт') {
-                final amtStr =
-                    item['tulugdsun'] ??
-                    item['tulukhDun'] ??
-                    item['amount'] ??
-                    0.0;
-                final amt = (amtStr as num).toDouble();
-                if (amt <= 0) continue;
-
-                final String tailbar = item['tailbar']?.toString() ?? 'Орлого';
-
-                flattenedHistory.add(
-                  PaymentHistory(
-                    paymentId: item['_id']?.toString() ?? '',
-                    invoiceNo: tailbar,
-                    paymentAmount: amt,
-                    paymentStatus: 'PAID',
-                    paymentStatusText: 'Төлсөн',
-                    paymentStatusDate:
-                        DateTime.tryParse(
-                          item['ognoo']?.toString() ??
-                              item['burtgesenOgnoo']?.toString() ??
-                              '',
-                        ) ??
-                        DateTime.now(),
-                    bills: [
-                      Bill(
-                        billerName: widget.billingName,
-                        billType: 'Төлбөр',
-                        billNo: tailbar,
-                        hasVat: false,
-                        billTotalAmount: amt,
-                        billPeriod: '',
-                        billLateFee: 0.0,
-                      ),
-                    ],
-                  ),
-                );
-              }
+          // Only show paid invoices as payment history
+          for (var inv in invoices) {
+            if (inv['tuluv'] == 'Төлсөн') {
+              final amt = (inv['niitTulbur'] as num?)?.toDouble() ?? 0.0;
+              final String dugaar = inv['nekhemjlekhiinDugaar']?.toString() ?? '';
+              
+              flattenedHistory.add(
+                PaymentHistory(
+                  paymentId: inv['_id']?.toString() ?? '',
+                  invoiceNo: dugaar,
+                  paymentAmount: amt,
+                  paymentStatus: 'PAID',
+                  paymentStatusText: 'Төлсөн',
+                  paymentStatusDate: DateTime.tryParse(inv['tulsunOgnoo']?.toString() ?? inv['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+                  bills: [
+                    Bill(
+                      billerName: widget.billingName,
+                      billType: 'Төлбөр',
+                      billNo: dugaar,
+                      hasVat: false,
+                      billTotalAmount: amt,
+                      billPeriod: '',
+                      billLateFee: 0.0,
+                    ),
+                  ],
+                ),
+              );
             }
-
-            flattenedHistory.sort(
-              (a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate),
-            );
-            history = flattenedHistory;
           }
+
+          flattenedHistory.sort(
+            (a, b) => b.paymentStatusDate.compareTo(a.paymentStatusDate),
+          );
+          history = flattenedHistory;
         }
       } else {
         // Original Wallet API history fetcher
