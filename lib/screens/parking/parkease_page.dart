@@ -14,14 +14,10 @@ import 'package:sukh_app/widgets/webrtc_player.dart';
 
 class ParkingGate {
   final String name;
-  final String type; 
+  final String type;
   final List<ParkingCamera> cameras;
 
-  ParkingGate({
-    required this.name,
-    required this.type,
-    required this.cameras,
-  });
+  ParkingGate({required this.name, required this.type, required this.cameras});
 
   factory ParkingGate.fromJson(Map<String, dynamic> json) {
     var cameraList = (json['camera'] as List? ?? [])
@@ -40,11 +36,7 @@ class ParkingCamera {
   final String name;
   final Map<String, dynamic> config;
 
-  ParkingCamera({
-    required this.ip,
-    required this.name,
-    required this.config,
-  });
+  ParkingCamera({required this.ip, required this.name, required this.config});
 
   factory ParkingCamera.fromJson(Map<String, dynamic> json) {
     return ParkingCamera(
@@ -89,11 +81,11 @@ class ParkEasePage extends StatefulWidget {
 }
 
 class _ParkEasePageState extends State<ParkEasePage> {
-  bool _isLoading = false; 
+  bool _isLoading = false;
   List<ParkingSite> _sites = [];
   String? _errorMessage;
   String? _baiguullagiinId;
-  
+
   final Map<String, bool> _openingGates = {};
   final Map<String, Map<String, dynamic>> _lastRecognitions = {};
   final Map<String, Map<String, dynamic>> _pendingPayments = {};
@@ -110,7 +102,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
   void initState() {
     super.initState();
     _initData();
-    
+
     // Track socket connection status
     _socketStatusSub = Stream.periodic(const Duration(seconds: 2)).listen((_) {
       final connected = SocketService.instance.isConnected;
@@ -140,7 +132,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
     _cleanupSockets();
     super.dispose();
   }
-  
+
   Future<void> _initData() async {
     try {
       _baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -160,22 +152,27 @@ class _ParkEasePageState extends State<ParkEasePage> {
         final tuukh = entry['tuukh'] as List? ?? [];
         final latestHistory = tuukh.isNotEmpty ? tuukh.last : null;
         final tsagiinTuukh = latestHistory?['tsagiinTuukh'] as List? ?? [];
-        final orsonTsag = tsagiinTuukh.isNotEmpty ? tsagiinTuukh.last['orsonTsag'] : entry['createdAt'];
-        
+        final orsonTsag = tsagiinTuukh.isNotEmpty
+            ? tsagiinTuukh.last['orsonTsag']
+            : entry['createdAt'];
+
         DateTime timestamp = DateTime.now();
         if (orsonTsag != null) {
-          try { timestamp = DateTime.parse(orsonTsag.toString()); } catch (_) {}
+          try {
+            timestamp = DateTime.parse(orsonTsag.toString());
+          } catch (_) {}
         }
 
         // Only update if it's a new/different plate entry
         final currentPlate = _overallLatestRecognition?['mashiniiDugaar'];
         final currentId = _overallLatestRecognition?['_id'];
-        
+
         final cameraIP = latestHistory?['orsonKhaalga']?.toString() ?? '';
         final entryId = entry['_id']?.toString();
-        
-        if (plate != null && plate.isNotEmpty && (plate != currentPlate || entryId != currentId)) {
-          
+
+        if (plate != null &&
+            plate.isNotEmpty &&
+            (plate != currentPlate || entryId != currentId)) {
           // Find barilgiinId for this camera
           String? barilgiinId;
           for (var site in _sites) {
@@ -207,7 +204,6 @@ class _ParkEasePageState extends State<ParkEasePage> {
     }
   }
 
-
   void _setupSockets() {
     if (_baiguullagiinId == null) return;
     final socket = SocketService.instance;
@@ -226,18 +222,30 @@ class _ParkEasePageState extends State<ParkEasePage> {
         for (var camera in gate.cameras) {
           if (camera.ip.isEmpty) continue;
           final type = gate.type.toLowerCase();
-          
-          if (type.contains('орох') || type.contains('entry') || type.contains('in')) {
+
+          if (type.contains('орох') ||
+              type.contains('entry') ||
+              type.contains('in')) {
             socket.listenForZogsoolOroh(_baiguullagiinId!, camera.ip, (data) {
               _handleRecognition(camera.ip, data);
             });
-          } else if (type.contains('гарах') || type.contains('exit') || type.contains('out')) {
+          } else if (type.contains('гарах') ||
+              type.contains('exit') ||
+              type.contains('out')) {
             socket.listenForZogsoolGarah(_baiguullagiinId!, camera.ip, (data) {
               _handleRecognition(camera.ip, data);
             });
           } else {
-            socket.listenForZogsoolOroh(_baiguullagiinId!, camera.ip, (data) => _handleRecognition(camera.ip, data));
-            socket.listenForZogsoolGarah(_baiguullagiinId!, camera.ip, (data) => _handleRecognition(camera.ip, data));
+            socket.listenForZogsoolOroh(
+              _baiguullagiinId!,
+              camera.ip,
+              (data) => _handleRecognition(camera.ip, data),
+            );
+            socket.listenForZogsoolGarah(
+              _baiguullagiinId!,
+              camera.ip,
+              (data) => _handleRecognition(camera.ip, data),
+            );
           }
         }
       }
@@ -250,9 +258,13 @@ class _ParkEasePageState extends State<ParkEasePage> {
     if (!mounted) return;
     // Try to get entry time from data, fallback to now
     DateTime timestamp = DateTime.now();
-    final orsonTsag = data['tuukh']?[0]?['tsagiinTuukh']?[0]?['orsonTsag'] ?? data['orsonTsag'];
+    final orsonTsag =
+        data['tuukh']?[0]?['tsagiinTuukh']?[0]?['orsonTsag'] ??
+        data['orsonTsag'];
     if (orsonTsag != null) {
-      try { timestamp = DateTime.parse(orsonTsag.toString()); } catch (_) {}
+      try {
+        timestamp = DateTime.parse(orsonTsag.toString());
+      } catch (_) {}
     }
 
     // Find the barilgiinId for this camera
@@ -267,7 +279,12 @@ class _ParkEasePageState extends State<ParkEasePage> {
     }
 
     setState(() {
-      final entry = { ...data, 'timestamp': timestamp, 'cameraIP': cameraIP, 'barilgiinId': barilgiinId };
+      final entry = {
+        ...data,
+        'timestamp': timestamp,
+        'cameraIP': cameraIP,
+        'barilgiinId': barilgiinId,
+      };
       _lastRecognitions[cameraIP] = entry;
       _overallLatestRecognition = entry;
     });
@@ -282,7 +299,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
         final data = response['data'];
         if (mounted) {
           setState(() {
-            _pendingPayments[cameraIP] = { ...(data as Map<String, dynamic>) };
+            _pendingPayments[cameraIP] = {...(data as Map<String, dynamic>)};
           });
         }
       }
@@ -299,11 +316,12 @@ class _ParkEasePageState extends State<ParkEasePage> {
 
     try {
       final baigId = await StorageService.getBaiguullagiinId();
-      final isNonOrg = baigId == null ||
+      final isNonOrg =
+          baigId == null ||
           baigId == 'null' ||
           baigId.isEmpty ||
           baigId == '698e7fd3b6dd386b6c56a808';
-      
+
       if (isNonOrg) {
         if (mounted) {
           setState(() {
@@ -341,16 +359,40 @@ class _ParkEasePageState extends State<ParkEasePage> {
     }
   }
 
-  Future<void> _openGate(String ip, {String? barilgiinId}) async {
+  Future<void> _openGate(
+    String ip, {
+    String? barilgiinId,
+    String? mashiniiDugaar,
+  }) async {
     if (_openingGates[ip] == true) return;
     setState(() => _openingGates[ip] = true);
     try {
-      final success = await ApiService.openParkingGate(ip, barilgiinId: barilgiinId);
+      // Fall back to the last recognized plate for this camera, then the
+      // overall latest recognition, so the gate-open log records the plate.
+      final plate =
+          mashiniiDugaar ??
+          _lastRecognitions[ip]?['mashiniiDugaar']?.toString() ??
+          _overallLatestRecognition?['mashiniiDugaar']?.toString();
+      final success = await ApiService.openParkingGate(
+        ip,
+        barilgiinId: barilgiinId,
+        mashiniiDugaar: plate,
+      );
       if (mounted) {
         if (success) {
-          showGlassSnackBar(context, message: 'Хаалт нээх команд илгээгдлээ', icon: Icons.check_circle, iconColor: Colors.green);
+          showGlassSnackBar(
+            context,
+            message: 'Хаалт нээх команд илгээгдлээ',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
         } else {
-          showGlassSnackBar(context, message: 'Алдаа гарлаа', icon: Icons.error, iconColor: Colors.red);
+          showGlassSnackBar(
+            context,
+            message: 'Алдаа гарлаа',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
         }
       }
     } finally {
@@ -367,7 +409,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
       if (toInvoice) {
         success = await ApiService.addParkingFeeToInvoice(
           plateNumber: payment['plate_number'] ?? '',
-          amount: (payment['amount'] ?? 0).toDouble(), 
+          amount: (payment['amount'] ?? 0).toDouble(),
           sessionId: payment['session_id'] ?? '',
           parkingId: payment['parking_id'] ?? '',
         );
@@ -381,10 +423,24 @@ class _ParkEasePageState extends State<ParkEasePage> {
       }
       if (mounted) {
         if (success) {
-          showGlassSnackBar(context, message: toInvoice ? 'Нэхэмжлэх дээр нэмэгдлээ' : 'Төлбөр амжилттай', icon: Icons.check_circle, iconColor: Colors.green);
-          setState(() { _pendingPayments.remove(cameraIP); });
+          showGlassSnackBar(
+            context,
+            message: toInvoice
+                ? 'Нэхэмжлэх дээр нэмэгдлээ'
+                : 'Төлбөр амжилттай',
+            icon: Icons.check_circle,
+            iconColor: Colors.green,
+          );
+          setState(() {
+            _pendingPayments.remove(cameraIP);
+          });
         } else {
-          showGlassSnackBar(context, message: 'Алдаа гарлаа', icon: Icons.error, iconColor: Colors.red);
+          showGlassSnackBar(
+            context,
+            message: 'Алдаа гарлаа',
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
         }
       }
     } finally {
@@ -396,20 +452,20 @@ class _ParkEasePageState extends State<ParkEasePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
-      appBar: buildStandardAppBar(
-        context,
-        title: 'Зогсоол',
-      ),
+      appBar: buildStandardAppBar(context, title: 'Зогсоол'),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [AppColors.darkBackground, AppColors.darkBackground.withOpacity(0.9)]
+                ? [
+                    AppColors.darkBackground,
+                    AppColors.darkBackground.withOpacity(0.9),
+                  ]
                 : [Colors.white, Color(0xFFF5F9F7), Color(0xFFE8F4F0)],
           ),
         ),
@@ -420,7 +476,9 @@ class _ParkEasePageState extends State<ParkEasePage> {
 
   Widget _buildBody() {
     if (_isLoading && _sites.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     }
 
     if (_errorMessage != null && _sites.isEmpty) {
@@ -434,7 +492,9 @@ class _ParkEasePageState extends State<ParkEasePage> {
               Container(
                 padding: EdgeInsets.all(20.w),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF97316).withOpacity(isDark ? 0.2 : 0.12),
+                  color: const Color(
+                    0xFFF97316,
+                  ).withOpacity(isDark ? 0.2 : 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -471,7 +531,9 @@ class _ParkEasePageState extends State<ParkEasePage> {
               Container(
                 padding: EdgeInsets.all(20.w),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF97316).withOpacity(isDark ? 0.2 : 0.12),
+                  color: const Color(
+                    0xFFF97316,
+                  ).withOpacity(isDark ? 0.2 : 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -520,8 +582,10 @@ class _ParkEasePageState extends State<ParkEasePage> {
     final recognition = _overallLatestRecognition!;
     final entryTime = (recognition['timestamp'] as DateTime?) ?? DateTime.now();
     final now = DateTime.now();
-    final diff = now.isAfter(entryTime) ? now.difference(entryTime) : Duration.zero;
-    
+    final diff = now.isAfter(entryTime)
+        ? now.difference(entryTime)
+        : Duration.zero;
+
     final hours = diff.inHours.toString().padLeft(2, '0');
     final minutes = (diff.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (diff.inSeconds % 60).toString().padLeft(2, '0');
@@ -552,7 +616,11 @@ class _ParkEasePageState extends State<ParkEasePage> {
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24.w),
+            child: Icon(
+              Icons.qr_code_scanner_rounded,
+              color: Colors.white,
+              size: 24.w,
+            ),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -562,12 +630,21 @@ class _ParkEasePageState extends State<ParkEasePage> {
               children: [
                 Text(
                   'Сүүлд танигдсан',
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11.sp, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   recognition['mashiniiDugaar'] ?? '---',
-                  style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -580,7 +657,10 @@ class _ParkEasePageState extends State<ParkEasePage> {
             children: [
               Text(
                 'Орсон: ${DateFormat('HH:mm').format(entryTime)}',
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 9.sp),
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 9.sp,
+                ),
               ),
               SizedBox(height: 4.h),
               Container(
@@ -640,9 +720,14 @@ class _ParkEasePageState extends State<ParkEasePage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: _isSocketConnected ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                    color: _isSocketConnected
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.red.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: _isSocketConnected ? Colors.green : Colors.red,
@@ -697,7 +782,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
     final isExpanded = _expandedGateKey == gateKey;
     final cameraIP = primaryCamera?.ip;
     final isOpening = cameraIP != null && (_openingGates[cameraIP] ?? false);
-    
+
     final recognition = cameraIP != null ? _lastRecognitions[cameraIP] : null;
     final pendingPayment = cameraIP != null ? _pendingPayments[cameraIP] : null;
     final effectiveBarilgiinId = site.barilgiinId ?? site.id;
@@ -711,18 +796,26 @@ class _ParkEasePageState extends State<ParkEasePage> {
               GestureDetector(
                 onTap: () {
                   if (cameraIP != null) {
-                    setState(() { _expandedGateKey = isExpanded ? null : gateKey; });
+                    setState(() {
+                      _expandedGateKey = isExpanded ? null : gateKey;
+                    });
                   }
                 },
                 child: Container(
-                  width: 44.w, height: 44.w,
+                  width: 44.w,
+                  height: 44.w,
                   decoration: BoxDecoration(
-                    color: isExpanded ? AppColors.primary.withOpacity(0.12) : Colors.grey.withOpacity(0.08),
+                    color: isExpanded
+                        ? AppColors.primary.withOpacity(0.12)
+                        : Colors.grey.withOpacity(0.08),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    isExpanded ? Icons.videocam_off_rounded : Icons.videocam_rounded,
-                    size: 22.w, color: isExpanded ? AppColors.primary : Colors.grey,
+                    isExpanded
+                        ? Icons.videocam_off_rounded
+                        : Icons.videocam_rounded,
+                    size: 22.w,
+                    color: isExpanded ? AppColors.primary : Colors.grey,
                   ),
                 ),
               ),
@@ -731,17 +824,42 @@ class _ParkEasePageState extends State<ParkEasePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(gate.name, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                    Text(
+                      gate.name,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     SizedBox(height: 4.h),
                     Row(
                       children: [
-                        Text(gate.type, style: TextStyle(fontSize: 12.sp, color: Colors.grey[600])),
+                        Text(
+                          gate.type,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.grey[600],
+                          ),
+                        ),
                         if (recognition != null) ...[
                           SizedBox(width: 10.w),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                            decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(6.r)),
-                            child: Text(recognition['mashiniiDugaar'] ?? '', style: TextStyle(fontSize: 11.sp, color: Colors.green, fontWeight: FontWeight.bold)),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6.w,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            child: Text(
+                              recognition['mashiniiDugaar'] ?? '',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ],
                       ],
@@ -751,20 +869,55 @@ class _ParkEasePageState extends State<ParkEasePage> {
               ),
               if (cameraIP != null)
                 ElevatedButton(
-                  onPressed: isOpening ? null : () => _openGate(cameraIP, barilgiinId: recognition?['barilgiinId'] ?? effectiveBarilgiinId),
+                  onPressed: isOpening
+                      ? null
+                      : () => _openGate(
+                          cameraIP,
+                          barilgiinId:
+                              recognition?['barilgiinId'] ??
+                              effectiveBarilgiinId,
+                        ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary, foregroundColor: Colors.white,
-                    elevation: 0, padding: EdgeInsets.symmetric(horizontal: 18.w),
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(horizontal: 18.w),
                     minimumSize: Size(85.w, 40.h),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
                   ),
-                  child: isOpening ? SizedBox(width: 18.w, height: 18.w, child: const CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))) : Text('Нээх', style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold)),
+                  child: isOpening
+                      ? SizedBox(
+                          width: 18.w,
+                          height: 18.w,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          'Нээх',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
             ],
           ),
         ),
-        if (pendingPayment != null && cameraIP != null) _buildPaymentCard(cameraIP, pendingPayment),
-        if (isExpanded && primaryCamera != null) _buildCameraStream(primaryCamera, recognition, effectiveBarilgiinId, gateKey),
+        if (pendingPayment != null && cameraIP != null)
+          _buildPaymentCard(cameraIP, pendingPayment),
+        if (isExpanded && primaryCamera != null)
+          _buildCameraStream(
+            primaryCamera,
+            recognition,
+            effectiveBarilgiinId,
+            gateKey,
+          ),
       ],
     );
   }
@@ -774,7 +927,11 @@ class _ParkEasePageState extends State<ParkEasePage> {
     return Container(
       margin: EdgeInsets.fromLTRB(18.w, 0, 18.w, 15.h),
       padding: EdgeInsets.all(15.w),
-      decoration: BoxDecoration(color: Colors.red.withOpacity(0.06), borderRadius: BorderRadius.circular(15.r), border: Border.all(color: Colors.red.withOpacity(0.12))),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(15.r),
+        border: Border.all(color: Colors.red.withOpacity(0.12)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -782,17 +939,49 @@ class _ParkEasePageState extends State<ParkEasePage> {
             children: [
               Icon(Icons.payment_rounded, size: 18.w, color: Colors.red),
               SizedBox(width: 10.w),
-              Text('Төлбөрийн мэдээлэл', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold, color: Colors.red)),
+              Text(
+                'Төлбөрийн мэдээлэл',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
               const Spacer(),
-              Text('${NumberFormat('#,###').format(payment['amount'] ?? 0)} ₮', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold, color: Colors.red)),
+              Text(
+                '${NumberFormat('#,###').format(payment['amount'] ?? 0)} ₮',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 15.h),
           Row(
             children: [
-              Expanded(child: _buildActionBtn('Нэхэмжлэх дээр нэмэх', Icons.receipt_long_rounded, Colors.blue, isProcessing ? null : () => _handlePaymentAction(cameraIP, true))),
+              Expanded(
+                child: _buildActionBtn(
+                  'Нэхэмжлэх дээр нэмэх',
+                  Icons.receipt_long_rounded,
+                  Colors.blue,
+                  isProcessing
+                      ? null
+                      : () => _handlePaymentAction(cameraIP, true),
+                ),
+              ),
               SizedBox(width: 10.w),
-              Expanded(child: _buildActionBtn('Шууд төлөх', Icons.account_balance_wallet_rounded, Colors.green, isProcessing ? null : () => _handlePaymentAction(cameraIP, false))),
+              Expanded(
+                child: _buildActionBtn(
+                  'Шууд төлөх',
+                  Icons.account_balance_wallet_rounded,
+                  Colors.green,
+                  isProcessing
+                      ? null
+                      : () => _handlePaymentAction(cameraIP, false),
+                ),
+              ),
             ],
           ),
         ],
@@ -800,25 +989,50 @@ class _ParkEasePageState extends State<ParkEasePage> {
     );
   }
 
-  Widget _buildActionBtn(String label, IconData icon, Color color, VoidCallback? onTap) {
+  Widget _buildActionBtn(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback? onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 10.w),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10.r), border: Border.all(color: color.withOpacity(0.3))),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 16.w, color: color),
             SizedBox(width: 8.w),
-            Flexible(child: Text(label, style: TextStyle(fontSize: 11.sp, color: color, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCameraStream(ParkingCamera camera, Map<String, dynamic>? recognition, String barilgiinId, String gateKey) {
+  Widget _buildCameraStream(
+    ParkingCamera camera,
+    Map<String, dynamic>? recognition,
+    String barilgiinId,
+    String gateKey,
+  ) {
     return Container(
       width: double.infinity,
       height: 220.h,
@@ -830,27 +1044,29 @@ class _ParkEasePageState extends State<ParkEasePage> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15.r),
-        child: _sites.isEmpty ? const SizedBox() : Builder(
-          builder: (context) {
-            // Construct the RTSP URL
-            final tokhirgoo = camera.config;
-            final user = tokhirgoo['USER'] ?? '';
-            final pass = tokhirgoo['PASSWD'] ?? '';
-            final port = tokhirgoo['PORT'] ?? '554';
-            final root = tokhirgoo['ROOT'] ?? 'stream';
-            final ip = camera.ip;
+        child: _sites.isEmpty
+            ? const SizedBox()
+            : Builder(
+                builder: (context) {
+                  // Construct the RTSP URL
+                  final tokhirgoo = camera.config;
+                  final user = tokhirgoo['USER'] ?? '';
+                  final pass = tokhirgoo['PASSWD'] ?? '';
+                  final port = tokhirgoo['PORT'] ?? '554';
+                  final root = tokhirgoo['ROOT'] ?? 'stream';
+                  final ip = camera.ip;
 
-            // rtsp://user:pass@ip:port/root
-            final rtspUrl = 'rtsp://$user:$pass@$ip:$port/$root';
+                  // rtsp://user:pass@ip:port/root
+                  final rtspUrl = 'rtsp://$user:$pass@$ip:$port/$root';
 
-            return WebRTCPlayer(
-              key: ValueKey('player_$gateKey'),
-              rtspUrl: rtspUrl,
-              barilgiinId: barilgiinId,
-              autoStart: true,
-            );
-          },
-        ),
+                  return WebRTCPlayer(
+                    key: ValueKey('player_$gateKey'),
+                    rtspUrl: rtspUrl,
+                    barilgiinId: barilgiinId,
+                    autoStart: true,
+                  );
+                },
+              ),
       ),
     );
   }

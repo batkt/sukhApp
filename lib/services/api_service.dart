@@ -524,7 +524,10 @@ class ApiService {
     }
   }
 
-  static Future<List<String>> getWalletToots(String bairId, {String? orts}) async {
+  static Future<List<String>> getWalletToots(
+    String bairId, {
+    String? orts,
+  }) async {
     try {
       String url = '$baseUrl/walletAddress/toots/$bairId';
       if (orts != null && orts.isNotEmpty) {
@@ -594,15 +597,23 @@ class ApiService {
           );
         }
       } else {
-        await handleUnauthorized('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү');
-        throw Exception('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү');
+        await handleUnauthorized(
+          'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү',
+        );
+        throw Exception(
+          'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү',
+        );
       }
     } catch (e) {
       if (e.toString().contains('404')) {
         rethrow;
       }
-      await handleUnauthorized('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү');
-      throw Exception('Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү: $e');
+      await handleUnauthorized(
+        'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү',
+      );
+      throw Exception(
+        'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү: $e',
+      );
     }
   }
 
@@ -640,7 +651,6 @@ class ApiService {
           throw Exception('Биллингийн мэдээлэл олдсонгүй');
         }
 
-
         if (data['success'] == true) {
           // Check if data field is a List and extract first item
           if (data['data'] is List) {
@@ -649,7 +659,6 @@ class ApiService {
               '🔍 [FIND-BILLING] data field is List, length: ${dataList.length}',
             );
             if (dataList.isNotEmpty) {
-
               final firstItem = dataList[0];
               print(
                 '🔍 [FIND-BILLING] First item type: ${firstItem.runtimeType}',
@@ -657,7 +666,6 @@ class ApiService {
 
               if (firstItem is Map<String, dynamic>) {
                 data['data'] = Map<String, dynamic>.from(firstItem);
-
               } else {
                 print(
                   '❌ [FIND-BILLING] First item is not Map<String, dynamic>',
@@ -665,37 +673,27 @@ class ApiService {
                 throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
               }
             } else {
-
               throw Exception('Биллингийн мэдээлэл олдсонгүй');
             }
-          } else {
-
-          }
+          } else {}
 
           return data;
         } else {
-
           throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
         }
       } else if (response.statusCode == 404) {
-
         throw Exception('Төлбөр олдсонгүй');
       } else if (response.statusCode == 401) {
-
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-
         throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-
-
       if (response != null) {}
       if (e.toString().contains('is not a subtype') ||
           e.toString().contains('List<dynamic>') ||
           e.toString().contains('Map<String, dynamic>')) {
-
         throw Exception('Биллингийн мэдээлэл буруу форматтай байна');
       }
       // Check if the error already contains "Төлбөр олдсонгүй" to avoid nested messages
@@ -750,17 +748,8 @@ class ApiService {
     try {
       final headers = await getWalletApiHeaders();
       final uri = Uri.parse('$baseUrl/wallet/billing/list');
-      
 
-
-
-      final response = await http.get(
-        uri,
-        headers: headers,
-      );
-      
-
-
+      final response = await http.get(uri, headers: headers);
 
       await _checkTokenExpiry(response);
 
@@ -788,7 +777,6 @@ class ApiService {
         return [];
       }
     } catch (e) {
-
       return [];
     }
   }
@@ -800,7 +788,6 @@ class ApiService {
     // User-specific billing details must always be fetched fresh.
 
     try {
-
       final headers = await getWalletApiHeaders();
       final response = await http.get(
         Uri.parse('$baseUrl/wallet/billing/bills/$billingId'),
@@ -855,7 +842,6 @@ class ApiService {
         return {};
       }
     } catch (e) {
-
       return {};
     }
   }
@@ -906,7 +892,6 @@ class ApiService {
       final response = await http.get(Uri.parse(url), headers: headers);
       await _checkTokenExpiry(response);
 
-
       print(
         '🔍 [WALLET ADDRESS] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
       );
@@ -926,11 +911,9 @@ class ApiService {
           return [];
         }
       } else {
-
         return [];
       }
     } catch (e) {
-
       return [];
     }
   }
@@ -1680,9 +1663,7 @@ class ApiService {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       version = packageInfo.version;
-    } catch (e) {
-
-    }
+    } catch (e) {}
 
     final requestBody = <String, dynamic>{
       'utas': utas,
@@ -1772,13 +1753,15 @@ class ApiService {
     };
   }
 
-  static Future<void> handleUnauthorized([String? message, bool showNotification = true]) async {
-
-
+  static Future<void> handleUnauthorized([
+    String? message,
+    bool showNotification = true,
+  ]) async {
     final isLoggedIn = await StorageService.isLoggedIn();
     if (!isLoggedIn) {
-
-      if (showNotification && message != null && message.contains('өөр төхөөрөмж')) {
+      if (showNotification &&
+          message != null &&
+          message.contains('өөр төхөөрөмж')) {
         await NotificationService.showSessionExpiredNotification(message);
       }
       return;
@@ -1801,12 +1784,9 @@ class ApiService {
             }
             navContext.go('/newtrekh');
           } catch (e) {
-
             try {
               navContext.go('/newtrekh');
-            } catch (e2) {
-
-            }
+            } catch (e2) {}
           }
         }
       });
@@ -1833,7 +1813,6 @@ class ApiService {
         userId = userProfile['result']['nevtrekhNer'].toString();
       }
     } catch (e) {
-
       // Try saved phone as fallback
       userId = await StorageService.getSavedPhoneNumber();
     }
@@ -1849,7 +1828,6 @@ class ApiService {
       print(
         '⚠️ [WALLET API] Warning: No phone number available for userId header',
       );
-
     }
 
     return headers;
@@ -1909,9 +1887,7 @@ class ApiService {
               tukhainBaaziinKholbolt,
             );
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
 
       if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
@@ -1929,7 +1905,6 @@ class ApiService {
             },
           );
 
-
       print(
         '🔍 [API] getConsumerInfo - Identity: $identity (encoded: $encodedIdentity)',
       );
@@ -1938,24 +1913,19 @@ class ApiService {
         '🔍 [API] getConsumerInfo - tukhainBaaziinKholbolt: $tukhainBaaziinKholbolt',
       );
 
-
       final response = await http.get(uri, headers: headers);
 
       await _checkTokenExpiry(response);
 
-
       print(
         '🔍 [API] getConsumerInfo - Response body length: ${response.body.length}',
       );
-
 
       if (response.statusCode == 200) {
         if (response.body.isEmpty) {
           throw Exception('Хэрэглэгч олдсонгүй');
         }
         final data = json.decode(response.body);
-
-
 
         print(
           '🔍 [API] getConsumerInfo - Data keys: ${data is Map ? data.keys.toList() : "N/A"}',
@@ -1965,7 +1935,6 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else if (response.statusCode == 404) {
-
         throw Exception('Хэрэглэгч олдсонгүй');
       } else {
         String errorMessage =
@@ -1973,14 +1942,10 @@ class ApiService {
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['message']?.toString() ?? errorMessage;
-
-        } catch (_) {
-
-        }
+        } catch (_) {}
         throw Exception(errorMessage);
       }
     } catch (e) {
-
       if (e is Exception) {
         rethrow;
       }
@@ -2013,9 +1978,7 @@ class ApiService {
               tukhainBaaziinKholbolt,
             );
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
 
       if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
@@ -2033,7 +1996,6 @@ class ApiService {
             },
           );
 
-
       print(
         '🔍 [API] getForeignerInfo - Identity: $identity (encoded: $encodedIdentity)',
       );
@@ -2046,19 +2008,15 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-
       print(
         '🔍 [API] getForeignerInfo - Response body length: ${response.body.length}',
       );
-
 
       if (response.statusCode == 200) {
         if (response.body.isEmpty) {
           throw Exception('Гадаадын иргэн олдсонгүй');
         }
         final data = json.decode(response.body);
-
-
 
         print(
           '🔍 [API] getForeignerInfo - Data keys: ${data is Map ? data.keys.toList() : "N/A"}',
@@ -2068,7 +2026,6 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else if (response.statusCode == 404) {
-
         throw Exception('Гадаадын иргэн олдсонгүй');
       } else {
         String errorMessage =
@@ -2076,14 +2033,10 @@ class ApiService {
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['message']?.toString() ?? errorMessage;
-
-        } catch (_) {
-
-        }
+        } catch (_) {}
         throw Exception(errorMessage);
       }
     } catch (e) {
-
       if (e is Exception) {
         rethrow;
       }
@@ -2128,9 +2081,7 @@ class ApiService {
               tukhainBaaziinKholbolt,
             );
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
 
       if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
@@ -2155,9 +2106,6 @@ class ApiService {
 
       final uri = Uri.parse('$baseUrl/easyRegister/user/search');
 
-
-
-
       final response = await http.post(
         uri,
         headers: headers,
@@ -2165,9 +2113,6 @@ class ApiService {
       );
 
       await _checkTokenExpiry(response);
-
-
-
 
       if (response.body.isEmpty) {
         throw Exception('Сервер хоосон хариу өглөө');
@@ -2203,7 +2148,6 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-
       if (e is Exception) rethrow;
       throw Exception('Системийн алдаа гарлаа: $e');
     }
@@ -2352,9 +2296,7 @@ class ApiService {
               tukhainBaaziinKholbolt,
             );
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
 
       if (baiguullagiinId == null || tukhainBaaziinKholbolt == null) {
@@ -2371,7 +2313,6 @@ class ApiService {
               'tukhainBaaziinKholbolt': tukhainBaaziinKholbolt,
             },
           );
-
 
       print(
         '🔍 [API] getForeignerInfoByLoginName - LoginName: $loginName (encoded: $encodedLoginName)',
@@ -2417,7 +2358,6 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else if (response.statusCode == 404) {
-
         throw Exception('Гадаадын иргэн олдсонгүй');
       } else {
         String errorMessage =
@@ -2425,7 +2365,6 @@ class ApiService {
         try {
           final errorData = json.decode(response.body);
           errorMessage = errorData['message']?.toString() ?? errorMessage;
-
         } catch (_) {
           print(
             '❌ [API] getForeignerInfoByLoginName - Could not parse error response',
@@ -2434,7 +2373,6 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-
       if (e is Exception) {
         rethrow;
       }
@@ -2624,16 +2562,12 @@ class ApiService {
   /// Private helper for background wallet registration
   static Future<void> _autoRegisterWallet(String phone, String email) async {
     try {
-
       final regResult = await registerWalletUser(utas: phone, mail: email);
       if (regResult['success'] == true && regResult['userId'] != null) {
-
         // Refresh profile to pick up the new walletUserId
         getUserProfile(forceRefresh: true).catchError((_) => null);
       }
-    } catch (e) {
-
-    }
+    } catch (e) {}
   }
 
   static Future<Map<String, dynamic>> updatePlateNumber(
@@ -2673,7 +2607,6 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-
       throw Exception('Дугаар солиход алдаа гарлаа: $e');
     }
   }
@@ -2762,12 +2695,8 @@ class ApiService {
     required Map<String, dynamic> addressData,
   }) async {
     try {
-
-
-
       final userId = await StorageService.getUserId();
       if (userId == null) {
-
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
@@ -2780,8 +2709,6 @@ class ApiService {
       if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
         requestBody['baiguullagiinId'] = baiguullagiinId;
       }
-
-
 
       print(
         '📝 [API] updateOrshinSuugchAddress - Endpoint: $baseUrl/orshinSuugch/$userId',
@@ -2800,7 +2727,6 @@ class ApiService {
       );
       return json.decode(response.body);
     } catch (e) {
-
       rethrow;
     }
   }
@@ -2836,7 +2762,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
     }
   }
@@ -2855,12 +2780,14 @@ class ApiService {
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
       };
 
-      if (baiguullagiinId != null) queryParams['baiguullagiinId'] = baiguullagiinId;
-      if (tukhainBaaziinKholbolt != null) queryParams['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
+      if (baiguullagiinId != null)
+        queryParams['baiguullagiinId'] = baiguullagiinId;
+      if (tukhainBaaziinKholbolt != null)
+        queryParams['tukhainBaaziinKholbolt'] = tukhainBaaziinKholbolt;
 
-      final uri = Uri.parse('$baseUrl/geree').replace(
-        queryParameters: queryParams,
-      );
+      final uri = Uri.parse(
+        '$baseUrl/geree',
+      ).replace(queryParameters: queryParams);
 
       final response = await http.get(uri, headers: headers);
 
@@ -2877,7 +2804,6 @@ class ApiService {
       throw Exception('Гэрээний мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
-
 
   static Future<Map<String, dynamic>> fetchNekhemjlekhiinTuukh({
     required String gereeniiDugaar,
@@ -2922,7 +2848,6 @@ class ApiService {
           final data = json.decode(response.body);
 
           if (data is String) {
-
             return {'jagsaalt': []};
           }
           return data;
@@ -2936,7 +2861,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Нэхэмжлэхийн түүх татахад алдаа гарлаа: $e');
     }
   }
@@ -2978,7 +2902,6 @@ class ApiService {
       }
       return {'jagsaalt': []};
     } catch (e) {
-
       return {'jagsaalt': []};
     }
   }
@@ -3000,8 +2923,6 @@ class ApiService {
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
       };
 
-
-
       final uri = Uri.parse('$baseUrl/uldegdelBodyo');
 
       final response = await http.post(
@@ -3013,11 +2934,12 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         // Backend returns: { success: true, summary: { totalTulbur, ... }, items: [...] }
-        final List<dynamic> items = data['items'] ?? data['jagsaalt'] ?? data['result'] ?? [];
+        final List<dynamic> items =
+            data['items'] ?? data['jagsaalt'] ?? data['result'] ?? [];
         final summary = data['summary'] ?? {};
-        
+
         return {
           'jagsaalt': items,
           'summary': summary,
@@ -3026,7 +2948,6 @@ class ApiService {
       }
       return {'jagsaalt': [], 'totalUldegdel': 0.0};
     } catch (e) {
-
       return {'jagsaalt': [], 'totalUldegdel': 0.0};
     }
   }
@@ -3041,7 +2962,10 @@ class ApiService {
       // 1 & 2. Fetch Invoices and Ledger Items in parallel
       final results = await Future.wait([
         fetchNekhemjlekhiinTuukh(gereeniiDugaar: gereeniiDugaar),
-        fetchUldegdelBodyo(gereeniiId: gereeniiId, baiguullagiinId: baiguullagiinId),
+        fetchUldegdelBodyo(
+          gereeniiId: gereeniiId,
+          baiguullagiinId: baiguullagiinId,
+        ),
       ]);
 
       final invoicesResponse = results[0];
@@ -3050,7 +2974,8 @@ class ApiService {
       final List<dynamic> invoices = invoicesResponse['jagsaalt'] ?? [];
       final List<dynamic> items = itemsResponse['jagsaalt'] ?? [];
       final summary = itemsResponse['summary'] ?? {};
-      final List<dynamic> nekhemjlekhuudSummary = summary['nekhemjlekhuud'] ?? [];
+      final List<dynamic> nekhemjlekhuudSummary =
+          summary['nekhemjlekhuud'] ?? [];
 
       final Set<String> linkedItemIds = {};
       for (var invoice in invoices) {
@@ -3058,39 +2983,46 @@ class ApiService {
         final linked = items
             .where((item) => item['nekhemjlekhId'] == invoiceId)
             .toList();
-        
+
         // Ensure medeelel exists for model compatibility
         if (invoice['medeelel'] == null) {
           invoice['medeelel'] = {'zardluud': []};
         }
         invoice['medeelel']['guilgeenuud'] = linked;
-        
+
         // Also keep at root for legacy reasons
         invoice['guilgeenuud'] = linked;
 
-        // KEY FIX 1: Prioritize item dates for display. 
+        // KEY FIX 1: Prioritize item dates for display.
         // If the invoice has no date or its date is newer than the charges it contains,
         // we use the date of the charges to represent the correct billing period.
         if (linked.isNotEmpty) {
           // Sort linked items by date to find the most representative one (usually they share the same month)
           final sortedItems = List<Map<String, dynamic>>.from(linked);
-          sortedItems.sort((a, b) => (a['ognoo']?.toString() ?? '').compareTo(b['ognoo']?.toString() ?? ''));
-          
+          sortedItems.sort(
+            (a, b) => (a['ognoo']?.toString() ?? '').compareTo(
+              b['ognoo']?.toString() ?? '',
+            ),
+          );
+
           final oldestItemDate = sortedItems.first['ognoo']?.toString();
           if (oldestItemDate != null && oldestItemDate.isNotEmpty) {
-            final invDate = invoice['nekhemjlekhiinOgnoo']?.toString() ?? invoice['ognoo']?.toString() ?? '';
-            
+            final invDate =
+                invoice['nekhemjlekhiinOgnoo']?.toString() ??
+                invoice['ognoo']?.toString() ??
+                '';
+
             // If invoice has no date, or is significantly newer (different month/year) than its items,
             // override the invoice date with the item date for correct 'billPeriod' display.
             bool shouldOverride = invDate.isEmpty;
             if (!shouldOverride) {
-               try {
-                 final dInv = DateTime.parse(invDate);
-                 final dItem = DateTime.parse(oldestItemDate);
-                 if (dInv.year != dItem.year || dInv.month != dItem.month) {
-                   shouldOverride = true;
-                 }
-               } catch (_) {}
+              try {
+                final dInv = DateTime.parse(invDate);
+                final dItem = DateTime.parse(oldestItemDate);
+                if (dInv.year != dItem.year || dInv.month != dItem.month) {
+                  shouldOverride = true;
+                }
+              } catch (_) {}
             }
 
             if (shouldOverride) {
@@ -3099,7 +3031,7 @@ class ApiService {
             }
           }
         }
-        
+
         // KEY FIX 2: Update the invoice uldegdel from the authoritative ledger summary
         final summaryMatch = nekhemjlekhuudSummary.firstWhere(
           (s) => s['nekhemjlekhId'] == invoiceId,
@@ -3108,12 +3040,12 @@ class ApiService {
         if (summaryMatch != null) {
           final ledgerUldegdel = (summaryMatch['uldegdel'] ?? 0.0).toDouble();
           final ledgerTotal = (summaryMatch['niitTulbur'] ?? 0.0).toDouble();
-          
+
           // Preserve the original DB amount if not already set
           invoice['niitTulburOriginal'] ??= invoice['niitTulbur'];
-          
+
           invoice['uldegdel'] = ledgerUldegdel;
-          // Synchronize niitTulbur from the ledger ONLY if ledger has positive charges, 
+          // Synchronize niitTulbur from the ledger ONLY if ledger has positive charges,
           // otherwise keep the original invoice amount.
           if (ledgerTotal > 0) {
             invoice['niitTulbur'] = ledgerTotal;
@@ -3132,7 +3064,8 @@ class ApiService {
 
       for (var item in standaloneItems) {
         // Create a synthetic invoice for standalone items
-        final itemDate = item['ognoo']?.toString() ?? DateTime.now().toIso8601String();
+        final itemDate =
+            item['ognoo']?.toString() ?? DateTime.now().toIso8601String();
         invoices.add({
           '_id': item['_id']?.toString() ?? 'standalone-$itemDate',
           'baiguullagiinNer': 'Авлага / Гүйцэтгэл',
@@ -3144,9 +3077,11 @@ class ApiService {
           'gereeniiDugaar': gereeniiDugaar,
           'ognoo': itemDate,
           'nekhemjlekhiinOgnoo': itemDate,
-          'niitTulbur': (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
+          'niitTulbur':
+              (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
               (item['tulsunDun'] ?? 0.0).toDouble(),
-          'uldegdel': (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
+          'uldegdel':
+              (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble() -
               (item['tulsunDun'] ?? 0.0).toDouble(),
           'tuluv': 'Төлөөгүй',
           'guilgeenuud': [item],
@@ -3155,25 +3090,25 @@ class ApiService {
         });
       }
 
-
       // 4. Calculate authoritative total balance and aldangi
       double manualTotalUldegdel = 0;
       double totalAldangi = 0;
-      
+
       for (var item in items) {
         final base = (item['undsenDun'] ?? item['tulukhDun'] ?? 0.0).toDouble();
         final paid = (item['tulsunDun'] ?? 0.0).toDouble();
         manualTotalUldegdel += (base - paid);
       }
-      
+
       for (var inv in invoices) {
         totalAldangi += (inv['aldangi'] ?? 0.0).toDouble();
       }
 
       // Use server-provided totalUldegdel if it looks valid, otherwise use manual calculation
       final serverTotalUldegdel = itemsResponse['totalUldegdel'];
-      final finalTotalUldegdel = (serverTotalUldegdel != null && serverTotalUldegdel != 0) 
-          ? serverTotalUldegdel.toDouble() 
+      final finalTotalUldegdel =
+          (serverTotalUldegdel != null && serverTotalUldegdel != 0)
+          ? serverTotalUldegdel.toDouble()
           : manualTotalUldegdel;
 
       return {
@@ -3183,7 +3118,6 @@ class ApiService {
         'totalAldangi': totalAldangi,
       };
     } catch (e) {
-
       rethrow;
     }
   }
@@ -3222,7 +3156,6 @@ class ApiService {
 
           // If decoded data is a string, it means the API returned a JSON-encoded string
           if (data is String) {
-
             return {'jagsaalt': []};
           }
 
@@ -3244,7 +3177,6 @@ class ApiService {
         throw Exception('Баримт татахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-
       throw Exception('Баримт татахад алдаа гарлаа: $e');
     }
   }
@@ -3291,7 +3223,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('E-barimt холболт хадгалахад алдаа гарлаа: $e');
     }
   }
@@ -3302,18 +3233,11 @@ class ApiService {
     required Map<String, dynamic> data,
   }) async {
     try {
-
-
-
       final headers = await getAuthHeaders();
       final userId = await StorageService.getUserId();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
 
-
-
-
       if (userId == null || baiguullagiinId == null) {
-
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
@@ -3323,7 +3247,6 @@ class ApiService {
         'identity': identity,
         ...data,
       };
-
 
       print(
         '📝 [API] updateConsumerInfo - Endpoint: $baseUrl/easy-register/consumer',
@@ -3340,7 +3263,6 @@ class ApiService {
       print(
         '📝 [API] updateConsumerInfo - Response status: ${response.statusCode}',
       );
-
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
@@ -3415,15 +3337,11 @@ class ApiService {
         'tukhainBaaziinKholbolt': dbKholbolt,
       };
 
-
-
       final body = json.encode(bodyMap);
 
       final response = await http.post(uri, headers: headers, body: body);
 
       await _checkTokenExpiry(response);
-
-
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -3433,7 +3351,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Төлбөрийн төлөв шалгахад алдаа гарлаа: $e');
     }
   }
@@ -3464,7 +3381,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -3503,7 +3419,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -3618,8 +3533,6 @@ class ApiService {
 
       final endpoint = '$baseUrl/qpayGargaya';
 
-
-
       final response = await http.post(
         Uri.parse(endpoint),
         headers: headers,
@@ -3627,7 +3540,6 @@ class ApiService {
       );
 
       await _checkTokenExpiry(response);
-
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         print(
@@ -3649,7 +3561,8 @@ class ApiService {
         // Let's truncate and show the string instead of just "status code 200"
         String errorText = response.body.trim();
         if (errorText.length > 100 || errorText.startsWith('<html')) {
-           errorText = 'Сервер алдаатай хариу буцаалаа (Хүсэлт буруу эсвэл серверт алдаа гарсан)';
+          errorText =
+              'Сервер алдаатай хариу буцаалаа (Хүсэлт буруу эсвэл серверт алдаа гарсан)';
         }
         throw Exception(errorText);
       }
@@ -3659,7 +3572,6 @@ class ApiService {
         try {
           responseData = json.decode(response.body) as Map<String, dynamic>;
         } catch (e) {
-
           print(
             'Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
           );
@@ -3682,12 +3594,12 @@ class ApiService {
                 data['id']?.toString(), // Map id to invoice_id
             'qr_image': data['qr_image']?.toString(),
             'qrText': data['qrText']?.toString(), // For Wallet QPay
-            'urls': responseData['urls'] ?? data['urls'], // Keep URLs if present
+            'urls':
+                responseData['urls'] ?? data['urls'], // Keep URLs if present
             'walletPaymentId': responseData['walletPaymentId']?.toString(),
             'walletInvoiceId': responseData['walletInvoiceId']?.toString(),
             'sender_invoice_no': responseData['sender_invoice_no']?.toString(),
           };
-
         }
 
         // Standardize legacy format to also include invoice_id
@@ -3714,7 +3626,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       // Re-throw if it's already a formatted Exception
       if (e is Exception) {
         rethrow;
@@ -3763,8 +3674,6 @@ class ApiService {
 
       final endpoint = '$baseUrl/walletQpay/create';
 
-
-
       final response = await http.post(
         Uri.parse(endpoint),
         headers: headers,
@@ -3773,11 +3682,8 @@ class ApiService {
 
       await _checkTokenExpiry(response);
 
-
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body) as Map<String, dynamic>;
-
 
         if (responseData['success'] != true) {
           String errorMsg =
@@ -3847,12 +3753,11 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-
       if (e is Exception) rethrow;
       throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
     }
   }
-  
+
   /// Check Wallet QPay status (Poll)
   /// Endpoint: GET /api/walletQpay/check/:baiguullagiinId/:walletPaymentId
   static Future<bool> checkWalletQPayStatus({
@@ -3861,17 +3766,21 @@ class ApiService {
   }) async {
     try {
       final headers = await getAuthHeaders();
-      final effectiveOrgId = baiguullagiinId ?? await StorageService.getBaiguullagiinId();
-      
+      final effectiveOrgId =
+          baiguullagiinId ?? await StorageService.getBaiguullagiinId();
+
       if (effectiveOrgId == null) return false;
-      
-      final endpoint = '$baseUrl/walletQpay/check/$effectiveOrgId/$walletPaymentId';
-      
-      print('🔍 [API] Checking Wallet QPay Status: $walletPaymentId for Org: $effectiveOrgId');
-      
+
+      final endpoint =
+          '$baseUrl/walletQpay/check/$effectiveOrgId/$walletPaymentId';
+
+      print(
+        '🔍 [API] Checking Wallet QPay Status: $walletPaymentId for Org: $effectiveOrgId',
+      );
+
       final response = await http.get(Uri.parse(endpoint), headers: headers);
       await _checkTokenExpiry(response);
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final status = data['status']?.toString();
@@ -3891,7 +3800,6 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/walletQpay/list');
-
 
       final response = await http.get(uri, headers: headers);
       await _checkTokenExpiry(response);
@@ -3934,7 +3842,6 @@ class ApiService {
         '$baseUrl/walletQpay/check/$baiguullagiinId/$walletPaymentId',
       );
 
-
       final response = await http.get(uri, headers: headers);
 
       await _checkTokenExpiry(response);
@@ -3976,7 +3883,6 @@ class ApiService {
         '$baseUrl/walletQpay/wallet-check/$baiguullagiinId/$walletPaymentId',
       );
 
-
       final response = await http.get(uri, headers: headers);
 
       await _checkTokenExpiry(response);
@@ -4004,7 +3910,6 @@ class ApiService {
     try {
       final headers = await getAuthHeaders();
       final uri = Uri.parse('$baseUrl/walletQpay/payment/$walletPaymentId');
-
 
       final response = await http.get(uri, headers: headers);
       await _checkTokenExpiry(response);
@@ -4105,7 +4010,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа: $e');
     }
   }
@@ -4149,7 +4053,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Нэхэмжлэхийн Cron мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -4178,7 +4081,6 @@ class ApiService {
 
       return data;
     } catch (e) {
-
       throw Exception('Нууц үг солиход алдаа гарлаа: $e');
     }
   }
@@ -4200,7 +4102,6 @@ class ApiService {
       final data = json.decode(response.body);
       return data;
     } catch (e) {
-
       throw Exception('Бүртгэлтэй хаяг устгахад алдаа гарлаа: $e');
     }
   }
@@ -4223,7 +4124,6 @@ class ApiService {
 
       return {'barilguud': matchingBaiguullaga['barilguud'] as List};
     } catch (e) {
-
       throw Exception('Барилгын мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -4271,7 +4171,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Ажилтны мэдээлэл татахад алдаа гарлаа: $e');
     }
   }
@@ -4301,9 +4200,7 @@ class ApiService {
               tukhainBaaziinKholbolt,
             );
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
       }
 
       // If user doesn't have baiguullagiinId, return empty notifications
@@ -4347,9 +4244,6 @@ class ApiService {
       final uri = Uri.parse(
         '$baseUrl$endpoint',
       ).replace(queryParameters: queryParams);
-
-
-
 
       final response = await http.get(uri, headers: headers);
 
@@ -4574,10 +4468,6 @@ class ApiService {
           }
         }
       }
-
-
-
-
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
@@ -4949,7 +4839,6 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-
       throw Exception('Зочин хадгалахад алдаа гарлаа: $e');
     }
   }
@@ -5005,8 +4894,6 @@ class ApiService {
         "tukhainBaaziinKholbolt": tukhainBaaziinKholbolt ?? "amarSukh",
       };
 
-
-
       final response = await http.post(
         Uri.parse('$baseUrl/ezenUrisanMashin'),
         headers: headers,
@@ -5052,7 +4939,6 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-
       rethrow;
     }
   }
@@ -5089,7 +4975,6 @@ class ApiService {
         );
       }
     } catch (e) {
-
       throw Exception('Зочны түүх татахад алдаа гарлаа: $e');
     }
   }
@@ -5138,7 +5023,6 @@ class ApiService {
         throw Exception(message);
       }
     } catch (e) {
-
       throw Exception('Урилга цуцлахад алдаа гарлаа: $e');
     }
   }
@@ -5204,7 +5088,6 @@ class ApiService {
         throw Exception('Квот шалгахад алдаа гарлаа: ${response.statusCode}');
       }
     } catch (e) {
-
       throw Exception('Квот шалгахад алдаа гарлаа: $e');
     }
   }
@@ -5224,9 +5107,10 @@ class ApiService {
         if (subject != null) 'Subject': subject,
         if (description != null) 'description': description,
       };
-      if (paymentId != null && paymentId.isNotEmpty) body['paymentId'] = paymentId;
+      if (paymentId != null && paymentId.isNotEmpty)
+        body['paymentId'] = paymentId;
       if (objectId != null && objectId.isNotEmpty) body['objectId'] = objectId;
-      
+
       print('📤 [API] POST /wallet/chat | Body: ${json.encode(body)}');
 
       final response = await http.post(
@@ -5266,7 +5150,9 @@ class ApiService {
         if (data['success'] == true && data['data'] != null) {
           return Map<String, dynamic>.from(data['data']);
         }
-        throw Exception(data['message'] ?? 'Чатын мэдээлэл авахад алдаа гарлаа');
+        throw Exception(
+          data['message'] ?? 'Чатын мэдээлэл авахад алдаа гарлаа',
+        );
       } else {
         throw Exception(
           'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
@@ -5381,17 +5267,23 @@ class ApiService {
     }
   }
 
-  static Future<bool> openParkingGate(String ip, {String? barilgiinId}) async {
+  static Future<bool> openParkingGate(
+    String ip, {
+    String? barilgiinId,
+    String? mashiniiDugaar,
+  }) async {
     try {
       final headers = await getAuthHeaders();
-      final url = barilgiinId != null 
-          ? '$baseUrl/neeye/$ip?barilgiinId=$barilgiinId' 
-          : '$baseUrl/neeye/$ip';
-          
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
+      final params = <String, String>{};
+      if (barilgiinId != null) params['barilgiinId'] = barilgiinId;
+      if (mashiniiDugaar != null && mashiniiDugaar.isNotEmpty) {
+        params['mashiniiDugaar'] = mashiniiDugaar;
+      }
+      final uri = Uri.parse(
+        '$baseUrl/neeye/$ip',
+      ).replace(queryParameters: params.isEmpty ? null : params);
+
+      final response = await http.get(uri, headers: headers);
       await _checkTokenExpiry(response);
       return response.statusCode == 200;
     } catch (e) {
@@ -5401,7 +5293,8 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> fetchParkingPaymentInfo(
-      String plateNumber) async {
+    String plateNumber,
+  ) async {
     try {
       final headers = await getAuthHeaders();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -5434,7 +5327,9 @@ class ApiService {
       final headers = await getAuthHeaders();
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final response = await http.post(
-        Uri.parse('$baseUrl/v1/add_to_invoice'), // Placeholder or derived from zogsoolUilchluulegch update
+        Uri.parse(
+          '$baseUrl/v1/add_to_invoice',
+        ), // Placeholder or derived from zogsoolUilchluulegch update
         headers: headers,
         body: json.encode({
           'plate_number': plateNumber,
@@ -5490,19 +5385,15 @@ class ApiService {
       final barilgiinId = await StorageService.getBarilgiinId();
 
       final now = DateTime.now();
-      final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final today =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
 
       final query = json.encode({
         'baiguullagiinId': baiguullagiinId,
         if (barilgiinId != null) 'barilgiinId': barilgiinId,
-        'createdAt': {
-          '\$gte': '$today 00:00:00',
-          '\$lte': '$today 23:59:59',
-        },
+        'createdAt': {'\$gte': '$today 00:00:00', '\$lte': '$today 23:59:59'},
       });
-      final order = json.encode({
-        'createdAt': -1,
-      });
+      final order = json.encode({'createdAt': -1});
 
       final response = await http.get(
         Uri.parse(
