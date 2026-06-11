@@ -1623,8 +1623,9 @@ class _BookingScreenState extends State<NuurKhuudas>
 
                       // 1. Merged Remaining Days & Billing Box - PageView for multiple contracts
                       Builder(builder: (context) {
+                        final isCurrentlyLoading = _isLoadingBillingList || _isRefreshing;
                         // While both cache and network have not loaded at all, show a premium glass loading card
-                        if (!_isInitialBillingLoaded) {
+                        if (!_isInitialBillingLoaded || (isCurrentlyLoading && _billingList.isEmpty && (_gereeResponse == null || _gereeResponse!.jagsaalt.isEmpty))) {
                           final isDark = context.isDarkMode;
                           return Container(
                             height: 200.h,
@@ -1713,9 +1714,22 @@ class _BookingScreenState extends State<NuurKhuudas>
                                     padding: EdgeInsets.symmetric(horizontal: 4.w),
                                     child: _buildRemainingDaysWidget(
                                       g,
-                                      onTapBilling: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) || _billingList.isNotEmpty
-                                          ? _navigateToBillingList
-                                          : () => context.push('/address_selection'),
+                                      onTapBilling: () {
+                                        if (_isLoadingBillingList || _isRefreshing) {
+                                          showGlassSnackBar(
+                                            context,
+                                            message: 'Мэдээлэл ачаалж байна, түр хүлээнэ үү.',
+                                            icon: Icons.hourglass_empty_rounded,
+                                            iconColor: Colors.orange,
+                                          );
+                                          return;
+                                        }
+                                        if ((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) || _billingList.isNotEmpty) {
+                                          _navigateToBillingList();
+                                        } else {
+                                          context.push('/address_selection');
+                                        }
+                                      },
                                       totalBalance: unitBalance,
                                       totalAldangi: unitAldangi,
                                       bairNer: displayBairNer,
@@ -1797,6 +1811,15 @@ class _BookingScreenState extends State<NuurKhuudas>
                           onDevelopmentTap: () =>
                               _showDevelopmentModal(context),
                           onBillerTap: () {
+                            if (_isLoadingBillingList || _isRefreshing) {
+                              showGlassSnackBar(
+                                context,
+                                message: 'Мэдээлэл ачаалж байна, түр хүлээнэ үү.',
+                                icon: Icons.hourglass_empty_rounded,
+                                iconColor: Colors.orange,
+                              );
+                              return;
+                            }
                             if (_billingList.isEmpty &&
                                 _userBillingData == null) {
                               _navigateToBillingList();

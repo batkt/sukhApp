@@ -740,44 +740,37 @@ class _ProfileSettingsState extends State<ProfileSettings>
     }
   }
 
-  bool _isPlateChangeAllowed() {
-    if (_userData == null) return true;
+  int _getPlateChangeRemainingDays() {
+    if (_userData == null) return 0;
 
-    // If plate is empty/null, allow change regardless of date
+    // If plate is empty/null or "БҮРТГЭЛГҮЙ", allow change regardless of date (remaining days = 0)
     final plateNumber = _userData!['mashiniiDugaar'] ?? _userData!['dugaar'];
-    if (plateNumber == null || plateNumber.toString().isEmpty) return true;
+    if (plateNumber == null ||
+        plateNumber.toString().isEmpty ||
+        plateNumber.toString().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
+      return 0;
+    }
 
     final lastUpdate = _userData!['dugaarUurchilsunOgnoo'];
-    if (lastUpdate == null) return true;
+    if (lastUpdate == null) return 0;
 
     try {
       final lastDate = DateTime.parse(lastUpdate.toString());
       final now = DateTime.now();
 
-      if (_billingDay != null) {
-        // Find the start date of the current billing cycle
-        DateTime currentCycleStart;
-        if (now.day >= _billingDay!) {
-          currentCycleStart = DateTime(now.year, now.month, _billingDay!);
-        } else {
-          int prevMonth = now.month - 1;
-          int prevYear = now.year;
-          if (prevMonth == 0) {
-            prevMonth = 12;
-            prevYear--;
-          }
-          currentCycleStart = DateTime(prevYear, prevMonth, _billingDay!);
-        }
+      // Strict 30-day difference check
+      final difference = now.difference(lastDate);
+      final daysPassed = difference.inDays;
+      final remaining = 30 - daysPassed;
 
-        // Allowed if last update was before this cycle started
-        return lastDate.isBefore(currentCycleStart);
-      }
-
-      // Default: Calendar month reset (1st of month)
-      return lastDate.month != now.month || lastDate.year != now.year;
+      return remaining > 0 ? remaining : 0;
     } catch (e) {
-      return true;
+      return 0;
     }
+  }
+
+  bool _isPlateChangeAllowed() {
+    return _getPlateChangeRemainingDays() <= 0;
   }
 
   Future<void> _handleUpdatePlateNumber() async {
@@ -791,10 +784,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
       return;
     }
 
-    if (!_isPlateChangeAllowed()) {
+    final remainingDays = _getPlateChangeRemainingDays();
+    if (remainingDays > 0) {
       showGlassSnackBar(
         context,
-        message: 'Та машины дугаараа сард 1 удаа солих боломжтой',
+        message: 'Машины дугаарыг 30 хоногт 1 удаа өөрчлөх боломжтой. Дахин өөрчлөхөд $remainingDays хоног үлдсэн байна.',
         icon: Icons.info_outline,
         iconColor: Colors.blue,
       );
@@ -1410,6 +1404,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
         builder: (context, setModalState) {
           final isDark = context.isDarkMode;
           final isAllowed = _isPlateChangeAllowed();
+          final remainingDays = _getPlateChangeRemainingDays();
 
           return Container(
             padding: EdgeInsets.only(
@@ -1533,7 +1528,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               SizedBox(width: 10.w),
                               Expanded(
                                 child: Text(
-                                  'Та машины дугаараа сард 1 удаа солих боломжтой.',
+                                  'Машины дугаарыг 30 хоногт 1 удаа өөрчлөх боломжтой. Дахин өөрчлөхөд $remainingDays хоног үлдсэн байна.',
                                   style: TextStyle(
                                     color: Colors.blue,
                                     fontSize: 11.sp,
