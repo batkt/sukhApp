@@ -1,7 +1,7 @@
 name: sukh_app
 description: "A new Flutter project."
 publish_to: "none"
-version: 2.1.23+61
+version: 2.1.24+62
 
 environment:
   sdk: ^3.9.2
