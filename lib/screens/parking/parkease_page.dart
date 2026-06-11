@@ -85,6 +85,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
   List<ParkingSite> _sites = [];
   String? _errorMessage;
   String? _baiguullagiinId;
+  bool _orshinSuugchKhaalgaNeehEsekh = false;
 
   final Map<String, bool> _openingGates = {};
   final Map<String, Map<String, dynamic>> _lastRecognitions = {};
@@ -340,6 +341,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
             .where((s) => s.gates.isNotEmpty)
             .toList();
       }
+      _orshinSuugchKhaalgaNeehEsekh = response['orshinSuugchKhaalgaNeehEsekh'] as bool? ?? false;
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -867,7 +869,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                   ],
                 ),
               ),
-              if (cameraIP != null)
+              if (cameraIP != null && _orshinSuugchKhaalgaNeehEsekh)
                 ElevatedButton(
                   onPressed: isOpening
                       ? null
