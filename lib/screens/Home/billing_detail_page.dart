@@ -146,8 +146,10 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           }
         }
 
-        for (final value in mapNode.values) {
-          final sub = _deepFindBills(value);
+        for (final entry in mapNode.entries) {
+          // Skip 'payments' — it contains paid transaction history, not outstanding bills
+          if (entry.key == 'payments') continue;
+          final sub = _deepFindBills(entry.value);
           if (sub.isNotEmpty) return sub;
         }
       }
@@ -178,6 +180,15 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
           orElse: () => rawData.isNotEmpty ? rawData[0] : null,
         );
         if (matchedItem is Map) {
+          // Trust the API: if it explicitly says no new bills, return empty
+          if (matchedItem['hasNewBills'] == false &&
+              (matchedItem['newBillsCount'] as num?)?.toInt() == 0 &&
+              (matchedItem['hiddenBillCount'] as num?)?.toInt() == 0) {
+            return {
+              'bills': <Map<String, dynamic>>[],
+              'billingName': matchedItem['billingName'],
+            };
+          }
           final billsList = _collectBillsFrom(matchedItem);
           if (billsList.isNotEmpty) {
 
