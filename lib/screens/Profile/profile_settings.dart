@@ -3314,6 +3314,34 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class PlateNumberFormatter extends TextInputFormatter {
+  static const Map<String, String> _latinToCyrillic = {
+    'A': 'А',
+    'B': 'В',
+    'C': 'С',
+    'E': 'Е',
+    'H': 'Н',
+    'K': 'К',
+    'M': 'М',
+    'O': 'О',
+    'P': 'Р',
+    'T': 'Т',
+    'U': 'У',
+    'X': 'Х',
+    'Y': 'Ү',
+    'D': 'Д',
+    'G': 'Г',
+    'I': 'И',
+    'J': 'Ж',
+    'L': 'Л',
+    'N': 'Н',
+    'Q': 'Ө',
+    'R': 'Р',
+    'S': 'С',
+    'V': 'В',
+    'W': 'В',
+    'Z': 'З',
+  };
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -3323,14 +3351,18 @@ class PlateNumberFormatter extends TextInputFormatter {
     String result = '';
 
     for (int i = 0; i < text.length && i < 7; i++) {
-      final char = text[i];
+      String char = text[i];
       if (i < 4) {
         if (RegExp(r'[0-9]').hasMatch(char)) {
           result += char;
         }
       } else {
-        // Last 3 characters must be letters (Cyrillic or Latin)
-        if (RegExp(r'[А-ЯӨҮЁA-Z]').hasMatch(char)) {
+        // Last 3 characters: map Latin equivalent to Mongolian Cyrillic if typed on English keyboard
+        if (_latinToCyrillic.containsKey(char)) {
+          char = _latinToCyrillic[char]!;
+        }
+        // Must be Mongolian Cyrillic letter (А-Я, Ө, Ү, Ё)
+        if (RegExp(r'[А-ЯӨҮЁ]').hasMatch(char)) {
           result += char;
         }
       }

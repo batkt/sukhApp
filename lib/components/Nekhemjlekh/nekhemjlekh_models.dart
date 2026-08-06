@@ -309,9 +309,11 @@ class Zardal {
   });
 
   factory Zardal.fromJson(Map<String, dynamic> json) {
-    final ner = (json['ner']?.toString() ?? '').toLowerCase();
+    final rawNer = json['ner']?.toString() ?? '';
+    final ner = cleanChargeName(rawNer);
+    final nerLower = ner.toLowerCase();
     return Zardal(
-      ner: json['ner']?.toString() ?? '',
+      ner: ner,
       turul: json['turul']?.toString() ?? '',
       tariff: (json['tariff'] ?? 0).toDouble(),
       tariffUsgeer: json['tariffUsgeer']?.toString() ?? '₮',
@@ -334,10 +336,10 @@ class Zardal {
           : null,
       isEkhniiUldegdel:
           json['isEkhniiUldegdel'] == true ||
-          ner.contains('эхний үлдэгдэл') ||
-          ner.contains('ekhniuldegdel') ||
-          ner.contains('ekhnii uldegdel'),
-      zaalt: json['zaalt'] == true || ner.contains('цахилгаан'),
+          nerLower.contains('эхний үлдэгдэл') ||
+          nerLower.contains('ekhniuldegdel') ||
+          nerLower.contains('ekhnii uldegdel'),
+      zaalt: json['zaalt'] == true || nerLower.contains('цахилгаан'),
     );
   }
 
@@ -420,6 +422,11 @@ class Guilgee {
   });
 
   factory Guilgee.fromJson(Map<String, dynamic> json) {
+    final rawTailbar = json['tailbar']?.toString() ?? json['zardliinNer']?.toString();
+    final rawZardliinNer = json['zardliinNer']?.toString();
+    final tailbar = cleanChargeName(rawTailbar);
+    final zardliinNer = cleanChargeName(rawZardliinNer);
+
     return Guilgee(
       ognoo: json['ognoo']?.toString(),
       tulukhDun: json['tulukhDun'] != null
@@ -430,10 +437,12 @@ class Guilgee {
           : null,
       tulsunDun: json['tulsunDun'] != null
           ? (json['tulsunDun'] as num).toDouble()
-          : null,
+          : (json['dun'] != null && (json['dun'] as num) < 0
+              ? (json['dun'] as num).abs().toDouble()
+              : null),
       dun: json['dun'] != null ? (json['dun'] as num).toDouble() : null,
-      tailbar: json['tailbar']?.toString() ?? json['zardliinNer']?.toString(),
-      zardliinNer: json['zardliinNer']?.toString(),
+      tailbar: tailbar.isNotEmpty ? tailbar : null,
+      zardliinNer: zardliinNer.isNotEmpty ? zardliinNer : null,
       turul: json['turul']?.toString(),
       gereeniiId: json['gereeniiId']?.toString(),
       guilgeeKhiisenOgnoo: json['guilgeeKhiisenOgnoo']?.toString(),
@@ -443,7 +452,7 @@ class Guilgee {
       id: json['_id']?.toString(),
       ekhniiUldegdelEsekh:
           json['ekhniiUldegdelEsekh'] == true ||
-          (json['zardliinNer']?.toString().toLowerCase().contains('эхний үлдэгдэл') ?? false),
+          (zardliinNer.toLowerCase().contains('эхний үлдэгдэл')),
       isLinked: json['isLinked'] == true,
     );
   }

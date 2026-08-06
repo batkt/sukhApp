@@ -418,16 +418,23 @@ class InvoiceCard extends StatelessWidget {
           ...guilgeenuud.asMap().entries.map((entry) {
             final idx = entry.key;
             final g = entry.value;
-            final isPayment = (g.turul == 'tulult' || g.turul == 'buun_tulult');
+            final isPayment = (g.turul == 'tulult' || g.turul == 'buun_tulult' || (g.dun != null && g.dun! < 0));
             final label = isPayment
-                ? 'Төлөлт'
-                : (g.tailbar?.isNotEmpty ?? false)
+                ? ((g.tailbar?.isNotEmpty ?? false)
                     ? g.tailbar!
                     : (g.zardliinNer?.isNotEmpty ?? false)
                         ? g.zardliinNer!
-                        : 'Үйлчилгээний төлбөр';
+                        : 'Төлөлт')
+                : ((g.tailbar?.isNotEmpty ?? false)
+                    ? g.tailbar!
+                    : (g.zardliinNer?.isNotEmpty ?? false)
+                        ? g.zardliinNer!
+                        : 'Үйлчилгээний төлбөр');
+            final paidAmt = (g.tulsunDun != null && g.tulsunDun! > 0)
+                ? g.tulsunDun!
+                : (g.dun != null && g.dun! < 0 ? g.dun!.abs() : 0.0);
             final amt = isPayment
-                ? -(g.tulsunDun ?? 0.0)
+                ? -paidAmt
                 : (g.tulukhDun ?? g.undsenDun ?? g.dun ?? 0.0);
             return Column(
               children: [
@@ -525,12 +532,13 @@ class InvoiceCard extends StatelessWidget {
 
   Widget _buildModernChargeRow(BuildContext context, String label, double amount, {bool isStartingBalance = false}) {
     final isNegative = amount < 0;
+    final displayLabel = cleanChargeName(label);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
           child: Text(
-            label,
+            displayLabel,
             style: TextStyle(
               color: isStartingBalance ? context.textPrimaryColor : context.textSecondaryColor,
               fontSize: 14.sp,

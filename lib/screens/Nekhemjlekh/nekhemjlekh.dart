@@ -615,15 +615,36 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     });
   }
 
+  DateTime? _parseYearMonth(String? input) {
+    if (input == null || input.isEmpty) return null;
+    String str = input.trim().replaceAll('.', '-').replaceAll('/', '-');
+    try {
+      final d = DateTime.parse(str);
+      return DateTime(d.year, d.month);
+    } catch (_) {}
+
+    final match = RegExp(r'(\d{4})-(\d{1,2})').firstMatch(str);
+    if (match != null) {
+      final y = int.tryParse(match.group(1)!);
+      final m = int.tryParse(match.group(2)!);
+      if (y != null && m != null && m >= 1 && m <= 12) {
+        return DateTime(y, m);
+      }
+    }
+    return null;
+  }
+
   List<NekhemjlekhItem> _getFilteredInvoices() {
     List<NekhemjlekhItem> filtered = invoices;
 
     // Apply month filter
     if (selectedMonth != null) {
-      final yearMonthStr =
-          "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
       filtered = filtered.where((invoice) {
-        return invoice.nekhemjlekhiinOgnoo.startsWith(yearMonthStr);
+        final ym = _parseYearMonth(invoice.nekhemjlekhiinOgnoo);
+        if (ym != null) {
+          return ym.year == selectedMonth!.year && ym.month == selectedMonth!.month;
+        }
+        return false;
       }).toList();
     }
 
@@ -633,29 +654,24 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           .where((invoice) => invoice.isPaid)
           .toList();
     } else if (selectedFilter == 'Unpaid') {
-      // Unpaid = anything that is not fully paid (Төлөөгүй only, excludes Хэсэгчлэн since
-      // we no longer create that status — but kept for safety)
       filtered = filtered
           .where((invoice) => !invoice.isPaid)
           .toList();
     }
-    // 'All' shows everything (no additional filter)
 
     return filtered;
   }
 
-  // _getStatusColor and _getStatusLabel moved to components/Nekhemjlekh/invoice_card.dart
-
   int _getFilterCount(String filterKey) {
     List<NekhemjlekhItem> monthFiltered = invoices;
     if (selectedMonth != null) {
-      final yearMonthStr =
-          "${selectedMonth!.year}-${selectedMonth!.month.toString().padLeft(2, '0')}";
-      monthFiltered = invoices
-          .where(
-            (invoice) => invoice.nekhemjlekhiinOgnoo.startsWith(yearMonthStr),
-          )
-          .toList();
+      monthFiltered = invoices.where((invoice) {
+        final ym = _parseYearMonth(invoice.nekhemjlekhiinOgnoo);
+        if (ym != null) {
+          return ym.year == selectedMonth!.year && ym.month == selectedMonth!.month;
+        }
+        return false;
+      }).toList();
     }
 
     switch (filterKey) {
@@ -677,42 +693,51 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   Widget _buildMonthSelector() {
     final months = <DateTime>{};
     for (var inv in invoices) {
-      try {
-        final date = DateTime.parse(inv.nekhemjlekhiinOgnoo);
-        months.add(DateTime(date.year, date.month));
-      } catch (_) {}
+      final ym = _parseYearMonth(inv.nekhemjlekhiinOgnoo);
+      if (ym != null) months.add(ym);
+      if (inv.medeelel?.guilgeenuud != null) {
+        for (var g in inv.medeelel!.guilgeenuud!) {
+          final gym = _parseYearMonth(g.ognoo ?? g.guilgeeKhiisenOgnoo);
+          if (gym != null) months.add(gym);
+        }
+      }
     }
 
-    if (months.isEmpty) return const SizedBox.shrink();
+    if (months.isEmpty) {
+      final now = DateTime.now();
+      months.add(DateTime(now.year, now.month));
+    }
 
     final sortedMonths = months.toList()..sort((a, b) => b.compareTo(a));
     final selectedLabel = selectedMonth == null
         ? 'Бүх сар'
         : "${selectedMonth!.year} оны ${selectedMonth!.month}-р сар";
 
-    return PopupMenuButton<DateTime?>(
-      offset: const Offset(0, 45),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-      color: context.cardBackgroundColor,
-      elevation: 10,
+    return GestureDetector(
+      onTap: () => _showMonthPickerBottomSheet(sortedMonths),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
         decoration: BoxDecoration(
-          color: context.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(100),
+          color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: context.borderColor.withOpacity(0.15)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.calendar_today_rounded, size: 14.sp, color: AppColors.deepGreen),
-            SizedBox(width: 8.w),
-            Text(
-              selectedLabel,
-              style: TextStyle(
-                color: context.textPrimaryColor,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
+            Icon(Icons.calendar_today_rounded, size: 13.sp, color: AppColors.deepGreen),
+            SizedBox(width: 6.w),
+            Flexible(
+              child: Text(
+                selectedLabel,
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
             SizedBox(width: 4.w),
@@ -720,24 +745,103 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           ],
         ),
       ),
-      onSelected: (DateTime? value) {
-        setState(() {
-          selectedMonth = value;
-        });
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem<DateTime?>(
-          value: null,
-          child: Text('Бүх сар', style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp)),
-        ),
-        ...sortedMonths.map((date) => PopupMenuItem<DateTime?>(
-              value: date,
-              child: Text(
-                "${date.year} оны ${date.month}-р сар",
-                style: TextStyle(color: context.textPrimaryColor, fontSize: 13.sp),
+    );
+  }
+
+  void _showMonthPickerBottomSheet(List<DateTime> sortedMonths) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+            border: Border.all(color: context.borderColor.withOpacity(0.2)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Огноо шүүх',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: context.textSecondaryColor, size: 20.sp),
+                  ),
+                ],
               ),
-            )),
-      ],
+              SizedBox(height: 12.h),
+              ListTile(
+                contentPadding: EdgeInsets.symmetric(horizontal: 8.w),
+                title: Text(
+                  'Бүх сар',
+                  style: TextStyle(
+                    color: selectedMonth == null ? AppColors.deepGreen : context.textPrimaryColor,
+                    fontWeight: selectedMonth == null ? FontWeight.bold : FontWeight.w500,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                trailing: selectedMonth == null
+                    ? Icon(Icons.check_circle, color: AppColors.deepGreen, size: 20.sp)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    selectedMonth = null;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              Divider(color: context.borderColor.withOpacity(0.2)),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: 250.h),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: sortedMonths.length,
+                  itemBuilder: (context, index) {
+                    final date = sortedMonths[index];
+                    final isSelected = selectedMonth != null &&
+                        selectedMonth!.year == date.year &&
+                        selectedMonth!.month == date.month;
+                    final label = "${date.year} оны ${date.month}-р сар";
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8.w),
+                      title: Text(
+                        label,
+                        style: TextStyle(
+                          color: isSelected ? AppColors.deepGreen : context.textPrimaryColor,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontSize: 14.sp,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check_circle, color: AppColors.deepGreen, size: 20.sp)
+                          : null,
+                      onTap: () {
+                        setState(() {
+                          selectedMonth = date;
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

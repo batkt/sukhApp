@@ -98,3 +98,12 @@ String formatDisplayName(String? name) {
   
   return trimmed;
 }
+
+/// Cleans charge name by removing prefixes like "Monthly Charge:", "Monthly charge:", "Monthly Charge"
+String cleanChargeName(String? text) {
+  if (text == null || text.trim().isEmpty) return '';
+  String result = text.trim();
+  result = result.replaceAll(RegExp(r'^Monthly\s+Charge\s*:\s*', caseSensitive: false), '');
+  result = result.replaceAll(RegExp(r'^Monthly\s+Charge\s+', caseSensitive: false), '');
+  return result.trim();
+}

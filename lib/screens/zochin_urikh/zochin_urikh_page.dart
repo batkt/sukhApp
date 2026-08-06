@@ -23,6 +23,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   final _formKey = GlobalKey<FormState>();
   final _mashiniiDugaarController = TextEditingController();
   final _ezemshigchiinUtasController = TextEditingController();
+  final FocusNode _plateFocusNode = FocusNode();
+  TextInputType _plateKeyboardType = TextInputType.number;
   
   bool _isLoading = false;
   
@@ -43,10 +45,29 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _mashiniiDugaarController.addListener(_onPlateTextChanged);
     _loadUserPhone();
     _loadInvitedGuests();
     _loadQuotaStatus();
     _setupSocketListener();
+  }
+
+  void _onPlateTextChanged() {
+    final text = _mashiniiDugaarController.text;
+    final targetType = text.length < 4 ? TextInputType.number : TextInputType.text;
+    if (_plateKeyboardType != targetType) {
+      setState(() {
+        _plateKeyboardType = targetType;
+      });
+      if (_plateFocusNode.hasFocus) {
+        _plateFocusNode.unfocus();
+        Future.microtask(() {
+          if (mounted) _plateFocusNode.requestFocus();
+        });
+      }
+    } else {
+      if (mounted) setState(() {});
+    }
   }
 
   void _setupSocketListener() {
@@ -138,6 +159,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   @override
   void dispose() {
     SocketService.instance.removeNotificationCallback(_handleSocketMessage);
+    _mashiniiDugaarController.removeListener(_onPlateTextChanged);
+    _plateFocusNode.dispose();
     _tabController.dispose();
     _mashiniiDugaarController.dispose();
     _ezemshigchiinUtasController.dispose();
@@ -462,8 +485,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                       // Car plate number (4 digits + 3 letters)
                       TextFormField(
                         controller: _mashiniiDugaarController,
+                        focusNode: _plateFocusNode,
                         textCapitalization: TextCapitalization.characters,
-                        keyboardType: TextInputType.text,
+                        keyboardType: _plateKeyboardType,
                         inputFormatters: [
                           LengthLimitingTextInputFormatter(7),
                           PlateNumberFormatter(),
@@ -569,21 +593,25 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                           }
                           final trimmed = value.trim();
                           if (trimmed.length != 7) {
-                            return '4 тоо, 3 үсэг оруулна уу (жишээ: 1234АБВ)';
+                            return '4 тоо, 3 үсэг оруулна уу (жишээ: 1234УБҮ)';
                           }
                           // Check first 4 characters are digits
                           final digits = trimmed.substring(0, 4);
                           if (!RegExp(r'^[0-9]{4}$').hasMatch(digits)) {
                             return 'Эхний 4 тэмдэгт тоо байх ёстой';
                           }
-                          // Check last 3 characters are letters (Cyrillic or Latin)
-                          final letters = trimmed.substring(4);
-                          if (!RegExp(r'^[A-Za-z\u0410-\u042F\u0430-\u044F]{3}$').hasMatch(letters)) {
-                            return 'Сүүлийн 3 тэмдэгт үсэг байх ёстой';
+                          // Check last 3 characters are Mongolian Cyrillic letters (А-Я, Ө, Ү, Ё)
+                          final letters = trimmed.substring(4).toUpperCase();
+                          if (!RegExp(r'^[А-ЯӨҮЁ]{3}$').hasMatch(letters)) {
+                            return 'Сүүлийн 3 тэмдэгт заавал Монгол кирилл үсэг байна (жишээ: 1234УБҮ)';
                           }
                           return null;
                         },
                       ),
+
+                      // On-Screen Mongolian Cyrillic Helper Keypad & Instant Shortcuts
+                      _buildMongolianCyrillicKeypad(),
+
                       SizedBox(height: context.responsiveSpacing(
                         small: 16,
                         medium: 18,
@@ -1114,61 +1142,84 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
 
   Widget _buildGuestCard(Map<String, dynamic> guest) {
     // Try to get data from either direct structure (ezenList) or nested (jagsaalt)
-    
-    // For "jagsaalt" items, the guest data is in 'urisanMashin' object,
-    // but the main object has 'mashiniiDugaar' etc.
     final urisanMashin = guest['urisanMashin'];
     final isHistoryItem = urisanMashin != null;
-    
+
     final mashiniiDugaar = isHistoryItem
         ? (guest['mashiniiDugaar'] ?? urisanMashin['urisanMashiniiDugaar'] ?? '')
         : (guest['urisanMashiniiDugaar'] ?? guest['mashiniiDugaar'] ?? '');
-        
+
     final tuluv = isHistoryItem 
         ? (urisanMashin['tuluv'] ?? 0)
         : (guest['tuluv'] ?? 0);
-        
+
     final createdAt = isHistoryItem
         ? (urisanMashin['createdAt'] ?? guest['createdAt'])
         : guest['createdAt'];
-        
-    // Calculate entry time and duration if applicable
-    String durationStr = '';
-    String dateStr = '';
-    
-    if (createdAt != null) {
-      try {
-        final createdDate = DateTime.parse(createdAt.toString()).toLocal();
-        dateStr = DateFormat('dd/MM/yyyy').format(createdDate);
-        
-        // If active (1), show duration since entry
-        // For Exited (2), we could show duration if we find exit time (updateAt or tuukh)
-        if (tuluv == 1) {
-          // Find entry time from tuukh if possible
-          DateTime? entryTime;
-          if (guest['tuukh'] != null && guest['tuukh'] is List && (guest['tuukh'] as List).isNotEmpty) {
-            final lastTuukh = (guest['tuukh'] as List).last;
-            if (lastTuukh['tsagiinTuukh'] != null && (lastTuukh['tsagiinTuukh'] as List).isNotEmpty) {
-              final entering = (lastTuukh['tsagiinTuukh'] as List).first;
-              if (entering['orsonTsag'] != null) {
-                entryTime = DateTime.parse(entering['orsonTsag'].toString()).toLocal();
-              }
-            }
-          }
-          
-          if (entryTime != null) {
-            final duration = DateTime.now().difference(entryTime);
-            if (duration.inMinutes < 60) {
-              durationStr = '${duration.inMinutes}м';
-            } else {
-              durationStr = '${duration.inHours}ц ${duration.inMinutes % 60}м';
-            }
-          }
+
+    DateTime? entryTime;
+    DateTime? exitTime;
+
+    // Parse entry time from tuukh or createdAt
+    if (guest['tuukh'] != null && guest['tuukh'] is List && (guest['tuukh'] as List).isNotEmpty) {
+      final lastTuukh = (guest['tuukh'] as List).last;
+      if (lastTuukh['tsagiinTuukh'] != null && (lastTuukh['tsagiinTuukh'] as List).isNotEmpty) {
+        final tsagiinTuukh = lastTuukh['tsagiinTuukh'] as List;
+        final firstEntry = tsagiinTuukh.first;
+        final lastExit = tsagiinTuukh.last;
+        if (firstEntry['orsonTsag'] != null) {
+          try {
+            entryTime = DateTime.parse(firstEntry['orsonTsag'].toString()).toLocal();
+          } catch (_) {}
         }
-      } catch (e) {
-        // ignore date parse errors
+        if (lastExit['garsanTsag'] != null) {
+          try {
+            exitTime = DateTime.parse(lastExit['garsanTsag'].toString()).toLocal();
+          } catch (_) {}
+        }
       }
     }
+
+    if (entryTime == null && createdAt != null) {
+      try {
+        entryTime = DateTime.parse(createdAt.toString()).toLocal();
+      } catch (_) {}
+    }
+
+    if (exitTime == null && (tuluv == 2)) {
+      if (guest['garakhTsag'] != null) {
+        try {
+          exitTime = DateTime.parse(guest['garakhTsag'].toString()).toLocal();
+        } catch (_) {}
+      } else if (guest['updatedAt'] != null) {
+        try {
+          exitTime = DateTime.parse(guest['updatedAt'].toString()).toLocal();
+        } catch (_) {}
+      }
+    }
+
+    // Compute duration
+    String durationStr = '';
+    if (entryTime != null) {
+      final endTime = (tuluv == 2 && exitTime != null) ? exitTime : DateTime.now();
+      final diff = endTime.difference(entryTime);
+      final totalMin = diff.inMinutes;
+      if (totalMin > 0) {
+        if (totalMin < 60) {
+          durationStr = '${totalMin}м';
+        } else {
+          final h = totalMin ~/ 60;
+          final m = totalMin % 60;
+          durationStr = m > 0 ? '${h}ц ${m}м' : '${h}ц';
+        }
+      }
+    }
+
+    String entryTimeStr = entryTime != null ? DateFormat('HH:mm').format(entryTime) : '';
+    String exitTimeStr = exitTime != null ? DateFormat('HH:mm').format(exitTime) : '';
+    String dateStr = entryTime != null
+        ? DateFormat('MM/dd').format(entryTime)
+        : (createdAt != null ? DateFormat('MM/dd').format(DateTime.parse(createdAt.toString()).toLocal()) : '');
 
     String statusText;
     Color statusColor;
@@ -1176,8 +1227,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
 
     if (tuluv == 1) {
       statusText = 'Идэвхтэй';
-      statusColor = Color(0xFF3B82F6); // Blue
-      statusBgColor = Color(0xFF1E3A8A).withOpacity(0.3);
+      statusColor = const Color(0xFF3B82F6);
+      statusBgColor = const Color(0xFF1E3A8A).withOpacity(0.3);
     } else if (tuluv == 2) {
       statusText = 'Гарсан';
       statusColor = Colors.grey;
@@ -1187,11 +1238,11 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       statusColor = Colors.orange;
       statusBgColor = Colors.orange.withOpacity(0.1);
     }
-    
+
     final cardContent = Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: context.cardBackgroundColor, // Dark card bg
+        color: context.cardBackgroundColor,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: context.borderColor.withOpacity(0.5)),
       ),
@@ -1202,107 +1253,151 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-              // Blue Dot if Active
-              if (tuluv == 1)
-                Padding(
-                  padding: EdgeInsets.only(right: 8.w),
-                  child: Container(
-                    width: 8.w,
-                    height: 8.w,
-                    decoration: BoxDecoration(
-                      color: Color(0xFF3B82F6),
-                      shape: BoxShape.circle,
+                if (tuluv == 1)
+                  Padding(
+                    padding: EdgeInsets.only(right: 8.w),
+                    child: Container(
+                      width: 8.w,
+                      height: 8.w,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF3B82F6),
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                ),
-              
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          mashiniiDugaar,
-                          style: TextStyle(
-                            color: context.textPrimaryColor,
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mashiniiDugaar,
+                        style: TextStyle(
+                          color: context.textPrimaryColor,
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
                         ),
-                        SizedBox(height: 8.h),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                    decoration: BoxDecoration(
-                      color: statusBgColor,
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (tuluv == 1) ...[
-                          Icon(Icons.location_on, size: 12.sp, color: statusColor),
-                          SizedBox(width: 4.w),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 6.h),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                            decoration: BoxDecoration(
+                              color: statusBgColor,
+                              borderRadius: BorderRadius.circular(20.r),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (tuluv == 1) ...[
+                                  Icon(Icons.location_on, size: 11.sp, color: statusColor),
+                                  SizedBox(width: 3.w),
+                                ],
+                                Text(
+                                  statusText,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (dateStr.isNotEmpty) ...[
+                            SizedBox(width: 8.w),
+                            Text(
+                              dateStr,
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 11.sp,
+                              ),
+                            ),
+                          ],
                         ],
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          
+
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (durationStr.isNotEmpty)
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                  margin: EdgeInsets.only(bottom: 8.h),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  margin: EdgeInsets.only(bottom: 4.h),
                   decoration: BoxDecoration(
-                    color: Color(0xFF1F2937),
+                    color: tuluv == 1 ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFF1F2937),
                     borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(
+                      color: tuluv == 1 ? const Color(0xFF3B82F6).withOpacity(0.5) : Colors.grey.withOpacity(0.2),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.access_time, size: 12.sp, color: Color(0xFF3B82F6)),
+                      Icon(Icons.access_time, size: 12.sp, color: tuluv == 1 ? const Color(0xFF3B82F6) : Colors.grey[300]),
                       SizedBox(width: 4.w),
                       Text(
-                        durationStr,
+                        'Зогссон: $durationStr',
                         style: TextStyle(
-                          color: Color(0xFF3B82F6),
-                          fontSize: 12.sp,
+                          color: tuluv == 1 ? const Color(0xFF60A5FA) : Colors.grey[300],
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
                 ),
-              
-              SizedBox(height: 4.h),
-              if (dateStr.isNotEmpty)
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 12.sp, color: Colors.grey),
-                    SizedBox(width: 4.w),
-                    Text(
-                      dateStr,
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                  ],
+
+              if (entryTimeStr.isNotEmpty || exitTimeStr.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: 2.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (entryTimeStr.isNotEmpty)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.login, size: 11.sp, color: Colors.green[400]),
+                            SizedBox(width: 3.w),
+                            Text(
+                              'Орсон: $entryTimeStr',
+                              style: TextStyle(
+                                color: Colors.green[400],
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (exitTimeStr.isNotEmpty && tuluv == 2)
+                        Padding(
+                          padding: EdgeInsets.only(top: 2.h),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.logout, size: 11.sp, color: Colors.orange[300]),
+                              SizedBox(width: 3.w),
+                              Text(
+                                'Гарсан: $exitTimeStr',
+                                style: TextStyle(
+                                  color: Colors.orange[300],
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -1321,18 +1416,187 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         },
         background: Container(
           alignment: Alignment.centerRight,
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             color: Colors.red,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(Icons.delete_outline, color: Colors.white),
+          child: const Icon(Icons.delete_outline, color: Colors.white),
         ),
         child: cardContent,
       );
     }
 
     return cardContent;
+  }
+
+  Widget _buildMongolianCyrillicKeypad() {
+    final text = _mashiniiDugaarController.text;
+    final currentLength = text.length;
+
+    final seriesShortcuts = ['УБҮ', 'УБА', 'УБН', 'УБР', 'УБТ', 'АРУ', 'ДАА', 'ОРХ', 'СҮБ', 'ХӨВ'];
+    final cyrillicLetters = [
+      'У', 'Б', 'Ү', 'А', 'Н', 'Р', 'Т', 'В', 'Г', 'Д',
+      'Е', 'Ж', 'З', 'И', 'К', 'Л', 'М', 'О', 'Ө', 'П',
+      'С', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Э', 'Ю', 'Я', 'Ё'
+    ];
+
+    return Container(
+      margin: EdgeInsets.only(top: 8.h, bottom: 8.h),
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: AppColors.deepGreen.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.keyboard_outlined, size: 15.sp, color: AppColors.deepGreen),
+                  SizedBox(width: 6.w),
+                  Text(
+                    currentLength < 4
+                        ? 'Эхлээд 4 тоо оруулна уу ($currentLength/4)'
+                        : 'Монгол кирилл үсэг ($currentLength/7):',
+                    style: TextStyle(
+                      color: context.textPrimaryColor,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (text.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    final current = _mashiniiDugaarController.text;
+                    if (current.isNotEmpty) {
+                      _mashiniiDugaarController.text = current.substring(0, current.length - 1);
+                      _mashiniiDugaarController.selection = TextSelection.collapsed(
+                        offset: _mashiniiDugaarController.text.length,
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.backspace_outlined, size: 12.sp, color: Colors.red),
+                        SizedBox(width: 3.w),
+                        Text(
+                          'Арилгах',
+                          style: TextStyle(color: Colors.red, fontSize: 11.sp, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+
+          if (currentLength == 4) ...[
+            Text(
+              'Түгээмэл цуврал (Шууд дарах):',
+              style: TextStyle(color: context.textSecondaryColor, fontSize: 11.sp),
+            ),
+            SizedBox(height: 6.h),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: seriesShortcuts.map((series) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: 6.w),
+                    child: InkWell(
+                      onTap: () {
+                        if (_mashiniiDugaarController.text.length == 4) {
+                          _mashiniiDugaarController.text = _mashiniiDugaarController.text + series;
+                          _mashiniiDugaarController.selection = TextSelection.collapsed(
+                            offset: _mashiniiDugaarController.text.length,
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepGreen.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: AppColors.deepGreen.withOpacity(0.4)),
+                        ),
+                        child: Text(
+                          series,
+                          style: TextStyle(
+                            color: AppColors.deepGreen,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            SizedBox(height: 8.h),
+          ],
+
+          Wrap(
+            spacing: 5.w,
+            runSpacing: 5.h,
+            children: cyrillicLetters.map((letter) {
+              final isEnabled = currentLength >= 4 && currentLength < 7;
+              return InkWell(
+                onTap: isEnabled
+                    ? () {
+                        if (_mashiniiDugaarController.text.length < 7) {
+                          final currentText = _mashiniiDugaarController.text;
+                          _mashiniiDugaarController.text = currentText + letter;
+                          _mashiniiDugaarController.selection = TextSelection.collapsed(
+                            offset: _mashiniiDugaarController.text.length,
+                          );
+                        }
+                      }
+                    : null,
+                child: Container(
+                  width: 32.w,
+                  height: 32.w,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isEnabled
+                        ? AppColors.deepGreen.withOpacity(0.1)
+                        : context.cardBackgroundColor,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      color: isEnabled
+                          ? AppColors.deepGreen.withOpacity(0.4)
+                          : context.borderColor.withOpacity(0.5),
+                    ),
+                  ),
+                  child: Text(
+                    letter,
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isEnabled ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.5),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1349,8 +1613,36 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
-/// Custom formatter for Mongolian car plates: 4 digits + 3 letters
+/// Custom formatter for Mongolian car plates: 4 digits + 3 Mongolian Cyrillic letters
 class PlateNumberFormatter extends TextInputFormatter {
+  static const Map<String, String> _latinToCyrillic = {
+    'A': 'А',
+    'B': 'В',
+    'C': 'С',
+    'E': 'Е',
+    'H': 'Н',
+    'K': 'К',
+    'M': 'М',
+    'O': 'О',
+    'P': 'Р',
+    'T': 'Т',
+    'U': 'У',
+    'X': 'Х',
+    'Y': 'Ү',
+    'D': 'Д',
+    'G': 'Г',
+    'I': 'И',
+    'J': 'Ж',
+    'L': 'Л',
+    'N': 'Н',
+    'Q': 'Ө',
+    'R': 'Р',
+    'S': 'С',
+    'V': 'В',
+    'W': 'В',
+    'Z': 'З',
+  };
+
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
@@ -1360,14 +1652,18 @@ class PlateNumberFormatter extends TextInputFormatter {
     String result = '';
 
     for (int i = 0; i < text.length && i < 7; i++) {
-      final char = text[i];
+      String char = text[i];
       if (i < 4) {
         if (RegExp(r'[0-9]').hasMatch(char)) {
           result += char;
         }
       } else {
-        // Last 3 characters must be letters (Cyrillic or Latin)
-        if (RegExp(r'[А-ЯӨҮЁA-Z]').hasMatch(char)) {
+        // Last 3 characters: map Latin equivalent to Mongolian Cyrillic if typed on English keyboard
+        if (_latinToCyrillic.containsKey(char)) {
+          char = _latinToCyrillic[char]!;
+        }
+        // Must be Mongolian Cyrillic letter (А-Я, Ө, Ү, Ё)
+        if (RegExp(r'[А-ЯӨҮЁ]').hasMatch(char)) {
           result += char;
         }
       }
