@@ -105,9 +105,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             // OR if every guest has free minutes (freeMinutes > 0)
             final remaining = _quotaStatus!['remaining'] as int;
             final total = _quotaStatus!['total'] as int;
-            final freeMinutes = _quotaStatus!['freeMinutesPerGuest'] as int? ?? 0;
             
-            _hasQuota = (total == 0) || (remaining > 0) || (freeMinutes > 0);
+            // Limit is allowed if unlimited (total == 0) OR if remaining quota is greater than 0
+            _hasQuota = (total == 0) || (remaining > 0);
           }
           
           _isLoadingQuota = false;
@@ -162,27 +162,45 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
           final jagsaalt = response['jagsaalt'] as List? ?? [];
           
           setState(() {
-            // "Хүлээлгэ" (Pending) - Usually items in ezenList with tuluv 0
-            _pendingGuests = List<Map<String, dynamic>>.from(
-              ezenList.where((item) => (item['tuluv'] ?? 0) == 0)
-            );
-
             // Access nested 'urisanMashin' for jagsaalt items safely
             final historyItems = List<Map<String, dynamic>>.from(jagsaalt);
             
-            // "Идэвхтэй" (Active) - tuluv 1
+            // "Идэвхтэй" (Active) - tuluv 1 or inside parking
             _activeGuests = historyItems.where((item) {
               final um = item['urisanMashin'];
-              final tuluv = um != null ? (um['tuluv'] ?? 0) : 0;
-              return tuluv == 1;
+              final umTuluv = um != null ? (um['tuluv'] ?? 0) : 0;
+              final itemTuluv = item['tuluv'] ?? 0;
+              return umTuluv == 1 || itemTuluv == 1;
             }).toList();
 
-            // "Гарсан" (Exited) - tuluv 2
+            // "Гарсан" (Exited) - tuluv 2 or exited parking
             _exitedGuests = historyItems.where((item) {
               final um = item['urisanMashin'];
-              final tuluv = um != null ? (um['tuluv'] ?? 0) : 0;
-              return tuluv == 2;
+              final umTuluv = um != null ? (um['tuluv'] ?? 0) : 0;
+              final itemTuluv = item['tuluv'] ?? 0;
+              return umTuluv == 2 || itemTuluv == 2;
             }).toList();
+
+            // Extract set of plate numbers that are active or exited
+            final activeOrExitedPlates = <String>{};
+            for (final g in _activeGuests) {
+              final p = (g['mashiniiDugaar'] ?? g['urisanMashin']?['urisanMashiniiDugaar'] ?? '').toString().trim().toUpperCase();
+              if (p.isNotEmpty) activeOrExitedPlates.add(p);
+            }
+            for (final g in _exitedGuests) {
+              final p = (g['mashiniiDugaar'] ?? g['urisanMashin']?['urisanMashiniiDugaar'] ?? '').toString().trim().toUpperCase();
+              if (p.isNotEmpty) activeOrExitedPlates.add(p);
+            }
+
+            // "Хүлээлгэ" (Pending) - Items in ezenList with tuluv 0 AND not in active/exited history
+            _pendingGuests = List<Map<String, dynamic>>.from(
+              ezenList.where((item) {
+                final tuluv = item['tuluv'] ?? 0;
+                if (tuluv != 0) return false;
+                final plate = (item['urisanMashiniiDugaar'] ?? item['mashiniiDugaar'] ?? '').toString().trim().toUpperCase();
+                return !activeOrExitedPlates.contains(plate);
+              })
+            );
 
             _isLoadingHistory = false;
           });
@@ -203,9 +221,38 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   Future<void> _inviteGuest() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final targetPlate = _mashiniiDugaarController.text.trim().toUpperCase();
+
+    // Check duplicate pending invitation in local list
+    final isAlreadyPending = _pendingGuests.any((guest) =>
+        (guest['urisanMashiniiDugaar'] ?? guest['mashiniiDugaar'] ?? '')
+            .toString()
+            .trim()
+            .toUpperCase() ==
+        targetPlate);
+
+    if (isAlreadyPending) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Энэ $targetPlate дугаартай машин аль хэдийн хүлээлгэнд байна'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
+      // Re-verify quota in real-time before sending request
+      await _loadQuotaStatus();
+      if (!_hasQuota) {
+        throw Exception('Таны зочин урих лимит дууссан байна');
+      }
+
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final barilgiinId = await StorageService.getBarilgiinId();
       final userId = await StorageService.getUserId();
@@ -215,7 +262,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       }
 
       await ApiService.inviteGuest(
-        urisanMashiniiDugaar: _mashiniiDugaarController.text.trim().toUpperCase(),
+        urisanMashiniiDugaar: targetPlate,
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,
         ezenId: userId,
