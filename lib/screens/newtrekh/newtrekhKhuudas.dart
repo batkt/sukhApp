@@ -466,21 +466,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Логог ямар ч дэвсгэр/хүрээгүйгээр шууд харуулна
         Center(
-          child: Container(
-            padding: EdgeInsets.all(isTablet ? 24.r : 18.r),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.deepGreen.withOpacity(0.3),
-                  blurRadius: 40,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: const SelectableLogoImage(height: 64),
+          child: SelectableLogoImage(
+            height: isTablet ? 96 : 80,
+            zovkhonTungalag: true,
           ),
         ),
         SizedBox(height: 16.h),

@@ -19,6 +19,11 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:sukh_app/services/api_service.dart' show ApiService;
+
+/// Base URL of the org's own sukhBackv2 backend (same as the rest of the app).
+const String _kChatApiBase = ApiService.baseUrl;
+const String _kChatSocketUrl = 'https://amarhome.mn';
 
 class SupportChatPage extends StatefulWidget {
   final Map<String, dynamic> extra;
@@ -31,22 +36,27 @@ class SupportChatPage extends StatefulWidget {
 
 class _SupportChatPageState extends State<SupportChatPage> with TickerProviderStateMixin {
   bool _isLoading = true;
+  /// ID of the root medegdel document that acts as the chat thread.
   String? _chatId;
   List<dynamic> _messages = [];
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _pollTimer;
 
-  String? _guestId;
+  String? _userId;
+  String? _baiguullagiinId;
+  String? _barilgiinId;
   String? _displayName;
   String? _baiguullagaName;
-  String? _ajiltniiNer;
+  String? _authToken;
 
-  List<dynamic> _rootChoices = [];
+  // Chatbot choices are not used with the medegdel backend – kept for UI
+  // compatibility but will remain empty.
+  final List<dynamic> _rootChoices = [];
   List<dynamic> _currentChoices = [];
-  bool _humanMode = false;
+  bool _humanMode = true; // medegdel threads are always human-mode
   bool _isOperatorLoading = false;
-  String _restartLabel = 'Эхлэл рүү буцах';
+  final String _restartLabel = 'Эхлэл рүү буцах';
 
   late AnimationController _fadeController;
 
@@ -143,18 +153,25 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   }
 
   Future<void> _uploadAndSendFile(File file, String fileType, {int? duration}) async {
-    if (_chatId == null || _guestId == null) return;
+    if (_chatId == null) return;
     setState(() {
       _isUploading = true;
       _uploadProgress = 0.0;
     });
 
     try {
+      // 1. Upload file to org's own backend
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('https://admin.zevtabs.mn/api/v1/chat/upload'),
+        Uri.parse('$_kChatApiBase/medegdel/uploadChatFile'),
       );
-      
+      if (_authToken != null) {
+        request.headers['Authorization'] = 'Bearer $_authToken';
+      }
+      if (_baiguullagiinId != null) {
+        request.fields['baiguullagiinId'] = _baiguullagiinId!;
+      }
+
       final length = await file.length();
       int byteCount = 0;
       final stream = http.ByteStream(file.openRead().transform(
@@ -182,24 +199,30 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       if (response.statusCode == 200) {
         final resData = jsonDecode(response.body);
         if (resData['success'] == true) {
-          final fileUrl = resData['fileUrl'];
-          
-          final msgResponse = await http.post(
-            Uri.parse('https://admin.zevtabs.mn/api/v1/chat/conversations/$_chatId/messages'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'text': '',
-              'guestId': _guestId,
-              'displayName': _displayName,
-              'project': 'sukhapp',
-              'baiguullagaName': _baiguullagaName,
-              'ajiltniiNer': _ajiltniiNer,
-              'fileUrl': fileUrl,
-              'fileType': fileType,
-              'duration': duration,
-            }),
-          );
+          // path returned is like "baiguullagiinId/chat-xxx.ext"
+          final filePath = resData['path']?.toString();
 
+          // 2. Send reply with the file path
+          final headers = <String, String>{'Content-Type': 'application/json'};
+          if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
+
+          final body = <String, dynamic>{
+            'parentId': _chatId,
+            'baiguullagiinId': _baiguullagiinId ?? '',
+            'orshinSuugchId': _userId ?? '',
+            'message': '',
+          };
+          if (fileType == 'audio' || fileType == 'voice') {
+            body['voiceUrl'] = filePath ?? '';
+          } else {
+            body['zurag'] = filePath ?? '';
+          }
+
+          final msgResponse = await http.post(
+            Uri.parse('$_kChatApiBase/medegdel/reply'),
+            headers: headers,
+            body: jsonEncode(body),
+          );
           if (msgResponse.statusCode == 200 || msgResponse.statusCode == 201) {
             _fetchMessages(silent: true);
           }
@@ -302,56 +325,79 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
 
   Future<void> _initializeChat() async {
     try {
-      final userId = await StorageService.getUserId() ?? 'unknown';
+      _userId = await StorageService.getUserId();
       final userName = await StorageService.getUserName() ?? 'Оршин суугч';
       final customerName = await StorageService.getWalletCustomerName();
+      _baiguullagiinId = await StorageService.getBaiguullagiinId();
+      _barilgiinId = await StorageService.getBarilgiinId();
+      _authToken = await StorageService.getToken();
       final bairName = await StorageService.getWalletBairName() ?? '';
       final doorNo = await StorageService.getWalletDoorNo() ?? '';
 
-      _guestId = 'resident_$userId';
       _displayName = customerName ?? userName;
-      _ajiltniiNer = _displayName;
       _baiguullagaName = bairName.isNotEmpty ? '$bairName - $doorNo тоот' : 'СӨХ Апп';
 
-      // 1. Fetch chat config (chatbot choices)
-      final configResponse = await http.get(Uri.parse('https://admin.zevtabs.mn/api/v1/chat/config?project=sukhapp'));
-      if (configResponse.statusCode == 200) {
-        final configData = jsonDecode(configResponse.body)['data'];
-        if (configData != null) {
-          _rootChoices = configData['rootChoices'] as List<dynamic>? ?? [];
-          _currentChoices = List<dynamic>.from(_rootChoices);
-          _restartLabel = configData['restartLabel'] ?? 'Эхлэл рүү буцах';
+      if (_userId == null || _baiguullagiinId == null) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          showGlassSnackBar(context, message: 'Хэрэглэгчийн мэдээлэл олдсонгүй');
+        }
+        return;
+      }
+
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
+
+      // 1. Look for an existing "sanal" thread for this resident
+      final listRes = await http.get(
+        Uri.parse(
+            '$_kChatApiBase/medegdel?orshinSuugchId=$_userId&baiguullagiinId=$_baiguullagiinId&turul=sanal'),
+        headers: headers,
+      );
+
+      if (listRes.statusCode == 200) {
+        final listData = jsonDecode(listRes.body);
+        final existing = (listData['data'] as List<dynamic>? ?? []);
+        // Pick the most recently updated one (list is sorted by updatedAt desc)
+        if (existing.isNotEmpty) {
+          _chatId = existing.first['_id']?.toString();
         }
       }
 
-      // 2. Load existing or register conversation under sukhapp project
-      final response = await http.post(
-        Uri.parse('https://admin.zevtabs.mn/api/v1/chat/conversations'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'guestId': _guestId,
-          'displayName': _displayName,
-          'project': 'sukhapp',
-          'baiguullagaName': _baiguullagaName,
-          'ajiltniiNer': _ajiltniiNer,
-        }),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final resData = jsonDecode(response.body);
-        final convData = resData['data'];
-        if (convData != null) {
-          _chatId = convData['id'] ?? convData['_id'];
-          _humanMode = convData['humanMode'] == true;
-          await _fetchMessages();
+      // 2. If no existing thread, create one
+      if (_chatId == null) {
+        final createRes = await http.post(
+          Uri.parse('$_kChatApiBase/medegdelIlgeeye'),
+          headers: headers,
+          body: jsonEncode({
+            'orshinSuugchId': _userId,
+            'baiguullagiinId': _baiguullagiinId,
+            if (_barilgiinId != null) 'barilgiinId': _barilgiinId,
+            'turul': 'sanal',
+            'medeelel': {
+              'title': '$_baiguullagaName - Чат',
+              'body': 'Оршин суугч чат нээлээ.',
+            },
+          }),
+        );
+        if (createRes.statusCode == 200 || createRes.statusCode == 201) {
+          final createData = jsonDecode(createRes.body);
+          final dataList = createData['data'] as List<dynamic>?;
+          if (dataList != null && dataList.isNotEmpty) {
+            _chatId = dataList.first['_id']?.toString();
+          }
         }
+      }
+
+      if (_chatId != null) {
+        await _fetchMessages();
       }
 
       setState(() => _isLoading = false);
       _scrollToBottom();
       _fadeController.forward();
 
-      // Connect socket.io for real-time messages
+      // Connect socket.io to org's own backend
       _connectSocket();
 
       // Fallback poll every 30s in case socket misses something
@@ -370,10 +416,11 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   }
 
   void _connectSocket() {
-    if (_chatId == null) return;
-    const socketUrl = 'https://admin.zevtabs.mn';
+    if (_chatId == null || _userId == null) return;
+    // Connect to org's own sukhBackv2 socket and listen for admin replies
+    // on the "orshinSuugch{userId}" room that medegdelAdminReply emits to.
     _socket = sio.io(
-      socketUrl,
+      _kChatSocketUrl,
       sio.OptionBuilder()
           .setTransports(['websocket', 'polling'])
           .disableAutoConnect()
@@ -381,36 +428,42 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
     );
     _socket!.connect();
     _socket!.onConnect((_) {
+      // Join the resident-specific room so admin replies arrive in real time
       _socket!.emit('join', {'conversationId': _chatId});
     });
-    _socket!.on('message:new', (payload) {
+    // Admin reply: emitted as "orshinSuugch{userId}" with a Medegdel object
+    _socket!.on('orshinSuugch$_userId', (payload) {
       if (!mounted) return;
-      final convId = payload is Map ? payload['conversationId'] : null;
-      if (convId != null && convId.toString() == _chatId) {
-        _fetchMessages(silent: true);
-      }
+      _fetchMessages(silent: true);
     });
-    _socket!.on('conversation:read', (payload) {
+    // Also handle the generic "baiguullagiin" broadcast in case the app is
+    // showing a message from the admin panel
+    _socket!.on('baiguullagiin$_baiguullagiinId', (payload) {
       if (!mounted) return;
-      final convId = payload is Map ? payload['conversationId'] : null;
-      if (convId != null && convId.toString() == _chatId) {
+      final type = payload is Map ? payload['type'] : null;
+      if (type == 'medegdelAdminReply' || type == 'medegdelNew') {
         _fetchMessages(silent: true);
       }
     });
   }
 
   Future<void> _fetchMessages({bool silent = false}) async {
-    if (_chatId == null || _guestId == null) return;
+    if (_chatId == null || _baiguullagiinId == null) return;
     try {
+      final headers = <String, String>{};
+      if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
+
       final response = await http.get(
-        Uri.parse('https://admin.zevtabs.mn/api/v1/chat/conversations/$_chatId/messages?guestId=$_guestId'),
+        Uri.parse(
+            '$_kChatApiBase/medegdel/thread/$_chatId?baiguullagiinId=$_baiguullagiinId'),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
         final resData = jsonDecode(response.body);
         final list = resData['data'] as List<dynamic>? ?? [];
-        final lastOldId = _messages.isNotEmpty ? _messages.last['id'] : null;
-        final lastNewId = list.isNotEmpty ? list.last['id'] : null;
+        final lastOldId = _messages.isNotEmpty ? _messages.last['_id'] : null;
+        final lastNewId = list.isNotEmpty ? list.last['_id'] : null;
         final hasNew = list.length != _messages.length || lastOldId != lastNewId;
         if (mounted) {
           setState(() {
@@ -430,12 +483,13 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _chatId == null || _guestId == null) return;
+    if (text.isEmpty || _chatId == null) return;
 
     final tempMsg = {
-      'text': text,
+      'message': text,
       'createdAt': DateTime.now().toIso8601String(),
-      'role': 'user',
+      // mark as user reply so the UI renders it on the right side
+      'turul': 'user_reply',
       'isTemp': true,
     };
 
@@ -446,16 +500,17 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
     _scrollToBottom();
 
     try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
+
       final response = await http.post(
-        Uri.parse('https://admin.zevtabs.mn/api/v1/chat/conversations/$_chatId/messages'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$_kChatApiBase/medegdel/reply'),
+        headers: headers,
         body: jsonEncode({
-          'text': text,
-          'guestId': _guestId,
-          'displayName': _displayName,
-          'project': 'sukhapp',
-          'baiguullagaName': _baiguullagaName,
-          'ajiltniiNer': _ajiltniiNer,
+          'parentId': _chatId,
+          'baiguullagiinId': _baiguullagiinId ?? '',
+          'orshinSuugchId': _userId ?? '',
+          'message': text,
         }),
       );
 
@@ -471,42 +526,39 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
     }
   }
 
+  /// Chatbot choices are not used with the medegdel backend;
+  /// tapping a choice sends its label as a plain text reply instead.
   Future<void> _sendChoice(dynamic choice) async {
     final text = choice['label']?.toString() ?? '';
-    if (text.isEmpty || _chatId == null || _guestId == null) return;
+    if (text.isEmpty || _chatId == null) return;
 
     final tempMsg = {
-      'text': text,
+      'message': text,
       'createdAt': DateTime.now().toIso8601String(),
-      'role': 'user',
+      'turul': 'user_reply',
       'isTemp': true,
     };
 
     setState(() {
       _messages.add(tempMsg);
-      final subChoices = choice['choices'] as List<dynamic>? ?? [];
-      if (subChoices.isNotEmpty) {
-        _currentChoices = subChoices;
-      } else {
-        _currentChoices = List<dynamic>.from(_rootChoices);
-      }
+      _currentChoices = List<dynamic>.from(_rootChoices);
     });
     _scrollToBottom();
 
     try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
+
       final response = await http.post(
-        Uri.parse('https://admin.zevtabs.mn/api/v1/chat/conversations/$_chatId/messages'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$_kChatApiBase/medegdel/reply'),
+        headers: headers,
         body: jsonEncode({
-          'text': text,
-          'guestId': _guestId,
-          'displayName': _displayName,
-          'project': 'sukhapp',
-          'baiguullagaName': _baiguullagaName,
-          'ajiltniiNer': _ajiltniiNer,
+          'parentId': _chatId,
+          'baiguullagiinId': _baiguullagiinId ?? '',
+          'orshinSuugchId': _userId ?? '',
+          'message': text,
         }),
       );
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         _fetchMessages(silent: true);
       }
@@ -518,31 +570,10 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   }
 
   Future<void> _connectToOperator() async {
-    if (_chatId == null || _guestId == null) return;
-    setState(() => _isOperatorLoading = true);
-    try {
-      final response = await http.post(
-        Uri.parse('https://admin.zevtabs.mn/api/v1/chat/conversations/$_chatId/operator'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'guestId': _guestId}),
-      );
-      if (response.statusCode == 200) {
-        final resData = jsonDecode(response.body)['data'];
-        if (resData != null && resData['conversation'] != null) {
-          setState(() {
-            _humanMode = resData['conversation']['humanMode'] == true;
-          });
-        }
-      }
-      _fetchMessages(silent: true);
-    } catch (e) {
-      if (mounted) {
-        showGlassSnackBar(context, message: 'Оператортой холбоход алдаа гарлаа');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isOperatorLoading = false);
-      }
+    // medegdel backend is always human-mode; no operator toggle needed.
+    // This function is kept for UI button compatibility but is a no-op.
+    if (mounted) {
+      showGlassSnackBar(context, message: 'СӨХ-ийн ажилтан таны мессежийг харж хариу өгнө.');
     }
   }
 
@@ -556,6 +587,16 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         );
       }
     });
+  }
+
+  /// Convert a medegdel file path (e.g. "baiguullagiinId/chat-123.jpg") to a
+  /// full URL served by the org's own backend at /medegdel/:baiguullagiinId/:ner.
+  /// If the path is already a full URL, returns it as-is.
+  String _buildFileUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    // medegdel files are served at: https://amarhome.mn/medegdel/{baiguullagiinId}/{filename}
+    return 'https://amarhome.mn/medegdel/$path';
   }
 
   @override
@@ -652,19 +693,19 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     final msg = _messages[index];
-                    final isMe = msg['role'] == 'user';
-                    // Find last HUMAN AGENT message index (not bot) and last user message index
-                    int lastAgentIdx = -1;
+                    // medegdel backend: user replies have turul='user_reply'
+                    // The root medegdel itself (turul='sanal') is the admin greeting,
+                    // shown as agent message. Temp messages added locally also use 'user_reply'.
+                    final isMe = msg['turul'] == 'user_reply' || msg['isTemp'] == true;
+                    int lastKhariuIdx = -1;
                     int lastUserIdx = -1;
                     for (int i = _messages.length - 1; i >= 0; i--) {
-                      if (_messages[i]['role'] == 'agent' && lastAgentIdx == -1) {
-                        lastAgentIdx = i;
-                      }
-                      if (_messages[i]['role'] == 'user' && lastUserIdx == -1) {
-                        lastUserIdx = i;
-                      }
+                      final t = _messages[i]['turul'];
+                      final isUserMsg = t == 'user_reply' || _messages[i]['isTemp'] == true;
+                      if (!isUserMsg && lastKhariuIdx == -1) lastKhariuIdx = i;
+                      if (isUserMsg && lastUserIdx == -1) lastUserIdx = i;
                     }
-                    final isLastAgentMsg = (index == lastAgentIdx);
+                    final isLastAgentMsg = (index == lastKhariuIdx);
                     final isLastUserMsg = (index == lastUserIdx);
                     return _buildMessageBubble(
                       msg,
@@ -778,17 +819,27 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
     bool isLastUserMsg = false,
   }) {
     final isDark = context.isDarkMode;
-    final dateStr = msg['createdAt'];
-    final sentDate = dateStr != null ? DateTime.parse(dateStr).toLocal() : DateTime.now();
+    final dateStr = msg['createdAt'] ?? msg['ognoo'];
+    final sentDate = dateStr != null ? DateTime.tryParse(dateStr.toString())?.toLocal() ?? DateTime.now() : DateTime.now();
     final timeStr = DateFormat('HH:mm').format(sentDate);
-    final text = msg['text'] ?? '';
-    final fileUrl = msg['fileUrl'];
-    final fileType = msg['fileType'];
+    // medegdel fields: message text in 'message', image in 'zurag', voice in 'duu'
+    final text = msg['message']?.toString() ?? msg['text']?.toString() ?? '';
+    // zurag can be a single path or comma-separated; show the first one
+    final zuragRaw = msg['zurag']?.toString();
+    final fileUrl = zuragRaw != null && zuragRaw.isNotEmpty
+        ? zuragRaw.split(',').first.trim()
+        : null;
+    final duuRaw = msg['duu']?.toString();
+    final voiceUrl = duuRaw != null && duuRaw.isNotEmpty ? duuRaw : null;
+    // Map to UI fileType
+    final fileType = fileUrl != null ? 'image' : (voiceUrl != null ? 'audio' : msg['fileType']?.toString());
+    final effectiveFileUrl = fileUrl ?? voiceUrl ?? msg['fileUrl']?.toString();
     final duration = msg['duration'];
-    final readByGuest = msg['readByGuest'] == true;
-    final readByGuestAt = msg['readByGuestAt'];
-    final readByAgent = msg['readByAgent'] == true;
-    final readByAgentAt = msg['readByAgentAt'];
+    // medegdel has no read-receipt fields; skip seen-time display
+    const bool readByGuest = false;
+    const dynamic readByGuestAt = null;
+    const bool readByAgent = false;
+    const dynamic readByAgentAt = null;
 
     String? seenTimeStr;
     if (!isMe && readByGuestAt != null) {
@@ -802,13 +853,14 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
     }
 
     // Pure image/video messages render without bubble background
-    final isMediaOnly = fileUrl != null && (fileType == 'image' || fileType == 'video') && text.isEmpty;
+    final isMediaOnly = effectiveFileUrl != null && (fileType == 'image' || fileType == 'video') && text.isEmpty;
 
     // Build the media/content widget
     Widget buildContent() {
       if (isMediaOnly) {
         // Clean media card - no bubble background
         if (fileType == 'image') {
+          final imgUrl = _buildFileUrl(effectiveFileUrl);
           return GestureDetector(
             onTap: () {
               Navigator.push(
@@ -817,7 +869,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                   builder: (_) => Scaffold(
                     backgroundColor: Colors.black,
                     appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-                    body: Center(child: Image.network('https://admin.zevtabs.mn/api/file?path=$fileUrl')),
+                    body: Center(child: Image.network(imgUrl)),
                   ),
                 ),
               );
@@ -825,7 +877,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14.r),
               child: Image.network(
-                'https://admin.zevtabs.mn/api/file?path=$fileUrl',
+                imgUrl,
                 width: 220.w,
                 fit: BoxFit.cover,
                 loadingBuilder: (ctx, child, progress) => progress == null
@@ -846,7 +898,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
           // Video — no bubble
           return ClipRRect(
             borderRadius: BorderRadius.circular(14.r),
-            child: ChatVideoPlayer(url: 'https://admin.zevtabs.mn/api/file?path=$fileUrl'),
+            child: ChatVideoPlayer(url: _buildFileUrl(effectiveFileUrl)),
           );
         }
       }
@@ -895,20 +947,20 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                         builder: (_) => Scaffold(
                           backgroundColor: Colors.black,
                           appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-                          body: Center(child: Image.network('https://admin.zevtabs.mn/api/file?path=$fileUrl')),
+                          body: Center(child: Image.network(_buildFileUrl(effectiveFileUrl))),
                         ),
                       ),
                     );
                   },
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8.r),
-                    child: Image.network('https://admin.zevtabs.mn/api/file?path=$fileUrl', width: 200.w, fit: BoxFit.fitWidth),
+                    child: Image.network(_buildFileUrl(effectiveFileUrl), width: 200.w, fit: BoxFit.fitWidth),
                   ),
                 )
               else if (fileType == 'video')
-                ChatVideoPlayer(url: 'https://admin.zevtabs.mn/api/file?path=$fileUrl')
+                ChatVideoPlayer(url: _buildFileUrl(effectiveFileUrl))
               else if (fileType == 'audio')
-                VoicePlayBubble(fileUrl: fileUrl, duration: duration, isMe: isMe),
+                VoicePlayBubble(fileUrl: _buildFileUrl(effectiveFileUrl), duration: duration, isMe: isMe),
             ],
           ],
         ),

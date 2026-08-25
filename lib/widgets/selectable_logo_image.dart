@@ -8,11 +8,20 @@ class SelectableLogoImage extends StatelessWidget {
   final double? height;
   final BoxFit fit;
 
+  /// Зөвхөн ТУНГАЛАГ фон бүхий лого хэрэглэх.
+  ///
+  /// Хар/цэнхэр/ногоон хувилбарууд нь .jpg тул форматын хувьд тунгалаг байж
+  /// ЧАДАХГҮЙ - дэлгэц дээр өнгөт дөрвөлжин болж харагдана. Лого нь дэвсгэр
+  /// дээр чөлөөтэй байх ёстой хэсэгт (нэвтрэх, бүртгүүлэх) үүнийг true
+  /// болгож үндсэн .png-г хэрэглэнэ.
+  final bool zovkhonTungalag;
+
   const SelectableLogoImage({
     super.key,
     this.width,
     this.height,
     this.fit = BoxFit.contain,
+    this.zovkhonTungalag = false,
   });
 
   @override
@@ -20,7 +29,9 @@ class SelectableLogoImage extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: AppLogoNotifier.currentIcon,
       builder: (context, iconName, _) {
-        final logoPath = AppLogoAssets.getAssetPath(iconName);
+        final logoPath = zovkhonTungalag
+            ? AppLogoAssets.defaultLogo
+            : AppLogoAssets.getAssetPath(iconName);
         return Image.asset(
           logoPath,
           width: width,

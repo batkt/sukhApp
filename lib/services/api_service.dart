@@ -12,6 +12,17 @@ import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/main.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:sukh_app/utils/logger.dart';
+
+/// Уригдсан машин яг одоо түрээсийн зогсоол дээр байгаа тул урилгыг цуцлах
+/// боломжгүй (сервер 409 буцаасан). Машин гарсны дараа дахин оролдоно.
+class ZochinZogsoolDeerException implements Exception {
+  final String message;
+  ZochinZogsoolDeerException(this.message);
+
+  @override
+  String toString() => message;
+}
 
 class ApiService {
   static const String baseUrl = 'https://amarhome.mn/api';
@@ -4844,11 +4855,15 @@ class ApiService {
   }
 
   /// Unified Guest Invitation method using the correct EzenUrisanMashin schema
+  /// [tulburiinTurul] - "zochin" (зочин өөрөө төлнө) эсвэл "ezen" (төлбөр
+  /// оршин суугчийн нэхэмжлэхэд бичигдэнэ). Идэвхтэй гэрээ олдохгүй бол
+  /// сервер өөрөө "zochin" болгож буулгаад хариуд нь мэдэгдэнэ.
   static Future<Map<String, dynamic>> inviteGuest({
     required String urisanMashiniiDugaar,
     required String baiguullagiinId,
     String? barilgiinId,
     required String ezenId,
+    String tulburiinTurul = 'zochin',
   }) async {
     try {
       final headers = await getAuthHeaders();
@@ -4891,6 +4906,8 @@ class ApiService {
             quotaData['zochinTusBurUneguiMinut'] ??
             0,
         "tuluv": 0,
+        // Түрээсийн зогсоолд төлбөрийг хэн даахыг энэ шийднэ
+        "tulburiinTurul": tulburiinTurul,
         "tukhainBaaziinKholbolt": tukhainBaaziinKholbolt ?? "amarSukh",
       };
 
@@ -5020,10 +5037,101 @@ class ApiService {
           final errorBody = json.decode(response.body);
           message = errorBody['message'] ?? errorBody['aldaa'] ?? message;
         } catch (_) {}
+
+        // 409 = уригдсан машин яг одоо зогсоол дээр байна. Түрээс тал
+        // цуцлахыг зөвшөөрөхгүй, эс тэгвэл гарах/төлбөрийн логик тасарна.
+        if (response.statusCode == 409) {
+          throw ZochinZogsoolDeerException(message);
+        }
         throw Exception(message);
       }
+    } on ZochinZogsoolDeerException {
+      rethrow;
     } catch (e) {
       throw Exception('Урилга цуцлахад алдаа гарлаа: $e');
+    }
+  }
+
+  /// Зочны зогсоолын хөдөлгөөн (түрээсийн системээс webhook-оор ирсэн).
+  /// Оршин суугч зөвхөн өөрийн уригсан зочдыг харна - серверээс шүүгдэнэ.
+  static Future<Map<String, dynamic>> fetchZochinZogsoolTuukh({
+    String? urilgiinId,
+    String? mashiniiDugaar,
+    int khuudasniiDugaar = 1,
+    int khuudasniiKhemjee = 50,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+
+      final uri = Uri.parse('$baseUrl/zochin/zogsool/tuukh').replace(
+        queryParameters: {
+          if (baiguullagiinId != null) 'baiguullagiinId': baiguullagiinId,
+          if (barilgiinId != null) 'barilgiinId': barilgiinId,
+          if (urilgiinId != null) 'urilgiinId': urilgiinId,
+          if (mashiniiDugaar != null) 'mashiniiDugaar': mashiniiDugaar,
+          'khuudasniiDugaar': khuudasniiDugaar.toString(),
+          'khuudasniiKhemjee': khuudasniiKhemjee.toString(),
+          '_': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      );
+
+      final response = await http.get(uri, headers: headers);
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final body = response.body.trim();
+        if (body.isNotEmpty && !body.contains('<!doctype html>')) {
+          try {
+            final decoded = json.decode(body);
+            if (decoded is Map<String, dynamic>) return decoded;
+          } catch (_) {}
+        }
+        return {'success': true, 'jagsaalt': [], 'niitMur': 0};
+      }
+
+      // Интеграц асаагүй/route байхгүй бол апп унахгүй - хоосон буцаана
+      return {'success': false, 'jagsaalt': [], 'niitMur': 0};
+    } catch (e) {
+      AppLogger.log('[ZOCHIN-ZOGSOOL] tuukh татахад алдаа: $e');
+      return {'success': false, 'jagsaalt': [], 'niitMur': 0};
+    }
+  }
+
+  /// Урилгын түрээсийн зогсоол дээрх ОДООГИЙН байдал (үлдсэн үнэгүй минут,
+  /// идэвхтэй session). Түрээс тал руу шууд дамжуулж асуудаг тул удаан байж
+  /// болно - жагсаалт ачаалахад биш, дэлгэрэнгүй харахад дуудна.
+  static Future<Map<String, dynamic>?> fetchZochinUrilgiinTuluv(
+    String urilgiinId,
+  ) async {
+    try {
+      final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+
+      final uri = Uri.parse('$baseUrl/zochin/zogsool/urilgiinTuluv/$urilgiinId')
+          .replace(
+            queryParameters: {
+              if (baiguullagiinId != null) 'baiguullagiinId': baiguullagiinId,
+            },
+          );
+
+      final response = await http.get(uri, headers: headers);
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final body = response.body.trim();
+        if (body.isNotEmpty && !body.contains('<!doctype html>')) {
+          try {
+            final decoded = json.decode(body);
+            if (decoded is Map<String, dynamic>) return decoded;
+          } catch (_) {}
+        }
+      }
+      return null;
+    } catch (e) {
+      AppLogger.log('[ZOCHIN-ZOGSOOL] urilgiinTuluv татахад алдаа: $e');
+      return null;
     }
   }
 

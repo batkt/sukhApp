@@ -41,14 +41,38 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   String? _quotaError;
   bool _hasQuota = true;
 
+  /// Байгууллага "Нэхэмжлэх дээр нэмэх"-ийг зөвшөөрсөн эсэх.
+  /// Унтраалттай бол зочин өөрөө төлнө - сонголт харуулахгүй.
+  bool get _nekhemjlekhBolomjtoi =>
+      _quotaStatus?['nekhemjlekhEsekh'] == true;
+
+  /// Түрээсийн зогсоолын төлбөрийг хэн даах: "zochin" | "ezen".
+  /// Гэрээгүй бол сервер өөрөө "zochin" болгож буулгана.
+  String _tulburiinTurul = 'zochin';
+
+  /// Машины дугаар -> түрээсийн зогсоолын сүүлийн хөдөлгөөн.
+  /// /zochin/zogsool/tuukh-аас ачаална - үнэгүй минут, орсон/гарсан цаг.
+  final Map<String, Map<String, dynamic>> _zogsooliinTuukh = {};
+
+  /// Дэлгэрэнгүй нээгдсэн урилгын id (зөвхөн нэг нь нээлттэй байна)
+  String? _delgerengiiUrilgiinId;
+
+  /// Урилгын id -> түрээсээс шууд асуусан одоогийн байдал
+  final Map<String, Map<String, dynamic>> _urilgiinTuluv = {};
+
+  /// Яг одоо татагдаж буй урилгууд
+  final Set<String> _tuluvAchaalj = {};
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _mashiniiDugaarController.addListener(_onPlateTextChanged);
     _loadUserPhone();
+    _loadTulburiinTurul();
     _loadInvitedGuests();
     _loadQuotaStatus();
+    _loadZogsooliinTuukh();
     _setupSocketListener();
   }
 
@@ -78,8 +102,117 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     // Reload list on any relevant notification
     // Optimize this later if we know specific event types for car updates
     AppLogger.log('🔔 Socket message received in ZochinUrikhPage, reloading list...');
+
+    // Түрээсийн зогсоолын webhook -> ZOCHIN_ORSON / ZOCHIN_GARSAN
+    final turul = data['type']?.toString();
+    if (turul == 'ZOCHIN_ORSON' || turul == 'ZOCHIN_GARSAN') {
+      _loadZogsooliinTuukh();
+
+      // Нээлттэй дэлгэрэнгүй хуучирсан тул хүчингүй болгоод дахин татна
+      final neelttei = _delgerengiiUrilgiinId;
+      _urilgiinTuluv.clear();
+      if (neelttei != null) _loadUrilgiinTuluv(neelttei);
+
+      if (mounted) {
+        final medegdel = data['message']?.toString();
+        if (medegdel != null && medegdel.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(medegdel),
+              backgroundColor: turul == 'ZOCHIN_ORSON'
+                  ? const Color(0xFF3B82F6)
+                  : AppColors.deepGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+      }
+    }
+
     _loadInvitedGuests(showLoading: false);
     _loadQuotaStatus();
+  }
+
+  /// Сүүлд сонгосон төлбөрийн төрлийг сэргээнэ. Хадгалаагүй бол "zochin".
+  Future<void> _loadTulburiinTurul() async {
+    final khadgalsan = await StorageService.getZochinTulburiinTurul();
+    if (khadgalsan != null && mounted && khadgalsan != _tulburiinTurul) {
+      setState(() => _tulburiinTurul = khadgalsan);
+    }
+  }
+
+  /// Урилгын түрээсийн зогсоол дээрх одоогийн байдлыг татах. Түрээс рүү
+  /// шууд дамждаг тул удаан байж болно - зөвхөн дэлгэрэнгүй нээхэд дуудна.
+  Future<void> _loadUrilgiinTuluv(String urilgiinId) async {
+    if (_tuluvAchaalj.contains(urilgiinId)) return;
+
+    setState(() => _tuluvAchaalj.add(urilgiinId));
+    try {
+      final khariu = await ApiService.fetchZochinUrilgiinTuluv(urilgiinId);
+      final data = (khariu != null && khariu['data'] is Map)
+          ? Map<String, dynamic>.from(khariu['data'] as Map)
+          : null;
+
+      if (mounted) {
+        setState(() {
+          _tuluvAchaalj.remove(urilgiinId);
+          if (data != null) {
+            _urilgiinTuluv[urilgiinId] = data;
+          } else {
+            _urilgiinTuluv.remove(urilgiinId);
+          }
+        });
+      }
+    } catch (e) {
+      AppLogger.log('[ZOCHIN-ZOGSOOL] Урилгын төлөв татахад алдаа: $e');
+      if (mounted) {
+        setState(() => _tuluvAchaalj.remove(urilgiinId));
+      }
+    }
+  }
+
+  /// Дэлгэрэнгүйг нээх/хаах. Нээх бүрт шинэчилж татна - үнэгүй минут
+  /// байнга өөрчлөгддөг тул хуучин утга харуулах нь төөрөгдүүлнэ.
+  void _urilgiinTuluvSolikh(String urilgiinId) {
+    if (_delgerengiiUrilgiinId == urilgiinId) {
+      setState(() => _delgerengiiUrilgiinId = null);
+      return;
+    }
+    setState(() => _delgerengiiUrilgiinId = urilgiinId);
+    _loadUrilgiinTuluv(urilgiinId);
+  }
+
+  /// Түрээсийн зогсоолын хөдөлгөөнийг татаж, машины дугаараар индекслэнэ.
+  /// Интеграц асаагүй бол хоосон ирнэ - хуудас хэвийн ажиллана.
+  Future<void> _loadZogsooliinTuukh() async {
+    try {
+      final khariu = await ApiService.fetchZochinZogsoolTuukh();
+      final jagsaalt = khariu['jagsaalt'];
+      if (jagsaalt is! List) return;
+
+      final shine = <String, Map<String, dynamic>>{};
+      // Сервер createdAt буурахаар эрэмбэлдэг тул эхний тохиолдол нь хамгийн сүүлийнх
+      for (final mur in jagsaalt) {
+        if (mur is! Map) continue;
+        final dugaar = (mur['mashiniiDugaar'] ?? '').toString().trim().toUpperCase();
+        if (dugaar.isEmpty || shine.containsKey(dugaar)) continue;
+        shine[dugaar] = Map<String, dynamic>.from(mur);
+      }
+
+      if (mounted) {
+        setState(() {
+          _zogsooliinTuukh
+            ..clear()
+            ..addAll(shine);
+        });
+      }
+    } catch (e) {
+      AppLogger.log('[ZOCHIN-ZOGSOOL] Хөдөлгөөн ачаалахад алдаа: $e');
+    }
   }
 
   Future<void> _loadQuotaStatus() async {
@@ -113,6 +246,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             'period': data['period'] ?? 'saraar',
             'freeMinutesPerGuest': data['freeMinutesPerGuest'] ?? data['zochinTusBurUneguiMinut'] ?? 0,
             'hasRight': data['hasRight'] ?? data['zochinUrikhEsekh'] ?? true,
+            // Тохируулаагүй бол УНТРААЛТТАЙ - сервер ч мөн адил шийддэг тул
+            // энд true болговол "Би даана" харагдаад сервер дээр буцаагдана
+            'nekhemjlekhEsekh': data['nekhemjlekhEsekh'] == true,
           };
           
           // Check success flag and primary permission flag
@@ -284,28 +420,66 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         throw Exception('Хэрэглэгчийн мэдээлэл олдсонгүй');
       }
 
-      await ApiService.inviteGuest(
+      final khariu = await ApiService.inviteGuest(
         urisanMashiniiDugaar: targetPlate,
         baiguullagiinId: baiguullagiinId,
         barilgiinId: barilgiinId,
         ezenId: userId,
+        tulburiinTurul: _nekhemjlekhBolomjtoi ? _tulburiinTurul : 'zochin',
       );
 
       if (mounted) {
         // Clear only the car plate field (phone stays as user's phone)
         _mashiniiDugaarController.clear();
-        
-        // Show success message
+
+        // Түрээсийн зогсоолын үр дүнг тусад нь хэлнэ. Урилга АмарСүх дээр
+        // үргэлж хадгалагдана - зогсоолд бүртгэгдээгүй бол хаалган дээр
+        // зочин танигдахгүй тул оршин суугчид мэдэгдэх ёстой.
+        final turees = khariu['turees'];
+        String medegdel = 'Зочин амжилттай урилаа';
+        Color ungu = AppColors.deepGreen;
+
+        if (turees is Map) {
+          final buurtgegdsen = turees['buurtgegdsen'] == true;
+          final tokhirgoogui = turees['tokhirgoogui'] == true;
+
+          if (buurtgegdsen) {
+            // Гэрээ олдоогүй бол сервер "ezen"-ийг "zochin" болгож буулгадаг
+            final tulukh = turees['tulburiinTurul']?.toString();
+            if (_tulburiinTurul == 'ezen' && tulukh == 'zochin') {
+              medegdel =
+                  'Зочин уригдлаа.';
+              ungu = Colors.green;
+            } else if (tulukh == 'ezen') {
+              medegdel =
+                  'Зочин уригдлаа. Зогсоолын төлбөр таны нэхэмжлэхэд бичигдэнэ.';
+            } else {
+              medegdel = 'Зочин уригдлаа. Зогсоолд бүртгэгдлээ.';
+            }
+          } else if (!tokhirgoogui) {
+            medegdel =
+                'Зочин уригдлаа. Гэхдээ зогсоолын системд бүртгэгдсэнгүй - хаалган дээр танигдахгүй байж болзошгүй.';
+            ungu = Colors.orange;
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Зочин амжилттай урилаа'),
-            backgroundColor: AppColors.deepGreen,
+            content: Text(medegdel),
+            backgroundColor: ungu,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
           ),
         );
-        
+
         // Reload history and quota
         _loadInvitedGuests();
         _loadQuotaStatus();
+        _loadZogsooliinTuukh();
       }
     } catch (e) {
       if (mounted) {
@@ -484,6 +658,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                       
                       // Car plate number (4 digits + 3 letters)
                       TextFormField(
+                        key: ValueKey('plate_field_$_plateKeyboardType'),
                         controller: _mashiniiDugaarController,
                         focusNode: _plateFocusNode,
                         textCapitalization: TextCapitalization.characters,
@@ -609,8 +784,9 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                         },
                       ),
 
-                      // On-Screen Mongolian Cyrillic Helper Keypad & Instant Shortcuts
-                      _buildMongolianCyrillicKeypad(),
+                      // Кирилл үсгийн товчлуур - утасны хэлийг солихгүйгээр
+                      // сүүлийн 3 үсгийг шууд оруулах
+                      _buildKirillTovchluur(),
 
                       SizedBox(height: context.responsiveSpacing(
                         small: 16,
@@ -710,6 +886,19 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                           ),
                         ),
                       ),
+                      // Зогсоолын төлбөрийг хэн даах. Байгууллага
+                      // зөвшөөрөөгүй бол сонголт БА түүний зай ч байхгүй.
+                      if (_nekhemjlekhBolomjtoi) ...[
+                        SizedBox(height: context.responsiveSpacing(
+                          small: 16,
+                          medium: 18,
+                          large: 20,
+                          tablet: 22,
+                          veryNarrow: 12,
+                        )),
+                        _buildTulburiinTurulSelector(),
+                      ],
+
                       SizedBox(height: context.responsiveSpacing(
                         small: 24,
                         medium: 28,
@@ -946,6 +1135,226 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     );
   }
 
+  /// Улсын дугаарын сүүлийн 3 үсгийг оруулах кирилл товчлуур.
+  ///
+  /// ЯАГААД: утасны гаралтын хэлийг апп дундаас солих API байхгүй -
+  /// TextInputType нь зөвхөн товчлуурын ТӨРЛИЙГ (тоо/текст) сонгодог, ХЭЛИЙГ
+  /// нь биш. Тиймээс 4 цифр орсны дараа кирилл үсгийг өөрсдөө өгнө.
+  Widget _buildKirillTovchluur() {
+    final tekst = _mashiniiDugaarController.text;
+
+    // Зөвхөн 4 цифр орсны дараа, 7 тэмдэгт болтол харуулна
+    if (tekst.length < 4 || tekst.length >= 7) return const SizedBox.shrink();
+
+    const useguud = [
+      'А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И',
+      'Й', 'К', 'Л', 'М', 'Н', 'О', 'Ө', 'П', 'Р', 'С',
+      'Т', 'У', 'Ү', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ',
+      'Ы', 'Ь', 'Э', 'Ю', 'Я',
+    ];
+
+    void useg(String u) {
+      if (_mashiniiDugaarController.text.length >= 7) return;
+      _mashiniiDugaarController.text = _mashiniiDugaarController.text + u;
+      _mashiniiDugaarController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _mashiniiDugaarController.text.length),
+      );
+    }
+
+    void ustga() {
+      final odoo = _mashiniiDugaarController.text;
+      if (odoo.isEmpty) return;
+      _mashiniiDugaarController.text = odoo.substring(0, odoo.length - 1);
+      _mashiniiDugaarController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _mashiniiDugaarController.text.length),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.keyboard_alt_outlined,
+                size: 13.sp,
+                color: context.textSecondaryColor,
+              ),
+              SizedBox(width: 5.w),
+              Text(
+                'Үсэг сонгоно уу (${tekst.length - 4}/3)',
+                style: TextStyle(
+                  color: context.textSecondaryColor,
+                  fontSize: 11.sp,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: ustga,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  child: Icon(
+                    Icons.backspace_outlined,
+                    size: 15.sp,
+                    color: context.textSecondaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+          Wrap(
+            spacing: 6.w,
+            runSpacing: 6.h,
+            children: useguud
+                .map(
+                  (u) => GestureDetector(
+                    onTap: () => useg(u),
+                    child: Container(
+                      width: 34.w,
+                      height: 34.w,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: context.surfaceColor.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(8.r),
+                        border: Border.all(
+                          color: context.borderColor.withOpacity(0.5),
+                        ),
+                      ),
+                      child: Text(
+                        u,
+                        style: TextStyle(
+                          color: context.textPrimaryColor,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Зогсоолын төлбөрийг зочин өөрөө төлөх үү, эсвэл оршин суугчийн
+  /// нэхэмжлэхэд бичих үү. Түрээсийн зогсоолын интеграц дээр л утгатай -
+  /// бүртгэгдээгүй тохиолдолд сервер үүнийг үл тоомсорлоно.
+  Widget _buildTulburiinTurulSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Зогсоолын төлбөр',
+          style: TextStyle(
+            color: context.textSecondaryColor,
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          children: [
+            Expanded(
+              child: _tulburiinTurulSongolt(
+                utga: 'zochin',
+                garchig: 'Зочин төлнө',
+                tailbar: 'Хаалган дээр',
+                dvrs: Icons.person_outline,
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: _tulburiinTurulSongolt(
+                utga: 'ezen',
+                garchig: 'Би даана',
+                tailbar: 'Нэхэмжлэхэд',
+                dvrs: Icons.receipt_long_outlined,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _tulburiinTurulSongolt({
+    required String utga,
+    required String garchig,
+    required String tailbar,
+    required IconData dvrs,
+  }) {
+    final songogdson = _tulburiinTurul == utga;
+
+    return GestureDetector(
+      onTap: () {
+        if (_tulburiinTurul != utga) {
+          setState(() => _tulburiinTurul = utga);
+          StorageService.saveZochinTulburiinTurul(utga);
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: songogdson
+              ? AppColors.deepGreen.withOpacity(0.12)
+              : context.surfaceColor.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: songogdson
+                ? AppColors.deepGreen
+                : context.borderColor.withOpacity(0.5),
+            width: songogdson ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              dvrs,
+              size: 18.sp,
+              color: songogdson
+                  ? AppColors.deepGreen
+                  : context.textSecondaryColor,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    garchig,
+                    style: TextStyle(
+                      color: songogdson
+                          ? AppColors.deepGreen
+                          : context.textPrimaryColor,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    tailbar,
+                    style: TextStyle(
+                      color: context.textSecondaryColor,
+                      fontSize: 10.sp,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildGuestList(List<Map<String, dynamic>> guests, String type) {
     if (guests.isEmpty) {
       return Center(
@@ -1130,6 +1539,26 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         );
         _loadInvitedGuests(showLoading: false);
         _loadQuotaStatus();
+        _loadZogsooliinTuukh();
+      }
+    } on ZochinZogsoolDeerException catch (e) {
+      // Машин зогсоол дээр байхад цуцалбал гарах/төлбөрийн логик тасарна.
+      // Урилга АмарСүх дээр ч устаагүй тул жагсаалтыг шинэчлээд орхино.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        _loadInvitedGuests(showLoading: false);
+        _loadZogsooliinTuukh();
       }
     } catch (e) {
       if (mounted) {
@@ -1138,6 +1567,208 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         );
       }
     }
+  }
+
+  /// Түрээсийн зогсоолын сүүлийн хөдөлгөөнийг картан дээр харуулна.
+  /// Мэдээлэл байхгүй (интеграц асаагүй эсвэл зочин хараахан ороогүй) бол
+  /// юу ч нэмэхгүй - хуучин карт хэвээрээ.
+  Widget _buildZogsoolMedeelel(String mashiniiDugaar, int tuluv) {
+    final dugaar = mashiniiDugaar.trim().toUpperCase();
+    final tuukh = _zogsooliinTuukh[dugaar];
+    if (tuukh == null) return const SizedBox.shrink();
+
+    final uldsen = (tuukh['uneguiMinutUldsen'] as num?)?.toInt();
+    final ashiglasan = (tuukh['uneguiMinutAshiglasan'] as num?)?.toInt();
+    final tulukhDun = (tuukh['tulukhDun'] as num?)?.toInt() ?? 0;
+    final tulburiinTurul = tuukh['tulburiinTurul']?.toString();
+    final dotor = tuukh['garsanTsag'] == null;
+
+    final temdegluud = <Widget>[];
+
+    void nemye(IconData dvrs, String bichig, Color ungu) {
+      temdegluud.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(dvrs, size: 10.sp, color: ungu),
+            SizedBox(width: 3.w),
+            Text(
+              bichig,
+              style: TextStyle(
+                color: ungu,
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // tuluv == 1 үед картын статус аль хэдийн "Идэвхтэй" гэж хэлсэн байгаа
+    // тул давхардуулахгүй
+    if (dotor && tuluv != 1) {
+      nemye(Icons.local_parking, 'Зогсоол дээр', const Color(0xFF3B82F6));
+    }
+
+    if (uldsen != null && uldsen > 0) {
+      nemye(Icons.timer_outlined, 'Үнэгүй $uldsen мин үлдсэн', AppColors.deepGreen);
+    } else if (uldsen != null && uldsen <= 0) {
+      nemye(Icons.timer_off_outlined, 'Үнэгүй минут дууссан', Colors.orange);
+    } else if (ashiglasan != null && ashiglasan > 0) {
+      nemye(Icons.timer_outlined, 'Үнэгүй $ashiglasan мин ашигласан', context.textSecondaryColor);
+    }
+
+    if (tulukhDun > 0) {
+      final dunStr = NumberFormat('#,###').format(tulukhDun);
+      nemye(
+        Icons.payments_outlined,
+        tulburiinTurul == 'ezen' ? '$dunStr₮ нэхэмжлэхэд' : '$dunStr₮ төлбөр',
+        tulburiinTurul == 'ezen' ? Colors.orange : context.textSecondaryColor,
+      );
+    }
+
+    if (temdegluud.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.only(top: 6.h),
+      child: Wrap(spacing: 10.w, runSpacing: 4.h, children: temdegluud),
+    );
+  }
+
+  /// Идэвхтэй зочны дэлгэрэнгүй - түрээсийн зогсоолоос ШУУД асуусан
+  /// одоогийн байдал. Webhook хоцорсон ч энэ нь бодит утгыг харуулна.
+  Widget _buildUrilgiinTuluvDelgerengui(String urilgiinId) {
+    final achaalj = _tuluvAchaalj.contains(urilgiinId);
+    final tuluv = _urilgiinTuluv[urilgiinId];
+
+    Widget aguulga;
+
+    if (achaalj && tuluv == null) {
+      aguulga = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 12.w,
+            height: 12.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: context.textSecondaryColor,
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Text(
+            'Зогсоолоос мэдээлэл авч байна...',
+            style: TextStyle(
+              color: context.textSecondaryColor,
+              fontSize: 11.sp,
+            ),
+          ),
+        ],
+      );
+    } else if (tuluv == null) {
+      aguulga = Text(
+        'Зогсоолын мэдээлэл авах боломжгүй байна',
+        style: TextStyle(color: Colors.orange, fontSize: 11.sp),
+      );
+    } else {
+      final uldsen = (tuluv['uneguiMinutUldsen'] as num?)?.toInt() ?? 0;
+      final ashiglasan =
+          (tuluv['uneguiMinutAshiglasanNiit'] as num?)?.toInt() ?? 0;
+      final tulburiinTurul = tuluv['tulburiinTurul']?.toString();
+
+      // Сүүлийн session - идэвхтэй зочин бол гарах цаггүй нь энэ
+      Map<String, dynamic>? sessionSuuli;
+      final sessionuud = tuluv['sessionuud'];
+      if (sessionuud is List && sessionuud.isNotEmpty) {
+        final suuli = sessionuud.last;
+        if (suuli is Map) sessionSuuli = Map<String, dynamic>.from(suuli);
+      }
+
+      String? orsonStr;
+      if (sessionSuuli != null && sessionSuuli['orsonTsag'] != null) {
+        try {
+          orsonStr = DateFormat(
+            'MM/dd HH:mm',
+          ).format(DateTime.parse(sessionSuuli['orsonTsag'].toString()).toLocal());
+        } catch (_) {}
+      }
+
+      aguulga = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _tuluvMur(
+            Icons.timer_outlined,
+            'Үлдсэн үнэгүй минут',
+            uldsen > 0 ? '$uldsen мин' : 'Дууссан',
+            uldsen > 0 ? AppColors.deepGreen : Colors.orange,
+          ),
+          if (ashiglasan > 0)
+            _tuluvMur(
+              Icons.history_toggle_off,
+              'Нийт ашигласан',
+              '$ashiglasan мин',
+              context.textSecondaryColor,
+            ),
+          if (orsonStr != null)
+            _tuluvMur(
+              Icons.login,
+              'Орсон',
+              orsonStr,
+              const Color(0xFF3B82F6),
+            ),
+          _tuluvMur(
+            Icons.payments_outlined,
+            'Төлбөр',
+            tulburiinTurul == 'ezen' ? 'Таны нэхэмжлэхэд' : 'Зочин өөрөө төлнө',
+            tulburiinTurul == 'ezen'
+                ? Colors.orange
+                : context.textSecondaryColor,
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(top: 4.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: context.surfaceColor.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: context.borderColor.withOpacity(0.5)),
+      ),
+      child: aguulga,
+    );
+  }
+
+  Widget _tuluvMur(IconData dvrs, String garchig, String utga, Color ungu) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 3.h),
+      child: Row(
+        children: [
+          Icon(dvrs, size: 13.sp, color: ungu),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              garchig,
+              style: TextStyle(
+                color: context.textSecondaryColor,
+                fontSize: 11.sp,
+              ),
+            ),
+          ),
+          Text(
+            utga,
+            style: TextStyle(
+              color: ungu,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildGuestCard(Map<String, dynamic> guest) {
@@ -1152,6 +1783,13 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     final tuluv = isHistoryItem 
         ? (urisanMashin['tuluv'] ?? 0)
         : (guest['tuluv'] ?? 0);
+
+    // Түрээсийн систем дээрх урилгыг АмарСүхийн ezenUrisanMashin._id-гээр
+    // танина. ezenList дээр тэр нь баримтын өөрийнх нь _id, харин түүхийн
+    // мөрөнд urisanMashin дотор л байна (дугаараар таарсан бол хоосон).
+    final urilgiinId = isHistoryItem
+        ? urisanMashin['_id']?.toString()
+        : guest['_id']?.toString();
 
     final createdAt = isHistoryItem
         ? (urisanMashin['createdAt'] ?? guest['createdAt'])
@@ -1198,23 +1836,6 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       }
     }
 
-    // Compute duration
-    String durationStr = '';
-    if (entryTime != null) {
-      final endTime = (tuluv == 2 && exitTime != null) ? exitTime : DateTime.now();
-      final diff = endTime.difference(entryTime);
-      final totalMin = diff.inMinutes;
-      if (totalMin > 0) {
-        if (totalMin < 60) {
-          durationStr = '${totalMin}м';
-        } else {
-          final h = totalMin ~/ 60;
-          final m = totalMin % 60;
-          durationStr = m > 0 ? '${h}ц ${m}м' : '${h}ц';
-        }
-      }
-    }
-
     String entryTimeStr = entryTime != null ? DateFormat('HH:mm').format(entryTime) : '';
     String exitTimeStr = exitTime != null ? DateFormat('HH:mm').format(exitTime) : '';
     String dateStr = entryTime != null
@@ -1226,7 +1847,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     Color statusBgColor;
 
     if (tuluv == 1) {
-      statusText = 'Идэвхтэй';
+      statusText = entryTimeStr.isNotEmpty ? 'Идэвхтэй (Орсон: $entryTimeStr)' : 'Идэвхтэй';
       statusColor = const Color(0xFF3B82F6);
       statusBgColor = const Color(0xFF1E3A8A).withOpacity(0.3);
     } else if (tuluv == 2) {
@@ -1317,6 +1938,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                           ],
                         ],
                       ),
+                      // Түрээсийн зогсоолын мэдээлэл (webhook-оор ирсэн)
+                      _buildZogsoolMedeelel(mashiniiDugaar.toString(), tuluv),
                     ],
                   ),
                 ),
@@ -1327,35 +1950,15 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (durationStr.isNotEmpty)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                  margin: EdgeInsets.only(bottom: 4.h),
-                  decoration: BoxDecoration(
-                    color: tuluv == 1 ? const Color(0xFF1E3A8A).withOpacity(0.4) : const Color(0xFF1F2937),
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(
-                      color: tuluv == 1 ? const Color(0xFF3B82F6).withOpacity(0.5) : Colors.grey.withOpacity(0.2),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.access_time, size: 12.sp, color: tuluv == 1 ? const Color(0xFF3B82F6) : Colors.grey[300]),
-                      SizedBox(width: 4.w),
-                      Text(
-                        'Зогссон: $durationStr',
-                        style: TextStyle(
-                          color: tuluv == 1 ? const Color(0xFF60A5FA) : Colors.grey[300],
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+              if (tuluv == 1 && urilgiinId != null && urilgiinId.isNotEmpty)
+                Icon(
+                  _delgerengiiUrilgiinId == urilgiinId
+                      ? Icons.expand_less
+                      : Icons.expand_more,
+                  size: 20.sp,
+                  color: context.textSecondaryColor,
                 ),
-
-              if (entryTimeStr.isNotEmpty || exitTimeStr.isNotEmpty)
+              if (tuluv != 1 && (entryTimeStr.isNotEmpty || exitTimeStr.isNotEmpty))
                 Padding(
                   padding: EdgeInsets.only(top: 2.h),
                   child: Column(
@@ -1405,6 +2008,22 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       ),
     );
 
+    // Идэвхтэй зочин - товшиход түрээсээс одоогийн байдлыг шууд асууна
+    if (tuluv == 1 && urilgiinId != null && urilgiinId.isNotEmpty) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _urilgiinTuluvSolikh(urilgiinId),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            cardContent,
+            if (_delgerengiiUrilgiinId == urilgiinId)
+              _buildUrilgiinTuluvDelgerengui(urilgiinId),
+          ],
+        ),
+      );
+    }
+
     // Only allow swipe-to-delete if "Waiting" (tuluv == 0)
     if (tuluv == 0) {
       return Dismissible(
@@ -1429,175 +2048,6 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
 
     return cardContent;
   }
-
-  Widget _buildMongolianCyrillicKeypad() {
-    final text = _mashiniiDugaarController.text;
-    final currentLength = text.length;
-
-    final seriesShortcuts = ['УБҮ', 'УБА', 'УБН', 'УБР', 'УБТ', 'АРУ', 'ДАА', 'ОРХ', 'СҮБ', 'ХӨВ'];
-    final cyrillicLetters = [
-      'У', 'Б', 'Ү', 'А', 'Н', 'Р', 'Т', 'В', 'Г', 'Д',
-      'Е', 'Ж', 'З', 'И', 'К', 'Л', 'М', 'О', 'Ө', 'П',
-      'С', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Э', 'Ю', 'Я', 'Ё'
-    ];
-
-    return Container(
-      margin: EdgeInsets.only(top: 8.h, bottom: 8.h),
-      padding: EdgeInsets.all(10.w),
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppColors.deepGreen.withOpacity(0.3), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.keyboard_outlined, size: 15.sp, color: AppColors.deepGreen),
-                  SizedBox(width: 6.w),
-                  Text(
-                    currentLength < 4
-                        ? 'Эхлээд 4 тоо оруулна уу ($currentLength/4)'
-                        : 'Монгол кирилл үсэг ($currentLength/7):',
-                    style: TextStyle(
-                      color: context.textPrimaryColor,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              if (text.isNotEmpty)
-                GestureDetector(
-                  onTap: () {
-                    final current = _mashiniiDugaarController.text;
-                    if (current.isNotEmpty) {
-                      _mashiniiDugaarController.text = current.substring(0, current.length - 1);
-                      _mashiniiDugaarController.selection = TextSelection.collapsed(
-                        offset: _mashiniiDugaarController.text.length,
-                      );
-                    }
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.backspace_outlined, size: 12.sp, color: Colors.red),
-                        SizedBox(width: 3.w),
-                        Text(
-                          'Арилгах',
-                          style: TextStyle(color: Colors.red, fontSize: 11.sp, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-
-          if (currentLength == 4) ...[
-            Text(
-              'Түгээмэл цуврал (Шууд дарах):',
-              style: TextStyle(color: context.textSecondaryColor, fontSize: 11.sp),
-            ),
-            SizedBox(height: 6.h),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: seriesShortcuts.map((series) {
-                  return Padding(
-                    padding: EdgeInsets.only(right: 6.w),
-                    child: InkWell(
-                      onTap: () {
-                        if (_mashiniiDugaarController.text.length == 4) {
-                          _mashiniiDugaarController.text = _mashiniiDugaarController.text + series;
-                          _mashiniiDugaarController.selection = TextSelection.collapsed(
-                            offset: _mashiniiDugaarController.text.length,
-                          );
-                        }
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.deepGreen.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8.r),
-                          border: Border.all(color: AppColors.deepGreen.withOpacity(0.4)),
-                        ),
-                        child: Text(
-                          series,
-                          style: TextStyle(
-                            color: AppColors.deepGreen,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12.sp,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            SizedBox(height: 8.h),
-          ],
-
-          Wrap(
-            spacing: 5.w,
-            runSpacing: 5.h,
-            children: cyrillicLetters.map((letter) {
-              final isEnabled = currentLength >= 4 && currentLength < 7;
-              return InkWell(
-                onTap: isEnabled
-                    ? () {
-                        if (_mashiniiDugaarController.text.length < 7) {
-                          final currentText = _mashiniiDugaarController.text;
-                          _mashiniiDugaarController.text = currentText + letter;
-                          _mashiniiDugaarController.selection = TextSelection.collapsed(
-                            offset: _mashiniiDugaarController.text.length,
-                          );
-                        }
-                      }
-                    : null,
-                child: Container(
-                  width: 32.w,
-                  height: 32.w,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isEnabled
-                        ? AppColors.deepGreen.withOpacity(0.1)
-                        : context.cardBackgroundColor,
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(
-                      color: isEnabled
-                          ? AppColors.deepGreen.withOpacity(0.4)
-                          : context.borderColor.withOpacity(0.5),
-                    ),
-                  ),
-                  child: Text(
-                    letter,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isEnabled ? AppColors.deepGreen : context.textSecondaryColor.withOpacity(0.5),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class UpperCaseTextFormatter extends TextInputFormatter {
@@ -1617,29 +2067,30 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 class PlateNumberFormatter extends TextInputFormatter {
   static const Map<String, String> _latinToCyrillic = {
     'A': 'А',
-    'B': 'В',
+    'B': 'Б',
     'C': 'С',
-    'E': 'Е',
-    'H': 'Н',
-    'K': 'К',
-    'M': 'М',
-    'O': 'О',
-    'P': 'Р',
-    'T': 'Т',
-    'U': 'У',
-    'X': 'Х',
-    'Y': 'Ү',
     'D': 'Д',
+    'E': 'Е',
+    'F': 'Ф',
     'G': 'Г',
+    'H': 'Н',
     'I': 'И',
     'J': 'Ж',
+    'K': 'К',
     'L': 'Л',
+    'M': 'М',
     'N': 'Н',
+    'O': 'О',
+    'P': 'Р',
     'Q': 'Ө',
     'R': 'Р',
     'S': 'С',
+    'T': 'Т',
+    'U': 'У',
     'V': 'В',
     'W': 'В',
+    'X': 'Х',
+    'Y': 'Ү',
     'Z': 'З',
   };
 

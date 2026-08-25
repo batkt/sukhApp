@@ -129,7 +129,7 @@ class _CameraPageState extends State<CameraPage> {
 
     try {
       final camMaps = await ApiService.fetchBuildingCameras(
-        baiguullagiinId: baigId!,
+        baiguullagiinId: baigId,
         barilgiinId: barilgiinId,
       );
 
@@ -563,45 +563,56 @@ class _FullscreenViewState extends State<_FullscreenView> {
             barilgiinId: widget.barilgiinId,
             autoStart: true,
           ),
-          // Top bar
+          // Top bar with SafeArea padding & touch-friendly tap targets for iOS/Android
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black87, Colors.transparent],
+            child: SafeArea(
+              bottom: false,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black87, Colors.transparent],
+                  ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: widget.onClose,
-                    child: Icon(Icons.fullscreen_exit, color: Colors.white, size: 24.sp),
-                  ),
-                  SizedBox(width: 12.w),
-                  Text(
-                    widget.camera.name,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.fullscreen_exit, color: Colors.white, size: 28.sp),
+                      onPressed: widget.onClose,
+                      padding: EdgeInsets.all(8.w),
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Гарах',
                     ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: _toggleRotation,
-                    child: Icon(
-                      Icons.screen_rotation_rounded,
-                      color: Colors.white,
-                      size: 24.sp,
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        widget.camera.name,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                    IconButton(
+                      icon: Icon(
+                        Icons.screen_rotation_rounded,
+                        color: Colors.white,
+                        size: 28.sp,
+                      ),
+                      onPressed: _toggleRotation,
+                      padding: EdgeInsets.all(8.w),
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Эргүүлэх',
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -38,6 +38,7 @@ class StorageService {
   static const String _biometricEnabledKey = 'biometric_enabled';
   static const String _tukhainBaaziinKholboltKey = 'tukhain_baaziin_kholbolt';
   static const String _walletBairIdKey = 'wallet_bair_id';
+  static const String _zochinTulburiinTurulKey = 'zochin_tulburiin_turul';
   static const String _walletDoorNoKey = 'wallet_door_no';
   static const String _walletBairNameKey = 'wallet_bair_name';
   static const String _walletBairSourceKey =
@@ -177,6 +178,30 @@ class StorageService {
       return await prefs.remove(_ebarimtInfoKey);
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Зочин урихад сүүлд сонгосон төлбөрийн төрөл ("zochin" | "ezen").
+  /// Оршин суугч ихэвчлэн нэг л сонголтыг дахин дахин хэрэглэдэг тул
+  /// дараагийн урилгад мөн үүгээр урьдчилан сонгоно.
+  static Future<bool> saveZochinTulburiinTurul(String turul) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_zochinTulburiinTurulKey, turul);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<String?> getZochinTulburiinTurul() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final utga = prefs.getString(_zochinTulburiinTurulKey);
+      // Хүчингүй утга хадгалагдсан бол үл тоомсорлоно
+      if (utga == 'zochin' || utga == 'ezen') return utga;
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 
