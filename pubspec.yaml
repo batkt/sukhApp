@@ -28,7 +28,7 @@ dependencies:
   local_auth: ^3.0.0
   socket_io_client: ^2.0.3+1
   flutter_svg: ^2.0.9
-  flutter_dynamic_icon_plus: ^1.4.0
+  flutter_dynamic_icon_plus: ^1.4.1
   device_info_plus: ^11.4.0
   image_picker: ^1.1.2
   flutter_image_compress: ^2.3.0
@@ -47,7 +47,6 @@ dependencies:
   intl: ^0.20.2
   firebase_core: ^4.14.0
   firebase_messaging: ^16.6.0
-
 
 # record_linux 0.7.2 does not implement record_platform_interface 1.5.0 (startStream, hasPermission signature).
 # Force a newer record_linux that implements the interface so iOS build succeeds.
