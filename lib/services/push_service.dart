@@ -61,6 +61,11 @@ class PushService {
         await Firebase.initializeApp(options: FirebaseTokhirgoo.options);
       }
 
+      // Апп хаалттай/арын дэвсгэрт байхад ирэх push-ийн баригч. Firebase
+      // асаасны ДАРАА бүртгэх ШААРДЛАГАТАЙ - iOS дээр FirebaseApp тохируулахаас
+      // өмнө messaging-д хүрвэл native exception өгч апп цагаан дэлгэцээр гацна.
+      FirebaseMessaging.onBackgroundMessage(pushArynDevsgerBarigch);
+
       // Каналыг НЭЭХЭД үүсгэнэ. Manifest дахь default_notification_channel_id
       // яг үүн рүү заадаг - канал байхгүй бол Android мэдэгдлийг чимээгүй
       // (low importance) каналаар гаргаж, түгжээний дэлгэц дээр харагдахгүй.

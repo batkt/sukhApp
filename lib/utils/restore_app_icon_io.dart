@@ -21,10 +21,25 @@ Future<void> restoreAppIconOnStartup() async {
     debugPrint('[AppIcon] Startup: supportsAlternateIcons=$supportsAlt');
     if (supportsAlt) {
       final platformName = _toPlatformIconName(savedIcon);
+
+      // iOS дээр анхны дүрс рүү буцаах дуудлага (iconName: null) нь заримдаа
+      // хэзээ ч буцдаггүй тул runApp() хүрэхгүй, апп цагаан дэлгэцээр гацдаг.
+      // iOS дүрсээ өөрөө хадгалдаг тул энд сэргээх зүйл байхгүй.
+      if (Platform.isIOS && platformName == null) {
+        debugPrint('[AppIcon] Startup: iOS default icon - алгасав');
+        return;
+      }
+
       debugPrint('[AppIcon] Startup: applying platform icon name: $platformName');
+      // Plugin хариу буцаахгүй байвал эхлэлт гацахаас сэргийлнэ.
       await FlutterDynamicIconPlus.setAlternateIconName(
         iconName: platformName,
         isSilent: true,
+      ).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          debugPrint('[AppIcon] Startup: setAlternateIconName timeout - алгасав');
+        },
       );
       debugPrint('[AppIcon] Startup: icon restore applied');
     }
