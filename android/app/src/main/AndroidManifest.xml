@@ -41,6 +41,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- FCM: арын дэвсгэрт ирсэн мэдэгдлийг ЭНЭ каналаар гаргана.
+             Канал нь Importance.max тул түгжээний дэлгэц ба мэдэгдлийн
+             тавиур дээр гарна. Каналыг PushService.asaaya() үүсгэдэг. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="amarsukh_push" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
         <!-- Alternate app icons for black, blue, green -->
         <activity-alias
             android:label="Amarhome"

@@ -1,7 +1,7 @@
 name: sukh_app
 description: "A new Flutter project."
 publish_to: "none"
-version: 2.1.25+63
+version: 2.1.26+64
 
 environment:
   sdk: ^3.9.2
@@ -45,6 +45,8 @@ dependencies:
   media_kit_libs_video: ^1.0.7
   flutter_webrtc: ^1.4.1
   intl: ^0.20.2
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.6.0
 
 
 # record_linux 0.7.2 does not implement record_platform_interface 1.5.0 (startStream, hasPermission signature).

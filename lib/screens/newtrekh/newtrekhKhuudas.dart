@@ -17,6 +17,7 @@ import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/widgets/common_footer.dart';
+import 'package:sukh_app/services/push_service.dart';
 
 /// Modern minimal background with subtle gradient
 // SharedBgPainter is used from common widgets
@@ -202,9 +203,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           savedBaiguullagiinId != null &&
           savedBarilgiinId != null;
 
+      // Push token - сервер зочин орох/гарах зэрэг мэдэгдлийг үүгээр илгээнэ.
+      // Тохируулаагүй бол null тул нэвтрэлт ердийнхөөрөө явна.
+      final pushToken = await PushService.tokenAvya();
+
       final loginResponse = await ApiService.loginUser(
         utas: phone,
         nuutsUg: password,
+        firebaseToken: pushToken,
         bairId: savedBairId,
         doorNo: savedDoorNo,
         bairName: savedSource == 'WALLET_API' ? savedBairName : null,
