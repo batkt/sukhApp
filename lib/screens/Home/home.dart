@@ -397,6 +397,32 @@ class _BookingScreenState extends State<NuurKhuudas>
     return 0.0;
   }
 
+  /// Нэг л байрны төлбөрийг өөр өөр эх сурвалжаас (өөрийн байгууллага /
+  /// түрийвч) таних түлхүүрүүд. Аль нэг түлхүүр давхацвал ижил төлбөр гэж үзнэ.
+  Set<String> _billingTanikhTuluhuur(Map<String, dynamic> billing) {
+    String tseverle(dynamic utga) => (utga?.toString() ?? '')
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s\-,.]'), '');
+
+    final tuluhuur = <String>{};
+
+    for (final talbar in ['gereeniiDugaar', 'billingId', 'customerNo']) {
+      final utga = tseverle(billing[talbar]);
+      if (utga.isNotEmpty) tuluhuur.add('dugaar:$utga');
+    }
+
+    final gereeId = tseverle(billing['gereeniiId']);
+    if (gereeId.isNotEmpty) tuluhuur.add('gereeId:$gereeId');
+
+    final khayag = tseverle(billing['customerAddress'] ?? billing['bairniiNer']);
+    final toot = tseverle(billing['tootNum']);
+    if (khayag.isNotEmpty && toot.isNotEmpty) {
+      tuluhuur.add('khayag:$khayag|$toot');
+    }
+
+    return tuluhuur;
+  }
+
 
   Future<void> _loadAllBillingPayments() async {
     await _refreshBillingInfo();
@@ -617,6 +643,68 @@ class _BookingScreenState extends State<NuurKhuudas>
       }).toList();
 
       await Future.wait(statusChecks);
+
+      // ── Бусад байгууллагын тоотуудыг нэмнэ ──────────────────────────────
+      //
+      // Дээрх давталт нь ЗӨВХӨН нэвтэрсэн байгууллагын гэрээг боловсруулдаг:
+      // `fetchGeree` серверт очиход `tokenShalgakh` нь холболтыг token дотор
+      // бичигдсэн байгууллагаар сонгож, дамжуулсан `baiguullagiinId`-г дарж
+      // бичдэг тул клиентээс өөр байгууллагын гэрээ татах боломжгүй. Тиймээс
+      // олон СӨХ-д бүртгэлтэй хэрэглэгчийн үлдсэн тоотуудыг сервер талд
+      // нэгтгүүлсэн `/orshinSuugch/niitTulbur`-аас авч нэмнэ.
+      if (!isWalletOnlyOrg) {
+        try {
+          final niit = await ApiService.fetchNiitTulburBukhOrg();
+          final orgs = niit['baiguullaguud'];
+          if (orgs is List) {
+            // Дээр аль хэдийн боловсруулсан гэрээг давхар тоолохгүй.
+            final seenGeree = finalBillingList
+                .map((b) => b['gereeniiId']?.toString() ?? '')
+                .where((v) => v.isNotEmpty)
+                .toSet();
+
+            for (final org in orgs) {
+              final orgMap = Map<String, dynamic>.from(org as Map);
+              final orgId = orgMap['baiguullagiinId']?.toString();
+              final orgNer = orgMap['ner']?.toString() ?? '';
+              final gereenuud = orgMap['gereenuud'];
+              if (gereenuud is! List) continue;
+
+              for (final g in gereenuud) {
+                final gm = Map<String, dynamic>.from(g as Map);
+                final gid = gm['gereeniiId']?.toString() ?? '';
+                if (gid.isEmpty || seenGeree.contains(gid)) continue;
+                seenGeree.add(gid);
+
+                final uld = _parseNum(gm['uldegdel']);
+                ownOrgTotal += uld;
+
+                finalBillingList.add({
+                  'billingId': gm['gereeniiDugaar']?.toString(),
+                  'billingName': orgNer.isNotEmpty
+                      ? orgNer
+                      : (gm['bairNer']?.toString() ?? 'Орон сууцны төлбөр'),
+                  'bairniiNer': gm['bairNer']?.toString() ?? '',
+                  'tootNum': gm['toot']?.toString() ?? '',
+                  'perItemTotal': uld,
+                  'uldegdel': uld,
+                  'uldegdelAldangi': 0.0,
+                  'perItemAldangi': 0.0,
+                  'isLocalData': false,
+                  'source': 'OTHER_ORG',
+                  'gereeniiDugaar': gm['gereeniiDugaar']?.toString(),
+                  'gereeniiId': gid,
+                  'baiguullagiinId': orgId,
+                  'barilgiinId': gm['barilgiinId']?.toString(),
+                });
+              }
+            }
+          }
+        } catch (e) {
+          print('⚠️ [NIIT] бусад байгууллагын дүн нэмэгдсэнгүй: $e');
+        }
+      }
+
       total = ownOrgTotal;
       totalAldangi = ownOrgAldangi;
 
@@ -671,19 +759,28 @@ class _BookingScreenState extends State<NuurKhuudas>
       final updatedWalletBillings = await Future.wait(walletFutures);
 
       // 3. Merge and deduplicate if necessary, apply totals
+      //
+      // Өөрийн байгууллагын гэрээнүүдийн таних түлхүүрүүд. Түрийвчнээс ирсэн
+      // ЯГ ижил байрны төлбөрийг хоёр удаа тоохгүйн тулд ашиглана.
+      final Set<String> ownOrgTuluhuur = {};
+      for (var b in finalBillingList) {
+        if (b['source'] != 'OWN_ORG') continue;
+        ownOrgTuluhuur.addAll(_billingTanikhTuluhuur(b));
+      }
+
       for (var billing in updatedWalletBillings) {
-        final billingName = billing['billingName']?.toString() ?? '';
         final billingTotal = _parseNum(billing['perItemTotal']);
         final billingAldangi = _parseNum(billing['perItemAldangi']);
 
-        // Only skip adding to TOTALS if it's a residential duplicate of OWN_ORG
-        final isResidential = billingName.toLowerCase().contains('орон сууц') || 
-                            billingName.toLowerCase().contains('property') ||
-                            billingName.toLowerCase().contains('сөх');
-        
-        if (ownOrgTotal > 0 && isResidential) {
-          // Skip from sums if we already have authoritative data from OWN_ORG
-        } else {
+        // Давхардлыг НЭРЭЭР нь биш, гэрээ/дугаар/хаяг-тоотоор нь шалгана.
+        // Урьд нь нэрэнд «орон сууц» орсон бүх түрийвчний төлбөрийг өөрийн
+        // байгууллагын дүнтэй давхардсан гэж үзээд нийт дүнгээс хасдаг байсан
+        // тул ӨӨР байрны төлбөр нүүр дэлгэцийн нийт дүнд огт нэмэгддэггүй байв.
+        final davkhardsan = _billingTanikhTuluhuur(
+          billing,
+        ).any(ownOrgTuluhuur.contains);
+
+        if (!davkhardsan) {
           total += billingTotal;
           totalAldangi += billingAldangi;
         }
@@ -1177,11 +1274,16 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (!looksTemporal) continue;
 
       // A payment/settlement timestamp is not when the bill was issued.
+      // Төлсөн/цуцалсан хугацааны тэмдэглэгээ нь билл үүссэн огноо биш.
+      // `due`/`expire` мөн адил: тэдгээр нь ирээдүйн огноо тул анкер болговол
+      // дээр нь дахин нэг сар нэмэгдэж, нэг сараар хожимдоно.
       if (lower.contains('paid') ||
           lower.contains('settle') ||
           lower.contains('update') ||
           lower.contains('delete') ||
-          lower.contains('cancel')) {
+          lower.contains('cancel') ||
+          lower.contains('due') ||
+          lower.contains('expire')) {
         continue;
       }
 
@@ -1260,19 +1362,14 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     final next = _addOneMonthClamped(newest.date);
 
-    // A bare billPeriod carries no day, so the day component still comes from
-    // the previous day-20 convention rather than from bpay. Logged so the real
-    // field name can be pinned once it is known.
-    if (!newest.hasDay) {
-      debugPrint(
-        '[bpay] next invoice month from "${newest.key}" (period only, '
-        'day defaulted to 20)',
-      );
-      return DateTime(next.year, next.month, 20);
-    }
-
-    debugPrint('[bpay] next invoice date from "${newest.key}"');
-    return DateTime(next.year, next.month, next.day);
+    // bpay-гийн эх сурвалж дээр төлөлтийн өдөр нь ҮРГЭЛЖ сарын 20.
+    //
+    // Билл дээрх огноо нь зөвхөн аль САРЫГ анкер болгохыг л шийднэ — өдрийг нь
+    // авахгүй. Өмнө нь бүтэн огноотой билл өөрийн өдрөө хадгалдаг байсан тул
+    // хэрэглэгч бүр өөр өөр өдөртэй болж, "сарын 20" гэсэн дүрэм зөвхөн
+    // өдөргүй `billPeriod` дээр л биелдэг байв.
+    debugPrint('[bpay] next invoice month from "${newest.key}" → day 20');
+    return DateTime(next.year, next.month, 20);
   }
 
   Widget _buildRemainingDaysWidget(
@@ -1282,6 +1379,10 @@ class _BookingScreenState extends State<NuurKhuudas>
     required String totalAldangi,
     String? bairNer,
     String? toot,
+    /// Хэрэглэгчийн нийт тоотын тоо. 1-ээс их бол "Байрны төлбөр" мөр нь
+    /// тухайн нэг тоотын биш, БҮХ тоотын нийлбэрийг харуулж байгааг
+    /// шошгондоо тодотгоно.
+    int unitCount = 1,
   }) {
     // Determine next invoice date from nekhemjlekhCron (if available)
     DateTime? nextInvoiceDate;
@@ -1641,7 +1742,11 @@ class _BookingScreenState extends State<NuurKhuudas>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          !hasAnyAddress ? 'Бүртгэлгүй байна' : 'Байрны төлбөр',
+                          !hasAnyAddress
+                              ? 'Бүртгэлгүй байна'
+                              : (unitCount > 1
+                                  ? 'Байрны төлбөр · $unitCount тоот'
+                                  : 'Байрны төлбөр'),
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.7),
                             fontSize: 11,
@@ -1798,20 +1903,21 @@ class _BookingScreenState extends State<NuurKhuudas>
                                       ? _gereeResponse!.jagsaalt[index]
                                       : null;
                                   
-                                  // Find the aggregated balance for this specific unit from finalBillingList
-                                  String unitBalance = _formatNumberWithComma(totalNiitTulbur);
-                                  String unitAldangi = _formatNumberWithComma(totalNiitAldangi);
-                                  
-                                  if (g != null) {
-                                    final billingItem = _billingList.firstWhere(
-                                      (b) => b['gereeniiDugaar'] == g.gereeniiDugaar,
-                                      orElse: () => {},
-                                    );
-                                    if (billingItem.isNotEmpty) {
-                                      unitBalance = _formatNumberWithComma(billingItem['uldegdel'] ?? 0.0);
-                                      unitAldangi = _formatNumberWithComma(billingItem['uldegdelAldangi'] ?? 0.0);
-                                    }
-                                  }
+                                  // "Байрны төлбөр" мөрөнд тухайн НЭГ тоотын биш,
+                                  // бүх тоот (бүх байгууллага + Bpay)-ын НИЙТ
+                                  // дүнг харуулна. Тоот тус бүрийн задаргаа нь
+                                  // дэлгэрэнгүй жагсаалтад байна.
+                                  //
+                                  // Өмнө нь энэ карт нь `_billingList`-ээс
+                                  // `gereeniiDugaar`-аар тааруулж тухайн тоотын
+                                  // үлдэгдлийг харуулдаг байсан бөгөөд тааралт
+                                  // олдохгүй тохиолдолд нийт дүн рүү унадаг тул
+                                  // "нэг тоот бүх өрийг үүрсэн" мэт харагддаг
+                                  // сул тал бас байв.
+                                  final String unitBalance =
+                                      _formatNumberWithComma(totalNiitTulbur);
+                                  final String unitAldangi =
+                                      _formatNumberWithComma(totalNiitAldangi);
 
                                   // Fallback: If no geree, use wallet toots from profile for address display
                                   String? displayBairNer = g?.bairNer;
@@ -1865,6 +1971,18 @@ class _BookingScreenState extends State<NuurKhuudas>
                                       totalAldangi: unitAldangi,
                                       bairNer: displayBairNer,
                                       toot: displayToot,
+                                      // `_billingList` дотор Bpay-гийн үйлчилгээ
+                                      // (цэвэр ус г.м.) ч байдаг тул бүх мөрийг
+                                      // тоолж болохгүй — зөвхөн тоот төлөөлсөн
+                                      // мөрүүдийг тооно.
+                                      unitCount: () {
+                                        final unitRows = _billingList.where((b) {
+                                          final src = b['source']?.toString();
+                                          return src == 'OWN_ORG' || src == 'OTHER_ORG';
+                                        }).length;
+                                        if (unitRows > 0) return unitRows;
+                                        return _gereeResponse?.jagsaalt.length ?? 1;
+                                      }(),
                                     ),
                                   );
                                 },

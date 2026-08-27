@@ -81,6 +81,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
   String? _baiguullagiinId;
   String? _barilgiinId;
 
+  // Гэр бүлийн гишүүн эсэх (тийм бол данс нь үндсэн эзэмшигчийнх)
+  bool _gishuunEsekh = false;
+  String? _undsenEzemshigchNer;
+
   // User data
   Map<String, dynamic>? _userData;
 
@@ -102,6 +106,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     _loadUserProfile();
     _checkBiometricStatus();
     _loadCurrentAddress();
+    _gerBuliinTuluvAchaalya();
 
     // Check for navigation actions after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3004,6 +3009,21 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
   }
 
+  /// Гэр бүлийн гишүүний төлөвийг локал хадгалснаас уншина.
+  /// Нэвтрэх үед сервер эдгээрийг хариунд нь оруулж ирдэг.
+  Future<void> _gerBuliinTuluvAchaalya() async {
+    final gishuunEsekh = await StorageService.isGishuun();
+    final ner = gishuunEsekh
+        ? await StorageService.getUndsenEzemshigchNer()
+        : null;
+
+    if (!mounted) return;
+    setState(() {
+      _gishuunEsekh = gishuunEsekh;
+      _undsenEzemshigchNer = ner;
+    });
+  }
+
   Widget _buildSettingsTile({
     required IconData icon,
     required String title,
@@ -3226,9 +3246,23 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       _mashiniiDugaarController.text.isNotEmpty
                                       ? _mashiniiDugaarController.text
                                       : 'Дугаар тохируулах',
-                                  showBorder: false,
                                   onTap: () {
                                     _showCarPlateModal(context);
+                                  },
+                                ),
+                                _buildSettingsTile(
+                                  icon: Icons.family_restroom_rounded,
+                                  title: 'Гэр бүлийн гишүүн',
+                                  subtitle: _gishuunEsekh
+                                      ? (_undsenEzemshigchNer != null &&
+                                                _undsenEzemshigchNer!.isNotEmpty
+                                            ? '$_undsenEzemshigchNer-ийн байр'
+                                            : 'Гишүүнчлэлийн мэдээлэл')
+                                      : 'Гэр бүлийнхээ гишүүдийг нэмэх',
+                                  showBorder: false,
+                                  onTap: () async {
+                                    await context.push('/ger-bul');
+                                    _gerBuliinTuluvAchaalya();
                                   },
                                 ),
                               ],

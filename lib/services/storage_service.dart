@@ -61,6 +61,12 @@ class StorageService {
   static const String _cachedTotalNiitTulburKey = 'cached_total_niit_tulbur';
   static const String _cachedTotalNiitAldangiKey = 'cached_total_niit_aldangi';
 
+  // --- Гэр бүлийн гишүүн (sub-account) ---
+  static const String _gishuunEsekhKey = 'gishuun_esekh';
+  static const String _undsenIdKey = 'gishuun_undsen_id';
+  static const String _gishuuniiErkhKey = 'gishuun_erkh';
+  static const String _undsenEzemshigchNerKey = 'gishuun_undsen_ner';
+
   static Future<bool> saveCachedBillingList(String userId, List<Map<String, dynamic>> list) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -341,9 +347,94 @@ class StorageService {
         );
       }
 
+      // --- Гэр бүлийн гишүүн ---
+      // Сервер гишүүний хариунд `undsenId` болон үндсэн эзэмшигчийн товч
+      // мэдээллийг нэмж өгдөг. Тоот, гэрээ, төлбөрийг сервер тал өөрөө
+      // үндсэн эзэмшигч рүү залгадаг тул энд зөвхөн UI-д хэрэгтэй тугуудыг
+      // хадгална.
+      final undsenId = user?['undsenId']?.toString();
+      final gishuunEsekh =
+          user?['gishuunEsekh'] == true ||
+          (undsenId != null && undsenId.isNotEmpty && undsenId != 'null');
+
+      await prefs.setBool(_gishuunEsekhKey, gishuunEsekh);
+
+      if (gishuunEsekh) {
+        if (undsenId != null && undsenId.isNotEmpty && undsenId != 'null') {
+          await prefs.setString(_undsenIdKey, undsenId);
+        }
+        await prefs.setString(
+          _gishuuniiErkhKey,
+          user?['gishuuniiErkh']?.toString() ?? 'Харах + Төлөх',
+        );
+
+        final undsen = user?['undsenEzemshigch'];
+        if (undsen is Map) {
+          final ner = [undsen['ovog'], undsen['ner']]
+              .map((e) => e?.toString() ?? '')
+              .where((e) => e.trim().isNotEmpty)
+              .join(' ')
+              .trim();
+          if (ner.isNotEmpty) {
+            await prefs.setString(_undsenEzemshigchNerKey, ner);
+          }
+        }
+      } else {
+        await prefs.remove(_undsenIdKey);
+        await prefs.remove(_gishuuniiErkhKey);
+        await prefs.remove(_undsenEzemshigchNerKey);
+      }
+
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Нэвтэрсэн хэрэглэгч гэр бүлийн гишүүн үү?
+  /// Тийм бол тоот, гэрээ, төлбөр нь үндсэн эзэмшигчийнх.
+  static Future<bool> isGishuun() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_gishuunEsekhKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Гишүүний хувьд үндсэн эзэмшигчийн ID
+  static Future<String?> getUndsenId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_undsenIdKey);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Гишүүний эрх: 'Харах' эсвэл 'Харах + Төлөх'
+  static Future<String> getGishuuniiErkh() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_gishuuniiErkhKey) ?? 'Харах + Төлөх';
+    } catch (e) {
+      return 'Харах + Төлөх';
+    }
+  }
+
+  /// Гишүүн төлбөр төлөх эрхтэй эсэх (үндсэн эзэмшигч үргэлж эрхтэй)
+  static Future<bool> tulukhErkhtei() async {
+    if (!await isGishuun()) return true;
+    return (await getGishuuniiErkh()) != 'Харах';
+  }
+
+  /// Үндсэн эзэмшигчийн нэр — "…-ийн дансыг харж байна" гэж харуулахад
+  static Future<String?> getUndsenEzemshigchNer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_undsenEzemshigchNerKey);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -487,6 +578,12 @@ class StorageService {
 
       // Clear phone verified flag on logout
       await prefs.remove(_phoneVerifiedKey);
+
+      // Clear гэр бүлийн гишүүний төлөв
+      await prefs.remove(_gishuunEsekhKey);
+      await prefs.remove(_undsenIdKey);
+      await prefs.remove(_gishuuniiErkhKey);
+      await prefs.remove(_undsenEzemshigchNerKey);
 
       print('🧹 [STORAGE] Authentication data cleared');
       return true;

@@ -2816,6 +2816,37 @@ class ApiService {
     }
   }
 
+  /// Оршин суугчийн БҮХ байгууллага, БҮХ тоотын үлдэгдлийг нэг дуудалтаар авна.
+  ///
+  /// `fetchGeree` нь зөвхөн нэвтэрсэн байгууллагын гэрээг буцаадаг — сервер
+  /// талын `tokenShalgakh` хүсэлт бүрийг token дотор бичигдсэн байгууллагад
+  /// хатуу тогтоож, дамжуулсан `baiguullagiinId`-г дарж бичдэг. Тиймээс олон
+  /// СӨХ-д бүртгэлтэй хэрэглэгчийн нийт дүнг сервер талд нэгтгүүлж авав.
+  static Future<Map<String, dynamic>> fetchNiitTulburBukhOrg() async {
+    try {
+      final headers = await getAuthHeaders();
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/orshinSuugch/niitTulbur'),
+        headers: headers,
+        body: json.encode({}),
+      );
+
+      await _checkTokenExpiry(response);
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) return decoded;
+        return <String, dynamic>{};
+      }
+      throw Exception('niitTulbur: ${response.statusCode}');
+    } catch (e) {
+      print('⚠️ [NIIT] fetchNiitTulburBukhOrg failed: $e');
+      return <String, dynamic>{};
+    }
+  }
+
   static Future<Map<String, dynamic>> fetchNekhemjlekhiinTuukh({
     required String gereeniiDugaar,
     int khuudasniiDugaar = 1,

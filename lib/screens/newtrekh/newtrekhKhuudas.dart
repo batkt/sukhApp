@@ -600,7 +600,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 ),
               ],
               SizedBox(height: 20.h),
-              if (!_showPasswordInput)
+              if (!_showPasswordInput) ...[
                 Row(
                   children: [
                     Expanded(
@@ -621,8 +621,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       ),
                     ],
                   ],
-                )
-              else
+                ),
+                _buildGerBulUrilgaTovch(isDark),
+              ] else
                 Column(
                   children: [
                     Row(
@@ -669,6 +670,36 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Гэр бүлийн гишүүнээр уригдсан хүн SMS-ээр ирсэн кодоороо энд бүртгүүлнэ.
+  Widget _buildGerBulUrilgaTovch(bool isDark) {
+    return Padding(
+      padding: EdgeInsets.only(top: 4.h),
+      child: TextButton.icon(
+        onPressed: _isCheckingPhone
+            ? null
+            : () {
+                final utas = phoneController.text.trim();
+                context.push(
+                  utas.length == 8
+                      ? '/ger-bul-batalgaajuulakh?utas=$utas'
+                      : '/ger-bul-batalgaajuulakh',
+                );
+              },
+        style: TextButton.styleFrom(
+          foregroundColor: isDark
+              ? AppColors.deepGreenLight
+              : AppColors.deepGreen,
+          padding: EdgeInsets.symmetric(vertical: 10.h),
+        ),
+        icon: Icon(Icons.family_restroom_rounded, size: 18.sp),
+        label: Text(
+          "Гэр бүлийн урилга ирсэн үү?",
+          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
         ),
       ),
     );

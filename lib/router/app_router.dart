@@ -38,6 +38,8 @@ import 'package:sukh_app/screens/Home/utility_code_input_page.dart';
 import 'package:sukh_app/screens/Home/payment_history_page.dart';
 import 'package:sukh_app/screens/Home/billing_list_page.dart';
 import 'package:sukh_app/screens/Home/support_chat_page.dart';
+import 'package:sukh_app/screens/gerBul/ger_bul_page.dart';
+import 'package:sukh_app/screens/gerBul/gishuun_batalgaajuulakh_page.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/main.dart';
@@ -56,6 +58,9 @@ final GoRouter appRouter = GoRouter(
     final isGoingToOnboarding = loc == '/ekhniikh';
     final isGoingToBiometricOnboarding = loc == '/hoyrdah';
     final isGoingToPasswordReset = loc == '/nuuts-ug-sergeekh';
+    // Гэр бүлийн урилга баталгаажуулах — уригдсан хүн нэвтрээгүй байхдаа
+    // энд орж ирдэг тул нэвтрэлт шаардахгүй.
+    final isGoingToGerBulBatalgaajuulakh = loc == '/ger-bul-batalgaajuulakh';
     final isGoingToNuur = loc == '/nuur';
     final allowNoAddress = state.uri.queryParameters['allowNoAddress'] == 'true';
 
@@ -84,7 +89,8 @@ final GoRouter appRouter = GoRouter(
         !isGoingToRegister &&
         !isGoingToOnboarding &&
         !isGoingToBiometricOnboarding &&
-        !isGoingToPasswordReset) {
+        !isGoingToPasswordReset &&
+        !isGoingToGerBulBatalgaajuulakh) {
       return '/newtrekh';
     }
 
@@ -454,6 +460,27 @@ final GoRouter appRouter = GoRouter(
             key: state.pageKey,
             child: const LiftPage(),
           ),
+    ),
+    GoRoute(
+      path: '/ger-bul',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const GerBulPage(),
+          ),
+    ),
+    GoRoute(
+      // Уригдсан хүн нэвтрээгүй байхдаа орж ирдэг тул redirect-д
+      // нэвтрэлт шаардахгүй байхаар зөвшөөрөгдсөн (доорх redirect-г үзнэ үү).
+      path: '/ger-bul-batalgaajuulakh',
+      pageBuilder: (context, state) {
+        final utas =
+            state.uri.queryParameters['utas'] ?? (state.extra as String?);
+        return PageTransitions.buildFadeThroughTransition(
+          key: state.pageKey,
+          child: GishuunBatalgaajuulakhPage(utas: utas),
+        );
+      },
     ),
   ],
 );
