@@ -39,6 +39,7 @@ import 'package:sukh_app/screens/Home/payment_history_page.dart';
 import 'package:sukh_app/screens/Home/billing_list_page.dart';
 import 'package:sukh_app/screens/Home/support_chat_page.dart';
 import 'package:sukh_app/screens/gerBul/ger_bul_page.dart';
+import 'package:sukh_app/screens/sanal_asuulga/sanal_asuulga_page.dart';
 import 'package:sukh_app/screens/gerBul/gishuun_batalgaajuulakh_page.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
@@ -256,6 +257,14 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: const NekhemjlekhPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/sanal_asuulga',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const SanalAsuulgaPage(),
           ),
     ),
     GoRoute(

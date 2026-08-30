@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:sukh_app/tokhirgoo/firebase_tokhirgoo.dart';
 import 'package:sukh_app/services/notification_service.dart';
+import 'package:sukh_app/router/app_router.dart';
 import 'package:sukh_app/utils/logger.dart';
 
 /// Апп ХААГДСАН эсвэл арын дэвсгэрт байхад ирсэн push.
@@ -111,10 +112,49 @@ class PushService {
       // өөрсдөө local notification болгож харуулна.
       FirebaseMessaging.onMessage.listen(_urdTalUyed);
 
+      // Апп ард ажиллаж байхад мэдэгдэл дээр дарвал
+      FirebaseMessaging.onMessageOpenedApp.listen(_medegdelDeerDarlaa);
+
+      // Апп БҮРЭН хаалттай байхад мэдэгдлээр нээгдсэн бол эхний мессежийг
+      // энд авна. Router бэлэн болтол хүлээж байж чиглүүлнэ.
+      final ekhnii = await messaging.getInitialMessage();
+      if (ekhnii != null) {
+        Future.delayed(const Duration(milliseconds: 800), () {
+          _medegdelDeerDarlaa(ekhnii);
+        });
+      }
+
       _asaasan = true;
     } catch (err) {
       AppLogger.log('[PUSH] Асаахад алдаа: $err');
       _asaasan = true;
+    }
+  }
+
+  /// Мэдэгдлийн `type`-аас хамааруулж холбогдох дэлгэц рүү чиглүүлнэ.
+  ///
+  /// Backend талаас илгээх утгууд (sukhBackv2):
+  ///   sanal_asuulga   - routes/sanalAsuulgaRoute.js
+  ///   medegdel_reply  - controller/medegdel.js (adminReply)
+  static void _medegdelDeerDarlaa(RemoteMessage message) {
+    try {
+      final zam = _zamAvya(message.data);
+      if (zam != null) appRouter.push(zam);
+    } catch (err) {
+      AppLogger.log('[PUSH] Чиглүүлэхэд алдаа: $err');
+    }
+  }
+
+  /// Мэдэгдлийн өгөгдлөөс апп доторх замыг тодорхойлно
+  static String? _zamAvya(Map<String, dynamic> data) {
+    final turul = data['type']?.toString();
+    switch (turul) {
+      case 'sanal_asuulga':
+        return '/sanal_asuulga';
+      case 'medegdel_reply':
+        return '/medegdel-list';
+      default:
+        return null;
     }
   }
 
@@ -132,7 +172,9 @@ class PushService {
         id: DateTime.now().millisecondsSinceEpoch % 100000,
         title: (title == null || title.isEmpty) ? 'Шинэ мэдэгдэл' : title,
         body: body ?? '',
-        payload: message.data['_id']?.toString(),
+        // Local notification дээр дарахад ч чиглүүлэх боломжтой байхын
+        // тулд төрлийг payload-оор дамжуулна.
+        payload: _zamAvya(message.data) ?? message.data['_id']?.toString(),
       );
     } catch (err) {
       AppLogger.log('[PUSH] Урд талын мэдэгдэл харуулахад алдаа: $err');

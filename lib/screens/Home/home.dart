@@ -2387,6 +2387,12 @@ class _BookingScreenState extends State<NuurKhuudas>
         'icon': Icons.cleaning_services_rounded,
         'color': const Color(0xFF10B981),
       }, // Bright Emerald
+      {
+        'name': 'санал',
+        'label': 'Асуулга',
+        'icon': Icons.how_to_vote_rounded,
+        'color': const Color(0xFF14B8A6),
+      }, // Teal
     ];
 
     return Column(
@@ -2527,6 +2533,10 @@ class _BookingScreenState extends State<NuurKhuudas>
         }
         if (service['name'] == 'лифт') {
           context.push('/lift');
+          return;
+        }
+        if (service['name'] == 'санал') {
+          context.push('/sanal_asuulga');
           return;
         }
 

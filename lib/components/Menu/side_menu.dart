@@ -206,6 +206,20 @@ class _SideMenuState extends State<SideMenu> {
                     ),
                     _buildNavTile(
                       context,
+                      icon: Icons.how_to_vote_outlined,
+                      title: 'Санал асуулга',
+                      onTap: () {
+                        if (_baiguullagiinId == null ||
+                            _baiguullagiinId!.isEmpty) {
+                          _showOrgRequiredWarning(context);
+                          return;
+                        }
+                        Navigator.pop(context);
+                        context.push('/sanal_asuulga');
+                      },
+                    ),
+                    _buildNavTile(
+                      context,
                       icon: Icons.support_agent_rounded,
                       title: 'Тусламж',
                       onTap: () {

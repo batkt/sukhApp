@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:sukh_app/router/app_router.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 
@@ -46,9 +47,12 @@ class NotificationService {
       await _notifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
-          // Handle notification tap
-          print('Notification tapped: ${response.payload}');
-        },
+          // payload нь апп доторх зам (жнь '/sanal_asuulga') байвал тухайн
+          // дэлгэц рүү чиглүүлнэ. Бусад тохиолдолд юу ч хийхгүй.
+          final payload = response.payload;
+          if (payload != null && payload.startsWith('/')) {
+            appRouter.push(payload);
+          }        },
       );
 
       // Request permissions for Android 13+
