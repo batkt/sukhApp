@@ -483,11 +483,12 @@ final GoRouter appRouter = GoRouter(
       // нэвтрэлт шаардахгүй байхаар зөвшөөрөгдсөн (доорх redirect-г үзнэ үү).
       path: '/ger-bul-batalgaajuulakh',
       pageBuilder: (context, state) {
+        final code = state.uri.queryParameters['code'];
         final utas =
             state.uri.queryParameters['utas'] ?? (state.extra as String?);
         return PageTransitions.buildFadeThroughTransition(
           key: state.pageKey,
-          child: GishuunBatalgaajuulakhPage(utas: utas),
+          child: GishuunBatalgaajuulakhPage(initialCode: code, utas: utas),
         );
       },
     ),

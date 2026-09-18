@@ -710,38 +710,66 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
     final sortedMonths = months.toList()..sort((a, b) => b.compareTo(a));
     final selectedLabel = selectedMonth == null
-        ? 'Бүх сар'
-        : "${selectedMonth!.year} оны ${selectedMonth!.month}-р сар";
+        ? 'Бүх хугацаа'
+        : "${selectedMonth!.year}.${selectedMonth!.month.toString().padLeft(2, '0')}";
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 375;
+    final isVerySmall = screenWidth < 340;
 
     return GestureDetector(
       onTap: () => _showMonthPickerBottomSheet(sortedMonths),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+        padding: EdgeInsets.symmetric(
+          horizontal: (isVerySmall ? 8.0 : (isSmall ? 10.0 : 12.0)).w,
+          vertical: (isVerySmall ? 6.0 : (isSmall ? 7.0 : 8.0)).h,
+        ),
         decoration: BoxDecoration(
-          color: context.isDarkMode ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: context.borderColor.withOpacity(0.15)),
+          color: context.isDarkMode
+              ? Colors.white.withOpacity(0.05)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(
+            color: context.borderColor.withOpacity(0.15),
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.calendar_today_rounded, size: 13.sp, color: AppColors.deepGreen),
-            SizedBox(width: 6.w),
+            Icon(
+              Icons.calendar_today_outlined,
+              size: (isVerySmall ? 12.0 : (isSmall ? 13.0 : 14.5)).sp,
+              color: AppColors.deepGreen,
+            ),
+            SizedBox(width: (isVerySmall ? 4.0 : 6.0).w),
             Flexible(
               child: Text(
                 selectedLabel,
                 style: TextStyle(
                   color: context.textPrimaryColor,
-                  fontSize: 11.sp,
+                  fontSize: (isVerySmall ? 10.5 : (isSmall ? 11.5 : 12.5)).sp,
                   fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
                 ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
             ),
-            SizedBox(width: 4.w),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 16.sp, color: context.textSecondaryColor),
+            SizedBox(width: (isVerySmall ? 2.0 : 4.0).w),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: (isVerySmall ? 15.0 : (isSmall ? 16.0 : 18.0)).sp,
+              color: context.textSecondaryColor,
+            ),
           ],
         ),
       ),
@@ -2759,7 +2787,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.backgroundColor,
@@ -2781,128 +2808,315 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           
           Column(
             children: [
-              // Premium Custom Header
-              Container(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 16.h,
-                  left: 20.w,
-                  right: 20.w,
-                  bottom: 24.h,
-                ),
-                decoration: BoxDecoration(
-                  color: context.cardBackgroundColor,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(36.r),
-                    bottomRight: Radius.circular(36.r),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
+              // Premium Refactored Neo-Fintech Header
+              Builder(
+                builder: (context) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final isSmall = screenWidth < 375;
+                  final isVerySmall = screenWidth < 340;
+                  final isDark = context.isDarkMode;
+
+                  final unpaidCount = invoices.where((i) => !i.isPaid).length;
+                  final overdueCount = invoices.where((i) {
+                    if (i.isPaid) return false;
+                    try {
+                      final d = DateTime.tryParse(i.nekhemjlekhiinOgnoo);
+                      return d != null && DateTime.now().isAfter(d.add(const Duration(days: 30)));
+                    } catch (_) {
+                      return false;
+                    }
+                  }).length;
+
+                  return Container(
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top + 8.h,
+                      left: (isVerySmall ? 12.0 : (isSmall ? 16.0 : 20.0)).w,
+                      right: (isVerySmall ? 12.0 : (isSmall ? 16.0 : 20.0)).w,
+                      bottom: 16.h,
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            if (context.canPop()) {
-                              context.pop();
-                            } else {
-                              context.go('/nuur');
-                            }
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(12.w),
-                            decoration: BoxDecoration(
-                              color: AppColors.deepGreen.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(16.r),
-                            ),
-                            child: Icon(Icons.arrow_back_ios_new_rounded,
-                                size: 18.sp, color: AppColors.deepGreen),
-                          ),
+                    decoration: BoxDecoration(
+                      color: context.cardBackgroundColor,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(28.r),
+                        bottomRight: Radius.circular(28.r),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
                         ),
-                        Text(
-                          'Миний төлбөр',
-                          style: TextStyle(
-                            color: context.textPrimaryColor,
-                            fontSize: 22.sp,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(width: 48), // Placeholder to keep title centered
                       ],
                     ),
-                    if (selectedContractDisplay != null &&
-                        availableContracts.isNotEmpty) ...[
-                      SizedBox(height: 20.h),
-                      GestureDetector(
-                        onTap: _showContractSelectionModal,
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 16.w, vertical: 12.h),
+                    child: Column(
+                      children: [
+                        // Top Bar: Back Button, Title, and Apartment Selector Chip
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    if (context.canPop()) {
+                                      context.pop();
+                                    } else {
+                                      context.go('/nuur');
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.all((isVerySmall ? 7.0 : 9.0).w),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.white.withOpacity(0.06)
+                                          : AppColors.deepGreen.withOpacity(0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.arrow_back_ios_new_rounded,
+                                      size: (isVerySmall ? 13.0 : 15.0).sp,
+                                      color: AppColors.deepGreen,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Text(
+                                  'Миний төлбөр',
+                                  style: TextStyle(
+                                    color: context.textPrimaryColor,
+                                    fontSize: (isVerySmall ? 17.0 : (isSmall ? 18.5 : 20.0)).sp,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (selectedContractDisplay != null &&
+                                availableContracts.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _showContractSelectionModal();
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: (isVerySmall ? 8.0 : 10.0).w,
+                                    vertical: (isVerySmall ? 5.0 : 6.0).h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.deepGreen.withOpacity(isDark ? 0.16 : 0.08),
+                                    borderRadius: BorderRadius.circular(100),
+                                    border: Border.all(
+                                      color: AppColors.deepGreen.withOpacity(isDark ? 0.3 : 0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.apartment_rounded,
+                                        size: (isVerySmall ? 13.0 : 15.0).sp,
+                                        color: AppColors.deepGreen,
+                                      ),
+                                      SizedBox(width: 4.w),
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(maxWidth: 130.w),
+                                        child: Text(
+                                          selectedContractDisplay!,
+                                          style: TextStyle(
+                                            color: AppColors.deepGreen,
+                                            fontSize: (isVerySmall ? 10.5 : 11.5).sp,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      SizedBox(width: 2.w),
+                                      Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 16.sp,
+                                        color: AppColors.deepGreen,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        SizedBox(height: 14.h),
+
+                        // Hero Balance Card
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all((isVerySmall ? 12.0 : 16.0).w),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: context.isDarkMode
-                                  ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.02)]
-                                  : [Colors.black.withOpacity(0.04), Colors.black.withOpacity(0.01)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: isDark
+                                  ? [
+                                      const Color(0xFF1E293B),
+                                      const Color(0xFF0F172A),
+                                    ]
+                                  : [
+                                      const Color(0xFFF0FDF4),
+                                      const Color(0xFFE8F5EE),
+                                    ],
                             ),
-                            borderRadius: BorderRadius.circular(20.r),
+                            borderRadius: BorderRadius.circular(18.r),
                             border: Border.all(
-                                color: context.borderColor.withOpacity(0.1),
-                                width: 1),
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.08)
+                                  : AppColors.deepGreen.withOpacity(0.18),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.deepGreen.withOpacity(isDark ? 0.12 : 0.05),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: EdgeInsets.all(8.w),
-                                decoration: BoxDecoration(
-                                  color: AppColors.deepGreen.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10.r),
-                                ),
-                                child: Icon(Icons.business_rounded,
-                                    size: 16.sp, color: AppColors.deepGreen),
-                              ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Сонгосон тоот',
-                                      style: TextStyle(
-                                          color: context.textSecondaryColor,
-                                          fontSize: 10.sp,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.5),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'НИЙТ ТӨЛБӨРИЙН ҮЛДЭГДЭЛ',
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                                      fontSize: (isVerySmall ? 9.5 : 10.5).sp,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.6,
                                     ),
-                                    Text(
-                                      selectedContractDisplay!,
-                                      style: TextStyle(
-                                          color: context.textPrimaryColor,
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.w800),
-                                      overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (overdueCount > 0)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.h),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEF4444).withOpacity(0.14),
+                                        borderRadius: BorderRadius.circular(100),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 5.w,
+                                            height: 5.w,
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFEF4444),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          SizedBox(width: 4.w),
+                                          Text(
+                                            '$overdueCount хугацаа хэтэрсэн',
+                                            style: TextStyle(
+                                              color: const Color(0xFFEF4444),
+                                              fontSize: 9.sp,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else if (unpaidCount == 0)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.h),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981).withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(100),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check_circle_rounded, size: 10.sp, color: const Color(0xFF10B981)),
+                                          SizedBox(width: 3.w),
+                                          Text(
+                                            'Төлөгдсөн',
+                                            style: TextStyle(
+                                              color: const Color(0xFF10B981),
+                                              fontSize: 9.sp,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ],
-                                ),
+                                ],
                               ),
-                              Icon(Icons.keyboard_arrow_down_rounded,
-                                  size: 20.sp,
-                                  color: context.textSecondaryColor),
+                              SizedBox(height: 6.h),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${formatNumber(_effectiveTotalAmount, 2)}₮',
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      fontSize: (isVerySmall ? 22.0 : (isSmall ? 24.0 : 26.0)).sp,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.6,
+                                    ),
+                                  ),
+                                  if (unpaidCount > 0 && selectedFilter != 'Paid')
+                                    GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.mediumImpact();
+                                        toggleSelectAll();
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: (isVerySmall ? 8.0 : 10.0).w,
+                                          vertical: (isVerySmall ? 5.0 : 6.0).h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: allSelected
+                                              ? AppColors.deepGreen
+                                              : (isDark ? Colors.white.withOpacity(0.08) : Colors.white),
+                                          borderRadius: BorderRadius.circular(100),
+                                          border: Border.all(
+                                            color: AppColors.deepGreen.withOpacity(0.35),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              allSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                              size: 13.sp,
+                                              color: allSelected ? Colors.white : AppColors.deepGreen,
+                                            ),
+                                            SizedBox(width: 4.w),
+                                            Text(
+                                              allSelected ? 'Сонгосон' : 'Бүгдийг сонгох',
+                                              style: TextStyle(
+                                                color: allSelected ? Colors.white : AppColors.deepGreen,
+                                                fontSize: (isVerySmall ? 9.5 : 10.5).sp,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ],
-                ),
+                      ],
+                    ),
+                  );
+                },
               ),
 
               // Main Content
@@ -2917,21 +3131,35 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                         : Column(
                             children: [
                               // Filters & Month Selector
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 20.w, vertical: 16.h),
-                                child: Row(
-                                  children: [
-                                    Expanded(child: _buildMonthSelector()),
-                                    SizedBox(width: 12.w),
-                                    FilterTabs(
-                                      selectedFilter: selectedFilter,
-                                      onFilterChanged: (key) => setState(
-                                          () => selectedFilter = key),
-                                      getFilterCount: _getFilterCount,
+                              Builder(
+                                builder: (context) {
+                                  final screenWidth = MediaQuery.of(context).size.width;
+                                  final isSmall = screenWidth < 375;
+                                  final isVerySmall = screenWidth < 340;
+
+                                  return Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: (isVerySmall ? 12.0 : (isSmall ? 16.0 : 20.0)).w,
+                                      vertical: 12.h,
                                     ),
-                                  ],
-                                ),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
+                                      child: Row(
+                                        children: [
+                                          _buildMonthSelector(),
+                                          SizedBox(width: 8.w),
+                                          FilterTabs(
+                                            selectedFilter: selectedFilter,
+                                            onFilterChanged: (key) => setState(
+                                                () => selectedFilter = key),
+                                            getFilterCount: _getFilterCount,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
 
                               // Payment Bar
@@ -3048,12 +3276,12 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       backgroundColor: context.cardBackgroundColor,
       edgeOffset: 20,
       child: ListView.builder(
-        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 100.h),
+        padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 90.h),
         physics: const BouncingScrollPhysics(),
         itemCount: filteredInvoices.length + (selectedFilter != 'Paid' ? 1 : 0),
         itemBuilder: (context, index) {
           if (selectedFilter != 'Paid' && index == 0) {
-            return _buildSelectAllBar();
+            return _buildSelectAllBar(filteredInvoices.length);
           }
           
           final invoiceIndex = selectedFilter != 'Paid' ? index - 1 : index;
@@ -3091,72 +3319,67 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     );
   }
 
-  Widget _buildSelectAllBar() {
+  Widget _buildSelectAllBar(int totalCount) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 375;
+    final isVerySmall = screenWidth < 340;
+
     return Padding(
-      padding: EdgeInsets.only(bottom: 20.h, left: 4.w),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.mediumImpact();
-          toggleSelectAll();
-        },
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          decoration: BoxDecoration(
-            color: allSelected ? AppColors.deepGreen.withOpacity(0.05) : Colors.transparent,
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(
-              color: allSelected ? AppColors.deepGreen.withOpacity(0.2) : Colors.transparent,
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 24.w,
-                height: 24.w,
-                decoration: BoxDecoration(
-                  color: allSelected ? AppColors.deepGreen : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(
+      padding: EdgeInsets.only(
+        bottom: (isVerySmall ? 8.0 : (isSmall ? 10.0 : 12.0)).h,
+        left: 4.w,
+        right: 4.w,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.mediumImpact();
+              toggleSelectAll();
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: (isVerySmall ? 18.0 : 20.0).w,
+                  height: (isVerySmall ? 18.0 : 20.0).w,
+                  decoration: BoxDecoration(
+                    color: allSelected ? AppColors.deepGreen : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(
                       color: allSelected
                           ? AppColors.deepGreen
-                          : context.textSecondaryColor.withOpacity(0.3),
-                      width: 2),
-                  boxShadow: allSelected ? [
-                    BoxShadow(
-                      color: AppColors.deepGreen.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ] : null,
+                          : (context.isDarkMode ? Colors.white30 : Colors.grey[400]!),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: allSelected
+                      ? Icon(Icons.check, color: Colors.white, size: (isVerySmall ? 12.0 : 14.0).sp)
+                      : null,
                 ),
-                child: allSelected
-                    ? const Icon(Icons.check, color: Colors.white, size: 16)
-                    : null,
-              ),
-              SizedBox(width: 14.w),
-              Text(
-                'Бүгдийг сонгох',
-                style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3),
-              ),
-              const Spacer(),
-              if (allSelected)
+                SizedBox(width: (isVerySmall ? 6.0 : 8.0).w),
                 Text(
-                  'Сонгосон',
+                  'Бүгдийг сонгох',
                   style: TextStyle(
-                    color: AppColors.deepGreen,
-                    fontSize: 12.sp,
+                    color: context.textPrimaryColor,
+                    fontSize: (isVerySmall ? 12.0 : (isSmall ? 13.0 : 14.0)).sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Text(
+            '$totalCount сонголт',
+            style: TextStyle(
+              color: context.textSecondaryColor,
+              fontSize: (isVerySmall ? 10.5 : (isSmall ? 11.5 : 12.5)).sp,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

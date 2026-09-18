@@ -53,9 +53,9 @@ class GerBulService {
 
   /// Гишүүн урих — уригдсан дугаар руу SMS-ээр баталгаажуулах код явна
   static Future<void> gishuunUriya({
-    required String utas,
-    required String ovog,
-    required String ner,
+    String? utas,
+    String? ovog,
+    String? ner,
     required String kholboo,
     required String erkh,
   }) async {
@@ -66,9 +66,9 @@ class GerBulService {
       Uri.parse('${ApiService.baseUrl}/gerBuliinGishuunUrikh'),
       headers: headers,
       body: json.encode({
-        'utas': utas,
-        'ovog': ovog,
-        'ner': ner,
+        if (utas != null && utas.isNotEmpty) 'utas': utas,
+        if (ovog != null && ovog.isNotEmpty) 'ovog': ovog,
+        if (ner != null && ner.isNotEmpty) 'ner': ner,
         'kholboo': kholboo,
         'erkh': erkh,
         if (kholbolt != null) 'tukhainBaaziinKholbolt': kholbolt,
@@ -91,7 +91,7 @@ class GerBulService {
       Uri.parse('${ApiService.baseUrl}/gerBuliinGishuunDakhinIlgeeye'),
       headers: headers,
       body: json.encode({
-        'utas': utas,
+        if (utas != null && utas.isNotEmpty) 'utas': utas,
         if (kholbolt != null) 'tukhainBaaziinKholbolt': kholbolt,
       }),
     );
@@ -135,7 +135,7 @@ class GerBulService {
       headers: headers,
       body: json.encode({
         if (gishuuniiId != null) 'gishuuniiId': gishuuniiId,
-        if (utas != null) 'utas': utas,
+        if (utas != null) if (utas != null && utas.isNotEmpty) 'utas': utas,
         if (kholbolt != null) 'tukhainBaaziinKholbolt': kholbolt,
       }),
     );
@@ -184,8 +184,24 @@ class GerBulService {
   /// баталгаажуулна. Амжилттай бол шууд нэвтэрсэн байдалтай болно.
   ///
   /// Токен хадгалахгүй байх бол [nevtrekh] -г false болгоно.
+    /// 4 оронтой урилгын кодоор урьсан гэр бүлийн гишүүний мэдээллийг татах
+  static Future<Map<String, dynamic>> urilgaShalgaya({
+    required String code,
+  }) async {
+    final response = await http.post(
+      Uri.parse('${ApiService.baseUrl}/gerBuliinUrilgaShalgaya'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'code': code}),
+    );
+
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(json.decode(response.body));
+    }
+    throw Exception(_aldaaAvya(response, 'Урилгын код олдсонгүй'));
+  }
+
   static Future<Map<String, dynamic>> batalgaajuulya({
-    required String utas,
+    String? utas,
     required String code,
     required String nuutsUg,
     String? ovog,
@@ -196,7 +212,7 @@ class GerBulService {
       Uri.parse('${ApiService.baseUrl}/gerBuliinGishuunBatalgaajuulya'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
-        'utas': utas,
+        if (utas != null && utas.isNotEmpty) 'utas': utas,
         'code': code,
         'nuutsUg': nuutsUg,
         if (ovog != null && ovog.isNotEmpty) 'ovog': ovog,
@@ -221,7 +237,10 @@ class GerBulService {
     if (nevtrekh && data['token'] != null) {
       await StorageService.saveToken(data['token'].toString());
       await StorageService.saveUserData(data);
-      await StorageService.savePhoneNumber(utas);
+      final phoneToSave = data['result']?['utas']?.toString() ?? utas ?? '';
+      if (phoneToSave.isNotEmpty) {
+        await StorageService.savePhoneNumber(phoneToSave);
+      }
       await SessionService.saveLoginTimestamp();
     }
 

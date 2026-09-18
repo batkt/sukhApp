@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,6 +37,12 @@ class StorageService {
   static const String _shakeHintShownKey = 'shake_hint_shown';
   static const String _savedPasswordKey = 'saved_password_biometric';
   static const String _biometricEnabledKey = 'biometric_enabled';
+  static const String _chatbotEnabledKey = 'chatbot_enabled';
+  static const String _chatbotPosXKey = 'chatbot_pos_x';
+  static const String _chatbotPosYKey = 'chatbot_pos_y';
+
+  static final ValueNotifier<bool> chatbotEnabledNotifier =
+      ValueNotifier<bool>(true);
   static const String _tukhainBaaziinKholboltKey = 'tukhain_baaziin_kholbolt';
   static const String _walletBairIdKey = 'wallet_bair_id';
   static const String _zochinTulburiinTurulKey = 'zochin_tulburiin_turul';
@@ -710,6 +717,54 @@ class StorageService {
     } catch (e) {
       return false;
     }
+  }
+
+  /// Check if chatbot assistant is enabled
+  static Future<bool> isChatbotEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool(_chatbotEnabledKey) ?? true;
+      chatbotEnabledNotifier.value = enabled;
+      return enabled;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  /// Enable/disable chatbot assistant
+  static Future<bool> setChatbotEnabled(bool enabled) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final res = await prefs.setBool(_chatbotEnabledKey, enabled);
+      chatbotEnabledNotifier.value = enabled;
+      return res;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get chatbot floating position
+  static Future<Map<String, double>?> getChatbotPosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final x = prefs.getDouble(_chatbotPosXKey);
+      final y = prefs.getDouble(_chatbotPosYKey);
+      if (x != null && y != null) {
+        return {'x': x, 'y': y};
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Save chatbot floating position
+  static Future<void> setChatbotPosition(double x, double y) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_chatbotPosXKey, x);
+      await prefs.setDouble(_chatbotPosYKey, y);
+    } catch (_) {}
   }
 
   /// Get tukhainBaaziinKholbolt (database connection identifier)

@@ -72,6 +72,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
 
+  // Chatbot assistant
+  bool _chatbotEnabled = true;
+
   // Address
   String? _currentAddress;
   bool _isLoadingAddress = false;
@@ -105,6 +108,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     _loadOrganizationInfo();
     _loadUserProfile();
     _checkBiometricStatus();
+    _checkChatbotStatus();
     _loadCurrentAddress();
     _gerBuliinTuluvAchaalya();
 
@@ -136,6 +140,31 @@ class _ProfileSettingsState extends State<ProfileSettings>
         _biometricAvailable = isAvailable;
         _biometricEnabled = isEnabled;
       });
+    }
+  }
+
+  Future<void> _checkChatbotStatus() async {
+    final isEnabled = await StorageService.isChatbotEnabled();
+    if (mounted) {
+      setState(() {
+        _chatbotEnabled = isEnabled;
+      });
+    }
+  }
+
+  Future<void> _handleChatbotToggle(bool value) async {
+    setState(() {
+      _chatbotEnabled = value;
+    });
+    await StorageService.setChatbotEnabled(value);
+    if (mounted) {
+      showGlassSnackBar(
+        context,
+        message: value
+            ? 'Туслах чатбот идэвхэжлээ'
+            : 'Туслах чатбот идэвхгүй боллоо',
+        icon: value ? Icons.check_circle_outline_rounded : Icons.info_outline_rounded,
+      );
     }
   } 
 
@@ -3275,7 +3304,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   icon: Icons.lock_reset_rounded,
                                   title: 'Нууц код солих',
                                   subtitle: 'Нэвтрэх 4 оронтой код солих',
-                                  showBorder: !_biometricAvailable,
+                                  showBorder: true,
                                   onTap: () =>
                                       _showChangePasswordModal(context),
                                 ),
@@ -3294,7 +3323,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                     subtitle: _biometricEnabled
                                         ? 'Идэвхтэй'
                                         : 'Идэвхгүй',
-                                    showBorder: false,
+                                    showBorder: true,
                                     trailing: Switch(
                                       value: _biometricEnabled,
                                       onChanged: (val) =>
@@ -3305,6 +3334,23 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       !_biometricEnabled,
                                     ),
                                   ),
+                                _buildSettingsTile(
+                                  icon: Icons.support_agent_rounded,
+                                  title: 'Туслах чатбот',
+                                  subtitle: _chatbotEnabled
+                                      ? 'Нүүр хуудсанд харагдаж байна'
+                                      : 'Нүүр хуудсанд нуугдсан',
+                                  showBorder: false,
+                                  trailing: Switch(
+                                    value: _chatbotEnabled,
+                                    onChanged: (val) =>
+                                        _handleChatbotToggle(val),
+                                    activeColor: AppColors.deepGreen,
+                                  ),
+                                  onTap: () => _handleChatbotToggle(
+                                    !_chatbotEnabled,
+                                  ),
+                                ),
                               ],
                             ),
                             // 4. Logout & Delete

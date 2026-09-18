@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:sukh_app/main.dart' show navigatorKey;
 import 'dart:math' as math;
@@ -113,6 +114,12 @@ class _BookingScreenState extends State<NuurKhuudas>
   bool _isLoadingGeree = false;
   double totalNiitTulbur = 0.0;
   double totalNiitAldangi = 0.0;
+
+  // Floating draggable chatbot
+  Offset? _chatbotPosition;
+  bool _isDraggingChatbot = false;
+  bool _isOverDeleteTarget = false;
+  double _chatbotDragDistance = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final PageController _billerPageController = PageController();
   final PageController _contractPageController = PageController();
@@ -173,7 +180,8 @@ class _BookingScreenState extends State<NuurKhuudas>
     _loadBillers();
     _loadNotificationCount();
     _setupSocketListener();
-    _loadLocalCache(); // Load local cache instantly so the card shows cached data immediately!
+    _loadLocalCache();
+    _initChatbotPosition(); // Load local cache instantly so the card shows cached data immediately!
     _loadNekhemjlekhCron();
     _refreshBillingInfo(); // Consolidated refresh  
     _checkRecentWalletPayments();
@@ -1816,7 +1824,16 @@ class _BookingScreenState extends State<NuurKhuudas>
     return Scaffold(
       key: _scaffoldKey,
       drawer: const SideMenu(),
-      body: Container(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final mediaQuery = MediaQuery.of(context);
+          final screenSize = Size(constraints.maxWidth, constraints.maxHeight);
+          final topPadding = mediaQuery.padding.top;
+          final bottomPadding = mediaQuery.padding.bottom;
+
+          return Stack(
+            children: [
+              Container(
         color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
         child: Column(
           children: [
@@ -1897,27 +1914,78 @@ class _BookingScreenState extends State<NuurKhuudas>
                                 controller: _contractPageController,
                                 itemCount: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
                                     ? _gereeResponse!.jagsaalt.length
-                                    : 1,
+                                    : (_billingList.isNotEmpty ? _billingList.length : 1),
                                 itemBuilder: (context, index) {
                                   final g = (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
-                                      ? _gereeResponse!.jagsaalt[index]
+                                      ? (index < _gereeResponse!.jagsaalt.length ? _gereeResponse!.jagsaalt[index] : null)
                                       : null;
-                                  
-                                  // "Байрны төлбөр" мөрөнд тухайн НЭГ тоотын биш,
-                                  // бүх тоот (бүх байгууллага + Bpay)-ын НИЙТ
-                                  // дүнг харуулна. Тоот тус бүрийн задаргаа нь
-                                  // дэлгэрэнгүй жагсаалтад байна.
-                                  //
-                                  // Өмнө нь энэ карт нь `_billingList`-ээс
-                                  // `gereeniiDugaar`-аар тааруулж тухайн тоотын
-                                  // үлдэгдлийг харуулдаг байсан бөгөөд тааралт
-                                  // олдохгүй тохиолдолд нийт дүн рүү унадаг тул
-                                  // "нэг тоот бүх өрийг үүрсэн" мэт харагддаг
-                                  // сул тал бас байв.
-                                  final String unitBalance =
-                                      _formatNumberWithComma(totalNiitTulbur);
-                                  final String unitAldangi =
-                                      _formatNumberWithComma(totalNiitAldangi);
+
+                                  // Тоот тус бүрийн картыг тухайн тоотынх нь өөрийн төлбөрийн үлдэгдэлтэй харуулна
+                                  double currentTootBalance = 0.0;
+                                  double currentTootAldangi = 0.0;
+                                  bool foundMatch = false;
+
+                                  if (g != null) {
+                                    // 1. _billingList-ээс энэ гэрээ/тоотод хамаарах бичлэгүүдийг шүүнэ
+                                    final matchedBillings = _billingList.where((b) {
+                                      // Гэрээний ID эсвэл гэрээний дугаараар
+                                      final bGid = b['gereeniiId']?.toString();
+                                      if (bGid != null && bGid.isNotEmpty && bGid == g.id) return true;
+
+                                      final bGereeNo = b['gereeniiDugaar']?.toString();
+                                      if (bGereeNo != null && bGereeNo.isNotEmpty && bGereeNo == g.gereeniiDugaar) return true;
+
+                                      final bBillingId = b['billingId']?.toString();
+                                      if (bBillingId != null && bBillingId.isNotEmpty && bBillingId == g.gereeniiDugaar) return true;
+
+                                      // Тоот болон байрны нэр/ID-аар
+                                      final bToot = b['tootNum']?.toString().trim();
+                                      final gToot = g.toot.toString().trim();
+                                      if (bToot != null && bToot.isNotEmpty && bToot == gToot) {
+                                        final bBair = b['bairniiNer']?.toString().trim().toLowerCase() ?? '';
+                                        final gBair = g.bairNer.trim().toLowerCase();
+                                        final bBarilgaId = b['barilgiinId']?.toString();
+                                        if (bBarilgaId != null && bBarilgaId.isNotEmpty && bBarilgaId == g.barilgiinId) return true;
+                                        if (bBair.isNotEmpty && gBair.isNotEmpty && (bBair == gBair || bBair.contains(gBair) || gBair.contains(bBair))) return true;
+                                      }
+                                      return false;
+                                    }).toList();
+
+                                    if (matchedBillings.isNotEmpty) {
+                                      foundMatch = true;
+                                      for (var b in matchedBillings) {
+                                        currentTootBalance += _parseNum(b['perItemTotal'] ?? b['uldegdel']);
+                                        currentTootAldangi += _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
+                                      }
+                                    } else {
+                                      // Хэрэв шууд тааралт олоогүй бол индексээр эсвэл гэрээний дүнгээр
+                                      if (index < _billingList.length && _billingList.length == (_gereeResponse?.jagsaalt.length ?? 0)) {
+                                        foundMatch = true;
+                                        final b = _billingList[index];
+                                        currentTootBalance = _parseNum(b['perItemTotal'] ?? b['uldegdel']);
+                                        currentTootAldangi = _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
+                                      } else if (g.niitTulbur > 0.0) {
+                                        foundMatch = true;
+                                        currentTootBalance = g.niitTulbur;
+                                      }
+                                    }
+                                  } else if (_billingList.isNotEmpty) {
+                                    if (index < _billingList.length) {
+                                      foundMatch = true;
+                                      final b = _billingList[index];
+                                      currentTootBalance = _parseNum(b['perItemTotal'] ?? b['uldegdel']);
+                                      currentTootAldangi = _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
+                                    }
+                                  }
+
+                                  // Хэрэв хэрэглэгч ганц л тооттой бөгөөд дээрхээс дүн олдоогүй бол totalNiitTulbur руу буцна
+                                  if (!foundMatch && (_gereeResponse == null || _gereeResponse!.jagsaalt.length <= 1)) {
+                                    currentTootBalance = totalNiitTulbur;
+                                    currentTootAldangi = totalNiitAldangi;
+                                  }
+
+                                  final String unitBalance = _formatNumberWithComma(currentTootBalance);
+                                  final String unitAldangi = _formatNumberWithComma(currentTootAldangi);
 
                                   // Fallback: If no geree, use wallet toots from profile for address display
                                   String? displayBairNer = g?.bairNer;
@@ -1926,19 +1994,21 @@ class _BookingScreenState extends State<NuurKhuudas>
                                   if (g == null && _userProfile != null && _userProfile!['toots'] != null) {
                                     final profileToots = _userProfile!['toots'] as List;
                                     if (profileToots.isNotEmpty) {
-                                      final firstToot = profileToots[0] is Map<String, dynamic> 
-                                          ? profileToots[0] as Map<String, dynamic>
-                                          : Map<String, dynamic>.from(profileToots[0] as Map);
-                                      displayBairNer = firstToot['bairniiNer']?.toString();
-                                      displayToot = firstToot['toot']?.toString();
+                                      final pIndex = index < profileToots.length ? index : 0;
+                                      final tMap = profileToots[pIndex] is Map<String, dynamic> 
+                                          ? profileToots[pIndex] as Map<String, dynamic>
+                                          : Map<String, dynamic>.from(profileToots[pIndex] as Map);
+                                      displayBairNer = tMap['bairniiNer']?.toString();
+                                      displayToot = tMap['toot']?.toString();
                                     }
                                   }
                                   
                                   // Also try from billingList if still null
                                   if (displayBairNer == null && _billingList.isNotEmpty) {
-                                    displayBairNer = _billingList.first['bairniiNer']?.toString() ?? 
-                                                     _billingList.first['billingName']?.toString();
-                                    displayToot ??= _billingList.first['tootNum']?.toString();
+                                    final bIndex = index < _billingList.length ? index : 0;
+                                    displayBairNer = _billingList[bIndex]['bairniiNer']?.toString() ?? 
+                                                     _billingList[bIndex]['billingName']?.toString();
+                                    displayToot ??= _billingList[bIndex]['tootNum']?.toString();
                                   }
                                   
                                   // Also try root-level profile fields
@@ -1971,28 +2041,18 @@ class _BookingScreenState extends State<NuurKhuudas>
                                       totalAldangi: unitAldangi,
                                       bairNer: displayBairNer,
                                       toot: displayToot,
-                                      // `_billingList` дотор Bpay-гийн үйлчилгээ
-                                      // (цэвэр ус г.м.) ч байдаг тул бүх мөрийг
-                                      // тоолж болохгүй — зөвхөн тоот төлөөлсөн
-                                      // мөрүүдийг тооно.
-                                      unitCount: () {
-                                        final unitRows = _billingList.where((b) {
-                                          final src = b['source']?.toString();
-                                          return src == 'OWN_ORG' || src == 'OTHER_ORG';
-                                        }).length;
-                                        if (unitRows > 0) return unitRows;
-                                        return _gereeResponse?.jagsaalt.length ?? 1;
-                                      }(),
+                                      // Карт тус бүр өөрийн гэсэн 1 тоотыг төлөөлж байгаа тул 1 гэж дамжуулна
+                                      unitCount: 1,
                                     ),
                                   );
                                 },
                               ),
                             ),
-                            if (_gereeResponse != null && _gereeResponse!.jagsaalt.length > 1) ...[
+                            if (((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ? _gereeResponse!.jagsaalt.length : (_billingList.isNotEmpty ? _billingList.length : 1)) > 1) ...[
                               SizedBox(height: 12.h),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(_gereeResponse!.jagsaalt.length, (index) {
+                                children: List.generate((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ? _gereeResponse!.jagsaalt.length : (_billingList.isNotEmpty ? _billingList.length : 1), (index) {
                                   return AnimatedBuilder(
                                     animation: _contractPageController,
                                     builder: (context, child) {
@@ -2090,20 +2150,11 @@ class _BookingScreenState extends State<NuurKhuudas>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SupportChatPage(extra: const {}),
-            ),
+              // Floating draggable & dismissible chatbot overlay
+              _buildDraggableChatbot(context, screenSize, topPadding, bottomPadding),
+            ],
           );
         },
-        backgroundColor: AppColors.deepGreen,
-        foregroundColor: Colors.white,
-        elevation: 6,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.support_agent_rounded, size: 28),
       ),
     );
   }
@@ -2595,4 +2646,371 @@ class _BookingScreenState extends State<NuurKhuudas>
       ),
     );
   }
+
+  Future<void> _initChatbotPosition() async {
+    await StorageService.isChatbotEnabled();
+    final pos = await StorageService.getChatbotPosition();
+    if (pos != null && mounted) {
+      setState(() {
+        _chatbotPosition = Offset(pos['x']!, pos['y']!);
+      });
+    }
+  }
+
+  void _openSupportChat() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SupportChatPage(extra: const {}),
+      ),
+    );
+  }
+
+  void _dismissChatbot() async {
+    await StorageService.setChatbotEnabled(false);
+    if (mounted) {
+      showGlassSnackBar(
+        context,
+        message: 'Туслах чатботыг хаалаа. "Тохиргоо" цэснээс хүссэн үедээ дахин гаргаж ирэх боломжтой.',
+        icon: Icons.delete_outline_rounded,
+        duration: const Duration(seconds: 4),
+      );
+    }
+  }
+
+  void _showChatbotOptionsDialog() {
+    final isDark = context.isDarkMode;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E242B) : Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.deepGreen.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.support_agent_rounded,
+                      color: AppColors.deepGreen,
+                      size: 24.sp,
+                    ),
+                  ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Туслах чатбот',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Та чатботыг хаасан ч "Тохиргоо" цэснээс дахин гаргах боломжтой.',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: isDark ? Colors.white60 : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20.h),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(Icons.chat_outlined, color: AppColors.deepGreen, size: 20.sp),
+                ),
+                title: Text(
+                  'Чат нээх',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openSupportChat();
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20.sp),
+                ),
+                title: Text(
+                  'Нүүр хуудаснаас хаах / устгах',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14.sp,
+                    color: Colors.redAccent,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _dismissChatbot();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDraggableChatbot(
+    BuildContext context,
+    Size screenSize,
+    double topPadding,
+    double bottomPadding,
+  ) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: StorageService.chatbotEnabledNotifier,
+      builder: (context, isEnabled, child) {
+        if (!isEnabled) return const SizedBox.shrink();
+
+        final buttonSize = 56.w;
+        final defaultX = screenSize.width - buttonSize - 16.w;
+        final defaultY = screenSize.height - bottomPadding - 100.h;
+        final currentPos = _chatbotPosition ?? Offset(defaultX, defaultY);
+        final isDark = context.isDarkMode;
+
+        return Stack(
+          children: [
+            // Delete target area at bottom center (appears while dragging)
+            if (_isDraggingChatbot)
+              Positioned(
+                bottom: bottomPadding + 20.h,
+                left: (screenSize.width - (_isOverDeleteTarget ? 160.w : 140.w)) / 2,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: _isOverDeleteTarget ? 20.w : 16.w,
+                    vertical: _isOverDeleteTarget ? 12.h : 10.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _isOverDeleteTarget
+                        ? const Color(0xFFFF3B30)
+                        : (isDark ? Colors.black.withOpacity(0.8) : const Color(0xFF1E293B).withOpacity(0.85)),
+                    borderRadius: BorderRadius.circular(100.r),
+                    border: Border.all(
+                      color: _isOverDeleteTarget
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.3),
+                      width: _isOverDeleteTarget ? 2 : 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_isOverDeleteTarget ? const Color(0xFFFF3B30) : Colors.black)
+                            .withOpacity(0.4),
+                        blurRadius: _isOverDeleteTarget ? 20 : 10,
+                        spreadRadius: _isOverDeleteTarget ? 2 : 0,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isOverDeleteTarget ? Icons.delete_forever_rounded : Icons.delete_outline_rounded,
+                        color: Colors.white,
+                        size: _isOverDeleteTarget ? 22.sp : 18.sp,
+                      ),
+                      SizedBox(width: 6.w),
+                      Text(
+                        _isOverDeleteTarget ? 'Энд тавьж устгах' : 'Хаах / Устгах',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: _isOverDeleteTarget ? 13.sp : 12.sp,
+                          fontWeight: _isOverDeleteTarget ? FontWeight.bold : FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Draggable floating chatbot button
+            Positioned(
+              left: currentPos.dx,
+              top: currentPos.dy,
+              child: GestureDetector(
+                onPanStart: (details) {
+                  setState(() {
+                    _isDraggingChatbot = true;
+                    _chatbotDragDistance = 0.0;
+                  });
+                  HapticFeedback.selectionClick();
+                },
+                onPanUpdate: (details) {
+                  _chatbotDragDistance += details.delta.distance;
+                  final minX = 8.w;
+                  final maxX = screenSize.width - buttonSize - 8.w;
+                  final minY = topPadding + 50.h;
+                  final maxY = screenSize.height - bottomPadding - 70.h;
+
+                  final newX = (currentPos.dx + details.delta.dx).clamp(minX, maxX);
+                  final newY = (currentPos.dy + details.delta.dy).clamp(minY, maxY);
+
+                  // Calculate distance to delete target center
+                  final deleteCenter = Offset(
+                    screenSize.width / 2,
+                    screenSize.height - bottomPadding - 40.h,
+                  );
+                  final botCenter = Offset(newX + buttonSize / 2, newY + buttonSize / 2);
+                  final dist = (botCenter - deleteCenter).distance;
+                  final isOver = dist < 75.w;
+
+                  if (isOver != _isOverDeleteTarget) {
+                    if (isOver) {
+                      HapticFeedback.mediumImpact();
+                    }
+                  }
+
+                  setState(() {
+                    _chatbotPosition = Offset(newX, newY);
+                    _isOverDeleteTarget = isOver;
+                  });
+                },
+                onPanEnd: (details) {
+                  if (_chatbotDragDistance < 8.0) {
+                    // It was a tap!
+                    setState(() {
+                      _isDraggingChatbot = false;
+                      _isOverDeleteTarget = false;
+                    });
+                    _openSupportChat();
+                    return;
+                  }
+
+                  if (_isOverDeleteTarget) {
+                    HapticFeedback.heavyImpact();
+                    setState(() {
+                      _isDraggingChatbot = false;
+                      _isOverDeleteTarget = false;
+                    });
+                    _dismissChatbot();
+                  } else {
+                    // Snap smoothly to nearest edge (left or right)
+                    final snapX = (currentPos.dx + buttonSize / 2 < screenSize.width / 2)
+                        ? 14.w
+                        : (screenSize.width - buttonSize - 14.w);
+                    final snapPos = Offset(snapX, currentPos.dy);
+                    setState(() {
+                      _chatbotPosition = snapPos;
+                      _isDraggingChatbot = false;
+                      _isOverDeleteTarget = false;
+                    });
+                    StorageService.setChatbotPosition(snapPos.dx, snapPos.dy);
+                  }
+                },
+                onTap: _openSupportChat,
+                onLongPress: _showChatbotOptionsDialog,
+                child: AnimatedScale(
+                  scale: _isOverDeleteTarget ? 0.78 : (_isDraggingChatbot ? 1.08 : 1.0),
+                  duration: const Duration(milliseconds: 150),
+                  child: Container(
+                    width: buttonSize,
+                    height: buttonSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: _isOverDeleteTarget
+                            ? [const Color(0xFFFF6B6B), const Color(0xFFFF3B30)]
+                            : [AppColors.deepGreen, AppColors.deepGreenDark],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_isOverDeleteTarget
+                                  ? const Color(0xFFFF3B30)
+                                  : AppColors.deepGreen)
+                              .withOpacity(_isDraggingChatbot ? 0.55 : 0.35),
+                          blurRadius: _isDraggingChatbot ? 16 : 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          _isOverDeleteTarget
+                              ? Icons.close_rounded
+                              : Icons.support_agent_rounded,
+                          size: 28.sp,
+                          color: Colors.white,
+                        ),
+                        if (!_isDraggingChatbot)
+                          Positioned(
+                            top: 10.w,
+                            right: 12.w,
+                            child: Container(
+                              width: 8.w,
+                              height: 8.w,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4ADE80),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }

@@ -160,6 +160,24 @@ class NekhemjlekhItem {
     }
   }
 
+  String get formattedPeriod {
+    try {
+      if (nekhemjlekhiinOgnoo.contains('-')) {
+        final parts = nekhemjlekhiinOgnoo.split('-');
+        if (parts.length >= 2) return '${parts[0]}.${parts[1]}';
+      }
+      if (nekhemjlekhiinOgnoo.contains('.')) {
+        final parts = nekhemjlekhiinOgnoo.split('.');
+        if (parts.length >= 2) return '${parts[0]}.${parts[1]}';
+      }
+      final d = DateTime.tryParse(nekhemjlekhiinOgnoo);
+      if (d != null) {
+        return '${d.year}.${d.month.toString().padLeft(2, '0')}';
+      }
+    } catch (_) {}
+    return nekhemjlekhiinOgnoo;
+  }
+
   /// Mirrors web's getPaymentStatusLabel + backend pre-save logic:
   /// When paid: backend sets niitTulbur=0, uldegdel=0, tuluv='Төлсөн'
   /// niitTulburOriginal is preserved as the original amount.

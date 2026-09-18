@@ -28,8 +28,6 @@ class _GishuunUrikhSheet extends StatefulWidget {
 class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
   final _formKey = GlobalKey<FormState>();
   final _utasController = TextEditingController();
-  final _ovogController = TextEditingController();
-  final _nerController = TextEditingController();
 
   String _kholboo = GishuuniiKholboo.bugd.first;
   String _erkh = GishuuniiErkh.kharakhTuluk;
@@ -38,8 +36,6 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
   @override
   void dispose() {
     _utasController.dispose();
-    _ovogController.dispose();
-    _nerController.dispose();
     super.dispose();
   }
 
@@ -50,8 +46,6 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
     try {
       await GerBulService.gishuunUriya(
         utas: _utasController.text.trim(),
-        ovog: _ovogController.text.trim(),
-        ner: _nerController.text.trim(),
         kholboo: _kholboo,
         erkh: _erkh,
       );
@@ -105,7 +99,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                     width: 40.w,
                     height: 4.h,
                     decoration: BoxDecoration(
-                      color: context.inputGrayColor.withOpacity(0.4),
+                      color: context.inputGrayColor.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(4.r),
                     ),
                   ),
@@ -123,7 +117,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                 SizedBox(height: 6.h),
                 Text(
                   'Уригдсан дугаар руу 4 оронтой код очно. Тэр хүн кодоо '
-                  'оруулж, нууц кодоо тохируулснаар таны мэдээллийг харна.',
+                  'оруулж, өөрийн нэр, нууц кодоо тохируулснаар таны мэдээллийг харна.',
                   style: TextStyle(
                     fontSize: 12.5.sp,
                     height: 1.5,
@@ -149,43 +143,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                     return null;
                   },
                 ),
-                SizedBox(height: 14.h),
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildShoshgo('Овог'),
-                          _buildTalbar(
-                            controller: _ovogController,
-                            hint: 'Овог',
-                            icon: Icons.badge_outlined,
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildShoshgo('Нэр'),
-                          _buildTalbar(
-                            controller: _nerController,
-                            hint: 'Нэр',
-                            icon: Icons.person_outline_rounded,
-                            validator: (utga) =>
-                                (utga ?? '').trim().isEmpty ? 'Нэр оруулна уу' : null,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 14.h),
+                SizedBox(height: 16.h),
 
                 _buildShoshgo('Таны юу болох'),
                 _buildKholbooSongolt(),
@@ -250,8 +208,8 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
         prefixIcon: Icon(icon, size: 18.sp, color: context.inputGrayColor),
         filled: true,
         fillColor: isDark
-            ? Colors.white.withOpacity(0.04)
-            : Colors.black.withOpacity(0.03),
+            ? Colors.white.withValues(alpha: 0.04)
+            : Colors.black.withValues(alpha: 0.03),
         contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14.r),
@@ -282,12 +240,12 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
             decoration: BoxDecoration(
               color: songogdson
                   ? AppColors.deepGreen
-                  : AppColors.deepGreen.withOpacity(0.06),
+                  : AppColors.deepGreen.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(20.r),
               border: Border.all(
                 color: songogdson
                     ? AppColors.deepGreen
-                    : AppColors.deepGreen.withOpacity(0.15),
+                    : AppColors.deepGreen.withValues(alpha: 0.15),
               ),
             ),
             child: Text(
@@ -316,10 +274,10 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
             padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
             decoration: BoxDecoration(
               color: songogdson
-                  ? AppColors.deepGreen.withOpacity(0.08)
+                  ? AppColors.deepGreen.withValues(alpha: 0.08)
                   : (isDark
-                        ? Colors.white.withOpacity(0.03)
-                        : Colors.black.withOpacity(0.02)),
+                        ? Colors.white.withValues(alpha: 0.03)
+                        : Colors.black.withValues(alpha: 0.02)),
               borderRadius: BorderRadius.circular(14.r),
               border: Border.all(
                 color: songogdson
