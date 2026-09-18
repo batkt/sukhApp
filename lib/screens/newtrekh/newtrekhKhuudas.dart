@@ -393,9 +393,27 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
+    final double screenWidth = mediaQuery.size.width;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool isTablet = mediaQuery.size.width > 600;
-    final bool isLandscape = mediaQuery.orientation == Orientation.landscape;
+    final bool isTablet = screenWidth >= 600;
+
+    // Responsive width sizing:
+    // On phones, foldables, and tablets (width < 1100px), card takes full available width.
+    // On large desktop monitors (width >= 1100px), limit to a centered max 640px.
+    final double maxFormWidth = screenWidth >= 1100 ? 640.0 : double.infinity;
+
+    // Responsive horizontal padding
+    final double horizontalPadding;
+    if (screenWidth < 350) {
+      horizontalPadding = 14.0;
+    } else if (screenWidth < 600) {
+      horizontalPadding = 20.0;
+    } else if (screenWidth < 1100) {
+      // Fold inner screen & iPad - comfortable side margins so content uses full width
+      horizontalPadding = 24.0;
+    } else {
+      horizontalPadding = 40.0;
+    }
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -406,56 +424,42 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           brandColor: AppColors.deepGreen,
         ),
         child: SafeArea(
-          child: isLandscape
-              ? Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Center(
-                        child: SingleChildScrollView(
-                          child: _buildBranding(isDark, isTablet),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 5,
-                      child: Center(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.symmetric(horizontal: 24.w),
-                          child: _buildLoginForm(context, isDark, isTablet),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 24.w),
-                            child: Column(
-                              children: [
-                                Spacer(flex: isTablet ? 3 : 2),
-                                _buildBranding(isDark, isTablet),
-                                Spacer(flex: isTablet ? 2 : 2),
-                                _buildLoginForm(context, isDark, isTablet),
-                                const Spacer(flex: 3),
-                                _buildFooter(isDark),
-                                SizedBox(height: 24.h),
-                              ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(height: isTablet ? 36.h : 20.h),
+                            _buildBranding(isDark, isTablet),
+                            SizedBox(height: isTablet ? 28.h : 20.h),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: maxFormWidth),
+                              child: _buildLoginForm(context, isDark, isTablet),
                             ),
-                          ),
+                          ],
                         ),
-                      ),
-                    );
-                  },
+                        Padding(
+                          padding: EdgeInsets.only(top: 24.h, bottom: 16.h),
+                          child: _buildFooter(isDark),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -500,12 +504,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   }
 
   Widget _buildLoginForm(BuildContext context, bool isDark, bool isTablet) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: isTablet ? 480 : 380),
-        child: Container(
-          padding: EdgeInsets.all(isTablet ? 30.r : 20.r),
-          decoration: BoxDecoration(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final EdgeInsets cardPadding = screenWidth < 350
+        ? EdgeInsets.all(16.r)
+        : EdgeInsets.all(isTablet ? 26.r : 20.r);
+
+    return Container(
+      padding: cardPadding,
+      decoration: BoxDecoration(
             color: isDark ? AppColors.darkSurface : Colors.white,
             borderRadius: BorderRadius.circular(24.r),
             border: Border.all(
@@ -665,9 +671,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 ),
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 
   /// Гэр бүлийн гишүүнээр уригдсан хүн SMS-ээр ирсэн кодоороо энд бүртгүүлнэ.

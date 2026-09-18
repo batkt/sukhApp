@@ -433,18 +433,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                     builder: (context, child) {
                       Widget content = child ?? const SizedBox.shrink();
 
-                      // Constrain and center layouts on tablet/iPad
-                      if (ResponsiveHelper.isTablet(context)) {
-                        content = Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 650, // Standard premium width for tablet devices
-                            ),
-                            child: content,
-                          ),
-                        );
-                      }
-
                       content = ShakeHintOverlay(
                         child: content,
                       );
