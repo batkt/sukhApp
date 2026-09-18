@@ -45,6 +45,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   @override
   void initState() {
     super.initState();
+    phoneController.addListener(() {
+      setState(() {});
+    });
+    passwordController.addListener(() => setState(() {}));
     _loadSavedPhoneNumber();
     _checkBiometricStatus();
   }
@@ -392,13 +396,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool isTablet = mediaQuery.size.width > 600;
-    final bool isLandscape = mediaQuery.orientation == Orientation.landscape;
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    bool isTablet = MediaQuery.of(context).size.width > 600;
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
       body: CustomPaint(
         painter: SharedBgPainter(
@@ -406,8 +407,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           brandColor: AppColors.deepGreen,
         ),
         child: SafeArea(
-          child: isLandscape
-              ? Row(
+          child: OrientationBuilder(
+            builder: (context, orientation) {
+              if (orientation == Orientation.landscape) {
+                return Row(
                   children: [
                     Expanded(
                       flex: 4,
@@ -427,11 +430,12 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       ),
                     ),
                   ],
-                )
-              : LayoutBuilder(
+                );
+              } else {
+                return LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
+                      physics: const BouncingScrollPhysics(),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
                           minHeight: constraints.maxHeight,
@@ -455,7 +459,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       ),
                     );
                   },
-                ),
+                );
+              }
+            },
+          ),
         ),
       ),
     );
@@ -527,7 +534,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildInputField(
-                fieldKey: const ValueKey('login_phone_field'),
                 label: "Утасны дугаар",
                 hint: "Дугаар оруулна уу",
                 controller: phoneController,
@@ -546,7 +552,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               if (_showPasswordInput) ...[
                 SizedBox(height: 20.h),
                 _buildInputField(
-                  fieldKey: const ValueKey('login_password_field'),
                   label: "Нууц код",
                   hint: "Нууц код оруулна уу",
                   controller: passwordController,
@@ -701,7 +706,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   }
 
   Widget _buildInputField({
-    Key? fieldKey,
     required String label,
     required String hint,
     required TextEditingController controller,
@@ -741,7 +745,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             ),
           ),
           child: TextFormField(
-            key: fieldKey,
             controller: controller,
             focusNode: focusNode,
             obscureText: obscureText,

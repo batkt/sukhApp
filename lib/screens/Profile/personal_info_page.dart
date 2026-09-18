@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/ger_bul_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -23,6 +24,17 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   bool _isLoading = true;
   String? _currentAddress;
   Map<String, dynamic>? _userData;
+
+  // ── Оршин суугчийн БҮХ мэдээллийг нэг дэлгэцээс харуулах хэсгүүд ──────
+  // Гэрээ, үлдэгдэл, гэр бүлийн гишүүд, гүйлгээг аль хэдийн байгаа
+  // service-үүдээр татна (шинэ endpoint шаардахгүй). Профайл ачаалагдсаны
+  // ДАРАА зэрэгцээ татагдана — эс тэгвээс үндсэн мэдээлэл хүлээгдэнэ.
+  bool _kholbootoiUnshij = false;
+  List<Map<String, dynamic>> _gereenuud = [];
+  List<Map<String, dynamic>> _gishuud = [];
+  List<Map<String, dynamic>> _guilgeenuud = [];
+  /// gereeniiId -> үлдэгдэл
+  final Map<String, num> _uldegdluud = {};
 
   @override
   void initState() {
@@ -65,6 +77,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           _emailController.text = userData['mail']?.toString() ?? '';
           _isLoading = false;
         });
+
+        // Профайл гарт орсны дараа холбоотой бүх мэдээллийг татна.
+        _kholbootoiMedeelelTataya();
       } else {
         setState(() {
           _isLoading = false;
@@ -82,6 +97,131 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         );
       }
     }
+  }
+
+  /// Гэрээ, үлдэгдэл, гэр бүлийн гишүүд, гүйлгээг татна.
+  Future<void> _kholbootoiMedeelelTataya() async {
+    final orshinSuugchId = _userData?['_id']?.toString();
+    if (orshinSuugchId == null || orshinSuugchId.isEmpty) return;
+    if (!mounted) return;
+    setState(() => _kholbootoiUnshij = true);
+
+    final baiguullagiinId =
+        (await StorageService.getBaiguullagiinId()) ??
+        _userData?['baiguullagiinId']?.toString();
+
+    // Гишүүдийг гэрээнээс хамааралгүйгээр зэрэг татна.
+    final gishuudFuture = _gishuudTataya();
+
+    List<Map<String, dynamic>> gereenuud = [];
+    try {
+      final resp = await ApiService.fetchGeree(orshinSuugchId);
+      final jagsaalt = resp['jagsaalt'] ?? resp['result'] ?? resp['data'];
+      if (jagsaalt is List) {
+        gereenuud = jagsaalt
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    } catch (_) {}
+
+    // Гэрээ тус бүрийн үлдэгдэл. Гэрээ олон байж болох тул зэрэгцээ.
+    if (baiguullagiinId != null && baiguullagiinId.isNotEmpty) {
+      await Future.wait(
+        gereenuud.map((g) async {
+          final gid = g['_id']?.toString();
+          if (gid == null || gid.isEmpty) return;
+          try {
+            final resp = await ApiService.fetchUldegdelBodyo(
+              gereeniiId: gid,
+              baiguullagiinId: baiguullagiinId,
+            );
+            final dun = resp['uldegdel'] ?? resp['dun'] ?? resp['result'];
+            if (dun is num) _uldegdluud[gid] = dun;
+          } catch (_) {}
+        }),
+      );
+    }
+
+    // Гүйлгээг ИДЭВХТЭЙ (эсвэл хамгийн эхний) гэрээнээс авна.
+    List<Map<String, dynamic>> guilgeenuud = [];
+    final undsenGeree = gereenuud.isNotEmpty ? gereenuud.first : null;
+    final undsenGereeId = undsenGeree?['_id']?.toString();
+    if (undsenGereeId != null &&
+        undsenGereeId.isNotEmpty &&
+        baiguullagiinId != null &&
+        baiguullagiinId.isNotEmpty) {
+      try {
+        final resp = await ApiService.fetchGuilgeeAvlaguud(
+          gereeniiId: undsenGereeId,
+          baiguullagiinId: baiguullagiinId,
+          khuudasniiKhemjee: 50,
+        );
+        final jagsaalt = resp['jagsaalt'] ?? resp['result'] ?? resp['data'];
+        if (jagsaalt is List) {
+          guilgeenuud = jagsaalt
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+        }
+      } catch (_) {}
+    }
+
+    final gishuud = await gishuudFuture;
+
+    if (!mounted) return;
+    setState(() {
+      _gereenuud = gereenuud;
+      _guilgeenuud = guilgeenuud;
+      _gishuud = gishuud;
+      _kholbootoiUnshij = false;
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> _gishuudTataya() async {
+    try {
+      final garalt = await GerBulService.gishuudAvya();
+      final dynamic khureelen = garalt;
+      // Моделийн бүтэц өөрчлөгдвөл ч дэлгэц унахгүй байхаар хамгаалав.
+      final dynamic gishuud = khureelen.gishuud;
+      if (gishuud is List) {
+        return gishuud
+            .map<Map<String, dynamic>>(
+              (g) => <String, dynamic>{
+                'ner': _dynTekst(g, 'ner'),
+                'ovog': _dynTekst(g, 'ovog'),
+                'utas': _dynTekst(g, 'utas'),
+                'kholboo': _dynTekst(g, 'gishuuniiKholboo'),
+                'tuluv': _dynTekst(g, 'gishuuniiTuluv'),
+                'erkh': _dynTekst(g, 'gishuuniiErkh'),
+              },
+            )
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  static String? _dynTekst(dynamic obj, String talbar) {
+    try {
+      if (obj is Map) return obj[talbar]?.toString();
+      final utga = (obj as dynamic);
+      switch (talbar) {
+        case 'ner':
+          return utga.ner?.toString();
+        case 'ovog':
+          return utga.ovog?.toString();
+        case 'utas':
+          return utga.utas?.toString();
+        case 'gishuuniiKholboo':
+          return utga.gishuuniiKholboo?.toString();
+        case 'gishuuniiTuluv':
+          return utga.gishuuniiTuluv?.toString();
+        case 'gishuuniiErkh':
+          return utga.gishuuniiErkh?.toString();
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<void> _loadCurrentAddress() async {
@@ -430,6 +570,24 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                               ],
                             ),
                           ),
+
+                          // ── Оршин суугчийн БҮХ мэдээлэл нэг дэлгэцэд ──
+                          // Тоот, гэрээ, үлдэгдэл, гэр бүл, гүйлгээ — бүгд
+                          // энэ дэлгэцээс харагдана (вебийн 'нүд' товчны
+                          // модалтай ижил агуулга, оршин суугчийн өөрийнх).
+                          _buildKhesegKart(
+                            'Тоот / хаягийн дэлгэрэнгүй',
+                            _buildTootuudKheseg(),
+                          ),
+                          _buildKhesegKart('Гэрээ', _buildGereeKheseg()),
+                          _buildKhesegKart(
+                            'Гэр бүлийн гишүүд',
+                            _buildGishuudKheseg(),
+                          ),
+                          _buildKhesegKart(
+                            'Сүүлийн гүйлгээ',
+                            _buildGuilgeeKheseg(),
+                          ),
                         ],
                       ),
                     ),
@@ -437,6 +595,237 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Уншигдахуйц тоо (1,234,567)
+  static String _tooKharuul(dynamic utga) {
+    final too = utga is num ? utga : num.tryParse(utga?.toString() ?? '');
+    if (too == null) return '—';
+    final butarkhaigui = too.round().abs().toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < butarkhaigui.length; i++) {
+      if (i > 0 && (butarkhaigui.length - i) % 3 == 0) buf.write(',');
+      buf.write(butarkhaigui[i]);
+    }
+    return "${too < 0 ? '-' : ''}$buf";
+  }
+
+  static String _tekstUtga(dynamic utga) {
+    if (utga == null) return '—';
+    final s = utga.toString().trim();
+    return s.isEmpty ? '—' : s;
+  }
+
+  static String _ognooKharuul(dynamic utga) {
+    if (utga == null) return '—';
+    final o = DateTime.tryParse(utga.toString());
+    if (o == null) return '—';
+    final sar = o.month.toString().padLeft(2, '0');
+    final odor = o.day.toString().padLeft(2, '0');
+    return '${o.year}-$sar-$odor';
+  }
+
+  /// Бусад хэсгүүдтэй ижил харагдацтай карт.
+  Widget _buildKhesegKart(String garchig, Widget kheseg) {
+    final isDark = context.isDarkMode;
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(top: 24.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : AppColors.deepGreen.withOpacity(0.05),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.4)
+                : AppColors.deepGreen.withOpacity(0.06),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSubSectionTitle(garchig),
+          SizedBox(height: 12.h),
+          kheseg,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMur(String ner, String utga) {
+    final isDark = context.isDarkMode;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120.w,
+            child: Text(
+              ner,
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: isDark ? Colors.white54 : Colors.black45,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              utga,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKhooson(String bichig) {
+    final isDark = context.isDarkMode;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: Text(
+        bichig,
+        style: TextStyle(
+          fontSize: 12.sp,
+          color: isDark ? Colors.white38 : Colors.black38,
+        ),
+      ),
+    );
+  }
+
+  /// Тоот бүрийн бүрэн мэдээлэл (олон тоотыг бүгдийг харуулна).
+  Widget _buildTootuudKheseg() {
+    final List toots =
+        (_userData?['toots'] is List) ? List.from(_userData!['toots']) : [];
+    if (toots.isEmpty) return _buildKhooson('Бүртгэлтэй тоот алга');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final t in toots.whereType<Map>())
+          Padding(
+            padding: EdgeInsets.only(bottom: 12.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMur('Тоот', _tekstUtga(t['toot'])),
+                _buildMur('Төрөл', _tekstUtga(t['turul'])),
+                _buildMur('Байр', _tekstUtga(t['bairniiNer'])),
+                _buildMur(
+                  'Давхар / орц',
+                  "${_tekstUtga(t['davkhar'])} / ${_tekstUtga(t['orts'])}",
+                ),
+                _buildMur(
+                  'Дүүрэг / СӨХ',
+                  "${_tekstUtga(t['duureg'])} / ${_tekstUtga(t['soh'])}",
+                ),
+                _buildMur(
+                  'Үлдэгдэл',
+                  "${_tooKharuul(t['uldegdel'] ?? t['ekhniiUldegdel'] ?? 0)}₮",
+                ),
+                _buildMur('Цахилгааны заалт', _tekstUtga(t['tsahilgaaniiZaalt'])),
+                if (toots.length > 1) Divider(height: 16.h),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildGereeKheseg() {
+    if (_kholbootoiUnshij && _gereenuud.isEmpty) {
+      return _buildKhooson('Уншиж байна...');
+    }
+    if (_gereenuud.isEmpty) return _buildKhooson('Гэрээ олдсонгүй');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final g in _gereenuud)
+          Padding(
+            padding: EdgeInsets.only(bottom: 12.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMur('Дугаар', _tekstUtga(g['gereeniiDugaar'])),
+                _buildMur('Тоот', _tekstUtga(g['toot'])),
+                _buildMur('Төлөв', _tekstUtga(g['tuluv'])),
+                _buildMur(
+                  'Хугацаа',
+                  "${_ognooKharuul(g['ekhlekhOgnoo'])} — ${_ognooKharuul(g['duusakhOgnoo'])}",
+                ),
+                _buildMur(
+                  'Үлдэгдэл',
+                  "${_tooKharuul(_uldegdluud[g['_id']?.toString()] ?? g['ekhniiUldegdel'] ?? 0)}₮",
+                ),
+                if (_gereenuud.length > 1) Divider(height: 16.h),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildGishuudKheseg() {
+    if (_kholbootoiUnshij && _gishuud.isEmpty) {
+      return _buildKhooson('Уншиж байна...');
+    }
+    if (_gishuud.isEmpty) return _buildKhooson('Гишүүн бүртгэгдээгүй');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final g in _gishuud)
+          Padding(
+            padding: EdgeInsets.only(bottom: 8.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMur(
+                  'Нэр',
+                  "${_tekstUtga(g['ovog'])} ${_tekstUtga(g['ner'])}",
+                ),
+                _buildMur('Утас', _tekstUtga(g['utas'])),
+                _buildMur('Холбоо', _tekstUtga(g['kholboo'])),
+                _buildMur(
+                  'Төлөв / эрх',
+                  "${_tekstUtga(g['tuluv'])} · ${_tekstUtga(g['erkh'])}",
+                ),
+                if (_gishuud.length > 1) Divider(height: 16.h),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildGuilgeeKheseg() {
+    if (_kholbootoiUnshij && _guilgeenuud.isEmpty) {
+      return _buildKhooson('Уншиж байна...');
+    }
+    if (_guilgeenuud.isEmpty) return _buildKhooson('Гүйлгээ олдсонгүй');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final g in _guilgeenuud.take(20))
+          _buildMur(
+            _ognooKharuul(g['ognoo']),
+            "${_tekstUtga(g['turul'])} · ${_tooKharuul(g['dun'])}₮",
+          ),
+      ],
     );
   }
 
