@@ -24,6 +24,10 @@ class _SideMenuState extends State<SideMenu> {
   String _userName = 'Ашиглагч';
   String _appVersion = 'v2.0.3'; // Default fallback
 
+  /// Цэвэрлэгээний "ШИНЭ" тэмдэг харагдах эсэх. Анхдагчаар унтраалттай —
+  /// хадгалсан утга уншигдтал асвал нээгээд үзчихсэн хүнд анивчиж харагдана.
+  bool _tseverlegeeShine = false;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +35,21 @@ class _SideMenuState extends State<SideMenu> {
     _checkGuestInvitePermission();
     _loadUserData();
     _loadAppVersion();
+    _loadTseverlegeeTemdeg();
+  }
+
+  Future<void> _loadTseverlegeeTemdeg() async {
+    final uzsen = await StorageService.tseverlegeeUzsenEsekh();
+    if (!mounted) return;
+    setState(() => _tseverlegeeShine = !uzsen);
+  }
+
+  /// Цэсийг товшсон даруйд тэмдгийг унтраана. Хадгалалт нь арын дэвсгэрт
+  /// явна — амжилтгүй болсон ч энэ сесс дотор дахин гарахгүй.
+  void _tseverlegeeUzegdlee() {
+    if (!_tseverlegeeShine) return;
+    setState(() => _tseverlegeeShine = false);
+    StorageService.tseverlegeeUzsenGejTemdeglye();
   }
 
   Future<void> _loadAppVersion() async {
@@ -172,6 +191,17 @@ class _SideMenuState extends State<SideMenu> {
                   [
                     _buildNavTile(
                       context,
+                      icon: Icons.cleaning_services_outlined,
+                      title: 'Цэвэрлэгээ',
+                      shineEsekh: _tseverlegeeShine,
+                      onTap: () {
+                        _tseverlegeeUzegdlee();
+                        Navigator.pop(context);
+                        context.push('/tseverlegee');
+                      },
+                    ),
+                    _buildNavTile(
+                      context,
                       icon: Icons.cloud_done_outlined,
                       title: 'И-Баримт',
                       onTap: () {
@@ -309,6 +339,9 @@ class _SideMenuState extends State<SideMenu> {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    // Шинэ боломжийг нэг удаа тодруулж үзүүлнэ. Хэрэглэгч нээмэгц унтарна —
+    // байнга асаалттай тэмдэг нь хэдхэн хоногт анзаарагдахаа болино.
+    bool shineEsekh = false,
   }) {
     return Material(
       color: Colors.transparent,
@@ -333,6 +366,28 @@ class _SideMenuState extends State<SideMenu> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (shineEsekh) ...[
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 7.w,
+                    vertical: 2.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepGreen,
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    'ШИНЭ',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 8.sp,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+              ],
               Icon(
                 Icons.chevron_right_rounded,
                 color: context.textSecondaryColor.withOpacity(0.3),

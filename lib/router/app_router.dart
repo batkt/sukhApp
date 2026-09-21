@@ -16,6 +16,7 @@ import 'package:sukh_app/screens/Home/home.dart';
 import 'package:sukh_app/screens/Profile/profile_settings.dart';
 import 'package:sukh_app/screens/Profile/personal_info_page.dart';
 import 'package:sukh_app/screens/geree/geree.dart';
+import 'package:sukh_app/screens/tseverlegee/tseverlegee_page.dart';
 import 'package:sukh_app/screens/nekhemjlekh/nekhemjlekh.dart';
 import 'package:sukh_app/screens/sanal_khuselt/sanal_khuselt.dart';
 import 'package:sukh_app/screens/duudlaga/duudlaga.dart';
@@ -257,6 +258,14 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: const NekhemjlekhPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/tseverlegee',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const TseverlegeePage(),
           ),
     ),
     GoRoute(

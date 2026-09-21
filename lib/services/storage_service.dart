@@ -40,6 +40,7 @@ class StorageService {
   static const String _chatbotEnabledKey = 'chatbot_enabled';
   static const String _chatbotPosXKey = 'chatbot_pos_x';
   static const String _chatbotPosYKey = 'chatbot_pos_y';
+  static const String _tseverlegeeUzsenKey = 'tseverlegee_shine_uzsen';
 
   static final ValueNotifier<bool> chatbotEnabledNotifier =
       ValueNotifier<bool>(true);
@@ -662,6 +663,29 @@ class StorageService {
     try {
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setBool(_shakeHintShownKey, value);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Цэвэрлэгээний "ШИНЭ" тэмдгийг хэрэглэгч нэг удаа нээгээд харсан эсэх.
+  ///
+  /// Уншиж чадаагүй үед `true` буцаана — уншилт унасан болгонд тэмдгийг
+  /// дахин асаах нь хэрэглэгчийн нүдэнд эвдэрхий харагдана.
+  static Future<bool> tseverlegeeUzsenEsekh() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_tseverlegeeUzsenKey) ?? false;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  /// Цэвэрлэгээг нээсэн гэж тэмдэглэнэ — "ШИНЭ" тэмдэг дахин гарахгүй.
+  static Future<bool> tseverlegeeUzsenGejTemdeglye() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_tseverlegeeUzsenKey, true);
     } catch (e) {
       return false;
     }

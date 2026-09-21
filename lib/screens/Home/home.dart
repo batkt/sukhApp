@@ -1254,130 +1254,54 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
-  /// One bpay bill date, with the precision we actually got.
+  /// bpay-ийн дараагийн төлөлтийн огноо.
   ///
-  /// `hasDay` is false when the value was a `billPeriod` (`YYYY-MM`) — a month
-  /// with no day in it — so callers know the day component is not from bpay.
-  static ({DateTime date, String key, bool hasDay})? _bpayBillDate(
-    Map<String, dynamic> bill,
-  ) {
-    // bpay hands us `billPeriod` for certain. The payload may also carry a
-    // full date under a key we have not pinned down, so rather than guess one
-    // name, score every date-looking key: creation/issue semantics beat
-    // paid/settlement ones, and bill-scoped keys beat generic ones. A full
-    // date always beats a bare period.
-    ({DateTime date, String key, bool hasDay})? best;
-    int bestScore = -1;
-
-    for (final entry in bill.entries) {
-      final key = entry.key;
-      final lower = key.toLowerCase();
-      final raw = entry.value?.toString().trim() ?? '';
-      if (raw.isEmpty) continue;
-
-      final looksTemporal = lower.contains('date') ||
-          lower.contains('ognoo') ||
-          lower.contains('created') ||
-          lower.contains('period');
-      if (!looksTemporal) continue;
-
-      // A payment/settlement timestamp is not when the bill was issued.
-      // Төлсөн/цуцалсан хугацааны тэмдэглэгээ нь билл үүссэн огноо биш.
-      // `due`/`expire` мөн адил: тэдгээр нь ирээдүйн огноо тул анкер болговол
-      // дээр нь дахин нэг сар нэмэгдэж, нэг сараар хожимдоно.
-      if (lower.contains('paid') ||
-          lower.contains('settle') ||
-          lower.contains('update') ||
-          lower.contains('delete') ||
-          lower.contains('cancel') ||
-          lower.contains('due') ||
-          lower.contains('expire')) {
-        continue;
-      }
-
-      DateTime? parsed = DateTime.tryParse(raw);
-      bool hasDay = parsed != null;
-      if (parsed == null) {
-        // `YYYY-M` / `YYYY-MM`, the documented billPeriod shape.
-        final m = RegExp(r'^(\d{4})[-/.](\d{1,2})$').firstMatch(raw);
-        if (m == null) continue;
-        final month = int.tryParse(m.group(2)!);
-        if (month == null || month < 1 || month > 12) continue;
-        parsed = DateTime(int.parse(m.group(1)!), month, 1);
-        hasDay = false;
-      }
-
-      var score = hasDay ? 10 : 0;
-      if (lower.contains('create') || lower.contains('issue')) score += 3;
-      if (lower.contains('bill')) score += 2;
-      if (lower.contains('start')) score += 1;
-
-      if (score > bestScore) {
-        bestScore = score;
-        best = (date: parsed, key: key, hasDay: hasDay);
-      }
-    }
-
-    return best;
-  }
-
-  /// Same calendar day one month on, clamped so the 31st of a 31-day month
-  /// lands on the last day of a shorter one instead of spilling into the next.
-  static DateTime _addOneMonthClamped(DateTime d) {
-    final year = d.month == 12 ? d.year + 1 : d.year;
-    final month = d.month == 12 ? 1 : d.month + 1;
-    final lastDayOfTarget = DateTime(
-      month == 12 ? year + 1 : year,
-      month == 12 ? 1 : month + 1,
-      0,
-    ).day;
-    return DateTime(year, month, d.day > lastDayOfTarget ? lastDayOfTarget : d.day);
-  }
-
-  /// Next invoice date for a bpay billing, read from the bills themselves.
+  /// bpay дээр төлөлтийн өдөр нь ҮРГЭЛЖ сарын 20 — энэ бол хуанлийн тогтмол
+  /// дүрэм тул хамгийн ойрын 20-оос тоолно.
   ///
-  /// The old path invented this from `DateTime.now()` plus a hardcoded day, so
-  /// whenever bpay's bills lagged the calendar the countdown pointed at a month
-  /// bpay had not reached yet. Here the newest bill's own date is the anchor and
-  /// one month is added to it. Scoped to WALLET_API billings; returns null for
-  /// anything else so the existing branches keep their behaviour.
+  /// Өмнө нь "хамгийн сүүлийн билл дээрх огноо + 1 сар" гэж тооцдог байсан.
+  /// Гэвч билл нь тухайн сарынхаа төлбөрийг илэрхийлдэг — дээр нь сар нэмэхэд
+  /// тоолуур яг одоо төлөх ёстой ээлжийг алгасч, дараагийн сарынхыг зааж байв:
+  /// 9-р сарын 18-нд «2 өдөр» байх ёстой байтал «42 өдөр» гэж гарч байсан
+  /// шалтгаан нь энэ.
+  ///
+  /// Зөвхөн WALLET_API билгүүдэд хамаарна; бусад тохиолдолд null буцааж доорх
+  /// (cron / гэрээний) салаалалтуудыг хэвээр нь үлдээнэ.
   DateTime? _bpayNextInvoiceDate() {
-    ({DateTime date, String key, bool hasDay})? newest;
+    final bpayBillings = _billingList
+        .where((billing) => billing['source']?.toString() == 'WALLET_API')
+        .toList();
+    if (bpayBillings.isEmpty) return null;
 
-    for (final billing in _billingList) {
-      if (billing['source']?.toString() != 'WALLET_API') continue;
+    const tulukhOdor = 20;
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+    final enSaryn20 = DateTime(today.year, today.month, tulukhOdor);
 
-      final details = billing['billingDetails'];
-      if (details is! Map) continue;
-
-      final bills = <Map<String, dynamic>>[
-        ...(details['newBills'] as List? ?? const [])
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e)),
-        ...(details['bills'] as List? ?? const [])
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e)),
-      ];
-
-      for (final bill in bills) {
-        final found = _bpayBillDate(bill);
-        if (found == null) continue;
-        if (newest == null || found.date.isAfter(newest.date)) newest = found;
-      }
+    // 20 хараахан болоогүй бол энэ сарын 20 (18-нд бол 2 өдөр).
+    if (!enSaryn20.isBefore(todayDateOnly)) {
+      debugPrint('[bpay] next invoice date → $enSaryn20');
+      return enSaryn20;
     }
 
-    if (newest == null) return null;
+    // 20 өнгөрсөн ч төлөх үлдэгдэл үлдсэн бол хоцорсноор нь харуулна.
+    final uldegdelTei = bpayBillings.any((billing) {
+      final uldegdel = billing['uldegdel'] != null
+          ? _parseNum(billing['uldegdel'])
+          : _parseNum(billing['perItemTotal']);
+      return uldegdel > 0;
+    });
+    if (uldegdelTei) {
+      debugPrint('[bpay] overdue since $enSaryn20');
+      return enSaryn20;
+    }
 
-    final next = _addOneMonthClamped(newest.date);
-
-    // bpay-гийн эх сурвалж дээр төлөлтийн өдөр нь ҮРГЭЛЖ сарын 20.
-    //
-    // Билл дээрх огноо нь зөвхөн аль САРЫГ анкер болгохыг л шийднэ — өдрийг нь
-    // авахгүй. Өмнө нь бүтэн огноотой билл өөрийн өдрөө хадгалдаг байсан тул
-    // хэрэглэгч бүр өөр өөр өдөртэй болж, "сарын 20" гэсэн дүрэм зөвхөн
-    // өдөргүй `billPeriod` дээр л биелдэг байв.
-    debugPrint('[bpay] next invoice month from "${newest.key}" → day 20');
-    return DateTime(next.year, next.month, 20);
+    // Төлбөр хаагдсан бол дараагийн ээлж — ирэх сарын 20.
+    final daraaSar = today.month == 12 ? 1 : today.month + 1;
+    final daraaJil = today.month == 12 ? today.year + 1 : today.year;
+    final daraagiin20 = DateTime(daraaJil, daraaSar, tulukhOdor);
+    debugPrint('[bpay] next invoice date → $daraagiin20');
+    return daraagiin20;
   }
 
   Widget _buildRemainingDaysWidget(
@@ -2588,6 +2512,10 @@ class _BookingScreenState extends State<NuurKhuudas>
         }
         if (service['name'] == 'санал') {
           context.push('/sanal_asuulga');
+          return;
+        }
+        if (service['name'] == 'цэвэрлэгээ') {
+          context.push('/tseverlegee');
           return;
         }
 
