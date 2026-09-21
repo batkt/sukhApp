@@ -48,23 +48,11 @@ class InvoiceCard extends StatelessWidget {
 
   Color _getStatusColor(NekhemjlekhItem inv) {
     if (inv.isPaid) return const Color(0xFF10B981);
-    try {
-      final d = DateTime.tryParse(inv.nekhemjlekhiinOgnoo);
-      if (d != null && DateTime.now().isAfter(d.add(const Duration(days: 30)))) {
-        return const Color(0xFFEF4444);
-      }
-    } catch (_) {}
     return const Color(0xFFF59E0B);
   }
 
   String _getStatusLabel(NekhemjlekhItem inv) {
     if (inv.isPaid) return 'Төлөгдсөн';
-    try {
-      final d = DateTime.tryParse(inv.nekhemjlekhiinOgnoo);
-      if (d != null && DateTime.now().isAfter(d.add(const Duration(days: 30)))) {
-        return 'Хугацаа хэтэрсэн';
-      }
-    } catch (_) {}
     return 'Хүлээгдэж байгаа';
   }
 

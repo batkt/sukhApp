@@ -41,7 +41,7 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 320),
     );
     _animController.addListener(() {
       if (_snapAnimation != null) {
@@ -92,6 +92,9 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
       _isDismissing = true;
     });
 
+    final def = _getDefaultPosition();
+    _position = def;
+    await StorageService.setChatbotPosition(def.dx, def.dy);
     await StorageService.setChatbotEnabled(false);
 
     if (mounted) {
@@ -101,6 +104,9 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
         icon: Icons.delete_outline_rounded,
         duration: const Duration(seconds: 4),
       );
+      setState(() {
+        _isDismissing = false;
+      });
     }
   }
 
@@ -118,7 +124,7 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
           borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -150,7 +156,7 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
                 leading: Container(
                   padding: EdgeInsets.all(8.w),
                   decoration: BoxDecoration(
-                    color: AppColors.deepGreen.withOpacity(0.12),
+                    color: AppColors.deepGreen.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Icon(Icons.chat_bubble_outline_rounded, color: AppColors.deepGreen, size: 20.sp),
@@ -172,7 +178,7 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
                 leading: Container(
                   padding: EdgeInsets.all(8.w),
                   decoration: BoxDecoration(
-                    color: Colors.blueAccent.withOpacity(0.12),
+                    color: Colors.blueAccent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Icon(Icons.refresh_rounded, color: Colors.blueAccent, size: 20.sp),
@@ -196,7 +202,7 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
                 leading: Container(
                   padding: EdgeInsets.all(8.w),
                   decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.12),
+                    color: Colors.redAccent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10.r),
                   ),
                   child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20.sp),
@@ -226,14 +232,14 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
   }
 
   void _animateTo(Offset target) {
-    if (_position == null) return;
+    final start = _position ?? _getDefaultPosition();
     _snapAnimation = Tween<Offset>(
-      begin: _position!,
+      begin: start,
       end: target,
     ).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: Curves.easeOutCubic,
+        curve: Curves.easeOutBack,
       ),
     );
     _animController.forward(from: 0.0);
@@ -284,19 +290,19 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
                       color: _isOverDelete
                           ? const Color(0xFFFF3B30)
                           : (isDark
-                              ? Colors.black.withOpacity(0.85)
-                              : const Color(0xFF1E293B).withOpacity(0.9)),
+                              ? Colors.black.withValues(alpha: 0.85)
+                              : const Color(0xFF1E293B).withValues(alpha: 0.9)),
                       borderRadius: BorderRadius.circular(100.r),
                       border: Border.all(
                         color: _isOverDelete
                             ? Colors.white
-                            : Colors.white.withOpacity(0.35),
+                            : Colors.white.withValues(alpha: 0.35),
                         width: _isOverDelete ? 2 : 1,
                       ),
                       boxShadow: [
                         BoxShadow(
                           color: (_isOverDelete ? const Color(0xFFFF3B30) : Colors.black)
-                              .withOpacity(0.4),
+                              .withValues(alpha: 0.4),
                           blurRadius: _isOverDelete ? 22 : 10,
                           spreadRadius: _isOverDelete ? 3 : 0,
                           offset: const Offset(0, 4),
@@ -419,7 +425,7 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
                           color: (_isOverDelete
                                   ? const Color(0xFFFF3B30)
                                   : AppColors.deepGreen)
-                              .withOpacity(_isDragging ? 0.5 : 0.32),
+                              .withValues(alpha: _isDragging ? 0.5 : 0.32),
                           blurRadius: _isDragging ? 18 : 10,
                           offset: const Offset(0, 4),
                         ),

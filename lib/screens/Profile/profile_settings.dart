@@ -68,6 +68,20 @@ class _ProfileSettingsState extends State<ProfileSettings>
   bool _isUpdatingPlate = false;
   bool _isPlateEditMode = false;
 
+  /// Бүртгэлтэй машины дугаарууд.
+  ///
+  /// Өмнө нь зөвхөн `_mashiniiDugaarController` (нэг дугаар) байсан тул
+  /// оршин суугч 2-3 машин бүртгэсэн ч аппад нэг нь харагддаг, шинээр
+  /// нэмэх слот ч гарч ирдэггүй байв.
+  List<String> _mashinuud = [];
+
+  /// Нэг оршин суугч дээр бүртгэж болох машины дээд тоо.
+  /// Вебийн «Нэмэлт тохиргоо → Машины бүртгэлийн хязгаар»-аас тохируулна.
+  int _mashiniiKhyazgaar = 1;
+
+  /// Шинэ машин нэмэх сул слот байгаа эсэх.
+  bool get _sulSlotBaina => _mashinuud.length < _mashiniiKhyazgaar;
+
   // Biometric settings
   bool _biometricAvailable = false;
   bool _biometricEnabled = false;
@@ -86,6 +100,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
   // Гэр бүлийн гишүүн эсэх (тийм бол данс нь үндсэн эзэмшигчийнх)
   bool _gishuunEsekh = false;
+
+  /// Байрын удирдлага гэр бүлийн гишүүн урихыг зөвшөөрсөн эсэх.
+  ///
+  /// Вебийн «Нэмэлт тохиргоо → Гэр бүлийн гишүүн урих» чекээс тохируулагдаж,
+  /// профайлын хариунд `gerBuliinGishuunEsekh` талбараар ирнэ. Тохируулаагүй
+  /// (хуучин сервер) бол зөвшөөрсөн гэж үзнэ.
+  bool _gerBuliinGishuunZovshoorson = true;
   String? _undsenEzemshigchNer;
 
   // User data
@@ -409,6 +430,94 @@ class _ProfileSettingsState extends State<ProfileSettings>
     super.dispose();
   }
 
+  /// Серверийн хариунаас машины ЖАГСААЛТ + хязгаарыг уншина.
+  ///
+  /// Backend нь `/tokenoorOrshinSuugchAvya` болон `/zochinSettings`
+  /// хоёулангаас `mashinuud` (бүх дугаар) ба `mashiniiKhyazgaar`-ыг
+  /// буцаадаг. Хуучин серверийн хариу дээр `mashinuud` байхгүй байж болох
+  /// тул нэг дугаарын талбаруудаас нөхнө.
+  void _mashinuudUnshiya(dynamic source) {
+    if (source is! Map) return;
+
+    final jagsaalt = <String>[];
+    final raw = source['mashinuud'];
+
+    if (raw is List) {
+      for (final item in raw) {
+        final dugaar = _parsePlateFromAny(item);
+        if (dugaar != null && !jagsaalt.contains(dugaar)) {
+          jagsaalt.add(dugaar);
+        }
+      }
+    }
+
+    if (jagsaalt.isEmpty) {
+      final neg = _parsePlateFromAny(source);
+      if (neg != null) jagsaalt.add(neg);
+    }
+
+    if (jagsaalt.isNotEmpty) {
+      _mashinuud = jagsaalt;
+    }
+
+    final khyazgaar =
+        source['mashiniiKhyazgaar'] ?? source['orshinSuugchMashiniiLimit'];
+    final toon = int.tryParse(khyazgaar?.toString() ?? '');
+    if (toon != null && toon > 0) {
+      _mashiniiKhyazgaar = toon;
+    }
+  }
+
+  String? _parsePlateFromAny(dynamic source) {
+    if (source == null) return null;
+    if (source is String) {
+      final s = source.trim().toUpperCase();
+      return (s.isEmpty ||
+              s == 'БҮРТГЭЛГҮЙ' ||
+              s == 'NULL' ||
+              s == 'UNDEFINED' ||
+              s == '-')
+          ? null
+          : s;
+    }
+    if (source is List) {
+      for (final item in source) {
+        final p = _parsePlateFromAny(item);
+        if (p != null) return p;
+      }
+      return null;
+    }
+    if (source is Map) {
+      // Direct field candidates
+      final directCandidates = [
+        source['mashiniiDugaar'],
+        source['dugaar'],
+        source['mashinDugaar'],
+        source['carNumber'],
+        source['plateNumber'],
+        source['urisanMashiniiDugaar'],
+      ];
+      for (final c in directCandidates) {
+        final p = _parsePlateFromAny(c);
+        if (p != null) return p;
+      }
+
+      // Nested object candidates
+      final nestedCandidates = [
+        source['mashinuud'],
+        source['orshinSuugchMashin'],
+        source['mashin'],
+        source['data'],
+        source['result'],
+      ];
+      for (final n in nestedCandidates) {
+        final p = _parsePlateFromAny(n);
+        if (p != null) return p;
+      }
+    }
+    return null;
+  }
+
   Future<void> _loadUserProfile() async {
     try {
       setState(() {
@@ -420,93 +529,80 @@ class _ProfileSettingsState extends State<ProfileSettings>
       if (response['success'] == true && response['result'] != null) {
         final userData = response['result'];
 
-        setState(() {
-          _userData = userData;
+        _userData = userData;
+        _nameController.text = userData['ner']?.toString() ?? '';
 
-          _nameController.text = userData['ner']?.toString() ?? '';
-
-          if (userData['utas'] != null) {
-            final utas = userData['utas'];
-            if (utas is List && utas.isNotEmpty) {
-              _phoneController.text = utas.first.toString();
-            } else {
-              _phoneController.text = utas.toString();
-            }
+        if (userData['utas'] != null) {
+          final utas = userData['utas'];
+          if (utas is List && utas.isNotEmpty) {
+            _phoneController.text = utas.first.toString();
+          } else {
+            _phoneController.text = utas.toString();
           }
-          _emailController.text = userData['mail']?.toString() ?? '';
+        }
+        _emailController.text = userData['mail']?.toString() ?? '';
 
-          final plateRaw = userData['mashiniiDugaar'] ?? userData['dugaar'];
-          if (plateRaw != null) {
-            String plateText;
-            if (plateRaw is List && plateRaw.isNotEmpty) {
-              plateText = plateRaw.first.toString();
-            } else {
-              plateText = plateRaw.toString();
-            }
-            // Remove "БҮРТГЭЛГҮЙ" default value and set to empty
-            if (plateText.trim().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
-              _mashiniiDugaarController.text = '';
-            } else {
-              _mashiniiDugaarController.text = plateText;
-            }
-          }
+        // Extract initial plate from userData using multi-field fallback
+        final initialPlate = _parsePlateFromAny(userData);
+        if (initialPlate != null) {
+          _mashiniiDugaarController.text = initialPlate;
+        } else {
+          _mashiniiDugaarController.text = '';
+        }
 
-          // Fetch prioritized car plate from zochinSettings
-          try {
-            ApiService.fetchZochinSettings().then((response) {
-              if (mounted && response != null) {
-                // The settings can be at root or under data/result.mashin/orshinSuugchMashin
-                final data = response['data'] ?? response['result'] ?? response;
-                final orshinSuugchMashin = data['orshinSuugchMashin'];
-                final mashin = data['mashin'] ?? data;
+        _mashinuud = [];
+        _mashinuudUnshiya(userData);
 
-                // Prioritize orshinSuugchMashin for plate and metadata
-                final plate = (orshinSuugchMashin != null)
-                    ? (orshinSuugchMashin['mashiniiDugaar'] ??
-                          orshinSuugchMashin['dugaar'])
-                    : (mashin['mashiniiDugaar'] ?? mashin['dugaar']);
+        final gishuuniiTokhirgoo = userData['gerBuliinGishuunEsekh'];
+        _gerBuliinGishuunZovshoorson = gishuuniiTokhirgoo == null
+            ? true
+            : gishuuniiTokhirgoo != false;
 
-                if (plate != null) {
-                  setState(() {
-                    final newPlate = (plate is List && plate.isNotEmpty)
-                        ? plate.first.toString()
-                        : plate.toString();
-
-                    // Remove "БҮРТГЭЛГҮЙ" default value and set to empty
-                    if (newPlate.trim().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
-                      _mashiniiDugaarController.text = '';
-                    } else {
-                      _mashiniiDugaarController.text = newPlate;
-                    }
-
-                    if (_userData != null) {
-                      _userData!['mashiniiDugaar'] =
-                          _mashiniiDugaarController.text;
-
-                      // Sync last update date (dugaarUurchilsunOgnoo)
-                      final updateDate = (orshinSuugchMashin != null)
-                          ? orshinSuugchMashin['dugaarUurchilsunOgnoo']
-                          : (mashin['dugaarUurchilsunOgnoo'] ??
-                                data['dugaarUurchilsunOgnoo']);
-
-                      if (updateDate != null) {
-                        _userData!['dugaarUurchilsunOgnoo'] = updateDate;
-                      }
-                    }
-                  });
-                }
+        // Fetch prioritized car plate from zochinSettings
+        try {
+          final settingsRes = await ApiService.fetchZochinSettings();
+          if (settingsRes != null) {
+            final sData =
+                settingsRes['data'] ?? settingsRes['result'] ?? settingsRes;
+            final settingsPlate = _parsePlateFromAny(sData);
+            if (settingsPlate != null && settingsPlate.isNotEmpty) {
+              _mashiniiDugaarController.text = settingsPlate;
+              if (_userData != null) {
+                _userData!['mashiniiDugaar'] = settingsPlate;
+                _userData!['dugaar'] = settingsPlate;
               }
-            });
-          } catch (e) {
-            debugPrint('Error fetching zochin settings: $e');
-          }
+            }
 
-          // Fetch billing day from cron data if available
-          final barilgiinId = userData['barilgiinId']?.toString();
-          if (barilgiinId != null && barilgiinId.isNotEmpty) {
-            _fetchBillingCronInfo(barilgiinId);
-          }
+            // `/zochinSettings` нь машины жагсаалт, хязгаарыг хамгийн
+            // шинэлэг байдлаар буцаадаг тул профайлын дээрх утгыг дарна.
+            _mashinuudUnshiya(sData);
 
+            final orshinSuugchMashin =
+                sData is Map ? sData['orshinSuugchMashin'] : null;
+            final mashin = sData is Map ? (sData['mashin'] ?? sData) : null;
+            final updateDate = (orshinSuugchMashin != null &&
+                    orshinSuugchMashin is Map)
+                ? orshinSuugchMashin['dugaarUurchilsunOgnoo']
+                : (mashin != null && mashin is Map
+                        ? mashin['dugaarUurchilsunOgnoo']
+                        : null) ??
+                    (sData is Map ? sData['dugaarUurchilsunOgnoo'] : null);
+
+            if (updateDate != null && _userData != null) {
+              _userData!['dugaarUurchilsunOgnoo'] = updateDate;
+            }
+          }
+        } catch (e) {
+          debugPrint('Error fetching zochin settings: $e');
+        }
+
+        // Fetch billing day from cron data if available
+        final barilgiinId = userData['barilgiinId']?.toString();
+        if (barilgiinId != null && barilgiinId.isNotEmpty) {
+          _fetchBillingCronInfo(barilgiinId);
+        }
+
+        setState(() {
           _isLoading = false;
         });
         _loadOrganizationInfo(); // Sync IDs after profile load
@@ -818,11 +914,24 @@ class _ProfileSettingsState extends State<ProfileSettings>
       return;
     }
 
+    // Сул слот байгаа бол энэ нь дугаар СОЛИХ биш, ШИНЭ машин НЭМЭХ үйлдэл —
+    // 30 хоногийн хязгаарлалт хамаарахгүй (backend ч ижил дүрмээр шалгадаг).
     final remainingDays = _getPlateChangeRemainingDays();
-    if (remainingDays > 0) {
+    if (!_sulSlotBaina && remainingDays > 0) {
       showGlassSnackBar(
         context,
         message: 'Машины дугаарыг 30 хоногт 1 удаа өөрчлөх боломжтой. Дахин өөрчлөхөд $remainingDays хоног үлдсэн байна.',
+        icon: Icons.info_outline,
+        iconColor: Colors.blue,
+      );
+      return;
+    }
+
+    if (_mashinuud.length >= _mashiniiKhyazgaar && _mashiniiKhyazgaar > 1) {
+      showGlassSnackBar(
+        context,
+        message:
+            'Та хамгийн олон $_mashiniiKhyazgaar машин бүртгэх боломжтой. Хязгаар дүүрсэн байна.',
         icon: Icons.info_outline,
         iconColor: Colors.blue,
       );
@@ -1430,6 +1539,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
   }
 
   void _showCarPlateModal(BuildContext context) {
+    // Олон машин зөвшөөрөгдсөн бөгөөд сул слот байвал оролт нь ШИНЭ дугаар
+    // нэмэхэд зориулагдана — байгаа дугаараар нь бөглөвөл хэрэглэгч засаж
+    // байна гэж андуурч, хуучин машиныг дарж нэрлэнэ.
+    if (_mashiniiKhyazgaar > 1 && _sulSlotBaina) {
+      _mashiniiDugaarController.text = '';
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1437,7 +1553,16 @@ class _ProfileSettingsState extends State<ProfileSettings>
       builder: (BuildContext modalContext) => StatefulBuilder(
         builder: (context, setModalState) {
           final isDark = context.isDarkMode;
-          final isAllowed = _isPlateChangeAllowed();
+
+          /// Шинэ машин НЭМЭХ горим (хязгаар 2+ бөгөөд сул слот байна).
+          final nemekhEsekh = _mashiniiKhyazgaar > 1 && _sulSlotBaina;
+
+          /// Хязгаар дүүрсэн — шинээр нэмэх боломжгүй.
+          final duurenEsekh = _mashiniiKhyazgaar > 1 && !_sulSlotBaina;
+
+          // Шинэ машин нэмэхэд «30 хоногт 1 удаа солино» хамаарахгүй.
+          final isAllowed =
+              duurenEsekh ? false : (nemekhEsekh || _isPlateChangeAllowed());
           final remainingDays = _getPlateChangeRemainingDays();
 
           return Container(
@@ -1481,7 +1606,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       SizedBox(width: 14.w),
                       Expanded(
                         child: Text(
-                          'Миний машин',
+                          _mashiniiKhyazgaar > 1
+                              ? 'Миний машин (${_mashinuud.length}/$_mashiniiKhyazgaar)'
+                              : 'Миний машин',
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: 18.sp,
@@ -1498,8 +1625,59 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Бүртгэлтэй бүх машин. Хязгаар 1 үед хуучин дэлгэц
+                      // хэвээр — жагсаалт нь зөвхөн олон машинтай үед л
+                      // нэмэлт мэдээлэл болно.
+                      if (_mashiniiKhyazgaar > 1 && _mashinuud.isNotEmpty) ...[
+                        Text(
+                          'Бүртгэлтэй машин',
+                          style: TextStyle(
+                            color: context.textSecondaryColor,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        ..._mashinuud.map(
+                          (dugaar) => Container(
+                            margin: EdgeInsets.only(bottom: 8.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14.w,
+                              vertical: 12.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white10
+                                  : Colors.black.withOpacity(0.04),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.directions_car_filled_rounded,
+                                  color: AppColors.deepGreen,
+                                  size: 18.sp,
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    dugaar,
+                                    style: TextStyle(
+                                      color: context.textPrimaryColor,
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20.h),
+                      ],
                       Text(
-                        'Улсын дугаар',
+                        nemekhEsekh ? 'Шинэ машины улсын дугаар' : 'Улсын дугаар',
                         style: TextStyle(
                           color: context.textSecondaryColor,
                           fontSize: 12.sp,
@@ -1562,7 +1740,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                               SizedBox(width: 10.w),
                               Expanded(
                                 child: Text(
-                                  'Машины дугаарыг 30 хоногт 1 удаа өөрчлөх боломжтой. Дахин өөрчлөхөд $remainingDays хоног үлдсэн байна.',
+                                  duurenEsekh
+                                      ? 'Та хамгийн олон $_mashiniiKhyazgaar машин бүртгэсэн байна. Шинээр нэмэхийн тулд байрын удирдлагад хандана уу.'
+                                      : 'Машины дугаарыг 30 хоногт 1 удаа өөрчлөх боломжтой. Дахин өөрчлөхөд $remainingDays хоног үлдсэн байна.',
                                   style: TextStyle(
                                     color: Colors.blue,
                                     fontSize: 11.sp,
@@ -1644,7 +1824,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   ),
                                 )
                               : Text(
-                                  'Хадгалах',
+                                  nemekhEsekh ? 'Нэмэх' : 'Хадгалах',
                                   style: TextStyle(
                                     fontSize: 15.sp,
                                     fontWeight: FontWeight.bold,
@@ -3270,30 +3450,42 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 ),
                                 _buildSettingsTile(
                                   icon: Icons.directions_car_filled_outlined,
-                                  title: 'Миний машин',
-                                  subtitle:
-                                      _mashiniiDugaarController.text.isNotEmpty
-                                      ? _mashiniiDugaarController.text
-                                      : 'Дугаар тохируулах',
+                                  title: _mashiniiKhyazgaar > 1
+                                      ? 'Миний машин (${_mashinuud.length}/$_mashiniiKhyazgaar)'
+                                      : 'Миний машин',
+                                  subtitle: _mashinuud.isNotEmpty
+                                      ? _mashinuud.join(', ')
+                                      : (_mashiniiDugaarController
+                                                .text
+                                                .isNotEmpty
+                                            ? _mashiniiDugaarController.text
+                                            : 'Дугаар тохируулах'),
                                   onTap: () {
                                     _showCarPlateModal(context);
                                   },
                                 ),
-                                _buildSettingsTile(
-                                  icon: Icons.family_restroom_rounded,
-                                  title: 'Гэр бүлийн гишүүн',
-                                  subtitle: _gishuunEsekh
-                                      ? (_undsenEzemshigchNer != null &&
-                                                _undsenEzemshigchNer!.isNotEmpty
-                                            ? '$_undsenEzemshigchNer-ийн байр'
-                                            : 'Гишүүнчлэлийн мэдээлэл')
-                                      : 'Гэр бүлийнхээ гишүүдийг нэмэх',
-                                  showBorder: false,
-                                  onTap: () async {
-                                    await context.push('/ger-bul');
-                                    _gerBuliinTuluvAchaalya();
-                                  },
-                                ),
+                                // Байрын удирдлага урихыг хаасан бол мөрийг
+                                // харуулахгүй. Гэхдээ хэрэглэгч ӨӨРӨӨ гишүүн
+                                // бол хэвээр харагдана — тэр нь өөрийн
+                                // гишүүнчлэлийн мэдээллийг харах хэсэг.
+                                if (_gerBuliinGishuunZovshoorson ||
+                                    _gishuunEsekh)
+                                  _buildSettingsTile(
+                                    icon: Icons.family_restroom_rounded,
+                                    title: 'Гэр бүлийн гишүүн',
+                                    subtitle: _gishuunEsekh
+                                        ? (_undsenEzemshigchNer != null &&
+                                                  _undsenEzemshigchNer!
+                                                      .isNotEmpty
+                                              ? '$_undsenEzemshigchNer-ийн байр'
+                                              : 'Гишүүнчлэлийн мэдээлэл')
+                                        : 'Гэр бүлийнхээ гишүүдийг нэмэх',
+                                    showBorder: false,
+                                    onTap: () async {
+                                      await context.push('/ger-bul');
+                                      _gerBuliinTuluvAchaalya();
+                                    },
+                                  ),
                               ],
                             ),
 

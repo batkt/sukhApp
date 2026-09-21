@@ -27,7 +27,7 @@ class ZochinZogsoolDeerException implements Exception {
 class ApiService {
   // static const String baseUrl = 'https://amarhome.mn/api';
   // static const String deleteBaseUrl = 'https://amarhome.mn/api';
-   static const String baseUrl = 'https://dev.amarhome.mn/api';
+  static const String baseUrl = 'https://dev.amarhome.mn/api';
   static const String deleteBaseUrl = 'https://dev.amarhome.mn/api';
   static const String walletApiBaseUrl = 'https://api.bpay.mn/v1';
   static const String CENTRALIZED_ORG_ID = '698e7fd3b6dd386b6c56a808';
@@ -5172,8 +5172,21 @@ class ApiService {
   static Future<Map<String, dynamic>> fetchZochinSettings() async {
     try {
       final headers = await getAuthHeaders();
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+
+      final uri = Uri.parse('$baseUrl/zochinSettings').replace(
+        queryParameters: {
+          if (baiguullagiinId != null && baiguullagiinId.isNotEmpty)
+            'baiguullagiinId': baiguullagiinId,
+          if (barilgiinId != null && barilgiinId.isNotEmpty)
+            'barilgiinId': barilgiinId,
+          '_': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      );
+
       final response = await http.get(
-        Uri.parse('$baseUrl/zochinSettings'),
+        uri,
         headers: headers,
       );
       await _checkTokenExpiry(response);

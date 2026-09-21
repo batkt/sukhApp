@@ -2817,15 +2817,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   final isDark = context.isDarkMode;
 
                   final unpaidCount = invoices.where((i) => !i.isPaid).length;
-                  final overdueCount = invoices.where((i) {
-                    if (i.isPaid) return false;
-                    try {
-                      final d = DateTime.tryParse(i.nekhemjlekhiinOgnoo);
-                      return d != null && DateTime.now().isAfter(d.add(const Duration(days: 30)));
-                    } catch (_) {
-                      return false;
-                    }
-                  }).length;
 
                   return Container(
                     padding: EdgeInsets.only(
@@ -2997,11 +2988,11 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                       letterSpacing: 0.6,
                                     ),
                                   ),
-                                  if (overdueCount > 0)
+                                  if (unpaidCount > 0)
                                     Container(
                                       padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.5.h),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFEF4444).withOpacity(0.14),
+                                        color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
                                         borderRadius: BorderRadius.circular(100),
                                       ),
                                       child: Row(
@@ -3011,15 +3002,15 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                             width: 5.w,
                                             height: 5.w,
                                             decoration: const BoxDecoration(
-                                              color: Color(0xFFEF4444),
+                                              color: Color(0xFFF59E0B),
                                               shape: BoxShape.circle,
                                             ),
                                           ),
                                           SizedBox(width: 4.w),
                                           Text(
-                                            '$overdueCount хугацаа хэтэрсэн',
+                                            '$unpaidCount хүлээгдэж байгаа',
                                             style: TextStyle(
-                                              color: const Color(0xFFEF4444),
+                                              color: const Color(0xFFF59E0B),
                                               fontSize: 9.sp,
                                               fontWeight: FontWeight.w700,
                                             ),
