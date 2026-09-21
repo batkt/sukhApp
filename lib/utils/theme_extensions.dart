@@ -51,7 +51,6 @@ extension AppTextStyles on BuildContext {
   /// Standard title text style - consistent across all pages
   TextStyle titleStyle({Color? color, FontWeight? fontWeight}) {
     return TextStyle(
-      fontFamily: 'Inter',
       fontSize: responsiveFontSize(
         small: 20,
         medium: 22,
@@ -66,7 +65,6 @@ extension AppTextStyles on BuildContext {
   /// Standard description text style - consistent across all pages
   TextStyle descriptionStyle({Color? color, FontWeight? fontWeight}) {
     return TextStyle(
-      fontFamily: 'Inter',
       fontSize: responsiveFontSize(
         small: 14,
         medium: 15,
@@ -82,7 +80,6 @@ extension AppTextStyles on BuildContext {
   /// Secondary description text style (for less important text)
   TextStyle secondaryDescriptionStyle({Color? color, FontWeight? fontWeight}) {
     return TextStyle(
-      fontFamily: 'Inter',
       fontSize: responsiveFontSize(
         small: 13,
         medium: 14,
@@ -98,7 +95,6 @@ extension AppTextStyles on BuildContext {
   /// Large title style (for main headings)
   TextStyle largeTitleStyle({Color? color, FontWeight? fontWeight}) {
     return TextStyle(
-      fontFamily: 'Inter',
       fontSize: responsiveFontSize(
         small: 24,
         medium: 26,
@@ -113,7 +109,6 @@ extension AppTextStyles on BuildContext {
   /// Expanded section text style (bigger text for expanded sections)
   TextStyle expandedTextStyle({Color? color, FontWeight? fontWeight}) {
     return TextStyle(
-      fontFamily: 'Inter',
       fontSize: responsiveFontSize(
         small: 16,
         medium: 17,
@@ -129,7 +124,6 @@ extension AppTextStyles on BuildContext {
   /// Expanded section title style (for labels in expanded sections)
   TextStyle expandedTitleStyle({Color? color, FontWeight? fontWeight}) {
     return TextStyle(
-      fontFamily: 'Inter',
       fontSize: responsiveFontSize(
         small: 17,
         medium: 18,

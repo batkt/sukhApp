@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -553,12 +552,54 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
           message: 'Зураг сонгоход алдаа гарлаа: $e',
           icon: Icons.error_outline,
           iconColor: Colors.red,
-          textColor: context.textPrimaryColor,
-          opacity: 0.3,
-          blur: 15,
         );
       }
     }
+  }
+
+  void _showImagePreviewDialog() {
+    if (_selectedImageBytes == null) return;
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.9),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(dialogContext),
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.transparent,
+              ),
+            ),
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.memory(
+                _selectedImageBytes!,
+                fit: BoxFit.contain,
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              right: 16,
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                  onPressed: () => Navigator.pop(dialogContext),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showImageSourceSheet() {
@@ -678,27 +719,52 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(
-                  context.responsiveBorderRadius(
-                    small: 12,
-                    medium: 14,
-                    large: 16,
-                    tablet: 18,
-                    veryNarrow: 10,
+              GestureDetector(
+                onTap: _showImagePreviewDialog,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    context.responsiveBorderRadius(
+                      small: 12,
+                      medium: 14,
+                      large: 16,
+                      tablet: 18,
+                      veryNarrow: 10,
+                    ),
                   ),
-                ),
-                child: Image.memory(
-                  _selectedImageBytes!,
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  cacheWidth: 800,
-                  cacheHeight: 600,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 160,
-                    color: Colors.grey.shade300,
-                    child: Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey.shade600),
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Image.memory(
+                        _selectedImageBytes!,
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 180,
+                          color: Colors.grey.shade300,
+                          child: Icon(Icons.broken_image_outlined, size: 48, color: Colors.grey.shade600),
+                        ),
+                      ),
+                      Container(
+                        margin: EdgeInsets.all(8.w),
+                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.zoom_in_rounded, color: Colors.white, size: 16.sp),
+                            SizedBox(width: 4.w),
+                            Text(
+                              'Нээж үзэх',
+                              style: TextStyle(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

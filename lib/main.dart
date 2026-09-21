@@ -248,7 +248,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ),
         ),
       ),
-      fontFamily: 'Inter',
+      // `fontFamily: 'Inter'` авагдав — Inter-ийн .ttf нь 0 байт байсан
+      // тул тэр зарлалт чимээгүй бүтэлгүйтэж, системийн фонт хэрэглэгдэж
+      // байсан. Одоо тэр нь илэрхий байдлаар ийм болов.
     );
   }
 
@@ -367,7 +369,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ),
         ),
       ),
-      fontFamily: 'Inter',
+      // `fontFamily: 'Inter'` авагдав — Inter-ийн .ttf нь 0 байт байсан
+      // тул тэр зарлалт чимээгүй бүтэлгүйтэж, системийн фонт хэрэглэгдэж
+      // байсан. Одоо тэр нь илэрхий байдлаар ийм болов.
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -185,6 +186,22 @@ class _GerBulPageState extends State<GerBulPage> {
     }
   }
 
+  Future<void> _urilgaZaavarKhuulya(GerBuliinUrilga urilga) async {
+    final text =
+        'Сайн байна уу? Танд Sukh (AmarHome) апп-аар дамжуулан гэр бүлийн гишүүнээр нэгдэх урилга илгээлээ.\n\n'
+        '1. Sukh аппликейшн татаж нээнэ үү.\n'
+        '2. Утасны дугаараа (${urilga.utas}) оруулна.\n'
+        '3. SMS-ээр очсон 4 оронтой баталгаажуулах кодоор баталгаажуулна уу.';
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    showGlassSnackBar(
+      context,
+      message: '${urilga.utas} дугаарын урилгын заавар хуулагдлаа',
+      icon: Icons.copy_rounded,
+      iconColor: AppColors.deepGreen,
+    );
+  }
+
   Future<void> _gishuunchleleesGarya() async {
     final batalgaa = await _batalgaaAvya(
       garchig: 'Гишүүнчлэлээс гарах',
@@ -230,7 +247,7 @@ class _GerBulPageState extends State<GerBulPage> {
           garchig,
           style: TextStyle(
             fontSize: 17.sp,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             color: context.textPrimaryColor,
           ),
         ),
@@ -259,7 +276,7 @@ class _GerBulPageState extends State<GerBulPage> {
               tovch,
               style: TextStyle(
                 color: ankhaaruulga ? Colors.redAccent : AppColors.deepGreen,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -350,7 +367,7 @@ class _GerBulPageState extends State<GerBulPage> {
               'Гэр бүлийн гишүүн',
               style: TextStyle(
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: isDark ? Colors.white : context.textPrimaryColor,
                 letterSpacing: -0.3,
               ),
@@ -463,7 +480,7 @@ class _GerBulPageState extends State<GerBulPage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15.sp,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -525,7 +542,7 @@ class _GerBulPageState extends State<GerBulPage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15.sp,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -580,7 +597,7 @@ class _GerBulPageState extends State<GerBulPage> {
             garchig.toUpperCase(),
             style: TextStyle(
               fontSize: 11.sp,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: AppColors.deepGreen,
               letterSpacing: 1.0,
             ),
@@ -733,19 +750,42 @@ class _GerBulPageState extends State<GerBulPage> {
                 size: 20.sp,
               ),
               onSelected: (utga) {
+                if (utga == 'zaavar') _urilgaZaavarKhuulya(urilga);
                 if (utga == 'dakhin') _kodDakhinIlgeeye(urilga);
                 if (utga == 'tsutsal') _urilgaTsutsalya(urilga);
               },
               itemBuilder: (ctx) => [
                 const PopupMenuItem(
+                  value: 'zaavar',
+                  child: Row(
+                    children: [
+                      Icon(Icons.copy_rounded, size: 16, color: AppColors.deepGreen),
+                      SizedBox(width: 8),
+                      Text('Заавар хуулах'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
                   value: 'dakhin',
-                  child: Text('Код дахин илгээх'),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sms_outlined, size: 16),
+                      SizedBox(width: 8),
+                      Text('Код дахин илгээх'),
+                    ],
+                  ),
                 ),
                 const PopupMenuItem(
                   value: 'tsutsal',
-                  child: Text(
-                    'Урилга цуцлах',
-                    style: TextStyle(color: Colors.redAccent),
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded, size: 16, color: Colors.redAccent),
+                      SizedBox(width: 8),
+                      Text(
+                        'Урилга цуцлах',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -770,7 +810,7 @@ class _GerBulPageState extends State<GerBulPage> {
         style: TextStyle(
           color: ungu,
           fontSize: 15.sp,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -833,7 +873,7 @@ class _GerBulPageState extends State<GerBulPage> {
             'Одоогоор гишүүн алга',
             style: TextStyle(
               fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: context.textPrimaryColor,
             ),
           ),

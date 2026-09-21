@@ -370,7 +370,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
                   style: TextStyle(
                     color: AppColors.deepGreen,
                     fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),

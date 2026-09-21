@@ -862,7 +862,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             'Хувийн мэдээлэл',
             style: TextStyle(
               fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: isDark ? Colors.white : context.textPrimaryColor,
               letterSpacing: -0.3,
             ),

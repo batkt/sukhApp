@@ -2878,7 +2878,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                   style: TextStyle(
                                     color: context.textPrimaryColor,
                                     fontSize: (isVerySmall ? 17.0 : (isSmall ? 18.5 : 20.0)).sp,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                     letterSpacing: -0.5,
                                   ),
                                 ),
@@ -3053,7 +3053,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                     style: TextStyle(
                                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                                       fontSize: (isVerySmall ? 22.0 : (isSmall ? 24.0 : 26.0)).sp,
-                                      fontWeight: FontWeight.w900,
+                                      fontWeight: FontWeight.w700,
                                       letterSpacing: -0.6,
                                     ),
                                   ),

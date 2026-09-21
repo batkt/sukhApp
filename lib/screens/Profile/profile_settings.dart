@@ -288,7 +288,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 style: TextStyle(
                   color: AppColors.deepGreen,
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               content: Column(
@@ -1612,7 +1612,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: 18.sp,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -1911,7 +1911,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: 18.sp,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -2322,7 +2322,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             style: TextStyle(
                               color: modalContext.textPrimaryColor,
                               fontSize: 18.sp,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
@@ -3037,7 +3037,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     title.toUpperCase(),
                     style: TextStyle(
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.deepGreen,
                       letterSpacing: 1.0,
                     ),
@@ -3122,7 +3122,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 style: TextStyle(
                   color: AppColors.deepGreen,
                   fontSize: 20.sp,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: -1,
                 ),
               ),
@@ -3139,7 +3139,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -3207,7 +3207,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
               'Тохиргоо',
               style: TextStyle(
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: isDark ? Colors.white : context.textPrimaryColor,
                 letterSpacing: -0.3,
               ),

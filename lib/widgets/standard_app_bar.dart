@@ -73,7 +73,7 @@ PreferredSizeWidget buildStandardAppBar(
                   color: titleColor ??
                       (context.isDarkMode ? Colors.white : context.textPrimaryColor),
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
                 ),
               ),

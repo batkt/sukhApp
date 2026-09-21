@@ -1485,7 +1485,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1514,7 +1514,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                             '$displayDays',
                             style: const TextStyle(
                               fontSize: 36,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                               color: Colors.white,
                               height: 1.0,
                               letterSpacing: -1,
@@ -1525,7 +1525,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                             rightLabel,
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: Colors.white.withOpacity(0.8),
                               letterSpacing: 0.5,
                             ),
@@ -1582,7 +1582,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                         nextUnitDateText,
                         style: const TextStyle(
                           fontSize: 17,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: -0.5,
                         ),

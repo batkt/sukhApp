@@ -1,26 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sukh_app/constants/constants.dart';
-import 'package:sukh_app/widgets/glass_snackbar.dart';
-import 'package:sukh_app/widgets/auth/registration_modal.dart';
-import 'package:sukh_app/widgets/auth/forgot_password_modal.dart';
-import 'package:sukh_app/services/api_service.dart';
-import 'package:sukh_app/services/storage_service.dart';
-import 'package:sukh_app/services/socket_service.dart';
-import 'package:sukh_app/services/session_service.dart';
-import 'package:sukh_app/widgets/selectable_logo_image.dart';
-import 'package:sukh_app/widgets/shake_hint_modal.dart';
-import 'package:sukh_app/main.dart' show navigatorKey;
-import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/biometric_service.dart';
-import 'package:sukh_app/widgets/common_footer.dart';
 import 'package:sukh_app/services/push_service.dart';
-
-/// Modern minimal background with subtle gradient
-// SharedBgPainter is used from common widgets
+import 'package:sukh_app/services/socket_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/auth/forgot_password_modal.dart';
+import 'package:sukh_app/widgets/auth/registration_modal.dart';
+import 'package:sukh_app/widgets/common/bg_painter.dart';
+import 'package:sukh_app/widgets/common_footer.dart';
+import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 
 class Newtrekhkhuudas extends StatefulWidget {
   const Newtrekhkhuudas({super.key});
@@ -36,8 +30,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   final FocusNode passwordFocusNode = FocusNode();
 
   bool _isLoading = false;
-  bool _showPasswordInput = false;
-  bool _isCheckingPhone = false;
   bool _obscurePassword = true;
   bool _biometricAvailable = false;
   IconData _biometricIcon = Icons.fingerprint;
@@ -47,6 +39,18 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     super.initState();
     _loadSavedPhoneNumber();
     _checkBiometricStatus();
+    phoneController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    phoneController.dispose();
+    passwordController.dispose();
+    phoneFocusNode.dispose();
+    passwordFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSavedPhoneNumber() async {
@@ -69,12 +73,43 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     }
   }
 
+  String? _getOperator(String phone) {
+    final clean = phone.trim();
+    if (clean.length < 2) return null;
+    final prefix = clean.substring(0, 2);
+    const mobicom = {'99', '95', '94', '85'};
+    const unitel = {'88', '86', '89'};
+    const skytel = {'90', '91', '96'};
+    const gmobile = {'98', '93', '97'};
+
+    if (mobicom.contains(prefix)) return 'Mobicom';
+    if (unitel.contains(prefix)) return 'Unitel';
+    if (skytel.contains(prefix)) return 'Skytel';
+    if (gmobile.contains(prefix)) return 'G-Mobile';
+    return null;
+  }
+
+  Color _getOperatorColor(String? op) {
+    switch (op) {
+      case 'Mobicom':
+        return const Color(0xFFE50027);
+      case 'Unitel':
+        return const Color(0xFF00A859);
+      case 'Skytel':
+        return const Color(0xFF0072CE);
+      case 'G-Mobile':
+        return const Color(0xFFFF6F00);
+      default:
+        return AppColors.deepGreen;
+    }
+  }
+
   Future<void> _authenticateWithBiometrics() async {
     if (!_biometricAvailable) {
       showGlassSnackBar(
         context,
         message: 'Биометрийн баталгаажуулалт боломжгүй байна',
-        icon: Icons.error,
+        icon: Icons.error_outline_rounded,
         iconColor: Colors.orange,
       );
       return;
@@ -85,20 +120,20 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
     if (savedPhone == null || savedPassword == null) {
       final isLoggedIn = await StorageService.isLoggedIn();
+      if (!mounted) return;
       if (!isLoggedIn) {
         showGlassSnackBar(
           context,
           message: 'Эхлээд нэвтэрч, биометрийн мэдээлэл хадгалах шаардлагатай',
-          icon: Icons.info_outline,
+          icon: Icons.info_outline_rounded,
           iconColor: Colors.blue,
         );
         return;
       }
       showGlassSnackBar(
         context,
-        message:
-            'Биометрийн мэдээлэл олдсонгүй. Тохиргооноос биометрийн нэвтрэлтийг идэвхжүүлэх үү',
-        icon: Icons.error,
+        message: 'Биометрийн мэдээлэл олдсонгүй. Нууц кодоороо нэвтэрнэ үү',
+        icon: Icons.error_outline_rounded,
         iconColor: Colors.orange,
       );
       return;
@@ -116,44 +151,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     _performLoginWithCredentials(savedPhone, savedPassword);
   }
 
-  Future<void> _checkPhoneExistence() async {
-    String phone = phoneController.text.trim();
-    if (phone.length != 8) {
-      showGlassSnackBar(
-        context,
-        message: "Утасны дугаар 8 оронтой байх ёстой",
-        icon: Icons.error,
-        iconColor: Colors.red,
-      );
-      return;
-    }
-
-    setState(() => _isCheckingPhone = true);
-    try {
-      final exists = await ApiService.checkPhoneExists(utas: phone);
-
-      if (exists != null) {
-        // User exists in primary records
-        setState(() {
-          _showPasswordInput = true;
-          _isCheckingPhone = false;
-        });
-        passwordFocusNode.requestFocus();
-      } else {
-        setState(() => _isCheckingPhone = false);
-        _showRegistrationModal();
-      }
-    } catch (e) {
-      setState(() => _isCheckingPhone = false);
-      showGlassSnackBar(
-        context,
-        message: "Алдаа гарлаа: $e",
-        icon: Icons.error,
-        iconColor: Colors.red,
-      );
-    }
-  }
-
   Future<void> _handleLogin() async {
     String inputPhone = phoneController.text.trim();
     String inputPassword = passwordController.text.trim();
@@ -161,19 +158,44 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     if (inputPhone.isEmpty) {
       showGlassSnackBar(
         context,
-        message: "Утасны дугаар оруулна уу",
-        icon: Icons.error,
-        iconColor: Colors.red,
+        message: "Утасны дугаараа оруулна уу",
+        icon: Icons.phone_android_rounded,
+        iconColor: Colors.redAccent,
       );
+      phoneFocusNode.requestFocus();
       return;
     }
+
+    if (inputPhone.length != 8) {
+      showGlassSnackBar(
+        context,
+        message: "Утасны дугаар 8 оронтой байх ёстой",
+        icon: Icons.error_outline_rounded,
+        iconColor: Colors.redAccent,
+      );
+      phoneFocusNode.requestFocus();
+      return;
+    }
+
     if (inputPassword.isEmpty) {
       showGlassSnackBar(
         context,
-        message: "Нууц код оруулна уу",
-        icon: Icons.error,
-        iconColor: Colors.red,
+        message: "Нууц кодоо оруулна уу",
+        icon: Icons.lock_outline_rounded,
+        iconColor: Colors.redAccent,
       );
+      passwordFocusNode.requestFocus();
+      return;
+    }
+
+    if (inputPassword.length < 4) {
+      showGlassSnackBar(
+        context,
+        message: "Нууц код 4 оронтой байх ёстой",
+        icon: Icons.lock_outline_rounded,
+        iconColor: Colors.redAccent,
+      );
+      passwordFocusNode.requestFocus();
       return;
     }
 
@@ -199,8 +221,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           savedBaiguullagiinId != null &&
           savedBarilgiinId != null;
 
-      // Push token - сервер зочин орох/гарах зэрэг мэдэгдлийг үүгээр илгээнэ.
-      // Тохируулаагүй бол null тул нэвтрэлт ердийнхөөрөө явна.
       final pushToken = await PushService.tokenAvya();
 
       final loginResponse = await ApiService.loginUser(
@@ -223,22 +243,19 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       if (mounted) {
         await StorageService.savePhoneNumber(phone);
         final loginOrgId = userData?['baiguullagiinId']?.toString();
-        final hasBaiguullagiinId =
-            loginOrgId != null &&
-            loginOrgId.trim().isNotEmpty &&
-            loginOrgId.trim().toLowerCase() != 'null';
 
-        // Address check (server truth first, clear stale local address if missing)
+        // Address check
         bool hasAddress = false;
         if (userData != null) {
           String? wBairId = userData['walletBairId']?.toString();
           String? wDoorNo = userData['walletDoorNo']?.toString();
           final toots = userData['toots'];
-          
-          // First check for wallet address in top-level fields
-          if ((wBairId == null || wBairId.isEmpty || wDoorNo == null || wDoorNo.isEmpty) &&
+
+          if ((wBairId == null ||
+                  wBairId.isEmpty ||
+                  wDoorNo == null ||
+                  wDoorNo.isEmpty) &&
               toots is List) {
-            // Try to find wallet address in toots array
             final tootWithWalletAddress = toots.cast<dynamic>().firstWhere(
               (item) =>
                   item is Map &&
@@ -251,7 +268,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               wDoorNo = tootWithWalletAddress['walletDoorNo']?.toString();
             }
           }
-          
+
           final hasWalletAddress =
               wBairId != null &&
               wBairId.isNotEmpty &&
@@ -265,20 +282,18 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             );
             hasAddress = true;
           } else {
-            // Check for OWN_ORG address (organization + building)
             final baiguullagiinId = userData['baiguullagiinId']?.toString();
             final barilgiinId = userData['barilgiinId']?.toString();
-            
+
             final hasOwnOrgAddress =
                 baiguullagiinId != null &&
                 baiguullagiinId.isNotEmpty &&
                 barilgiinId != null &&
                 barilgiinId.isNotEmpty;
-            
+
             if (hasOwnOrgAddress) {
-              // For OWN_ORG users, use barilgiinId as bairId and a placeholder for doorNo
               await StorageService.saveWalletAddress(
-                bairId: barilgiinId!,
+                bairId: barilgiinId,
                 doorNo: 'OWN_ORG',
                 source: 'OWN_ORG',
                 baiguullagiinId: baiguullagiinId,
@@ -319,12 +334,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         setState(() => _isLoading = false);
         showGlassSnackBar(
           context,
-          message: 'Нэвтрэлт амжилттай',
-          icon: Icons.check_outlined,
+          message: 'Амжилттай нэвтэрлээ',
+          icon: Icons.check_circle_rounded,
           iconColor: Colors.green,
         );
 
-        // --- Biometric Onboarding/Fix Logic ---
         final biometricEnabled = await StorageService.isBiometricEnabled();
         final savedBiometricPw =
             await StorageService.getSavedPasswordForBiometric();
@@ -332,13 +346,10 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         if (biometricEnabled &&
             savedBiometricPw == null &&
             _biometricAvailable) {
-          // Fix for users who enabled it but didn't save password
           await StorageService.savePasswordForBiometric(password);
         } else if (!biometricEnabled && _biometricAvailable) {
-          // Offer to enable if context is right
           await _showBiometricEnablePrompt(context, password);
         }
-        // --------------------------------------
 
         final taniltsuulgaKharakhEsekh =
             await StorageService.getTaniltsuulgaKharakhEsekh();
@@ -346,17 +357,18 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             ? '/ekhniikh'
             : (hasAddress ? '/nuur' : '/address_selection');
 
-        await Future.delayed(const Duration(milliseconds: 300));
+        await Future.delayed(const Duration(milliseconds: 250));
         if (mounted) context.go(targetRoute);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+        final errText = e.toString().replaceFirst('Exception: ', '');
         showGlassSnackBar(
           context,
-          message: e.toString().replaceFirst('Exception: ', ''),
-          icon: Icons.error,
-          iconColor: Colors.red,
+          message: errText,
+          icon: Icons.error_outline_rounded,
+          iconColor: Colors.redAccent,
         );
       }
     }
@@ -382,42 +394,28 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
   }
 
   @override
-  void dispose() {
-    phoneController.dispose();
-    passwordController.dispose();
-    phoneFocusNode.dispose();
-    passwordFocusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final double screenWidth = mediaQuery.size.width;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final bool isTablet = screenWidth >= 600;
 
-    // Responsive width sizing:
-    // On phones, foldables, and tablets (width < 1100px), card takes full available width.
-    // On large desktop monitors (width >= 1100px), limit to a centered max 640px.
-    final double maxFormWidth = screenWidth >= 1100 ? 640.0 : double.infinity;
+    final double maxFormWidth = screenWidth >= 1100 ? 580.0 : double.infinity;
 
-    // Responsive horizontal padding
     final double horizontalPadding;
     if (screenWidth < 350) {
       horizontalPadding = 14.0;
     } else if (screenWidth < 600) {
       horizontalPadding = 20.0;
     } else if (screenWidth < 1100) {
-      // Fold inner screen & iPad - comfortable side margins so content uses full width
-      horizontalPadding = 24.0;
+      horizontalPadding = 28.0;
     } else {
-      horizontalPadding = 40.0;
+      horizontalPadding = 44.0;
     }
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: isDark ? AppColors.darkBackground : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0F1215) : const Color(0xFFF8FAFC),
       body: CustomPaint(
         painter: SharedBgPainter(
           isDark: isDark,
@@ -440,9 +438,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            SizedBox(height: isTablet ? 36.h : 20.h),
+                            SizedBox(height: isTablet ? 36.h : 22.h),
                             _buildBranding(isDark, isTablet),
-                            SizedBox(height: isTablet ? 28.h : 20.h),
+                            SizedBox(height: isTablet ? 26.h : 18.h),
                             ConstrainedBox(
                               constraints: BoxConstraints(maxWidth: maxFormWidth),
                               child: _buildLoginForm(context, isDark, isTablet),
@@ -469,33 +467,45 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Логог ямар ч дэвсгэр/хүрээгүйгээр шууд харуулна
         Center(
-          child: SelectableLogoImage(
-            height: isTablet ? 96 : 80,
-            zovkhonTungalag: true,
+          child: Container(
+            padding: EdgeInsets.all(6.r),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.deepGreen.withValues(alpha: isDark ? 0.25 : 0.12),
+                  blurRadius: 28,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: SelectableLogoImage(
+              height: isTablet ? 92 : 76,
+              zovkhonTungalag: true,
+            ),
           ),
         ),
-        SizedBox(height: 16.h),
+        SizedBox(height: 14.h),
         Text(
           "Тавтай морилно уу",
           textAlign: TextAlign.center,
           style: TextStyle(
             color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontSize: isTablet ? 28.sp : 24.sp,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+            fontSize: isTablet ? 26.sp : 22.sp,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
           ),
         ),
-        SizedBox(height: 6.h),
+        SizedBox(height: 4.h),
         Text(
-          "Нэвтрэх хэсэг",
+          "Бүртгэлтэй утасны дугаар, нууц кодоо оруулна уу",
           textAlign: TextAlign.center,
           style: TextStyle(
             color: isDark
-                ? Colors.white.withOpacity(0.6)
-                : AppColors.lightTextSecondary.withOpacity(0.7),
-            fontSize: isTablet ? 15.sp : 14.sp,
+                ? Colors.white.withValues(alpha: 0.65)
+                : AppColors.lightTextSecondary.withValues(alpha: 0.8),
+            fontSize: isTablet ? 14.sp : 13.sp,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -509,321 +519,342 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         ? EdgeInsets.all(16.r)
         : EdgeInsets.all(isTablet ? 26.r : 20.r);
 
+    final operator = _getOperator(phoneController.text);
+
     return Container(
       padding: cardPadding,
       decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : Colors.white,
-            borderRadius: BorderRadius.circular(24.r),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.0)
-                  : AppColors.lightBorderColor,
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
+        color: isDark ? const Color(0xFF161B20) : Colors.white,
+        borderRadius: BorderRadius.circular(26.r),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.lightBorderColor,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildInputField(
-                fieldKey: const ValueKey('login_phone_field'),
-                label: "Утасны дугаар",
-                hint: "Дугаар оруулна уу",
-                controller: phoneController,
-                focusNode: phoneFocusNode,
-                icon: Icons.phone_android_rounded,
-                isDark: isDark,
-                readOnly: false,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(8),
-                ],
-                onFieldSubmitted: (_) =>
-                    !_showPasswordInput ? _checkPhoneExistence() : null,
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Утасны дугаар
+          _buildFieldLabel("Утасны дугаар", isDark),
+          SizedBox(height: 7.h),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : const Color(0xFFF5F7FA),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.04),
               ),
-              if (_showPasswordInput) ...[
-                SizedBox(height: 20.h),
-                _buildInputField(
-                  fieldKey: const ValueKey('login_password_field'),
-                  label: "Нууц код",
-                  hint: "Нууц код оруулна уу",
-                  controller: passwordController,
-                  focusNode: passwordFocusNode,
-                  icon: Icons.lock_outline_rounded,
-                  isDark: isDark,
-                  obscureText: _obscurePassword,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(4),
+            ),
+            child: TextFormField(
+              key: const ValueKey('login_phone_field'),
+              controller: phoneController,
+              focusNode: phoneFocusNode,
+              keyboardType: TextInputType.phone,
+              style: TextStyle(
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.0,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(8),
+              ],
+              onChanged: (val) {
+                if (val.length == 8 && passwordController.text.isEmpty) {
+                  passwordFocusNode.requestFocus();
+                }
+              },
+              onFieldSubmitted: (_) => passwordFocusNode.requestFocus(),
+              decoration: InputDecoration(
+                hintText: "99112233",
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.white30 : Colors.grey,
+                  fontSize: 14.sp,
+                  letterSpacing: 0,
+                  fontWeight: FontWeight.normal,
+                ),
+                prefixIcon: Icon(
+                  Icons.phone_iphone_rounded,
+                  color: AppColors.deepGreen,
+                  size: 20.sp,
+                ),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (operator != null)
+                      Container(
+                        margin: EdgeInsets.only(right: 6.w),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 4.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getOperatorColor(operator).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Text(
+                          operator,
+                          style: TextStyle(
+                            fontSize: 10.5.sp,
+                            fontWeight: FontWeight.w700,
+                            color: _getOperatorColor(operator),
+                          ),
+                        ),
+                      ),
+                    if (phoneController.text.isNotEmpty)
+                      IconButton(
+                        icon: Icon(
+                          Icons.cancel_rounded,
+                          size: 16.sp,
+                          color: isDark ? Colors.white38 : Colors.grey,
+                        ),
+                        onPressed: () => phoneController.clear(),
+                      ),
                   ],
-                  onFieldSubmitted: (_) => _handleLogin(),
-                  suffixIcon: IconButton(
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      color: isDark
-                          ? Colors.white.withOpacity(0.3)
-                          : AppColors.lightTextSecondary.withOpacity(0.4),
-                      size: 20.sp,
-                    ),
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14.w,
+                  vertical: 14.h,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 16.h),
+
+          // 2. Нууц код
+          _buildFieldLabel("Нууц код", isDark),
+          SizedBox(height: 7.h),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : const Color(0xFFF5F7FA),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.04),
+              ),
+            ),
+            child: TextFormField(
+              key: const ValueKey('login_password_field'),
+              controller: passwordController,
+              focusNode: passwordFocusNode,
+              obscureText: _obscurePassword,
+              keyboardType: TextInputType.number,
+              style: TextStyle(
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2.0,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              onFieldSubmitted: (_) => _handleLogin(),
+              decoration: InputDecoration(
+                hintText: "••••",
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.white30 : Colors.grey,
+                  fontSize: 16.sp,
+                  letterSpacing: 2.0,
+                  fontWeight: FontWeight.normal,
+                ),
+                prefixIcon: Icon(
+                  Icons.lock_outline_rounded,
+                  color: AppColors.deepGreen,
+                  size: 20.sp,
+                ),
+                suffixIcon: IconButton(
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                    color: isDark ? Colors.white38 : Colors.grey,
+                    size: 20.sp,
                   ),
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _showForgotPasswordDialog,
-                    style: TextButton.styleFrom(
-                      foregroundColor: isDark
-                          ? AppColors.deepGreenLight
-                          : AppColors.deepGreen,
-                      padding: EdgeInsets.symmetric(vertical: 8.h),
-                    ),
-                    child: Text(
-                      "Нууц код мартсан?",
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14.w,
+                  vertical: 14.h,
+                ),
+              ),
+            ),
+          ),
+
+          // Нууц код мартсан холбоос
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _showForgotPasswordDialog,
+              style: TextButton.styleFrom(
+                foregroundColor: isDark
+                    ? AppColors.deepGreenLight
+                    : AppColors.deepGreen,
+                padding: EdgeInsets.symmetric(vertical: 4.h, horizontal: 4.w),
+              ),
+              child: Text(
+                "Нууц код мартсан?",
+                style: TextStyle(
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 12.h),
+
+          // 3. Нэвтрэх товч + Биометр
+          Row(
+            children: [
+              Expanded(
+                child: _buildSubmitButton(
+                  context: context,
+                  onTap: _isLoading ? null : _handleLogin,
+                  isLoading: _isLoading,
+                ),
+              ),
+              if (_biometricAvailable) ...[
+                SizedBox(width: 10.w),
+                _buildBiometricButton(
+                  context: context,
+                  onTap: _isLoading ? null : _authenticateWithBiometrics,
+                  isDark: isDark,
+                ),
+              ],
+            ],
+          ),
+          SizedBox(height: 16.h),
+
+          // 4. Бүртгүүлэх холбоос
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Бүртгэлгүй юу? ",
+                  style: TextStyle(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.6)
+                        : AppColors.lightTextSecondary,
+                    fontSize: 13.sp,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _showRegistrationModal,
+                  child: Text(
+                    "Шинээр бүртгүүлэх",
+                    style: TextStyle(
+                      color: AppColors.deepGreen,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               ],
-              SizedBox(height: 20.h),
-              if (!_showPasswordInput) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildPrimaryButton(
-                        context: context,
-                        onTap: _isCheckingPhone ? null : _checkPhoneExistence,
-                        isLoading: _isCheckingPhone,
-                        label: "Үргэлжлүүлэх",
-                        isDark: isDark,
-                      ),
-                    ),
-                    if (_biometricAvailable) ...[
-                      SizedBox(width: 12.w),
-                      _buildBiometricButton(
-                        context: context,
-                        onTap: _isLoading ? null : _authenticateWithBiometrics,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ],
-                ),
-                _buildGerBulUrilgaTovch(isDark),
-              ] else
-                Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildPrimaryButton(
-                            context: context,
-                            onTap: _isLoading ? null : _handleLogin,
-                            isLoading: _isLoading,
-                            label: "Нэвтрэх",
-                            isDark: isDark,
-                          ),
-                        ),
-                        if (_biometricAvailable) ...[
-                          SizedBox(width: 12.w),
-                          _buildBiometricButton(
-                            context: context,
-                            onTap: _isLoading
-                                ? null
-                                : _authenticateWithBiometrics,
-                            isDark: isDark,
-                          ),
-                        ],
-                      ],
-                    ),
-                    SizedBox(height: 12.h),
-                    TextButton(
-                      onPressed: () => setState(() {
-                        _showPasswordInput = false;
-                        passwordController.clear();
-                      }),
-                      child: Text(
-                        "Буцах",
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.5)
-                              : Colors.black45,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
+            ),
           ),
-        );
-  }
+          SizedBox(height: 8.h),
 
-  /// Гэр бүлийн гишүүнээр уригдсан хүн SMS-ээр ирсэн кодоороо энд бүртгүүлнэ.
-  Widget _buildGerBulUrilgaTovch(bool isDark) {
-    return Padding(
-      padding: EdgeInsets.only(top: 4.h),
-      child: TextButton.icon(
-        onPressed: _isCheckingPhone
-            ? null
-            : () {
-                final utas = phoneController.text.trim();
-                context.push(
-                  utas.length == 8
-                      ? '/ger-bul-batalgaajuulakh?utas=$utas'
-                      : '/ger-bul-batalgaajuulakh',
-                );
-              },
-        style: TextButton.styleFrom(
-          foregroundColor: isDark
-              ? AppColors.deepGreenLight
-              : AppColors.deepGreen,
-          padding: EdgeInsets.symmetric(vertical: 10.h),
-        ),
-        icon: Icon(Icons.family_restroom_rounded, size: 18.sp),
-        label: Text(
-          "Гэр бүлийн урилга ирсэн үү?",
-          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-        ),
+          // 5. Гэр бүлийн урилгаар нэвтрэх
+          _buildGerBulUrilgaTovch(isDark),
+        ],
       ),
     );
   }
 
-  Widget _buildInputField({
-    Key? fieldKey,
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    required IconData icon,
-    required bool isDark,
-    FocusNode? focusNode,
-    bool obscureText = false,
-    bool readOnly = false,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    Widget? suffixIcon,
-    Function(String)? onFieldSubmitted,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : const Color(0xFFF5F7FA),
-            borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(
-              color: readOnly
-                  ? AppColors.deepGreen.withOpacity(0.3)
-                  : Colors.transparent,
-              width: 1,
-            ),
-          ),
-          child: TextFormField(
-            key: fieldKey,
-            controller: controller,
-            focusNode: focusNode,
-            obscureText: obscureText,
-            readOnly: readOnly,
-            keyboardType: keyboardType,
-            inputFormatters: inputFormatters,
-            onFieldSubmitted: onFieldSubmitted,
-            style: TextStyle(
-              color: isDark
-                  ? (readOnly ? Colors.white60 : Colors.white)
-                  : (readOnly ? Colors.black54 : AppColors.lightTextPrimary),
-              fontSize: 16.sp,
-              fontWeight: readOnly ? FontWeight.w600 : FontWeight.normal,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                color: isDark ? Colors.white24 : Colors.grey,
-                fontSize: 15.sp,
-              ),
-              prefixIcon: Icon(
-                icon,
-                color: isDark
-                    ? (readOnly ? AppColors.deepGreen : Colors.white38)
-                    : (readOnly ? AppColors.deepGreen : Colors.grey),
-                size: 20.sp,
-              ),
-              suffixIcon: suffixIcon,
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16.w,
-                vertical: 16.h,
-              ),
-            ),
-          ),
-        ),
-      ],
+  Widget _buildFieldLabel(String label, bool isDark) {
+    return Text(
+      label,
+      style: TextStyle(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.75)
+            : AppColors.lightTextSecondary,
+        fontSize: 12.5.sp,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 
-  Widget _buildPrimaryButton({
+  Widget _buildSubmitButton({
     required BuildContext context,
     required VoidCallback? onTap,
     required bool isLoading,
-    required String label,
-    required bool isDark,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14.r),
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 16.h),
-          decoration: BoxDecoration(
-            color: AppColors.deepGreen,
-            borderRadius: BorderRadius.circular(14.r),
-          ),
-          child: Center(
-            child: isLoading
-                ? SizedBox(
-                    height: 20.h,
-                    width: 20.w,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Text(
-                    label,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52.h,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: isLoading
+              ? null
+              : const LinearGradient(
+                  colors: [AppColors.deepGreen, AppColors.deepGreenDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          color: isLoading ? context.inputGrayColor : null,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: isLoading
+              ? null
+              : [
+                  BoxShadow(
+                    color: AppColors.deepGreen.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+        ),
+        child: isLoading
+            ? SizedBox(
+                height: 22.h,
+                width: 22.h,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.login_rounded,
+                    color: Colors.white,
+                    size: 19.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    "Нэвтрэх",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
                     ),
                   ),
-          ),
-        ),
+                ],
+              ),
       ),
     );
   }
@@ -837,14 +868,85 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: BorderRadius.circular(16.r),
         child: Container(
-          padding: EdgeInsets.all(12.r),
+          height: 52.h,
+          width: 52.h,
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.deepGreen.withOpacity(0.3)),
-            borderRadius: BorderRadius.circular(14.r),
+            color: isDark
+                ? AppColors.deepGreen.withValues(alpha: 0.12)
+                : AppColors.deepGreen.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: AppColors.deepGreen.withValues(alpha: 0.25),
+              width: 1.2,
+            ),
           ),
-          child: Icon(_biometricIcon, color: AppColors.deepGreen, size: 28.sp),
+          child: Center(
+            child: Icon(
+              _biometricIcon,
+              color: AppColors.deepGreen,
+              size: 26.sp,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Гэр бүлийн гишүүнээр уригдсан хүн кодоороо энд нэвтэрнэ.
+  Widget _buildGerBulUrilgaTovch(bool isDark) {
+    return Container(
+      margin: EdgeInsets.only(top: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.03)
+            : Colors.black.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.04),
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          final utas = phoneController.text.trim();
+          context.push(
+            utas.length == 8
+                ? '/ger-bul-batalgaajuulakh?utas=$utas'
+                : '/ger-bul-batalgaajuulakh',
+          );
+        },
+        borderRadius: BorderRadius.circular(12.r),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.family_restroom_rounded,
+              size: 18.sp,
+              color: AppColors.deepGreen,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              "Гэр бүлийн урилга ирсэн үү? ",
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+            Text(
+              "Кодоор нэвтрэх",
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.deepGreen,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -859,13 +961,20 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       builder: (BuildContext dialogContext) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          backgroundColor: isDark ? const Color(0xFF1C2228) : Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(22.r),
           ),
           title: Row(
             children: [
-              Icon(_biometricIcon, color: AppColors.deepGreen),
+              Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.deepGreen.withValues(alpha: 0.12),
+                ),
+                child: Icon(_biometricIcon, color: AppColors.deepGreen, size: 22.sp),
+              ),
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
@@ -874,7 +983,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       : 'Хурууны хээ ашиглах уу?',
                   style: TextStyle(
                     fontSize: 16.sp,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   ),
                 ),
@@ -882,7 +991,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             ],
           ),
           content: Text(
-            'Дараагийн удаа илүү хурдан нэвтрэхийн тулд биометрийг идэвхжүүлэх үү?',
+            'Дараагийн удаа илүү хурдан бөгөөд хялбар нэвтрэхийн тулд биометрийг идэвхжүүлэх үү?',
             style: TextStyle(
               fontSize: 13.sp,
               color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
@@ -894,7 +1003,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               onPressed: () => Navigator.pop(dialogContext),
               child: Text(
                 'Үгүй, баярлалаа',
-                style: TextStyle(color: Colors.grey, fontSize: 13.sp),
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             ElevatedButton(
@@ -916,22 +1029,23 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                   }
                 }
                 if (context.mounted) {
-                  Navigator.pop(dialogContext); // Close dialog AFTER scanning
+                  Navigator.pop(dialogContext);
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.deepGreen,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(14.r),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                elevation: 0,
               ),
               child: Text(
                 'Тийм, идэвхжүүлье',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),

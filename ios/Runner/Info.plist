@@ -148,6 +148,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Аппликейшн дотор зураг авах болон илгээхийн тулд камер ашиглана</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Мэдэгдэл болон санал хүсэлтэд зураг хавсаргахын тулд зургийн санд хандана</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Нэвтрэхийн тулд Face ID ашиглана уу</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -14,14 +14,45 @@ import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 
-/// Normalize zurag/duu path: backend may store "public/medegdel/baiguullagiinId/file" or "baiguullagiinId/file".
-/// URL must be /medegdel/baiguullagiinId/file.
+/// Normalize zurag/duu path: backend may store "public/medegdel/baiguullagiinId/file",
+/// "\public\medegdel\...", "baiguullagiinId/file", or an absolute URL.
 String _normalizeMedegdelPath(String? p) {
-  if (p == null || p.isEmpty) return '';
-  final n = p
+  if (p == null || p.trim().isEmpty) return '';
+  var n = p.trim().replaceAll(r'\', '/');
+  if (n.startsWith('http://') || n.startsWith('https://')) {
+    return n;
+  }
+  while (n.startsWith('/')) {
+    n = n.substring(1);
+  }
+  n = n
       .replaceFirst(RegExp(r'^public/medegdel/?'), '')
-      .replaceFirst(RegExp(r'^public/?'), '');
-  return n.isEmpty ? p : n;
+      .replaceFirst(RegExp(r'^public/?'), '')
+      .replaceFirst(RegExp(r'^medegdel/?'), '');
+  return n.isEmpty ? p.trim() : n;
+}
+
+/// Primary image URL (e.g. origin /medegdel/... without /api, aligned with web)
+String _getMedegdelImageUrl(String path) {
+  final clean = _normalizeMedegdelPath(path);
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean;
+  }
+  try {
+    final uri = Uri.parse(ApiService.baseUrl);
+    return '${uri.origin}/medegdel/$clean';
+  } catch (_) {
+    return '${ApiService.baseUrl}/medegdel/$clean';
+  }
+}
+
+/// Fallback image URL (e.g. baseUrl /medegdel/...)
+String _getMedegdelFallbackUrl(String path) {
+  final clean = _normalizeMedegdelPath(path);
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean;
+  }
+  return '${ApiService.baseUrl}/medegdel/$clean';
 }
 
 /// Split zurag (may be comma-separated for multiple images) into list of normalized paths for image URLs.
@@ -32,6 +63,67 @@ List<String> _zuragPaths(String? zurag) {
       .map((e) => _normalizeMedegdelPath(e.trim()))
       .where((e) => e.isNotEmpty)
       .toList();
+}
+
+Widget _buildNotificationImages(String? zurag, void Function(String) onZoom) {
+  final paths = _zuragPaths(zurag);
+  if (paths.isEmpty) return const SizedBox.shrink();
+
+  return Wrap(
+    spacing: 6,
+    runSpacing: 6,
+    children: paths.map((path) {
+      final primaryUrl = _getMedegdelImageUrl(path);
+      final fallbackUrl = _getMedegdelFallbackUrl(path);
+
+      return GestureDetector(
+        onTap: () => onZoom(path),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 240,
+              maxHeight: 200,
+            ),
+            child: Image.network(
+              primaryUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (_, child, progress) => progress == null
+                  ? child
+                  : const SizedBox(
+                      height: 120,
+                      width: 160,
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+              errorBuilder: (ctx, err, stack) => Image.network(
+                fallbackUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (_, child2, progress2) => progress2 == null
+                    ? child2
+                    : const SizedBox(
+                        height: 120,
+                        width: 160,
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                errorBuilder: (ctx2, err2, stack2) => Container(
+                  width: 120,
+                  height: 100,
+                  color: Colors.grey.withOpacity(0.12),
+                  child: const Center(
+                    child: Icon(Icons.broken_image_outlined, color: Colors.grey),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList(),
+  );
 }
 
 class MedegdelDetailModal extends StatefulWidget {
@@ -1016,40 +1108,9 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
                           veryNarrow: 4,
                         ),
                       ),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: _zuragPaths(msg.zurag).map((path) {
-                          final url = '${ApiService.baseUrl}/medegdel/$path';
-                          return GestureDetector(
-                            onTap: () => _showImageZoom(url),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 240,
-                                  maxHeight: 200,
-                                ),
-                                child: Image.network(
-                                  url,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (_, child, progress) =>
-                                      progress == null
-                                      ? child
-                                      : const SizedBox(
-                                          height: 120,
-                                          width: 160,
-                                          child: Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        ),
-                                  errorBuilder: (_, o, s) =>
-                                      const Icon(Icons.broken_image_outlined),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                      child: _buildNotificationImages(
+                        msg.zurag,
+                        (p) => _showImageZoom(p),
                       ),
                     ),
                   if (msg.duu != null && msg.duu!.isNotEmpty)
@@ -1571,7 +1632,10 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     }
   }
 
-  void _showImageZoom(String url) {
+  void _showImageZoom(String pathOrUrl) {
+    final primaryUrl = _getMedegdelImageUrl(pathOrUrl);
+    final fallbackUrl = _getMedegdelFallbackUrl(pathOrUrl);
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -1586,24 +1650,35 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: Colors.black.withOpacity(0.9),
+                color: Colors.black.withOpacity(0.92),
               ),
             ),
             InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
               child: Image.network(
-                url,
+                primaryUrl,
                 fit: BoxFit.contain,
                 loadingBuilder: (_, child, progress) => progress == null
                     ? child
                     : const Center(
                         child: CircularProgressIndicator(color: Colors.white),
                       ),
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.broken_image,
-                  color: Colors.white,
-                  size: 48,
+                errorBuilder: (ctx, err, stack) => Image.network(
+                  fallbackUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child2, progress2) => progress2 == null
+                      ? child2
+                      : const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                  errorBuilder: (ctx2, err2, stack2) => const Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Colors.white,
+                      size: 48,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -2510,40 +2585,9 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                   if (msg.zurag != null && msg.zurag!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: _zuragPaths(msg.zurag).map((path) {
-                          final url = '${ApiService.baseUrl}/medegdel/$path';
-                          return GestureDetector(
-                            onTap: () => _showImageZoom(url),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 240,
-                                  maxHeight: 200,
-                                ),
-                                child: Image.network(
-                                  url,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (_, child, progress) =>
-                                      progress == null
-                                      ? child
-                                      : const SizedBox(
-                                          height: 120,
-                                          width: 160,
-                                          child: Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        ),
-                                  errorBuilder: (_, o, s) =>
-                                      const Icon(Icons.broken_image_outlined),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                      child: _buildNotificationImages(
+                        msg.zurag,
+                        (p) => _showImageZoom(p),
                       ),
                     ),
                   if (msg.duu != null && msg.duu!.isNotEmpty)
@@ -2958,7 +3002,10 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
     }
   }
 
-  void _showImageZoom(String url) {
+  void _showImageZoom(String pathOrUrl) {
+    final primaryUrl = _getMedegdelImageUrl(pathOrUrl);
+    final fallbackUrl = _getMedegdelFallbackUrl(pathOrUrl);
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -2973,24 +3020,35 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: Colors.black.withOpacity(0.9),
+                color: Colors.black.withOpacity(0.92),
               ),
             ),
             InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
               child: Image.network(
-                url,
+                primaryUrl,
                 fit: BoxFit.contain,
                 loadingBuilder: (_, child, progress) => progress == null
                     ? child
                     : const Center(
                         child: CircularProgressIndicator(color: Colors.white),
                       ),
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.broken_image,
-                  color: Colors.white,
-                  size: 48,
+                errorBuilder: (ctx, err, stack) => Image.network(
+                  fallbackUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (_, child2, progress2) => progress2 == null
+                      ? child2
+                      : const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                  errorBuilder: (ctx2, err2, stack2) => const Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      color: Colors.white,
+                      size: 48,
+                    ),
+                  ),
                 ),
               ),
             ),

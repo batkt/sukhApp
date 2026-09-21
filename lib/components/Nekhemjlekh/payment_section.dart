@@ -79,7 +79,7 @@ class PaymentSection extends StatelessWidget {
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: (isVerySmall ? 14.5 : (isSmall ? 16.0 : 18.0)).sp,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
                     ),
                     maxLines: 1,

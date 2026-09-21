@@ -541,7 +541,7 @@ class _PaymentModalState extends State<PaymentModal> {
             'И-баримт хүлээн авах',
             style: TextStyle(
               fontSize: 13.sp,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w700,
               color: context.textPrimaryColor.withOpacity(0.9),
               letterSpacing: 0.2,
             ),
@@ -678,7 +678,7 @@ class _PaymentModalState extends State<PaymentModal> {
             title,
             style: TextStyle(
               fontSize: 13.sp,
-              fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
               color: isSelected ? Colors.white : context.textSecondaryColor,
             ),
           ),

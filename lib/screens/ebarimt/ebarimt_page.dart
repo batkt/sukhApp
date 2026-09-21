@@ -540,7 +540,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   Container(
@@ -754,7 +754,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                       style: TextStyle(
                         color: AppColors.deepGreen,
                         fontSize: 13.sp,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     SizedBox(height: 6.h),
@@ -772,7 +772,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             style: TextStyle(
                               color: AppColors.deepGreen,
                               fontSize: 11.sp,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         );
@@ -838,7 +838,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                       'Иргэний код',
                       style: TextStyle(
                         fontSize: 11.sp,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
                     ),
@@ -974,7 +974,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             'Холбох',
                             style: TextStyle(
                               fontSize: 11.sp,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -1142,7 +1142,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
           label,
           style: TextStyle(
             fontSize: 11.sp,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
             color: isSelected 
                 ? AppColors.deepGreen 
                 : (isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade600),

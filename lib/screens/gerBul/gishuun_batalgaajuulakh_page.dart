@@ -318,7 +318,7 @@ class _GishuunBatalgaajuulakhPageState
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 21.sp,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: context.textPrimaryColor,
                         letterSpacing: -0.5,
                       ),
@@ -863,7 +863,7 @@ class _GishuunBatalgaajuulakhPageState
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 15.sp,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
       ),

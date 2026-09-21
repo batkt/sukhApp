@@ -705,7 +705,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 48.sp,
-                                                fontWeight: FontWeight.w900,
+                                                fontWeight: FontWeight.w700,
                                                 height: 1.1,
                                                 letterSpacing: -1.5,
                                               ),
@@ -751,7 +751,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 20.sp,
-                                              fontWeight: FontWeight.w900,
+                                              fontWeight: FontWeight.w700,
                                               letterSpacing: -0.5,
                                             ),
                                           ),
@@ -867,7 +867,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18.sp,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1038,7 +1038,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             ).format(payment.paymentStatusDate).toUpperCase(),
                             style: TextStyle(
                               fontSize: 9.sp,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: isDark
                                   ? Colors.white60
                                   : accentColor.withOpacity(0.5),
@@ -1049,7 +1049,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             dayStr,
                             style: TextStyle(
                               fontSize: 18.sp,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: isDark ? Colors.white : accentColor,
                               height: 1.1,
                             ),
@@ -1134,7 +1134,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       '${formatNumber(payment.paymentAmount)} ₮',
                       style: TextStyle(
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
                     ),

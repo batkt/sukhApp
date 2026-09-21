@@ -86,7 +86,7 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
               'Санал хүсэлт',
               style: TextStyle(
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: isDark ? Colors.white : context.textPrimaryColor,
                 letterSpacing: -0.3,
               ),

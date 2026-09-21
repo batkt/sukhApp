@@ -70,19 +70,27 @@ flutter:
   uses-material-design: true
   # Only include assets that are actually used
   assets:
-    - assets/fonts/
+    # assets/fonts/ авагдав — хавтас нь 0 байт .ttf хоёроос өөр юу ч
+    # агуулаагүй, хавтсыг устгасан тул зарлалт нь build-ыг унагах байсан.
     - lib/assets/img/
     - lib/assets/pdf/
   # Enable tree-shaking for fonts (only include used font weights)
   # This reduces font file size significantly
 
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Inter-Bold.ttf
-          weight: 700
+  # ФОНТ: `Inter` family-г УСТГАВ.
+  #
+  # `assets/fonts/Inter-*.ttf` файлууд 0 БАЙТ байсан (git дээр ч мөн адил)
+  # тул family нь хэзээ ч ачаалагдаагүй — апп бүх дэлгэц дээр системийн
+  # фонтоор (iOS: San Francisco, Android: Roboto) л зурагдаж байсан.
+  #
+  # Мөн зөвхөн 400 ба 700 жин зарлагдсан байсан нь хавх: жинхэнэ Inter
+  # файлыг тавибал Flutter хүссэн жинг хамгийн ойрын зарлагдсан жинтэй
+  # тулгадаг тул `FontWeight.w600` (кодод 193 газар) → 700 болж, апп
+  # одоогийнхоос ч илүү тод болох байлаа.
+  #
+  # Inter-ийг эргүүлэн оруулах бол: 400/500/600/700 жингийн .ttf-г
+  # (https://github.com/rsms/inter) тавьж, ТУС БҮРИЙГ нь `weight`-тэй
+  # зарлаад, `main.dart`-ын хоёр theme дээр `fontFamily: 'Inter'` нэмнэ.
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
