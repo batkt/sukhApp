@@ -319,6 +319,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           hasProfile = hasNer || hasOvog;
         }
 
+        if (!mounted) return;
         if (!hasProfile) {
           context.go(
             '/burtguulekh_signup',
@@ -331,6 +332,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           await SocketService.instance.connect();
         } catch (_) {}
 
+        if (!mounted) return;
         setState(() => _isLoading = false);
         showGlassSnackBar(
           context,
@@ -343,6 +345,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         final savedBiometricPw =
             await StorageService.getSavedPasswordForBiometric();
 
+        if (!mounted) return;
         if (biometricEnabled &&
             savedBiometricPw == null &&
             _biometricAvailable) {
@@ -413,8 +416,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
       horizontalPadding = 44.0;
     }
 
+    final keyboardHeight = mediaQuery.viewInsets.bottom;
+    final isKeyboardOpen = keyboardHeight > 0;
+
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       backgroundColor: isDark ? const Color(0xFF0F1215) : const Color(0xFFF8FAFC),
       body: CustomPaint(
         painter: SharedBgPainter(
@@ -422,41 +428,60 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           brandColor: AppColors.deepGreen,
         ),
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
+          child: Column(
+            children: [
+              Expanded(
+                child: AnimatedPadding(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.only(
+                    left: horizontalPadding,
+                    right: horizontalPadding,
+                    bottom: keyboardHeight,
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(height: isTablet ? 36.h : 22.h),
-                            _buildBranding(isDark, isTablet),
-                            SizedBox(height: isTablet ? 26.h : 18.h),
-                            ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: maxFormWidth),
-                              child: _buildLoginForm(context, isDark, isTablet),
-                            ),
-                          ],
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          height: isKeyboardOpen
+                              ? (isTablet ? 36.h : 24.h)
+                              : (isTablet ? 96.h : 84.h),
                         ),
-                        Padding(
-                          padding: EdgeInsets.only(top: 24.h, bottom: 16.h),
-                          child: _buildFooter(isDark),
+                        AnimatedCrossFade(
+                          duration: const Duration(milliseconds: 200),
+                          crossFadeState: isKeyboardOpen
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          firstChild: _buildBranding(isDark, isTablet),
+                          secondChild: const SizedBox.shrink(),
                         ),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          height: isKeyboardOpen
+                              ? 12.h
+                              : (isTablet ? 44.h : 36.h),
+                        ),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxFormWidth),
+                          child: _buildLoginForm(context, isDark, isTablet),
+                        ),
+                        SizedBox(height: 16.h),
                       ],
                     ),
                   ),
                 ),
-              );
-            },
+              ),
+              if (!isKeyboardOpen)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 16.h),
+                  child: _buildFooter(isDark),
+                ),
+            ],
           ),
         ),
       ),

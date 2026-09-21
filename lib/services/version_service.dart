@@ -6,9 +6,12 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sukh_app/main.dart' show navigatorKey;
+import 'package:sukh_app/core/api/api_host.dart';
 
 class VersionService {
-  static const String _baseUrl = 'https://amarhome.mn/api';
+  // ӨМНӨ НЬ prod дээр хатуу байсан тул dev дээр зарласан шинэ хувилбарыг
+  // апп хэзээ ч хардаггүй байв.
+  static const String _baseUrl = ApiHost.api;
   static const String _versionCheckUrl = '$_baseUrl/version-check';
 
   static Future<String> getAppVersion() async {

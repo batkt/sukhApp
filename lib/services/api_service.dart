@@ -13,6 +13,7 @@ import 'package:sukh_app/main.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sukh_app/utils/logger.dart';
+import 'package:sukh_app/core/api/api_host.dart';
 
 /// Уригдсан машин яг одоо түрээсийн зогсоол дээр байгаа тул урилгыг цуцлах
 /// боломжгүй (сервер 409 буцаасан). Машин гарсны дараа дахин оролдоно.
@@ -25,10 +26,9 @@ class ZochinZogsoolDeerException implements Exception {
 }
 
 class ApiService {
-  // static const String baseUrl = 'https://amarhome.mn/api';
-  // static const String deleteBaseUrl = 'https://amarhome.mn/api';
-  static const String baseUrl = 'https://dev.amarhome.mn/api';
-  static const String deleteBaseUrl = 'https://dev.amarhome.mn/api';
+  // Хаягийг `ApiHost` дээрээс уншина — dev/prod сэлгэх нэг л газар.
+  static const String baseUrl = ApiHost.api;
+  static const String deleteBaseUrl = ApiHost.api;
   static const String walletApiBaseUrl = 'https://api.bpay.mn/v1';
   static const String CENTRALIZED_ORG_ID = '698e7fd3b6dd386b6c56a808';
 

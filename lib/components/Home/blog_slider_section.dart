@@ -8,10 +8,18 @@ import 'package:sukh_app/services/blog_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/models/blog_model.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:intl/intl.dart';
 
 class BlogSliderSection extends StatefulWidget {
   const BlogSliderSection({super.key});
+
+  /// Trigger a refresh of all active BlogSliderSection instances
+  static final ValueNotifier<int> refreshNotifier = ValueNotifier<int>(0);
+
+  static void refresh() {
+    refreshNotifier.value++;
+  }
 
   @override
   State<BlogSliderSection> createState() => _BlogSliderSectionState();
@@ -20,7 +28,6 @@ class BlogSliderSection extends StatefulWidget {
 class _BlogSliderSectionState extends State<BlogSliderSection> {
   List<BlogModel> _blogs = [];
   bool _isLoading = true;
-  String? _errorMessage;
   late PageController _pageController;
 
   @override
@@ -28,34 +35,55 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
     super.initState();
     _pageController = PageController(viewportFraction: 0.82);
     _loadBlogs();
+
+    // Listen to manual refreshes (from pull-to-refresh on Home or app resume)
+    BlogSliderSection.refreshNotifier.addListener(_onRefresh);
+
+    // Listen to real-time socket events when new blogs are added from web
+    SocketService.instance.addBlogUpdateListener(_onRefresh);
+  }
+
+  void _onRefresh() {
+    if (mounted) {
+      _loadBlogs(isBackground: true);
+    }
   }
 
   @override
   void dispose() {
+    BlogSliderSection.refreshNotifier.removeListener(_onRefresh);
+    SocketService.instance.removeBlogUpdateListener(_onRefresh);
     _pageController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadBlogs() async {
+  Future<void> _loadBlogs({bool isBackground = false}) async {
+    if (!isBackground && _blogs.isEmpty) {
+      setState(() => _isLoading = true);
+    }
+
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      if (baiguullagiinId == null) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Байгууллагын ID олдсонгүй';
-        });
+
+      if (baiguullagiinId == null || baiguullagiinId.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
         return;
       }
 
       final blogs = await BlogService.getBlogs(baiguullagiinId);
       if (mounted) {
+        final bool shouldResetPage = _blogs.length != blogs.length;
         setState(() {
           _blogs = blogs;
           _isLoading = false;
         });
         
         // If more than 2 blogs, set initial page to middle for cyclic feel
-        if (_blogs.length > 2) {
+        if (shouldResetPage && _blogs.length > 2) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
               _pageController.jumpToPage(_blogs.length * 500);
@@ -66,7 +94,6 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
           _isLoading = false;
         });
       }

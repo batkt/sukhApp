@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
+import 'package:sukh_app/core/api/api_host.dart';
 
 class AppVersionInfo {
   final String version;
@@ -39,7 +40,8 @@ class AppVersionInfo {
 class UpdateService {
   static const String _lastCheckedVersionKey = 'last_checked_app_version';
   static const String _updateDismissedKey = 'update_dismissed_version';
-  static const String baseUrl = 'https://amarhome.mn/api';
+  // ӨМНӨ НЬ prod дээр хатуу байсан — version_service-тэй ижил асуудал.
+  static const String baseUrl = ApiHost.api;
 
   static AppVersionInfo? _latestVersionInfo;
   static AppVersionInfo? get latestVersionInfo => _latestVersionInfo;
@@ -174,7 +176,7 @@ class UpdateService {
     }
 
     if (kIsWeb) {
-      return 'https://amarhome.mn/api';
+      return ApiHost.api;
     }
 
     if (Platform.isIOS) {

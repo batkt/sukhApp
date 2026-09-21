@@ -136,6 +136,8 @@ class PushService {
   /// Backend талаас илгээх утгууд (sukhBackv2):
   ///   sanal_asuulga   - routes/sanalAsuulgaRoute.js
   ///   medegdel_reply  - controller/medegdel.js (adminReply)
+  ///   niitlel         - controller/blog.js (blogIlgeeye)
+  ///   app_update      - controller/appVersionController.js (upsertVersion)
   static void _medegdelDeerDarlaa(RemoteMessage message) {
     try {
       final zam = _zamAvya(message.data);
@@ -153,6 +155,13 @@ class PushService {
         return '/sanal_asuulga';
       case 'medegdel_reply':
         return '/medegdel-list';
+      case 'niitlel':
+        return '/blog';
+      case 'app_update':
+        // Шинэчлэлтийн мэдэгдэл дээр дарахад апп доторх дэлгэц нээхгүй —
+        // хэрэглэгч Store руу орох ёстой. Аппыг нээснээр `main.dart`-ын
+        // хувилбар шалгах логик өөрөө шинэчлэлтийн цонхыг үзүүлнэ.
+        return null;
       default:
         return null;
     }

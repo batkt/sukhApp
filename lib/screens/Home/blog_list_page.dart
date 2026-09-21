@@ -7,6 +7,7 @@ import 'package:sukh_app/services/blog_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/models/blog_model.dart';
+import 'package:sukh_app/services/socket_service.dart';
 import 'package:intl/intl.dart';
 
 class BlogListPage extends StatefulWidget {
@@ -25,16 +26,35 @@ class _BlogListPageState extends State<BlogListPage> {
   void initState() {
     super.initState();
     _loadBlogs();
+    SocketService.instance.addBlogUpdateListener(_onBlogUpdate);
   }
 
-  Future<void> _loadBlogs() async {
+  void _onBlogUpdate() {
+    if (mounted) {
+      _loadBlogs(isBackground: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    SocketService.instance.removeBlogUpdateListener(_onBlogUpdate);
+    super.dispose();
+  }
+
+  Future<void> _loadBlogs({bool isBackground = false}) async {
+    if (!isBackground && _blogs.isEmpty) {
+      setState(() => _isLoading = true);
+    }
+
     try {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
-      if (baiguullagiinId == null) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Байгууллагын ID олдсонгүй';
-        });
+
+      if (baiguullagiinId == null || baiguullagiinId.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
         return;
       }
 
@@ -43,6 +63,7 @@ class _BlogListPageState extends State<BlogListPage> {
         setState(() {
           _blogs = blogs;
           _isLoading = false;
+          _errorMessage = null;
         });
       }
     } catch (e) {
@@ -113,9 +134,37 @@ class _BlogListPageState extends State<BlogListPage> {
                     ? Center(child: Text(_errorMessage!))
                     : RefreshIndicator(
                         onRefresh: _loadBlogs,
-                        child: ListView.builder(
-                          padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 24.h),
-                          itemCount: _blogs.length,
+                        child: _blogs.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.all(32.r),
+                                children: [
+                                  SizedBox(height: 100.h),
+                                  Center(
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.article_outlined,
+                                          size: 48.sp,
+                                          color: context.textSecondaryColor.withOpacity(0.5),
+                                        ),
+                                        SizedBox(height: 12.h),
+                                        Text(
+                                          'Одоогоор нийтлэл ороогүй байна',
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: context.textSecondaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 24.h),
+                                itemCount: _blogs.length,
                           itemBuilder: (context, index) {
                             final blog = _blogs[index];
                             final imageUrl = blog.images.isNotEmpty

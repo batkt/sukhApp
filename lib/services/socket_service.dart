@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/notification_service.dart';
+import 'package:sukh_app/core/api/api_host.dart';
 
 class SocketService {
   static SocketService? _instance;
@@ -32,7 +33,9 @@ class SocketService {
       }
       
       // Socket.io is at site root (same as web). Do not use /api so nginx can proxy /socket.io.
-      const serverUrl = 'https://amarhome.mn';
+      // ӨМНӨ НЬ production дээр хатуу бичигдсэн байсан — API нь dev дээр
+      // байхад socket нь prod руу холбогдож, realtime эвент ирдэггүй байв.
+      const serverUrl = ApiHost.origin;
 
       socket = IO.io(
         serverUrl,
@@ -48,19 +51,25 @@ class SocketService {
 
       socket!.onConnect((_) {
         _isConnected = true;
-        debugPrint('✅ [Socket] Connected to: amarhome.mn');
+        debugPrint('✅ [Socket] Connected to: ${ApiHost.origin}');
 
         // Listen for user notifications after connection
         if (_userId != null) {
           _listenForUserNotifications();
         }
-        // Re-attach baiguullagiin medegdel listener if callback was set before connect
-        if (_baiguullagiinId != null &&
-            _baiguullagiinMedegdelCallback != null) {
+        // Always attach baiguullagiin listener so blog updates are received in real-time
+        if (_baiguullagiinId != null) {
           final eventName = 'baiguullagiin$_baiguullagiinId';
           socket!.off(eventName, _onBaiguullagiinMedegdel);
           socket!.on(eventName, _onBaiguullagiinMedegdel);
         }
+
+        // Global blog update broadcast
+        socket!.off('blogUpdate');
+        socket!.on('blogUpdate', (_) {
+          debugPrint('📢 [Socket] Global blogUpdate received');
+          _notifyBlogUpdate();
+        });
       });
 
       // DEBUG: Listen to ALL incoming events
@@ -257,6 +266,30 @@ class SocketService {
 
   Function(Map<String, dynamic>)? _baiguullagiinMedegdelCallback;
 
+  final List<VoidCallback> _blogUpdateListeners = [];
+
+  /// Add listener for real-time blog updates (new blog published from web, reactions, etc.)
+  void addBlogUpdateListener(VoidCallback listener) {
+    _blogUpdateListeners.remove(listener);
+    _blogUpdateListeners.add(listener);
+  }
+
+  /// Remove blog update listener
+  void removeBlogUpdateListener(VoidCallback listener) {
+    _blogUpdateListeners.remove(listener);
+  }
+
+  void _notifyBlogUpdate() {
+    debugPrint('📢 [Socket] Dispatching blog update to ${_blogUpdateListeners.length} listeners');
+    for (final listener in List<VoidCallback>.from(_blogUpdateListeners)) {
+      try {
+        listener();
+      } catch (e) {
+        debugPrint('⚠️ Error in blog update listener: $e');
+      }
+    }
+  }
+
   /// Listen for medegdel list updates (user reply / admin reply) on baiguullagiin channel for real-time sanal khuselt list.
   void setBaiguullagiinMedegdelCallback(
     Function(Map<String, dynamic>)? callback,
@@ -265,23 +298,30 @@ class SocketService {
     if (_baiguullagiinId == null || socket == null) return;
     final eventName = 'baiguullagiin$_baiguullagiinId';
     socket!.off(eventName, _onBaiguullagiinMedegdel);
-    if (callback != null) {
-      socket!.on(eventName, _onBaiguullagiinMedegdel);
-    }
+    socket!.on(eventName, _onBaiguullagiinMedegdel);
   }
 
   void _onBaiguullagiinMedegdel(dynamic data) {
-    if (_baiguullagiinMedegdelCallback == null) return;
     if (data is! Map && data is! Map<String, dynamic>) return;
     final map = data is Map<String, dynamic>
         ? data
         : Map<String, dynamic>.from(data as Map);
     final type = map['type']?.toString();
-    if (type == 'medegdelUserReply' ||
-        type == 'medegdelAdminReply' ||
-        type == 'blogNew' ||
+
+    // Blog updates should always trigger listeners regardless of medegdel callback
+    if (type == 'blogNew' ||
+        type == 'blogUpdate' ||
         type == 'blogReactionUpdate') {
-      _baiguullagiinMedegdelCallback!(map);
+      _notifyBlogUpdate();
+    }
+
+    if (_baiguullagiinMedegdelCallback != null) {
+      if (type == 'medegdelUserReply' ||
+          type == 'medegdelAdminReply' ||
+          type == 'blogNew' ||
+          type == 'blogReactionUpdate') {
+        _baiguullagiinMedegdelCallback!(map);
+      }
     }
   }
 

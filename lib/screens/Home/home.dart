@@ -866,6 +866,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         _loadNotificationCount(), // Also refresh notifications
         ApiService.getUserProfile(forceRefresh: true), // Sync user profile from web changes
       ]);
+      BlogSliderSection.refresh();
 
       // Force UI update
       if (mounted) {
@@ -1783,6 +1784,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     // _loadGereeData is now handled within _refreshBillingInfo
                     _loadNekhemjlekhCron(),
                   ]);
+                  BlogSliderSection.refresh();
                 },
                 color: AppColors.deepGreen,
                 child: SingleChildScrollView(

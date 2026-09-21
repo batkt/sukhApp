@@ -1,8 +1,9 @@
 /// Centralized API endpoints configuration
+import 'package:sukh_app/core/api/api_host.dart';
+
 class ApiEndpoints {
-  // Base URL
-  // static const String baseUrl = 'https://amarhome.mn/api';
-  static const String baseUrl = 'https://dev.amarhome.mn/api';
+  // Base URL — `ApiHost` дээрээс уншина (dev/prod сэлгэх нэг л газар).
+  static const String baseUrl = ApiHost.api;
 
 
   // API Version (if needed in future)

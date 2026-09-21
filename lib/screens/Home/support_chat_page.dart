@@ -20,10 +20,11 @@ import 'dart:io';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sukh_app/services/api_service.dart' show ApiService;
+import 'package:sukh_app/core/api/api_host.dart';
 
 /// Base URL of the org's own sukhBackv2 backend (same as the rest of the app).
 const String _kChatApiBase = ApiService.baseUrl;
-const String _kChatSocketUrl = 'https://amarhome.mn';
+const String _kChatSocketUrl = ApiHost.origin;
 
 class SupportChatPage extends StatefulWidget {
   final Map<String, dynamic> extra;
@@ -595,8 +596,8 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   String _buildFileUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    // medegdel files are served at: https://amarhome.mn/medegdel/{baiguullagiinId}/{filename}
-    return 'https://amarhome.mn/medegdel/$path';
+    // medegdel files are served at: <origin>/medegdel/{baiguullagiinId}/{filename}
+    return ApiHost.medegdeliinFile(path);
   }
 
   @override
