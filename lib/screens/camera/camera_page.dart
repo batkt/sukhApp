@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
-import 'package:sukh_app/widgets/webrtc_player.dart';
+import 'package:sukh_app/widgets/camera_player.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart' show buildStandardAppBar;
 
 // ─── Model ────────────────────────────────────────────────────────────────────
@@ -443,7 +443,7 @@ class _CameraCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            WebRTCPlayer(
+            CameraPlayer(
               key: ValueKey('cam_${camera.id}'),
               rtspUrl: camera.rtspUrl,
               barilgiinId: barilgiinId,
@@ -557,7 +557,7 @@ class _FullscreenViewState extends State<_FullscreenView> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          WebRTCPlayer(
+          CameraPlayer(
             key: ValueKey('fs_${widget.camera.id}'),
             rtspUrl: widget.camera.rtspUrl,
             barilgiinId: widget.barilgiinId,

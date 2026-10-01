@@ -303,6 +303,32 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     super.dispose();
   }
 
+  /// Зочны сесс ГАРСАН эсэх.
+  ///
+  /// Вэбийн `murNiiluulye`-тэй ижил дүрэм: `garsanKhaalga` байвал машин
+  /// гарсан. Нөөц болгон гарсан цаг болон урилгын `tuluv = 2`-ыг ч хардаг —
+  /// сессгүй хаагдсан урилга (цуцлагдсан) тэр хоёрын нэгээр л тодорхойлогдоно.
+  bool _garsanEsekh(Map<String, dynamic> item) {
+    final tuukh = item['tuukh'];
+    if (tuukh is List && tuukh.isNotEmpty) {
+      final mur = tuukh.first;
+      if (mur is Map) {
+        final khaalga = mur['garsanKhaalga'];
+        if (khaalga != null && khaalga.toString().trim().isNotEmpty) return true;
+
+        final tsaguud = mur['tsagiinTuukh'];
+        if (tsaguud is List && tsaguud.isNotEmpty) {
+          final tsag = tsaguud.first;
+          if (tsag is Map && tsag['garsanTsag'] != null) return true;
+        }
+      }
+    }
+
+    final um = item['urisanMashin'];
+    if (um is Map && (um['tuluv'] ?? 0) == 2) return true;
+    return (item['tuluv'] ?? 0) == 2;
+  }
+
   Future<void> _loadInvitedGuests({bool showLoading = true}) async {
     try {
       if (showLoading) setState(() => _isLoadingHistory = true);
@@ -324,21 +350,22 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             // Access nested 'urisanMashin' for jagsaalt items safely
             final historyItems = List<Map<String, dynamic>>.from(jagsaalt);
             
-            // "Идэвхтэй" (Active) - tuluv 1 or inside parking
-            _activeGuests = historyItems.where((item) {
-              final um = item['urisanMashin'];
-              final umTuluv = um != null ? (um['tuluv'] ?? 0) : 0;
-              final itemTuluv = item['tuluv'] ?? 0;
-              return umTuluv == 1 || itemTuluv == 1;
-            }).toList();
-
-            // "Гарсан" (Exited) - tuluv 2 or exited parking
-            _exitedGuests = historyItems.where((item) {
-              final um = item['urisanMashin'];
-              final umTuluv = um != null ? (um['tuluv'] ?? 0) : 0;
-              final itemTuluv = item['tuluv'] ?? 0;
-              return umTuluv == 2 || itemTuluv == 2;
-            }).toList();
+            // Төлвийг СЕССИЙН гарсан цагаар шийднэ, урилгын `tuluv`-ээр биш.
+            //
+            // ── Яагаад ──────────────────────────────────────────────────
+            // Урилгыг `tuluv = 2` болгодог код ердөө НЭГ газар бий
+            // (`sdkService` -ийн `turul === 'Зочин'` салаа). Машин өөр замаар
+            // гарвал — вэбийн автомат гаралт, үнэгүй гаралт, гар аргаар,
+            // цэвэрлэгчийн ажил — сесс хаагдсан ч урилга `1` хэвээр үлдэж,
+            // апп мөнхөд «Идэвхтэй» гэж харуулдаг байв.
+            //
+            // Вэбийн жагсаалт нь `tuukh[0].garsanKhaalga`-г хардаг тул зөв
+            // харагддаг. Ижил эх сурвалж дээр тулгуурлавал хоёр дэлгэц
+            // хэзээ ч зөрөхгүй.
+            _activeGuests =
+                historyItems.where((item) => !_garsanEsekh(item)).toList();
+            _exitedGuests =
+                historyItems.where((item) => _garsanEsekh(item)).toList();
 
             // Extract set of plate numbers that are active or exited
             final activeOrExitedPlates = <String>{};

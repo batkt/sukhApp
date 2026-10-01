@@ -11,6 +11,11 @@ import 'package:sukh_app/constants/constants.dart';
 class WebRTCPlayer extends StatefulWidget {
   final String rtspUrl;
   final String barilgiinId;
+  /// Урсгал нь товшилтгүйгээр ШУУД эхэлнэ.
+  ///
+  /// Камерын дэлгэц нээгдмэгц зураг харагдах ёстой — оператор нэмэлт
+  /// товшилт хийх шаардлагагүй. `false` дамжуулбал л тоглуулах товч гарна
+  /// (одоогоор хаанаас ч тэгж дууддаггүй).
   final bool autoStart;
   final Duration? delay;
 
@@ -18,7 +23,7 @@ class WebRTCPlayer extends StatefulWidget {
     super.key,
     required this.rtspUrl,
     required this.barilgiinId,
-    this.autoStart = false,
+    this.autoStart = true,
     this.delay,
   });
 

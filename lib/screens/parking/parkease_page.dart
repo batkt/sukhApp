@@ -9,8 +9,7 @@ import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
-import 'package:sukh_app/widgets/hls_player.dart';
-import 'package:sukh_app/widgets/webrtc_player.dart';
+import 'package:sukh_app/widgets/camera_player.dart';
 
 class ParkingGate {
   final String name;
@@ -92,7 +91,11 @@ class _ParkEasePageState extends State<ParkEasePage> {
   final Map<String, Map<String, dynamic>> _pendingPayments = {};
   final Map<String, bool> _isProcessingPayment = {};
   Map<String, dynamic>? _overallLatestRecognition;
-  String? _expandedGateKey;
+  /// ХААСАН хаалганууд. Хоосон = бүх урсгал зэрэг харагдана.
+  ///
+  /// Хяналтын дэлгэц тул орох, гарах хоёулаа зэрэг харагдах ёстой. Товшилт
+  /// нь хэрэггүй хаалгыг ХААХ зориулалттай.
+  final Set<String> _khaasanKhaalganuud = <String>{};
 
   bool _isSocketConnected = false;
   late final StreamSubscription _socketStatusSub;
@@ -781,7 +784,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
   Widget _buildGateItem(ParkingGate gate, ParkingSite site, int index) {
     final primaryCamera = gate.cameras.isNotEmpty ? gate.cameras[0] : null;
     final gateKey = '${site.id}_$index';
-    final isExpanded = _expandedGateKey == gateKey;
+    final isExpanded = !_khaasanKhaalganuud.contains(gateKey);
     final cameraIP = primaryCamera?.ip;
     final isOpening = cameraIP != null && (_openingGates[cameraIP] ?? false);
 
@@ -799,7 +802,11 @@ class _ParkEasePageState extends State<ParkEasePage> {
                 onTap: () {
                   if (cameraIP != null) {
                     setState(() {
-                      _expandedGateKey = isExpanded ? null : gateKey;
+                      if (isExpanded) {
+                        _khaasanKhaalganuud.add(gateKey);
+                      } else {
+                        _khaasanKhaalganuud.remove(gateKey);
+                      }
                     });
                   }
                 },
@@ -919,6 +926,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
             recognition,
             effectiveBarilgiinId,
             gateKey,
+            index,
           ),
       ],
     );
@@ -1034,6 +1042,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
     Map<String, dynamic>? recognition,
     String barilgiinId,
     String gateKey,
+    int index,
   ) {
     return Container(
       width: double.infinity,
@@ -1059,13 +1068,31 @@ class _ParkEasePageState extends State<ParkEasePage> {
                   final ip = camera.ip;
 
                   // rtsp://user:pass@ip:port/root
-                  final rtspUrl = 'rtsp://$user:$pass@$ip:$port/$root';
+                  //
+                  // Нэр/нууц үгийг ЗААВАЛ кодлоно. Камерын нууц үг дотор
+                  // `@` байвал хаяг хоёр `@`-тай болж, урсгалын зам хостыг
+                  // буруу уншиж WHEP 404 авна. Вэб болон `camera_page.dart` мөн кодлодог.
+                  final rtspUrl =
+                      'rtsp://${Uri.encodeComponent(user)}:${Uri.encodeComponent(pass)}@$ip:$port/$root';
 
-                  return WebRTCPlayer(
-                    key: ValueKey('player_$gateKey'),
-                    rtspUrl: rtspUrl,
-                    barilgiinId: barilgiinId,
-                    autoStart: true,
+                  // `RepaintBoundary` — видео фрэйм зурагдах бүрд хуудсын
+                  // бусад хэсэг дахин зурагдахаас сэргийлнэ. Зогсоолын хуудас
+                  // танилт, төлбөрийн event бүрд `setState` дууддаг тул
+                  // үүнгүйгээр урсгал бүр нийт UI-г нөлөөлнө.
+                  //
+                  // `delay` — урсгалуудыг ШАТЛАН асаана. Хоёр WebRTC холболт
+                  // ба хоёр техник декодерыг нэг мөчид хуваарилахыг оролдвол
+                  // хоёр дахь нь тогтворжих хүртэл мэдэгдэхүйц гацдаг.
+                  return RepaintBoundary(
+                    child: CameraPlayer(
+                      key: ValueKey('player_$gateKey'),
+                      rtspUrl: rtspUrl,
+                      barilgiinId: barilgiinId,
+                      autoStart: true,
+                      delay: index == 0
+                          ? null
+                          : Duration(milliseconds: 900 * index),
+                    ),
                   );
                 },
               ),

@@ -25,6 +25,17 @@ class ApiHost {
   /// REST API-ийн үндэс.
   static const String api = '$origin/api';
 
+  /// Камерын урсгалын WHEP үндэс (VPS дээрх MediaMTX).
+  ///
+  /// MediaMTX нь TLS-ийг ӨӨРӨӨ барьдаг — nginx-ээр проксилвол WHEP сессийн
+  /// `Location` угтвар эвдэрч, ICE хэзээ ч бүтдэггүй. Домэйн ижил тул
+  /// nginx-ийн сертификат таарна.
+  ///
+  /// ТЭМДЭГЛЭЛ: сертификат нь `amarhome.mn`-д бичигдсэн тул dev горимд
+  /// (`dev.amarhome.mn:8889`) таарахгүй — тэр үед плеер нөөц зам руу
+  /// сэлгэнэ.
+  static const String whep = '$origin:8889';
+
   /// `/medegdel/...` доорх файлын бүтэн хаягийг бүтээнэ.
   static String medegdeliinFile(String zam) => '$origin/medegdel/$zam';
 }
