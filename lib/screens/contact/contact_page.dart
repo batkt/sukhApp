@@ -236,7 +236,7 @@ class _ContactPageState extends State<ContactPage> {
                       style: TextStyle(
                         color: AppColors.deepGreen,
                         fontSize: 20.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                       textAlign: TextAlign.center,
                     ),

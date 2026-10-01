@@ -125,7 +125,7 @@ class UtilityAddPage extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: context.textPrimaryColor,
                     ),
                   ),

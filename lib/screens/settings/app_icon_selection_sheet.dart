@@ -8,6 +8,7 @@ import 'package:flutter_dynamic_icon_plus/flutter_dynamic_icon_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class AppIconOption {
   final String name;
@@ -181,7 +182,9 @@ class _AppIconSelectionSheetState extends State<AppIconSelectionSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Дүрс солиход алдаа гарлаа: ${e.toString()}'),
+            content: Text(
+              friendlyError(e, fallback: 'Аппын дүрс сольж чадсангүй. Дахин оролдоно уу.'),
+            ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),

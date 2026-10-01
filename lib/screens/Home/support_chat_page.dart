@@ -21,6 +21,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sukh_app/services/api_service.dart' show ApiService;
 import 'package:sukh_app/core/api/api_host.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 /// Base URL of the org's own sukhBackv2 backend (same as the rest of the app).
 const String _kChatApiBase = ApiService.baseUrl;
@@ -119,7 +120,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         showGlassSnackBar(context, message: 'Микрофон ашиглах зөвшөөрөл шаардлагатай.');
       }
     } catch (e) {
-      showGlassSnackBar(context, message: 'Бичлэг эхлүүлэхэд алдаа гарлаа: $e');
+      showGlassSnackBar(context, message: friendlyError(e, fallback: 'Дуу бичлэг эхлүүлж чадсангүй. Микрофоны зөвшөөрлөө шалгаад дахин оролдоно уу.'));
     }
   }
 
@@ -138,7 +139,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         }
       }
     } catch (e) {
-      showGlassSnackBar(context, message: 'Бичлэг хадгалахад алдаа гарлаа: $e');
+      showGlassSnackBar(context, message: friendlyError(e, fallback: 'Дуу бичлэг хадгалж чадсангүй. Дахин оролдоно уу.'));
     }
   }
 
@@ -154,7 +155,15 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   }
 
   Future<void> _uploadAndSendFile(File file, String fileType, {int? duration}) async {
-    if (_chatId == null) return;
+    if (_chatId == null) {
+      final ok = await _ensureThread(
+        fileType == 'audio' ? 'Дуут мессеж илгээлээ' : 'Файл илгээлээ',
+      ).catchError((_) => false);
+      if (!ok) {
+        if (mounted) showGlassSnackBar(context, message: 'Чат үүсгэж чадсангүй. Дахин оролдоно уу.', icon: Icons.error);
+        return;
+      }
+    }
     setState(() {
       _isUploading = true;
       _uploadProgress = 0.0;
@@ -232,7 +241,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         throw Exception('Server returned ${response.statusCode}');
       }
     } catch (e) {
-      showGlassSnackBar(context, message: 'Файл илгээхэд алдаа гарлаа: $e');
+      showGlassSnackBar(context, message: friendlyError(e, fallback: 'Файл илгээж чадсангүй. Дахин оролдоно уу.'));
     } finally {
       if (mounted) {
         setState(() {
@@ -262,7 +271,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
             children: [
               Text(
                 'Файл хавсаргах',
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
               ),
               SizedBox(height: 20.h),
               Row(
@@ -365,30 +374,8 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         }
       }
 
-      // 2. If no existing thread, create one
-      if (_chatId == null) {
-        final createRes = await http.post(
-          Uri.parse('$_kChatApiBase/medegdelIlgeeye'),
-          headers: headers,
-          body: jsonEncode({
-            'orshinSuugchId': _userId,
-            'baiguullagiinId': _baiguullagiinId,
-            if (_barilgiinId != null) 'barilgiinId': _barilgiinId,
-            'turul': 'sanal',
-            'medeelel': {
-              'title': '$_baiguullagaName - Чат',
-              'body': 'Оршин суугч чат нээлээ.',
-            },
-          }),
-        );
-        if (createRes.statusCode == 200 || createRes.statusCode == 201) {
-          final createData = jsonDecode(createRes.body);
-          final dataList = createData['data'] as List<dynamic>?;
-          if (dataList != null && dataList.isNotEmpty) {
-            _chatId = dataList.first['_id']?.toString();
-          }
-        }
-      }
+      // 2. Шинэ thread-ийг ЭХНИЙ мессеж илгээх үед л үүсгэнэ (_ensureThread).
+      //    Өмнө нь чат нээх бүрд «Оршин суугч чат нээлээ.» мессеж үүсдэг байв.
 
       if (_chatId != null) {
         await _fetchMessages();
@@ -411,9 +398,43 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       if (mounted) {
         setState(() => _isLoading = false);
         _fadeController.forward();
-        showGlassSnackBar(context, message: 'Чат холбоход алдаа гарлаа: $e');
+        showGlassSnackBar(context, message: friendlyError(e, fallback: 'Чаттай холбогдож чадсангүй. Дахин оролдоно уу.'));
       }
     }
+  }
+
+  /// Хуучин хувилбарын автомат мессеж — харуулахгүй
+  static const _khuuchinAutoMessej = 'Оршин суугч чат нээлээ.';
+
+  /// Thread байхгүй бол эхний мессежийг агуулгатай нь үүсгэнэ.
+  Future<bool> _ensureThread(String ekhniiMessej) async {
+    if (_chatId != null) return true;
+    if (_userId == null || _baiguullagiinId == null) return false;
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
+    final createRes = await http.post(
+      Uri.parse('$_kChatApiBase/medegdelIlgeeye'),
+      headers: headers,
+      body: jsonEncode({
+        'orshinSuugchId': _userId,
+        'baiguullagiinId': _baiguullagiinId,
+        if (_barilgiinId != null) 'barilgiinId': _barilgiinId,
+        'turul': 'sanal',
+        'medeelel': {
+          'title': '$_baiguullagaName - Чат',
+          'body': ekhniiMessej,
+        },
+      }),
+    );
+    if (createRes.statusCode == 200 || createRes.statusCode == 201) {
+      final createData = jsonDecode(createRes.body);
+      final dataList = createData['data'] as List<dynamic>?;
+      if (dataList != null && dataList.isNotEmpty) {
+        _chatId = dataList.first['_id']?.toString();
+      }
+    }
+    if (_chatId != null && _socket == null) _connectSocket();
+    return _chatId != null;
   }
 
   void _connectSocket() {
@@ -465,10 +486,12 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         final list = resData['data'] as List<dynamic>? ?? [];
         final lastOldId = _messages.isNotEmpty ? _messages.last['_id'] : null;
         final lastNewId = list.isNotEmpty ? list.last['_id'] : null;
-        final hasNew = list.length != _messages.length || lastOldId != lastNewId;
+        final hasNew = lastOldId != lastNewId;
         if (mounted) {
           setState(() {
-            _messages = list;
+            _messages = list
+                .where((m) => (m is Map ? m['message']?.toString().trim() : null) != _khuuchinAutoMessej)
+                .toList();
           });
           if (hasNew) {
             _scrollToBottom();
@@ -484,7 +507,23 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _chatId == null) return;
+    if (text.isEmpty) return;
+    if (_chatId == null) {
+      // Эхний мессеж нь thread-ийн эх (root) болно — давхар reply илгээхгүй
+      _messageController.clear();
+      try {
+        final ok = await _ensureThread(text);
+        if (!ok) throw Exception('Чат үүсгэж чадсангүй');
+        await _fetchMessages(silent: true);
+        _scrollToBottom();
+      } catch (e) {
+        _messageController.text = text;
+        if (mounted) {
+          showGlassSnackBar(context, message: friendlyError(e, fallback: 'Мессеж илгээж чадсангүй. Дахин оролдоно уу.'));
+        }
+      }
+      return;
+    }
 
     final tempMsg = {
       'message': text,
@@ -522,7 +561,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       }
     } catch (e) {
       if (mounted) {
-        showGlassSnackBar(context, message: 'Мессеж илгээхэд алдаа гарлаа: $e');
+        showGlassSnackBar(context, message: friendlyError(e, fallback: 'Мессеж илгээж чадсангүй. Дахин оролдоно уу.'));
       }
     }
   }
@@ -565,7 +604,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       }
     } catch (e) {
       if (mounted) {
-        showGlassSnackBar(context, message: 'Мессеж илгээхэд алдаа гарлаа: $e');
+        showGlassSnackBar(context, message: friendlyError(e, fallback: 'Мессеж илгээж чадсангүй. Дахин оролдоно уу.'));
       }
     }
   }
@@ -596,8 +635,32 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   String _buildFileUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    // medegdel files are served at: <origin>/medegdel/{baiguullagiinId}/{filename}
-    return ApiHost.medegdeliinFile(path);
+    // Backend нь /api/medegdel/:baiguullagiinId/:ner-ийг ч үйлчилдэг. /api нь
+    // аппын бусад хүсэлтийн адил үргэлж backend рүү proxy хийгддэг тул түүнийг
+    // ашиглана (origin/medegdel-ийг nginx бүх орчинд дамжуулдаггүй).
+    return '${ApiHost.api}/medegdel/${path.startsWith('/') ? path.substring(1) : path}';
+  }
+
+  Widget _zuragAchaalagdsangui(bool isDark) {
+    return Container(
+      width: 200.w,
+      height: 120.h,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.grey[200],
+        borderRadius: BorderRadius.circular(14.r),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.broken_image_outlined, color: Colors.grey[500], size: 28.sp),
+          SizedBox(height: 6.h),
+          Text(
+            'Зураг ачаалагдсангүй',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12.sp),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -620,7 +683,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                 style: TextStyle(
                   color: isDark ? Colors.white : Colors.black87,
                   fontSize: 17.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               leading: IconButton(
@@ -697,12 +760,17 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                     // medegdel backend: user replies have turul='user_reply'
                     // The root medegdel itself (turul='sanal') is the admin greeting,
                     // shown as agent message. Temp messages added locally also use 'user_reply'.
-                    final isMe = msg['turul'] == 'user_reply' || msg['isTemp'] == true;
+                    // Thread-ийн эх (root) нь одоо оршин суугчийн эхний мессеж
+                    final isMe = msg['turul'] == 'user_reply' ||
+                        msg['isTemp'] == true ||
+                        (msg['_id']?.toString() == _chatId && msg['orshinSuugchId'] != null);
                     int lastKhariuIdx = -1;
                     int lastUserIdx = -1;
                     for (int i = _messages.length - 1; i >= 0; i--) {
                       final t = _messages[i]['turul'];
-                      final isUserMsg = t == 'user_reply' || _messages[i]['isTemp'] == true;
+                      final isUserMsg = t == 'user_reply' ||
+                          _messages[i]['isTemp'] == true ||
+                          _messages[i]['_id']?.toString() == _chatId;
                       if (!isUserMsg && lastKhariuIdx == -1) lastKhariuIdx = i;
                       if (isUserMsg && lastUserIdx == -1) lastUserIdx = i;
                     }
@@ -798,7 +866,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                   style: TextStyle(
                     color: Colors.green,
                     fontSize: 12.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 backgroundColor: Colors.green.withOpacity(0.06),
@@ -881,6 +949,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                 imgUrl,
                 width: 220.w,
                 fit: BoxFit.cover,
+                errorBuilder: (ctx, err, st) => _zuragAchaalagdsangui(isDark),
                 loadingBuilder: (ctx, child, progress) => progress == null
                     ? child
                     : Container(
@@ -936,9 +1005,10 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                   height: 1.4,
                 ),
               ),
-              if (fileUrl != null) SizedBox(height: 8.h),
+              if (effectiveFileUrl != null) SizedBox(height: 8.h),
             ],
-            if (fileUrl != null) ...[
+            // Дуут мессеж (duu) zurag-гүй тул өмнө нь огт зурагддаггүй байв
+            if (effectiveFileUrl != null) ...[
               if (fileType == 'image')
                 GestureDetector(
                   onTap: () {
@@ -955,7 +1025,12 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                   },
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8.r),
-                    child: Image.network(_buildFileUrl(effectiveFileUrl), width: 200.w, fit: BoxFit.fitWidth),
+                    child: Image.network(
+                      _buildFileUrl(effectiveFileUrl),
+                      width: 200.w,
+                      fit: BoxFit.fitWidth,
+                      errorBuilder: (ctx, err, st) => _zuragAchaalagdsangui(isDark),
+                    ),
                   ),
                 )
               else if (fileType == 'video')
@@ -1038,7 +1113,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
             SizedBox(width: 8.w),
             Text(
               'Дуу хурааж байна... ${_recordingTime ~/ 60}:${(_recordingTime % 60).toString().padLeft(2, '0')}',
-              style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.bold, fontSize: 14.sp),
+              style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.w600, fontSize: 14.sp),
             ),
             const Spacer(),
             TextButton(
@@ -1054,7 +1129,7 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               ),
-              child: Text('Илгээх', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold)),
+              child: Text('Илгээх', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600)),
             ),
           ],
         ),

@@ -9,6 +9,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/models/blog_model.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:intl/intl.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class BlogListPage extends StatefulWidget {
   const BlogListPage({super.key});
@@ -69,7 +70,7 @@ class _BlogListPageState extends State<BlogListPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = friendlyError(e, fallback: 'Мэдээ татаж чадсангүй. Дахин оролдоно уу.');
           _isLoading = false;
         });
       }

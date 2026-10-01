@@ -13,6 +13,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 /// Normalize zurag/duu path: backend may store "public/medegdel/baiguullagiinId/file",
 /// "\public\medegdel\...", "baiguullagiinId/file", or an absolute URL.
@@ -272,7 +273,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         setState(() => _playingVoiceMessageId = null);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
+        ).showSnackBar(SnackBar(content: Text(friendlyError(e, fallback: 'Дуу тоглуулж чадсангүй. Дахин оролдоно уу.'))));
       }
     }
   }
@@ -320,7 +321,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
       if (mounted)
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
+        ).showSnackBar(SnackBar(content: Text(friendlyError(e, fallback: 'Зураг сонгож чадсангүй. Зөвшөөрлөө шалгаад дахин оролдоно уу.'))));
     }
   }
 
@@ -347,7 +348,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         setState(() => _recording = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
+        ).showSnackBar(SnackBar(content: Text(friendlyError(e, fallback: 'Дуу бичлэг эхлүүлж чадсангүй. Микрофоны зөвшөөрлөө шалгаад дахин оролдоно уу.'))));
       }
     }
   }
@@ -428,7 +429,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Илгээхэд алдаа: ${e is Exception ? e.toString() : e}',
+              friendlyError(e, fallback: 'Хариу илгээж чадсангүй. Дахин оролдоно уу.'),
             ),
           ),
         );
@@ -506,7 +507,7 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        color: context.isDarkMode ? const Color(0xFF151A21) : Colors.white,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(
             context.responsiveBorderRadius(
@@ -569,58 +570,69 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               ),
             ),
           ),
+          // Толгой: төрлийн дүрс + нэр + огноо, дугуй хаах товч
           Padding(
-            padding: EdgeInsets.all(
-              context.responsiveSpacing(
-                small: 14,
-                medium: 15,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 12,
-              ),
-            ),
+            padding: EdgeInsets.fromLTRB(20.w, 14.h, 14.w, 6.h),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    isGomdol
-                        ? 'Гомдол'
-                        : isSanal
-                        ? 'Санал'
-                        : 'Мэдэгдэл',
-                    style: TextStyle(
-                      color: context.textPrimaryColor,
-                      fontSize: context.responsiveFontSize(
-                        small: 14,
-                        medium: 15,
-                        large: 16,
-                        tablet: 18,
-                        veryNarrow: 12,
-                      ),
-                      fontWeight: FontWeight.w600,
+                Container(
+                  width: 40.w,
+                  height: 40.w,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: _turliinOngo(isGomdol, isSanal),
                     ),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(_turliinDurs(isGomdol, isSanal), color: Colors.white, size: 20.sp),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isGomdol ? 'Гомдол' : isSanal ? 'Санал' : 'Мэдэгдэл',
+                        style: TextStyle(
+                          color: context.textPrimaryColor,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        _notification.formattedDateTime,
+                        style: TextStyle(
+                          color: context.textSecondaryColor,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.close,
-                    color: context.textPrimaryColor,
-                    size: context.responsiveFontSize(
-                      small: 20,
-                      medium: 22,
-                      large: 24,
-                      tablet: 26,
-                      veryNarrow: 18,
+                Material(
+                  color: context.isDarkMode
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.black.withOpacity(0.05),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () {
+                      final turul = _notification.turul.toLowerCase();
+                      final isChatOrMedegdel =
+                          turul == 'app' || turul == 'sanal' || turul == 'gomdol';
+                      final wasMarkedAsRead =
+                          _notification.kharsanEsekh && isChatOrMedegdel;
+                      Navigator.pop(context, wasMarkedAsRead);
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.all(8.w),
+                      child: Icon(Icons.close_rounded,
+                          size: 20.sp, color: context.textPrimaryColor),
                     ),
                   ),
-                  onPressed: () {
-                    final turul = _notification.turul.toLowerCase();
-                    final isChatOrMedegdel =
-                        turul == 'app' || turul == 'sanal' || turul == 'gomdol';
-                    final wasMarkedAsRead =
-                        _notification.kharsanEsekh && isChatOrMedegdel;
-                    Navigator.pop(context, wasMarkedAsRead);
-                  },
                 ),
               ],
             ),
@@ -691,7 +703,72 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
     return t == 'sanal' || t == 'санал' || t == 'gomdol' || t == 'гомдол';
   }
 
+  List<Color> _turliinOngo(bool isGomdol, bool isSanal) => isGomdol
+      ? const [Color(0xFFFF9A62), Color(0xFFEA580C)]
+      : isSanal
+          ? const [Color(0xFFB794F6), Color(0xFF7C3AED)]
+          : const [Color(0xFF1A7A5E), AppColors.deepGreen];
+
+  IconData _turliinDurs(bool isGomdol, bool isSanal) => isGomdol
+      ? Icons.report_rounded
+      : isSanal
+          ? Icons.lightbulb_rounded
+          : Icons.notifications_rounded;
+
+  /// Энгийн мэдэгдэл (хариу/чатгүй) — нийтлэл маягаар уншигдахуйц харуулна
+  Widget _buildMedegdelNiitlel() {
+    final title = _notification.title.trim();
+    final message = _notification.message.trim();
+    final isDark = context.isDarkMode;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 32.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title.isNotEmpty)
+            SelectableText(
+              title,
+              style: TextStyle(
+                color: context.textPrimaryColor,
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+                letterSpacing: -0.4,
+              ),
+            ),
+          if (title.isNotEmpty && message.isNotEmpty) SizedBox(height: 14.h),
+          if (message.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF3F5F2),
+                borderRadius: BorderRadius.circular(18.r),
+              ),
+              child: SelectableText(
+                message,
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 15.5.sp,
+                  height: 1.55,
+                ),
+              ),
+            ),
+          if (_notification.zurag != null && _notification.zurag!.isNotEmpty) ...[
+            SizedBox(height: 14.h),
+            _buildNotificationImages(_notification.zurag, (p) => _showImageZoom(p)),
+          ],
+          SizedBox(height: 18.h),
+          
+        ],
+      ),
+    );
+  }
+
   Widget _buildContent(bool isGomdol, bool isSanal) {
+    if (!isGomdol && !isSanal && !_threadLoading && _threadItems.isEmpty) {
+      return _buildMedegdelNiitlel();
+    }
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
         horizontal: context.responsiveSpacing(
@@ -721,70 +798,21 @@ class _MedegdelDetailModalState extends State<MedegdelDetailModal> {
               veryNarrow: 4,
             ),
           ),
-          // Title
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: context.responsiveSpacing(
-                small: 12,
-                medium: 14,
-                large: 16,
-                tablet: 18,
-                veryNarrow: 10,
-              ),
-              vertical: context.responsiveSpacing(
-                small: 10,
-                medium: 12,
-                large: 14,
-                tablet: 16,
-                veryNarrow: 8,
-              ),
-            ),
-            decoration: BoxDecoration(
-              color: context.isDarkMode
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.03),
-              border: Border.all(
-                color: context.isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.1),
-                width: 1,
-              ),
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 8,
-                  medium: 10,
-                  large: 12,
-                  tablet: 14,
-                  veryNarrow: 6,
+          // Гарчиг — оролтын талбар мэт хүрээгүй, энгийн тод бичвэр
+          if (_notification.title.trim().isNotEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.w),
+              child: Text(
+                _notification.title,
+                style: TextStyle(
+                  color: context.textPrimaryColor,
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w700,
+                  height: 1.3,
+                  letterSpacing: -0.3,
                 ),
               ),
             ),
-            child: Text(
-              _notification.title,
-              style: TextStyle(
-                color: context.textPrimaryColor,
-                fontSize: context.responsiveFontSize(
-                  small: 16,
-                  medium: 17,
-                  large: 18,
-                  tablet: 20,
-                  veryNarrow: 14,
-                ),
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
-            ),
-          ),
-          SizedBox(
-            height: context.responsiveSpacing(
-              small: 10,
-              medium: 11,
-              large: 12,
-              tablet: 14,
-              veryNarrow: 8,
-            ),
-          ),
           // Message and Images are now part of the chat thread as bubbles to show authorship alignment
           SizedBox(
             height: context.responsiveSpacing(
@@ -1902,7 +1930,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         setState(() => _playingVoiceMessageId = null);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Дуу тоглуулахад алдаа: $e')));
+        ).showSnackBar(SnackBar(content: Text(friendlyError(e, fallback: 'Дуу тоглуулж чадсангүй. Дахин оролдоно уу.'))));
       }
     }
   }
@@ -1951,7 +1979,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
       if (mounted)
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Зураг сонгоход алдаа: $e')));
+        ).showSnackBar(SnackBar(content: Text(friendlyError(e, fallback: 'Зураг сонгож чадсангүй. Зөвшөөрлөө шалгаад дахин оролдоно уу.'))));
     }
   }
 
@@ -1978,7 +2006,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         setState(() => _recording = false);
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Дуу бичих эхлэхэд алдаа: $e')));
+        ).showSnackBar(SnackBar(content: Text(friendlyError(e, fallback: 'Дуу бичлэг эхлүүлж чадсангүй. Микрофоны зөвшөөрлөө шалгаад дахин оролдоно уу.'))));
       }
     }
   }
@@ -2059,7 +2087,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Илгээхэд алдаа: ${e is Exception ? e.toString() : e}',
+              friendlyError(e, fallback: 'Хариу илгээж чадсангүй. Дахин оролдоно уу.'),
             ),
           ),
         );
@@ -2377,7 +2405,7 @@ class _MedegdelDetailScreenState extends State<MedegdelDetailScreen> {
                         //                 tablet: 21,
                         //                 veryNarrow: 14,
                         //               ),
-                        //               fontWeight: FontWeight.bold,
+                        //               fontWeight: FontWeight.w600,
                         //             ),
                         //           ),
                         //         ],

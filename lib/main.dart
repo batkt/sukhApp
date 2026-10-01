@@ -5,6 +5,7 @@ import 'router/app_router.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/services/connectivity_service.dart';
+import 'package:sukh_app/widgets/offline_banner.dart';
 import 'package:sukh_app/services/shake_service.dart';
 import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/services/update_service.dart';
@@ -65,8 +66,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         _connectivityService.initialize(navigatorKey.currentContext!);
         // Initialize shake detection after context is ready
         ShakeService.initialize();
-        // Check for app updates
-        _checkForUpdate();
+        // Шинэчлэлтийг нүүр хуудсан дээр шалгана (home.dart →
+        // showUpdateModalIfAvailable) — нэвтрэх дэлгэц дээр гаргахгүй.
       }
     });
   }
@@ -440,6 +441,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                       content = ShakeHintOverlay(
                         child: content,
                       );
+                      // Интернэтгүй үед байнгын мэдэгдэл
+                      content = OfflineBanner(child: content);
                       if (_isDecember()) {
                         content = SnowEffect(child: content);
                       }

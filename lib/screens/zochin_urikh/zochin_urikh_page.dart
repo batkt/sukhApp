@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/widgets/mongol_plate_keyboard.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
@@ -11,6 +12,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:intl/intl.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/logger.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class ZochinUrikhPage extends StatefulWidget {
   const ZochinUrikhPage({super.key});
@@ -68,6 +70,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _mashiniiDugaarController.addListener(_onPlateTextChanged);
+    _plateFocusNode.addListener(_onPlateFocusChanged);
     _loadUserPhone();
     _loadTulburiinTurul();
     _loadInvitedGuests();
@@ -78,7 +81,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
 
   void _onPlateTextChanged() {
     final text = _mashiniiDugaarController.text;
-    final targetType = text.length < 4 ? TextInputType.number : TextInputType.text;
+    // 4 цифр орсны дараа системийн гарыг нууж, апп доторх монгол гарыг харуулна
+    final targetType = MongolPlateKeyboard.keyboardTypeFor(text);
     if (_plateKeyboardType != targetType) {
       setState(() {
         _plateKeyboardType = targetType;
@@ -92,6 +96,10 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     } else {
       if (mounted) setState(() {});
     }
+  }
+
+  void _onPlateFocusChanged() {
+    if (mounted) setState(() {});
   }
 
   void _setupSocketListener() {
@@ -276,7 +284,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
         setState(() {
           _isLoadingQuota = false;
           _hasQuota = true; // Fallback to allow attempt if we can't check
-          _quotaError = e.toString();
+          _quotaError = friendlyError(e, fallback: 'Зочин урих эрхийн мэдээлэл татаж чадсангүй.');
         });
       }
     }
@@ -296,6 +304,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   void dispose() {
     SocketService.instance.removeNotificationCallback(_handleSocketMessage);
     _mashiniiDugaarController.removeListener(_onPlateTextChanged);
+    _plateFocusNode.removeListener(_onPlateFocusChanged);
     _plateFocusNode.dispose();
     _tabController.dispose();
     _mashiniiDugaarController.dispose();
@@ -510,15 +519,10 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = e.toString();
-        
-        // Clean up common technical prefixes
-        if (errorMessage.startsWith('Exception: ')) {
-          errorMessage = errorMessage.replaceFirst('Exception: ', '');
-        }
-        if (errorMessage.contains('Зочин хадгалахад алдаа гарлаа:')) {
-          errorMessage = errorMessage.replaceFirst('Зочин хадгалахад алдаа гарлаа:', '').trim();
-        }
+        final errorMessage = friendlyError(
+          e,
+          fallback: 'Зочин урьж чадсангүй. Дахин оролдоно уу.',
+        );
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -672,7 +676,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                             tablet: 20,
                             veryNarrow: 14,
                           ),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       SizedBox(height: context.responsiveSpacing(
@@ -811,9 +815,15 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                         },
                       ),
 
-                      // Кирилл үсгийн товчлуур - утасны хэлийг солихгүйгээр
-                      // сүүлийн 3 үсгийг шууд оруулах
-                      _buildKirillTovchluur(),
+                      // 4 цифр орсны дараа монгол гар шууд гарна - утасны
+                      // хэлийг солих шаардлагагүй
+                      if (_plateFocusNode.hasFocus &&
+                          MongolPlateKeyboard.kheregtei(
+                              _mashiniiDugaarController.text))
+                        MongolPlateKeyboard(
+                          controller: _mashiniiDugaarController,
+                          onDone: () => _plateFocusNode.unfocus(),
+                        ),
 
                       SizedBox(height: context.responsiveSpacing(
                         small: 16,
@@ -1001,7 +1011,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                                        style: TextStyle(
                                          color: Colors.white,
                                          fontSize: 15.sp,
-                                         fontWeight: FontWeight.bold,
+                                         fontWeight: FontWeight.w600,
                                        ),
                                      ),
                                    ],
@@ -1034,7 +1044,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                     tablet: 20,
                     veryNarrow: 14,
                   ),
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               SizedBox(height: 12.h),
@@ -1063,7 +1073,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                   unselectedLabelColor: context.textPrimaryColor, // Inactive Color
                   labelStyle: TextStyle(
                     fontSize: 12.sp, 
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                   unselectedLabelStyle: TextStyle(
                     fontSize: 12.sp, 
@@ -1158,112 +1168,6 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// Улсын дугаарын сүүлийн 3 үсгийг оруулах кирилл товчлуур.
-  ///
-  /// ЯАГААД: утасны гаралтын хэлийг апп дундаас солих API байхгүй -
-  /// TextInputType нь зөвхөн товчлуурын ТӨРЛИЙГ (тоо/текст) сонгодог, ХЭЛИЙГ
-  /// нь биш. Тиймээс 4 цифр орсны дараа кирилл үсгийг өөрсдөө өгнө.
-  Widget _buildKirillTovchluur() {
-    final tekst = _mashiniiDugaarController.text;
-
-    // Зөвхөн 4 цифр орсны дараа, 7 тэмдэгт болтол харуулна
-    if (tekst.length < 4 || tekst.length >= 7) return const SizedBox.shrink();
-
-    const useguud = [
-      'А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И',
-      'Й', 'К', 'Л', 'М', 'Н', 'О', 'Ө', 'П', 'Р', 'С',
-      'Т', 'У', 'Ү', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ',
-      'Ы', 'Ь', 'Э', 'Ю', 'Я',
-    ];
-
-    void useg(String u) {
-      if (_mashiniiDugaarController.text.length >= 7) return;
-      _mashiniiDugaarController.text = _mashiniiDugaarController.text + u;
-      _mashiniiDugaarController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _mashiniiDugaarController.text.length),
-      );
-    }
-
-    void ustga() {
-      final odoo = _mashiniiDugaarController.text;
-      if (odoo.isEmpty) return;
-      _mashiniiDugaarController.text = odoo.substring(0, odoo.length - 1);
-      _mashiniiDugaarController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _mashiniiDugaarController.text.length),
-      );
-    }
-
-    return Padding(
-      padding: EdgeInsets.only(top: 10.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.keyboard_alt_outlined,
-                size: 13.sp,
-                color: context.textSecondaryColor,
-              ),
-              SizedBox(width: 5.w),
-              Text(
-                'Үсэг сонгоно уу (${tekst.length - 4}/3)',
-                style: TextStyle(
-                  color: context.textSecondaryColor,
-                  fontSize: 11.sp,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: ustga,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                  child: Icon(
-                    Icons.backspace_outlined,
-                    size: 15.sp,
-                    color: context.textSecondaryColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 6.h),
-          Wrap(
-            spacing: 6.w,
-            runSpacing: 6.h,
-            children: useguud
-                .map(
-                  (u) => GestureDetector(
-                    onTap: () => useg(u),
-                    child: Container(
-                      width: 34.w,
-                      height: 34.w,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: context.surfaceColor.withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(
-                          color: context.borderColor.withOpacity(0.5),
-                        ),
-                      ),
-                      child: Text(
-                        u,
-                        style: TextStyle(
-                          color: context.textPrimaryColor,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
       ),
     );
   }
@@ -1471,7 +1375,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                   (total == 0 || total > 999) ? 'Хязгааргүй' : '$remaining/$total үлдсэн',
                   style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontSize: context.responsiveFontSize(
                       small: 11,
                       medium: 12,
@@ -1590,7 +1494,10 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(friendlyError(e, fallback: 'Урилга цуцалж чадсангүй. Дахин оролдоно уу.')),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -1922,7 +1829,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),

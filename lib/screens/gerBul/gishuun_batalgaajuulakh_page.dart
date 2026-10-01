@@ -8,6 +8,8 @@ import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/error_message.dart';
+import 'package:sukh_app/widgets/otp_code_input.dart';
 
 /// Гэр бүлийн гишүүн 4 оронтой урилгын кодоо оруулж,
 /// өөрийн нэр, нууц үгээ тохируулан бүртгэлээ баталгаажуулах хуудас.
@@ -30,11 +32,9 @@ class _GishuunBatalgaajuulakhPageState
     extends State<GishuunBatalgaajuulakhPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // 4 оронтой кодын 4 тусдаа controller, focus node
-  final List<TextEditingController> _kodControllers =
-      List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _kodFocusNodes =
-      List.generate(4, (_) => FocusNode());
+  // 4 оронтой код — нэг controller (SMS autofill бүх оронг нэг дор бөглөнө)
+  final _otpController = TextEditingController();
+  final _otpFocusNode = FocusNode();
 
   // Хэрэглэгч өөрийн нэрээ бөглөх талбарууд
   final _ovogController = TextEditingController();
@@ -55,10 +55,8 @@ class _GishuunBatalgaajuulakhPageState
   void initState() {
     super.initState();
     if (widget.initialCode != null && widget.initialCode!.isNotEmpty) {
-      final chars = widget.initialCode!.trim().split('');
-      for (var i = 0; i < 4 && i < chars.length; i++) {
-        _kodControllers[i].text = chars[i];
-      }
+      final kod = widget.initialCode!.trim();
+      _otpController.text = kod.length > 4 ? kod.substring(0, 4) : kod;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_kod.length == 4) {
           _shalgaya();
@@ -69,12 +67,8 @@ class _GishuunBatalgaajuulakhPageState
 
   @override
   void dispose() {
-    for (final c in _kodControllers) {
-      c.dispose();
-    }
-    for (final f in _kodFocusNodes) {
-      f.dispose();
-    }
+    _otpController.dispose();
+    _otpFocusNode.dispose();
     _ovogController.dispose();
     _nerController.dispose();
     _nuutsUgController.dispose();
@@ -82,7 +76,7 @@ class _GishuunBatalgaajuulakhPageState
     super.dispose();
   }
 
-  String get _kod => _kodControllers.map((c) => c.text).join();
+  String get _kod => _otpController.text;
 
   bool get _bugdBugluusun =>
       _kod.length == 4 &&
@@ -118,7 +112,7 @@ class _GishuunBatalgaajuulakhPageState
       setState(() {
         _isCheckingCode = false;
         _urilgaInfo = null;
-        _codeError = e.toString().replaceAll('Exception: ', '');
+        _codeError = friendlyError(e, fallback: 'Урилгын код шалгаж чадсангүй. Дахин оролдоно уу.');
       });
     }
   }
@@ -192,7 +186,7 @@ class _GishuunBatalgaajuulakhPageState
       setState(() => _isLoading = false);
       showGlassSnackBar(
         context,
-        message: e.toString().replaceAll('Exception: ', ''),
+        message: friendlyError(e, fallback: 'Гишүүнчлэл баталгаажуулж чадсангүй. Дахин оролдоно уу.'),
         icon: Icons.error_outline,
         iconColor: Colors.red,
       );
@@ -318,7 +312,7 @@ class _GishuunBatalgaajuulakhPageState
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 21.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: context.textPrimaryColor,
                         letterSpacing: -0.5,
                       ),
@@ -342,12 +336,18 @@ class _GishuunBatalgaajuulakhPageState
                     Center(
                       child: SizedBox(
                         width: 270.w,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            for (var i = 0; i < 4; i++)
-                              _buildKodBox(i, isDark),
-                          ],
+                        child: OtpCodeInput(
+                          controller: _otpController,
+                          focusNode: _otpFocusNode,
+                          autofocus: false,
+                          onChanged: (_) => setState(() {
+                            _urilgaInfo = null;
+                            _codeError = null;
+                          }),
+                          onCompleted: (_) {
+                            _otpFocusNode.unfocus();
+                            _shalgaya();
+                          },
                         ),
                       ),
                     ),
@@ -495,7 +495,7 @@ class _GishuunBatalgaajuulakhPageState
                       },
                       style: TextStyle(
                         fontSize: 15.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: context.textPrimaryColor,
                         letterSpacing: 4,
                       ),
@@ -535,7 +535,7 @@ class _GishuunBatalgaajuulakhPageState
                       },
                       style: TextStyle(
                         fontSize: 15.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: context.textPrimaryColor,
                         letterSpacing: 4,
                       ),
@@ -601,7 +601,7 @@ class _GishuunBatalgaajuulakhPageState
                       'Урилга баталгаажлаа',
                       style: TextStyle(
                         fontSize: 13.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.deepGreen,
                       ),
                     ),
@@ -678,7 +678,7 @@ class _GishuunBatalgaajuulakhPageState
         utga,
         style: TextStyle(
           fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: context.textSecondaryColor,
         ),
       ),
@@ -739,105 +739,6 @@ class _GishuunBatalgaajuulakhPageState
     );
   }
 
-  Widget _buildKodBox(int index, bool isDark) {
-    final isFocused = _kodFocusNodes[index].hasFocus;
-    final hasValue = _kodControllers[index].text.isNotEmpty;
-
-    return SizedBox(
-      width: 58.w,
-      height: 64.h,
-      child: KeyboardListener(
-        focusNode: FocusNode(),
-        onKeyEvent: (KeyEvent event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.backspace) {
-            if (_kodControllers[index].text.isEmpty && index > 0) {
-              _kodControllers[index - 1].clear();
-              _kodFocusNodes[index - 1].requestFocus();
-              setState(() {
-                _urilgaInfo = null;
-                _codeError = null;
-              });
-            }
-          }
-        },
-        child: TextFormField(
-          controller: _kodControllers[index],
-          focusNode: _kodFocusNodes[index],
-          textAlign: TextAlign.center,
-          keyboardType: TextInputType.number,
-          autofillHints: const [AutofillHints.oneTimeCode],
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: TextStyle(
-            color: context.textPrimaryColor,
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
-            height: 1.2,
-          ),
-          decoration: InputDecoration(
-            counterText: '',
-            contentPadding: EdgeInsets.symmetric(vertical: 16.h),
-            filled: true,
-            fillColor: isDark
-                ? (isFocused
-                    ? AppColors.deepGreen.withValues(alpha: 0.12)
-                    : Colors.white.withValues(alpha: 0.05))
-                : (isFocused
-                    ? AppColors.deepGreen.withValues(alpha: 0.06)
-                    : const Color(0xFFF5F7FA)),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.r),
-              borderSide: BorderSide(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.1)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 1.2,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.r),
-              borderSide: BorderSide(
-                color: hasValue
-                    ? AppColors.deepGreen.withValues(alpha: 0.6)
-                    : (isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : Colors.black.withValues(alpha: 0.08)),
-                width: hasValue ? 1.5 : 1.2,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.r),
-              borderSide: const BorderSide(
-                color: AppColors.deepGreen,
-                width: 2.0,
-              ),
-            ),
-          ),
-          onChanged: (val) {
-            if (val.length > 1) {
-              val = val.substring(val.length - 1);
-              _kodControllers[index].text = val;
-              _kodControllers[index].selection =
-                  TextSelection.fromPosition(TextPosition(offset: val.length));
-            }
-            setState(() {
-              _urilgaInfo = null;
-              _codeError = null;
-            });
-            if (val.isNotEmpty) {
-              if (index < 3) {
-                _kodFocusNodes[index + 1].requestFocus();
-              } else {
-                _kodFocusNodes[index].unfocus();
-                _shalgaya();
-              }
-            }
-          },
-        ),
-      ),
-    );
-  }
-
   Widget _buildUrgeljluulekhTovch() {
     final idevkhtei = _bugdBugluusun && !_isLoading;
     return GestureDetector(
@@ -863,7 +764,7 @@ class _GishuunBatalgaajuulakhPageState
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 15.sp,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
       ),

@@ -8,6 +8,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class PersonalInfoPage extends StatefulWidget {
   const PersonalInfoPage({super.key});
@@ -92,7 +93,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: 'Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: $e',
+          message: friendlyError(e, fallback: 'Хэрэглэгчийн мэдээлэл татаж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error,
         );
       }
@@ -297,7 +298,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           'Бүртгэл цуцлах',
           style: TextStyle(
             color: context.textPrimaryColor,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
@@ -316,7 +317,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
               'Тийм, цуцлах',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -349,7 +350,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     } catch (e) {
       showGlassSnackBar(
         context,
-        message: 'Алдаа гарлаа: $e',
+        message: friendlyError(e, fallback: 'Тоотын бүртгэл цуцалж чадсангүй. Дахин оролдоно уу.'),
         icon: Icons.error,
       );
     } finally {
@@ -418,7 +419,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                                         'Солих',
                                         style: TextStyle(
                                           fontSize: 13.sp,
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       style: TextButton.styleFrom(
@@ -540,7 +541,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                                       } catch (e) {
                                         showGlassSnackBar(
                                           context,
-                                          message: 'Алдаа гарлаа: $e',
+                                          message: friendlyError(e, fallback: 'Мэдээлэл хадгалж чадсангүй. Дахин оролдоно уу.'),
                                           icon: Icons.error,
                                         );
                                       } finally {
@@ -562,7 +563,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                                       'Хадгалах',
                                       style: TextStyle(
                                         fontSize: 15.sp,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                   ),
@@ -862,7 +863,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             'Хувийн мэдээлэл',
             style: TextStyle(
               fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: isDark ? Colors.white : context.textPrimaryColor,
               letterSpacing: -0.3,
             ),
@@ -878,7 +879,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       style: TextStyle(
         color: context.textSecondaryColor,
         fontSize: 12.sp,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         letterSpacing: 0.5,
       ),
     );

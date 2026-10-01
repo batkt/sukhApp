@@ -394,7 +394,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
         } else {
           showGlassSnackBar(
             context,
-            message: 'Алдаа гарлаа',
+            message: 'Хаалт нээх команд илгээж чадсангүй. Дахин оролдоно уу.',
             icon: Icons.error,
             iconColor: Colors.red,
           );
@@ -442,7 +442,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
         } else {
           showGlassSnackBar(
             context,
-            message: 'Алдаа гарлаа',
+            message: 'Зогсоолын төлбөр бүртгэж чадсангүй. Дахин оролдоно уу.',
             icon: Icons.error,
             iconColor: Colors.red,
           );
@@ -647,7 +647,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -679,7 +679,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     fontFamily: 'monospace',
                   ),
                 ),
@@ -719,7 +719,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                     site.name,
                     style: TextStyle(
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -756,7 +756,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                         style: TextStyle(
                           color: _isSocketConnected ? Colors.green : Colors.red,
                           fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -866,7 +866,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                               style: TextStyle(
                                 fontSize: 11.sp,
                                 color: Colors.green,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -911,7 +911,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                           'Нээх',
                           style: TextStyle(
                             fontSize: 12.sp,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                 ),
@@ -953,7 +953,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                 'Төлбөрийн мэдээлэл',
                 style: TextStyle(
                   fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: Colors.red,
                 ),
               ),
@@ -962,7 +962,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                 '${NumberFormat('#,###').format(payment['amount'] ?? 0)} ₮',
                 style: TextStyle(
                   fontSize: 13.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: Colors.red,
                 ),
               ),
@@ -1025,7 +1025,7 @@ class _ParkEasePageState extends State<ParkEasePage> {
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: color,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

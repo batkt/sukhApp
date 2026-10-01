@@ -10,6 +10,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class GomdolSanalFormScreen extends StatefulWidget {
   const GomdolSanalFormScreen({super.key});
@@ -80,7 +81,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: 'Алдаа гарлаа: $e',
+          message: friendlyError(e, fallback: 'Санал, гомдол илгээж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error_outline,
           iconColor: Colors.red,
           textColor: context.textPrimaryColor,
@@ -512,7 +513,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                                         tablet: 17,
                                         veryNarrow: 13,
                                       ),
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -549,7 +550,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: 'Зураг сонгоход алдаа гарлаа: $e',
+          message: friendlyError(e, fallback: 'Зураг сонгож чадсангүй. Зөвшөөрлөө шалгаад дахин оролдоно уу.'),
           icon: Icons.error_outline,
           iconColor: Colors.red,
         );
@@ -960,7 +961,7 @@ class _GomdolSanalFormScreenState extends State<GomdolSanalFormScreen> {
                   tablet: 16,
                   veryNarrow: 12,
                 ),
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],

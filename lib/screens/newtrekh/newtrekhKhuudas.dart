@@ -15,6 +15,7 @@ import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:sukh_app/widgets/common_footer.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class Newtrekhkhuudas extends StatefulWidget {
   const Newtrekhkhuudas({super.key});
@@ -366,7 +367,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        final errText = e.toString().replaceFirst('Exception: ', '');
+        final errText = friendlyError(
+          e,
+          fallback:
+              'Нэвтэрч чадсангүй. Утасны дугаар, нууц үгээ шалгаад дахин оролдоно уу.',
+        );
         showGlassSnackBar(
           context,
           message: errText,
@@ -421,7 +426,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: isDark ? const Color(0xFF0F1215) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F1215)
+          : const Color(0xFFF8FAFC),
       body: CustomPaint(
         painter: SharedBgPainter(
           isDark: isDark,
@@ -499,7 +506,9 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.deepGreen.withValues(alpha: isDark ? 0.25 : 0.12),
+                  color: AppColors.deepGreen.withValues(
+                    alpha: isDark ? 0.25 : 0.12,
+                  ),
                   blurRadius: 28,
                   spreadRadius: 4,
                 ),
@@ -518,7 +527,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
           style: TextStyle(
             color: isDark ? Colors.white : AppColors.lightTextPrimary,
             fontSize: isTablet ? 26.sp : 22.sp,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             letterSpacing: -0.4,
           ),
         ),
@@ -592,7 +601,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               style: TextStyle(
                 color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 letterSpacing: 1.0,
               ),
               inputFormatters: [
@@ -629,14 +638,16 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                           vertical: 4.h,
                         ),
                         decoration: BoxDecoration(
-                          color: _getOperatorColor(operator).withValues(alpha: 0.12),
+                          color: _getOperatorColor(
+                            operator,
+                          ).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: Text(
                           operator,
                           style: TextStyle(
                             fontSize: 10.5.sp,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             color: _getOperatorColor(operator),
                           ),
                         ),
@@ -686,7 +697,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               style: TextStyle(
                 color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 letterSpacing: 2.0,
               ),
               inputFormatters: [
@@ -742,7 +753,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 "Нууц код мартсан?",
                 style: TextStyle(
                   fontSize: 12.5.sp,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -792,7 +803,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                     style: TextStyle(
                       color: AppColors.deepGreen,
                       fontSize: 13.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -816,7 +827,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             ? Colors.white.withValues(alpha: 0.75)
             : AppColors.lightTextSecondary,
         fontSize: 12.5.sp,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
@@ -863,18 +874,14 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.login_rounded,
-                    color: Colors.white,
-                    size: 19.sp,
-                  ),
+                  Icon(Icons.login_rounded, color: Colors.white, size: 19.sp),
                   SizedBox(width: 8.w),
                   Text(
                     "Нэвтрэх",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -954,21 +961,33 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
               color: AppColors.deepGreen,
             ),
             SizedBox(width: 8.w),
-            Text(
-              "Гэр бүлийн урилга ирсэн үү? ",
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.7)
-                    : AppColors.lightTextSecondary,
-              ),
-            ),
-            Text(
-              "Кодоор нэвтрэх",
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.deepGreen,
+            // Нарийн дэлгэцэнд хальж гарахгүй — нэг мөрөнд багтаан жижигрүүлнэ
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "Гэр бүлийн урилга ирсэн үү? ",
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.7)
+                              : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: "Кодоор нэвтрэх",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.deepGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                  style: TextStyle(fontSize: 12.sp),
+                  maxLines: 1,
+                ),
               ),
             ),
           ],
@@ -998,7 +1017,11 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                   shape: BoxShape.circle,
                   color: AppColors.deepGreen.withValues(alpha: 0.12),
                 ),
-                child: Icon(_biometricIcon, color: AppColors.deepGreen, size: 22.sp),
+                child: Icon(
+                  _biometricIcon,
+                  color: AppColors.deepGreen,
+                  size: 22.sp,
+                ),
               ),
               SizedBox(width: 12.w),
               Expanded(
@@ -1008,7 +1031,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                       : 'Хурууны хээ ашиглах уу?',
                   style: TextStyle(
                     fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   ),
                 ),
@@ -1070,7 +1093,7 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 13.sp,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

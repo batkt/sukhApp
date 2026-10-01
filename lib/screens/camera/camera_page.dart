@@ -394,7 +394,7 @@ class _CameraPageState extends State<CameraPage> {
             style: TextStyle(
               color: textColor,
               fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           IconButton(
@@ -595,7 +595,7 @@ class _FullscreenViewState extends State<_FullscreenView> {
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 15.sp,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),

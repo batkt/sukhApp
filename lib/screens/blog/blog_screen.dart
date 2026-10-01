@@ -8,6 +8,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:intl/intl.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class BlogScreen extends StatefulWidget {
   const BlogScreen({super.key});
@@ -84,7 +85,7 @@ class _BlogScreenState extends State<BlogScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = friendlyError(e, fallback: 'Мэдээ татаж чадсангүй. Дахин оролдоно уу.');
         _isLoading = false;
       });
     }
@@ -109,7 +110,11 @@ class _BlogScreenState extends State<BlogScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Алдаа гарлаа: $e')),
+        SnackBar(
+          content: Text(
+            friendlyError(e, fallback: 'Хариу үйлдэл бүртгэж чадсангүй. Дахин оролдоно уу.'),
+          ),
+        ),
       );
     }
   }

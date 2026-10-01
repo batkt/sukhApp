@@ -121,7 +121,7 @@ class GreeSection extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 22.sp,
                       color: accentColor,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

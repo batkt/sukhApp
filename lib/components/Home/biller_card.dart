@@ -42,59 +42,47 @@ class BillerCard extends StatelessWidget {
             },
           );
         },
+        // iOS апп-icon маяг: цагаан squircle дотор лого, доор нь нэр
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Premium Tile Container
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E242C) : Colors.white,
-                  borderRadius: BorderRadius.circular(22.r),
-                  border: Border.all(
-                    color: isDark 
-                        ? Colors.white.withOpacity(0.08) 
-                        : AppColors.deepGreen.withOpacity(0.08),
+            Container(
+              width: 54.w,
+              height: 54.w,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15.r),
+                border: Border.all(color: Colors.black.withOpacity(0.06)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isDark 
-                          ? Colors.black.withOpacity(0.2) 
-                          : Colors.black.withOpacity(0.04),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(22.r),
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(8.w),
-                      child: BillerUtils.buildBillerLogo(
-                        rawBillerName,
-                        transformedName: billerName,
-                      ),
-                    ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15.r),
+                child: Padding(
+                  padding: EdgeInsets.all(6.w),
+                  child: BillerUtils.buildBillerLogo(
+                    rawBillerName,
+                    transformedName: billerName,
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 10.h),
-            // Title with improved typography
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.center,
-              child: Text(
-                billerName,
-                style: TextStyle(
-                  color: context.textPrimaryColor,
-                  fontSize: 13.sp,
-                  height: 1.2,
-                  letterSpacing: -0.2,
-                ),
-                textAlign: TextAlign.center,
+            SizedBox(height: 7.h),
+            Text(
+              billerName,
+              style: TextStyle(
+                color: context.textPrimaryColor,
+                fontSize: 11.5.sp,
+                fontWeight: FontWeight.w500,
               ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

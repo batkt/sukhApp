@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:sukh_app/main.dart' show navigatorKey;
@@ -16,6 +17,8 @@ import 'package:sukh_app/widgets/shake_hint_modal.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/widgets/update_modal.dart';
+import 'package:sukh_app/services/push_service.dart';
 import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/models/medegdel_model.dart';
@@ -36,6 +39,7 @@ import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/components/Home/draggable_floating_chatbot.dart';
+import 'package:sukh_app/utils/error_message.dart';
 import 'support_chat_page.dart';
 
 class AppBackground extends StatelessWidget {
@@ -181,6 +185,14 @@ class _BookingScreenState extends State<NuurKhuudas>
     _refreshBillingInfo(); // Consolidated refresh  
     _checkRecentWalletPayments();
 
+    // Push token-ийг серверт бүртгэнэ (нийтлэл, санал асуулга, шинэчлэлтийн мэдэгдэл)
+    PushService.serverteBurtgeye();
+
+    // Шинэ хувилбар гарсан бол нүүр хуудсан дээр шинэчлэлтийн модал
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) showUpdateModalIfAvailable(context);
+    });
+
     // Periodic balance refresh (every 30s) - background refresh doesn't need to be too frequent
     _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) _refreshBillingInfo(forceRefresh: false);
@@ -318,6 +330,9 @@ class _BookingScreenState extends State<NuurKhuudas>
       // Immediate refresh when app resumes
       _immediateRefresh();
 
+      // Аппыг удаан нээлттэй байлгасан үед гарсан шинэчлэлтийг ч мэдэгдэнэ
+      showUpdateModalIfAvailable(context);
+
       // Reset timer to more frequent updates
       _balanceRefreshTimer?.cancel();
       _balanceRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -409,7 +424,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     final tuluhuur = <String>{};
 
-    for (final talbar in ['gereeniiDugaar', 'billingId', 'customerNo']) {
+    for (final talbar in ['gereeniiDugaar', 'billingId', 'customerNo', 'customerCode']) {
       final utga = tseverle(billing[talbar]);
       if (utga.isNotEmpty) tuluhuur.add('dugaar:$utga');
     }
@@ -427,12 +442,67 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
 
+  /// Bpay (түрийвч)-ийн төлбөр ОРОН СУУЦНЫХ эсэх. Юнивишн, Скаймедиа,
+  /// цахилгаан зэрэг бусад төлбөрийг «Байрны төлбөр»-т нэмэхгүй, нүүрний
+  /// картад тусдаа хуудас болгохгүй.
+  ///
+  /// 1) Хаягаар холбосон төлбөр нь хэрэглэгчийн toots-д WALLET_API-аар
+  ///    бичигддэг (billingId / walletCustomerId / walletCustomerCode).
+  /// 2) Эс бөгөөс нэрээр (billing_list_page-тэй ижил дүрэм).
+  bool _bpayOronSuutsEsekh(Map<String, dynamic> billing, [dynamic profile]) {
+    if (billing['source'] != 'WALLET_API') return true;
+    if (billing['isHousing'] is bool) return billing['isHousing'] as bool;
+
+    String s(dynamic v) => (v?.toString() ?? '').trim();
+    final toots = (profile ?? _userProfile)?['toots'];
+    if (toots is List) {
+      for (final t in toots) {
+        if (t is! Map || s(t['source']) != 'WALLET_API') continue;
+        final bId = s(billing['billingId']);
+        final cId = s(billing['customerId']);
+        final cCode = s(billing['customerCode']);
+        if ((bId.isNotEmpty && bId == s(t['billingId'])) ||
+            (cId.isNotEmpty && cId == s(t['walletCustomerId'])) ||
+            (cCode.isNotEmpty && cCode == s(t['walletCustomerCode']))) {
+          return true;
+        }
+      }
+    }
+
+    final ner = '${billing['billingName'] ?? ''} ${billing['billerName'] ?? ''}'
+        .toLowerCase();
+    const busad = [
+      'юнивишн', 'юнивижн', 'univision', 'скаймедиа', 'skymedia', 'скай медиа',
+      'цахилгаан', 'electric', 'тог', 'интернэт', 'internet', 'утас', 'mobile',
+    ];
+    if (busad.any(ner.contains)) return false;
+    const oronSuuts = ['орон сууц', 'сөх', 'house', 'apartment', 'оснаак', 'сууц'];
+    return oronSuuts.any(ner.contains);
+  }
+
+  /// Аль нэг картад хөнгөлөлт эсвэл алданги шошго харагдах эсэх
+  bool get _kartShoshgotoi =>
+      totalNiitAldangi > 0.5 ||
+      _cardBillings.any((b) =>
+          _parseNum(b['khungulult'] ?? 0) > 0.5 ||
+          _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi'] ?? 0) > 0.5);
+
+  /// Нүүрний картын хуудсууд: өөрийн байгууллагын гэрээ + Bpay-ийн орон
+  /// сууцны төлбөр. Бусад (ТВ, цахилгаан) төлбөр «Төлбөрийн үйлчилгээ»-д.
+  List<Map<String, dynamic>> get _cardBillings =>
+      _billingList.where((b) => _bpayOronSuutsEsekh(b)).toList();
+
   Future<void> _loadAllBillingPayments() async {
     await _refreshBillingInfo();
   }
 
+  /// Ачаалж байх үед ирсэн бодит цагийн шинэчлэлтийг алдахгүйн тулд
+  bool _refreshQueued = false;
+
   Future<void> _refreshBillingInfo({bool forceRefresh = false}) async {
-    if (!mounted || _isRefreshing) {
+    if (!mounted) return;
+    if (_isRefreshing) {
+      _refreshQueued = true;
       return;
     }
     _isRefreshing = true;
@@ -506,6 +576,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                 
                 double invoiceSum = 0.0;
                 double aldangiSum = 0.0;
+                double khungulultSum = 0.0;
                 bool hasData = false;
 
                 if (dugaar != null) {
@@ -521,6 +592,16 @@ class _BookingScreenState extends State<NuurKhuudas>
                     aldangiSum = (unifiedResponse['totalAldangi'] ?? 0.0).toDouble();
                     final mergedInvoices = List<Map<String, dynamic>>.from(unifiedResponse['jagsaalt'] ?? []);
                     hasData = true;
+
+                    // Сүүлийн нэхэмжлэхийн хөнгөлөлт — нүүрний картанд харуулна
+                    final nekhemjlekhuud = mergedInvoices
+                        .where((inv) => inv['isStandaloneAvlaga'] != true)
+                        .map((inv) => NekhemjlekhItem.fromJson(inv))
+                        .toList()
+                      ..sort((a, b) => b.nekhemjlekhiinOgnoo.compareTo(a.nekhemjlekhiinOgnoo));
+                    if (nekhemjlekhuud.isNotEmpty) {
+                      khungulultSum = nekhemjlekhuud.first.khungulultDun;
+                    }
 
                     // Apply reactive filtering for recently paid bills from the wallet
                     // This uses the walletHistory we fetched ONCE outside the loop
@@ -558,6 +639,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   'contract': contract,
                   'total': invoiceSum,
                   'aldangi': aldangiSum,
+                  'khungulult': khungulultSum,
                 };
               }));
 
@@ -579,6 +661,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   'uldegdel': uld, // Authoritative balance from ledger
                   'uldegdelAldangi': ald,
                   'perItemAldangi': ald,
+                  'khungulult': result['khungulult'] ?? 0.0,
                   'isLocalData': false,
                   'source': 'OWN_ORG',
                   'gereeniiDugaar': contract['gereeniiDugaar']?.toString(),
@@ -755,6 +838,25 @@ class _BookingScreenState extends State<NuurKhuudas>
         updatedBilling['perItemTotal'] = billingTotal;
         updatedBilling['perItemAldangi'] = billingAldangi;
         updatedBilling['source'] = 'WALLET_API';
+        final oronSuuts = _bpayOronSuutsEsekh(updatedBilling, user);
+        updatedBilling['isHousing'] = oronSuuts;
+        if (oronSuuts) {
+          // Картанд хаяг/тоот харуулахын тулд toots-оос нөхнө
+          final toots = user?['toots'];
+          if (toots is List) {
+            for (final t in toots) {
+              if (t is Map &&
+                  t['source']?.toString() == 'WALLET_API' &&
+                  (t['billingId']?.toString() == billingId ||
+                      t['walletCustomerId']?.toString() == billing['customerId']?.toString())) {
+                updatedBilling['bairniiNer'] ??= t['bairniiNer'];
+                updatedBilling['tootNum'] ??= t['toot'] ?? t['walletDoorNo'];
+                break;
+              }
+            }
+          }
+          updatedBilling['bairniiNer'] ??= billing['customerAddress'];
+        }
         
         return updatedBilling;
       });
@@ -783,7 +885,8 @@ class _BookingScreenState extends State<NuurKhuudas>
           billing,
         ).any(ownOrgTuluhuur.contains);
 
-        if (!davkhardsan) {
+        // Зөвхөн орон сууцны төлбөр «Байрны төлбөр»-т орно
+        if (!davkhardsan && billing['isHousing'] == true) {
           total += billingTotal;
           totalAldangi += billingAldangi;
         }
@@ -797,7 +900,9 @@ class _BookingScreenState extends State<NuurKhuudas>
         double recalculatedTotal = 0.0;
         double recalculatedAldangi = 0.0;
         
-        await Future.wait(updatedWalletBillings.map((billing) async {
+        await Future.wait(updatedWalletBillings
+            .where((b) => b['isHousing'] == true)
+            .map((billing) async {
           final billingId = billing['billingId']?.toString();
           if (billingId != null) {
             try {
@@ -851,6 +956,12 @@ class _BookingScreenState extends State<NuurKhuudas>
           _isLoadingBillingList = false;
           _isRefreshing = false;
         });
+      } else {
+        _isRefreshing = false;
+      }
+      if (_refreshQueued && mounted) {
+        _refreshQueued = false;
+        Future.microtask(() => _refreshBillingInfo());
       }
     }
   }
@@ -961,7 +1072,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (finalContext != null) {
         showGlassSnackBar(
           finalContext,
-          message: e.toString().replaceAll("Exception: ", ""),
+          message: friendlyError(e, fallback: 'Биллинг устгаж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -1111,7 +1222,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
         if (errorMessage.contains('404')) {
           displayMessage =
-              'Биллерүүд авах endpoint олдсонгүй. Backend дээр /wallet/billers route-ийг шалгана уу.';
+              'Биллерүүдийн жагсаалт олдсонгүй. Түр хүлээгээд дахин оролдоно уу.';
         } else if (errorMessage.contains('500')) {
           ApiService.handleUnauthorized(null, false);
           return;
@@ -1119,7 +1230,10 @@ class _BookingScreenState extends State<NuurKhuudas>
           // Already handled and logged out by api_service.dart
           return;
         } else {
-          displayMessage = errorMessage;
+          displayMessage = friendlyError(
+            e,
+            fallback: 'Биллерүүдийн жагсаалт татаж чадсангүй. Дахин оролдоно уу.',
+          );
         }
 
         showGlassSnackBar(
@@ -1264,7 +1378,7 @@ class _BookingScreenState extends State<NuurKhuudas>
   /// Зөвхөн WALLET_API билгүүдэд хамаарна; бусад тохиолдолд null буцааж доорх
   /// (cron / гэрээний) салаалалтуудыг хэвээр нь үлдээнэ.
   DateTime? _bpayNextInvoiceDate() {
-    final bpayBillings = _billingList
+    final bpayBillings = _cardBillings
         .where((billing) => billing['source']?.toString() == 'WALLET_API')
         .toList();
     if (bpayBillings.isEmpty) return null;
@@ -1305,6 +1419,8 @@ class _BookingScreenState extends State<NuurKhuudas>
     required VoidCallback onTapBilling,
     required String totalBalance,
     required String totalAldangi,
+    /// Сүүлийн нэхэмжлэхэд олгогдсон хөнгөлөлт (эерэг тоо)
+    double khungulult = 0,
     String? bairNer,
     String? toot,
     /// Хэрэглэгчийн нийт тоотын тоо. 1-ээс их бол "Байрны төлбөр" мөр нь
@@ -1455,258 +1571,315 @@ class _BookingScreenState extends State<NuurKhuudas>
         nextUnitDateText = '---';
       }
     }
-    final isDark = context.isDarkMode;
+    // ── Харагдах утгууд ──
+    final numBalance = double.tryParse(
+          totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
+        ) ??
+        0.0;
+    final numAldangi = double.tryParse(
+          totalAldangi.replaceAll(',', '').replaceAll('₮', '').trim(),
+        ) ??
+        0.0;
+    final hetersen = centerLabel == 'өдөр хэтэрсэн';
+    final medeelelgui = nextUnitDateText == '---' || nextUnitDateText.isEmpty;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: accentColor,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final String dunShoshgo;
+    final String dunTekst;
+    if (!hasAnyAddress) {
+      dunShoshgo = 'Хаяг бүртгэгдээгүй';
+      dunTekst = 'Хаягаа сонгоно уу';
+    } else if (numBalance < -0.5) {
+      dunShoshgo = 'Илүү төлөлт';
+      dunTekst = '${totalBalance.replaceAll('-', '')}₮';
+    } else if (numBalance.abs() <= 0.5) {
+      dunShoshgo = 'Төлөх дүн';
+      dunTekst = 'Төлбөргүй';
+    } else {
+      dunShoshgo = unitCount > 1 ? 'Нийт төлөх дүн ($unitCount тоот)' : 'Төлөх дүн';
+      dunTekst = '$totalBalance₮';
+    }
+
+    final ognooTekst = medeelelgui ? '—' : nextUnitDateText.replaceAll('-', '.');
+    final hayag = [
+      if ((bairNer ?? '').trim().isNotEmpty) bairNer!.trim(),
+      if ((toot ?? '').trim().isNotEmpty) '${toot!.trim()} тоот',
+    ].join(', ');
+
+    // Сэдвийн (цайвар/бараан) өнгө
+    final isDark = context.isDarkMode;
+    final fg = isDark ? Colors.white : const Color(0xFF0F2A21);
+    final accent = isDark ? _HomeTone.mint : const Color(0xFF0E8F68);
+    final danger = isDark ? const Color(0xFFFF9B95) : const Color(0xFFD93F3F);
+    final cardBorder = isDark
+        ? Colors.white.withOpacity(0.12)
+        : AppColors.deepGreen.withOpacity(0.10);
+    final panelBg = isDark
+        ? Colors.white.withOpacity(0.12)
+        : Colors.white.withOpacity(0.72);
+    final panelBorder = isDark
+        ? Colors.white.withOpacity(0.16)
+        : AppColors.deepGreen.withOpacity(0.08);
+    final btnBg = isDark ? Colors.white : AppColors.deepGreen;
+    final btnFg = isDark ? AppColors.deepGreen : Colors.white;
+
+    // iOS виджет маягийн карт: ногоон градиент + зөөлөн гэрлийн туяа,
+    // доод хэсэг нь «шил» (frosted glass) самбар.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: Stack(
         children: [
-          if (bairNer != null || toot != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          Positioned.fill(
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.home_work_rounded, size: 14, color: Colors.white),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      '${bairNer ?? ""} - ${toot ?? ""} тоот',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? const [Color(0xFF1A7A5E), Color(0xFF0E5642), _HomeTone.pine]
+                      : const [Color(0xFFFFFFFF), Color(0xFFEFF8F3), Color(0xFFDDF1E7)],
+                ),
               ),
             ),
-            const SizedBox(height: 6),
-          ],
-          IntrinsicHeight(
-            child: Row(
+          ),
+          // Гэрлийн туяа (баруун дээд)
+          Positioned(
+            top: -90,
+            right: -70,
+            child: _glow(240, (isDark ? _HomeTone.mint : const Color(0xFF6EE7B7)).withOpacity(isDark ? 0.32 : 0.35)),
+          ),
+          // Гэрлийн туяа (зүүн доод)
+          Positioned(
+            bottom: -110,
+            left: -60,
+            child: _glow(220, const Color(0xFF38BDF8).withOpacity(isDark ? 0.14 : 0.12)),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: cardBorder),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 14, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              // Тогтмол зай баримтална — илүү зай нь картын доор үлдэнэ
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left Side: Jumbo Stats
-                Expanded(
-                  flex: 5,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            '$displayDays',
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              height: 1.0,
-                              letterSpacing: -1,
+                          if (hayag.isNotEmpty)
+                            Row(
+                              children: [
+                                Icon(Icons.home_rounded,
+                                    size: 15, color: fg.withOpacity(0.85)),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    hayag,
+                                    style: TextStyle(
+                                      color: fg.withOpacity(0.9),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 6),
+                          const SizedBox(height: 12),
                           Text(
-                            rightLabel,
+                            dunShoshgo,
                             style: TextStyle(
+                              color: fg.withOpacity(0.6),
                               fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white.withOpacity(0.8),
-                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              dunTekst,
+                              style: TextStyle(
+                                color: numBalance < -0.5 ? accent : fg,
+                                fontSize: hasAnyAddress ? 32 : 20,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -1,
+                                height: 1.15,
+                              ),
+                            ),
+                          ),
+                          if (hasAnyAddress && (khungulult > 0.5 || numAldangi > 0.5)) ...[
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                if (khungulult > 0.5)
+                                  _cardChip(fg,
+                                    Icons.local_offer_rounded,
+                                    'Хөнгөлөлт -${_formatNumberWithComma(khungulult)}₮',
+                                    accent,
+                                  ),
+                                if (numAldangi > 0.5)
+                                  _cardChip(fg,
+                                    Icons.error_outline_rounded,
+                                    'Алданги $totalAldangi₮',
+                                    danger,
+                                  ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        centerLabel,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.8),
-                        ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Төлөх хүртэлх хоног — «Мөчлөгийн явц»-ын оронд
+                    _PaymentDaysRing(
+                      progress: medeelelgui ? 0 : targetProgress,
+                      days: medeelelgui ? null : displayDays,
+                      caption: medeelelgui
+                          ? 'мэдээлэлгүй'
+                          : (hetersen ? 'өдөр хэтэрсэн' : 'өдөр үлдсэн'),
+                      color: hetersen ? const Color(0xFFE5484D) : accent,
+                      foreground: fg,
+                      animation: _progressAnimation,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Шилэн самбар: огноо + үйлдэл
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+                      decoration: BoxDecoration(
+                        color: panelBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: panelBorder),
                       ),
-                    ],
-                  ),
-                ),
-
-                // Vertical Divider
-                Container(
-                  width: 1.5,
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  color: Colors.white.withOpacity(0.2),
-                ),
-
-                // Right Side: Detailed info
-                Expanded(
-                  flex: 7,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
+                      child: Row(
                         children: [
                           Icon(
-                            Icons.calendar_today_rounded,
-                            color: Colors.white.withOpacity(0.6),
-                            size: 13,
+                            hetersen ? Icons.schedule_rounded : Icons.event_rounded,
+                            size: 18,
+                            color: hetersen
+                                ? danger
+                                : fg.withOpacity(0.85),
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Дараагийн төлөлт',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.7),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  hetersen ? 'Төлөх хугацаа өнгөрсөн' : 'Дараагийн төлөлт',
+                                  style: TextStyle(
+                                    color: hetersen
+                                        ? danger
+                                        : fg.withOpacity(0.65),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  ognooTekst,
+                                  style: TextStyle(
+                                    color: fg,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Material(
+                            color: btnBg,
+                            borderRadius: BorderRadius.circular(100),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(100),
+                              onTap: onTapBilling,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 9),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      hasAnyAddress ? 'Төлбөр харах' : 'Хаяг сонгох',
+                                      style: TextStyle(
+                                        color: btnFg,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Icon(Icons.chevron_right_rounded,
+                                        size: 18, color: btnFg),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        nextUnitDateText,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          // Progress bar
-          Stack(
-            children: [
-              Container(
-                height: 6,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              AnimatedBuilder(
-                animation: _progressAnimation,
-                builder: (context, child) {
-                  return FractionallySizedBox(
-                    widthFactor: targetProgress * _progressAnimation.value,
-                    child: Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Мөчлөгийн явц',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.white.withOpacity(0.5),
-                ),
-              ),
-              Text(
-                '${(targetProgress * 100).toInt()}%',
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Inline billing row
-          GestureDetector(
-            onTap: onTapBilling,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _isNonOrgUser && !hasAnyAddress
-                        ? Icons.location_on_outlined
-                        : Icons.account_balance_wallet_outlined,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          !hasAnyAddress
-                              ? 'Бүртгэлгүй байна'
-                              : (unitCount > 1
-                                  ? 'Байрны төлбөр · $unitCount тоот'
-                                  : 'Байрны төлбөр'),
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
-                            fontSize: 11,
-                          ),
-                        ),
-                        Text(
-                          !hasAnyAddress
-                              ? 'Хаяг сонгох'
-                              : () {
-                                  final numBalance = double.tryParse(
-                                        totalBalance.replaceAll(',', '').replaceAll('₮', '').trim(),
-                                      ) ??
-                                      0.0;
-                                  if (numBalance < 0) return '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт';
-                                  if (numBalance == 0) return 'Төлбөр байхгүй';
-                                  return '$totalBalance₮';
-                                }(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.arrow_forward_ios_rounded,
-                      color: Colors.white.withOpacity(0.6), size: 12),
-                ],
-              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glow(double size, Color color) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [color, color.withOpacity(0)]),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardChip(Color fg, IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: fg.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: fg,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1754,10 +1927,11 @@ class _BookingScreenState extends State<NuurKhuudas>
           return Stack(
             children: [
               Container(
-        color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
+        color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF3F5F2),
         child: Column(
           children: [
             HomeHeader(
+              userName: _userProfile?['ner']?.toString(),
               unreadNotificationCount: _unreadNotificationCount,
               onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
               onThemeToggle: () {
@@ -1830,12 +2004,19 @@ class _BookingScreenState extends State<NuurKhuudas>
                         return Column(
                           children: [
                             SizedBox(
-                              height: (_isNonOrgUser && !hasAnyAddress) ? 162.0 : 202.0,
+                              // Картын агуулга системийн фонтын хэмжээгээр (Android-д
+                              // ихэвчлэн томруулсан байдаг) өсдөг тул өндрийг ч
+                              // дагуулж өсгөнө — эс бөгөөс доод мөр тасардаг байв.
+                              // Хөнгөлөлт/алданги шошготой карт байвал л өндрийг нэмнэ —
+                              // эс бөгөөс картын доор хоосон зай үлддэг байв.
+                              height: (_kartShoshgotoi ? 222.0 : 198.0) *
+                                  (MediaQuery.textScalerOf(context).scale(10) / 10)
+                                      .clamp(1.0, 1.5),
                               child: PageView.builder(
                                 controller: _contractPageController,
                                 itemCount: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
                                     ? _gereeResponse!.jagsaalt.length
-                                    : (_billingList.isNotEmpty ? _billingList.length : 1),
+                                    : (_cardBillings.isNotEmpty ? _cardBillings.length : 1),
                                 itemBuilder: (context, index) {
                                   final g = (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
                                       ? (index < _gereeResponse!.jagsaalt.length ? _gereeResponse!.jagsaalt[index] : null)
@@ -1844,11 +2025,12 @@ class _BookingScreenState extends State<NuurKhuudas>
                                   // Тоот тус бүрийн картыг тухайн тоотынх нь өөрийн төлбөрийн үлдэгдэлтэй харуулна
                                   double currentTootBalance = 0.0;
                                   double currentTootAldangi = 0.0;
+                                  double currentTootKhungulult = 0.0;
                                   bool foundMatch = false;
 
                                   if (g != null) {
-                                    // 1. _billingList-ээс энэ гэрээ/тоотод хамаарах бичлэгүүдийг шүүнэ
-                                    final matchedBillings = _billingList.where((b) {
+                                    // 1. _cardBillings-ээс энэ гэрээ/тоотод хамаарах бичлэгүүдийг шүүнэ
+                                    final matchedBillings = _cardBillings.where((b) {
                                       // Гэрээний ID эсвэл гэрээний дугаараар
                                       final bGid = b['gereeniiId']?.toString();
                                       if (bGid != null && bGid.isNotEmpty && bGid == g.id) return true;
@@ -1877,25 +2059,28 @@ class _BookingScreenState extends State<NuurKhuudas>
                                       for (var b in matchedBillings) {
                                         currentTootBalance += _parseNum(b['perItemTotal'] ?? b['uldegdel']);
                                         currentTootAldangi += _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
+                                        currentTootKhungulult += _parseNum(b['khungulult'] ?? 0);
                                       }
                                     } else {
                                       // Хэрэв шууд тааралт олоогүй бол индексээр эсвэл гэрээний дүнгээр
-                                      if (index < _billingList.length && _billingList.length == (_gereeResponse?.jagsaalt.length ?? 0)) {
+                                      if (index < _cardBillings.length && _cardBillings.length == (_gereeResponse?.jagsaalt.length ?? 0)) {
                                         foundMatch = true;
-                                        final b = _billingList[index];
+                                        final b = _cardBillings[index];
                                         currentTootBalance = _parseNum(b['perItemTotal'] ?? b['uldegdel']);
                                         currentTootAldangi = _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
+                                        currentTootKhungulult = _parseNum(b['khungulult'] ?? 0);
                                       } else if (g.niitTulbur > 0.0) {
                                         foundMatch = true;
                                         currentTootBalance = g.niitTulbur;
                                       }
                                     }
-                                  } else if (_billingList.isNotEmpty) {
-                                    if (index < _billingList.length) {
+                                  } else if (_cardBillings.isNotEmpty) {
+                                    if (index < _cardBillings.length) {
                                       foundMatch = true;
-                                      final b = _billingList[index];
+                                      final b = _cardBillings[index];
                                       currentTootBalance = _parseNum(b['perItemTotal'] ?? b['uldegdel']);
                                       currentTootAldangi = _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
+                                      currentTootKhungulult = _parseNum(b['khungulult'] ?? 0);
                                     }
                                   }
 
@@ -1912,7 +2097,16 @@ class _BookingScreenState extends State<NuurKhuudas>
                                   String? displayBairNer = g?.bairNer;
                                   String? displayToot = g?.toot.toString();
                                   
-                                  if (g == null && _userProfile != null && _userProfile!['toots'] != null) {
+                                  // Bpay: картын төлбөрийн өөрийн хаягийг түрүүлж авна
+                                  if (g == null && index < _cardBillings.length) {
+                                    final cb = _cardBillings[index];
+                                    final cbNer = cb['bairniiNer']?.toString();
+                                    if (cbNer != null && cbNer.isNotEmpty) {
+                                      displayBairNer = cbNer;
+                                      displayToot = cb['tootNum']?.toString();
+                                    }
+                                  }
+                                  if (g == null && displayBairNer == null && _userProfile != null && _userProfile!['toots'] != null) {
                                     final profileToots = _userProfile!['toots'] as List;
                                     if (profileToots.isNotEmpty) {
                                       final pIndex = index < profileToots.length ? index : 0;
@@ -1925,11 +2119,11 @@ class _BookingScreenState extends State<NuurKhuudas>
                                   }
                                   
                                   // Also try from billingList if still null
-                                  if (displayBairNer == null && _billingList.isNotEmpty) {
-                                    final bIndex = index < _billingList.length ? index : 0;
-                                    displayBairNer = _billingList[bIndex]['bairniiNer']?.toString() ?? 
-                                                     _billingList[bIndex]['billingName']?.toString();
-                                    displayToot ??= _billingList[bIndex]['tootNum']?.toString();
+                                  if (displayBairNer == null && _cardBillings.isNotEmpty) {
+                                    final bIndex = index < _cardBillings.length ? index : 0;
+                                    displayBairNer = _cardBillings[bIndex]['bairniiNer']?.toString() ?? 
+                                                     _cardBillings[bIndex]['billingName']?.toString();
+                                    displayToot ??= _cardBillings[bIndex]['tootNum']?.toString();
                                   }
                                   
                                   // Also try root-level profile fields
@@ -1960,6 +2154,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                                       },
                                       totalBalance: unitBalance,
                                       totalAldangi: unitAldangi,
+                                      khungulult: currentTootKhungulult,
                                       bairNer: displayBairNer,
                                       toot: displayToot,
                                       // Карт тус бүр өөрийн гэсэн 1 тоотыг төлөөлж байгаа тул 1 гэж дамжуулна
@@ -1969,11 +2164,11 @@ class _BookingScreenState extends State<NuurKhuudas>
                                 },
                               ),
                             ),
-                            if (((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ? _gereeResponse!.jagsaalt.length : (_billingList.isNotEmpty ? _billingList.length : 1)) > 1) ...[
+                            if (((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ? _gereeResponse!.jagsaalt.length : (_cardBillings.isNotEmpty ? _cardBillings.length : 1)) > 1) ...[
                               SizedBox(height: 12.h),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ? _gereeResponse!.jagsaalt.length : (_billingList.isNotEmpty ? _billingList.length : 1), (index) {
+                                children: List.generate((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) ? _gereeResponse!.jagsaalt.length : (_cardBillings.isNotEmpty ? _cardBillings.length : 1), (index) {
                                   return AnimatedBuilder(
                                     animation: _contractPageController,
                                     builder: (context, child) {
@@ -2005,12 +2200,12 @@ class _BookingScreenState extends State<NuurKhuudas>
                         );
                       }),
 
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 22.h),
 
                       // 3. Нэмэлт боломж Section
                       _buildAdditionalServicesSection(),
 
-                      SizedBox(height: 16.h),
+                      SizedBox(height: 22.h),
 
                       // 4. Billers Grid
                       if (_isLoadingBillers)
@@ -2147,8 +2342,8 @@ class _BookingScreenState extends State<NuurKhuudas>
       }
       if (mounted) {
         final errorMessage = e.toString().contains('олдсонгүй')
-            ? 'Биллингийн мэдээлэл олдсонгүй'
-            : 'Биллинг холбоход алдаа гарлаа: $e';
+            ? 'Биллингийн мэдээлэл олдсонгүй. Хаягаа шалгаад дахин оролдоно уу.'
+            : friendlyError(e, fallback: 'Биллинг холбож чадсангүй. Дахин оролдоно уу.');
         showGlassSnackBar(
           context,
           message: errorMessage,
@@ -2277,14 +2472,14 @@ class _BookingScreenState extends State<NuurKhuudas>
                       fontSize: 15.sp,
                       color: context.textPrimaryColor,
                       letterSpacing: -0.2,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     () {
                       if (totalNiitTulbur < 0) {
-                        return '+${_formatNumberWithComma(totalNiitTulbur.abs())}₮ Илүү төлөлт';
+                        return 'Илүү төлөлт: ${_formatNumberWithComma(totalNiitTulbur.abs())}₮';
                       }
                       if (totalNiitTulbur == 0) {
                         return 'Төлбөрийн үлдэгдэлгүй';
@@ -2294,9 +2489,22 @@ class _BookingScreenState extends State<NuurKhuudas>
                     style: TextStyle(
                       fontSize: 13.sp,
                       color: totalNiitTulbur > 0 ? const Color(0xFFFF6B6B) : AppColors.deepGreen,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (totalNiitTulbur < 0) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      'Дараагийн нэхэмжлэхээс автоматаар хасагдана',
+                      style: TextStyle(
+                        fontSize: 10.5.sp,
+                        color: context.textSecondaryColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2331,42 +2539,49 @@ class _BookingScreenState extends State<NuurKhuudas>
         'name': 'Зогсоол',
         'label': 'Зогсоол',
         'icon': Icons.local_parking_rounded,
+        'gradient': const [Color(0xFF5AA9FF), Color(0xFF2563EB)],
         'color': const Color(0xFF3B82F6),
       }, // Bright Blue
       {
         'name': 'камер',
         'label': 'Камер',
         'icon': Icons.videocam_rounded,
+        'gradient': const [Color(0xFFB794F6), Color(0xFF7C3AED)],
         'color': const Color(0xFF8B5CF6),
       }, // Bright Purple
       {
         'name': 'лифт',
         'label': 'Лифт',
         'icon': Icons.elevator_rounded,
+        'gradient': const [Color(0xFFFF9A62), Color(0xFFEA580C)],
         'color': const Color(0xFFF97316),
       }, // Bright Orange
       {
         'name': 'зочин',
         'label': 'Зочин',
         'icon': Icons.people_alt_rounded,
+        'gradient': const [Color(0xFF3EDBC8), Color(0xFF0D9488)],
         'color': const Color(0xFF0EA5E9),
       }, // Sky Blue
       {
         'name': 'дуудлага',
         'label': 'Дуудлага',
         'icon': Icons.build_circle_rounded,
+        'gradient': const [Color(0xFFFF7A7A), Color(0xFFDC2626)],
         'color': const Color(0xFFEF4444),
       }, // Bright Red
       {
         'name': 'цэвэрлэгээ',
         'label': 'Цэвэрлэгээ',
         'icon': Icons.cleaning_services_rounded,
+        'gradient': const [Color(0xFF5BE38A), Color(0xFF16A34A)],
         'color': const Color(0xFF10B981),
       }, // Bright Emerald
       {
         'name': 'санал',
         'label': 'Асуулга',
         'icon': Icons.how_to_vote_rounded,
+        'gradient': const [Color(0xFF8C9BFF), Color(0xFF4F46E5)],
         'color': const Color(0xFF14B8A6),
       }, // Teal
     ];
@@ -2376,49 +2591,48 @@ class _BookingScreenState extends State<NuurKhuudas>
       children: [
         // Section Header
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-          child: Row(
-            children: [
-              Container(
-                width: 4.w,
-                height: 16.h,
-                decoration: BoxDecoration(
-                  color: AppColors.deepGreen,
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-              SizedBox(width: 10.w),
-              Text(
-                'Нэмэлт боломж',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: context.textPrimaryColor,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
+          padding: EdgeInsets.symmetric(horizontal: 4.w),
+          child: Text(
+            'Үйлчилгээ',
+            style: TextStyle(
+              fontSize: 17.sp,
+              color: context.textPrimaryColor,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.4,
+            ),
           ),
         ),
 
-        SizedBox(height: 12.h),
+        SizedBox(height: 10.h),
 
-        // Services Grid
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(vertical: 4.h),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            crossAxisSpacing: 12.w,
-            mainAxisSpacing: 12.h,
-            childAspectRatio: 0.8,
+        // Services Grid — iOS-ийн бүлэглэсэн самбар дотор апп-icon маягаар
+        Container(
+          padding: EdgeInsets.fromLTRB(8.w, 14.h, 8.w, 6.h),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(26.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : Colors.black.withOpacity(0.04),
+            ),
           ),
-          itemCount: services.length,
-          itemBuilder: (context, index) {
-            final service = services[index];
-            return _buildServiceCard(service, isDark);
-          },
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 4.w,
+              mainAxisSpacing: 8.h,
+              childAspectRatio: 0.92,
+            ),
+            itemCount: services.length,
+            itemBuilder: (context, index) {
+              final service = services[index];
+              return _buildServiceCard(service, isDark);
+            },
+          ),
         ),
       ],
     );
@@ -2528,51 +2742,165 @@ class _BookingScreenState extends State<NuurKhuudas>
           iconColor: Colors.orange,
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withOpacity(0.05)
-              : const Color(0xFFF5F7FA),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo/Icon
-            Container(
-              width: 50.w,
-              height: 50.h,
-              decoration: BoxDecoration(
-                color: serviceColor.withOpacity(isDark ? 0.2 : 0.12),
-                borderRadius: BorderRadius.circular(10.r),
+      // iOS апп-icon: өнгөт градиент «squircle» + цагаан тэмдэг
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 54.w,
+            height: 54.w,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: (service['gradient'] as List<Color>?) ??
+                    [serviceColor, serviceColor],
               ),
-              child: service['imageAsset'] != null
-                  ? Padding(
-                      padding: EdgeInsets.all(6.w),
-                      child: Image.asset(
-                        service['imageAsset'] as String,
-                        fit: BoxFit.contain,
-                      ),
-                    )
-                  : Icon(
-                      service['icon'] as IconData?,
-                      color: serviceColor,
-                      size: 22.sp,
+              borderRadius: BorderRadius.circular(15.r),
+              boxShadow: [
+                BoxShadow(
+                  color: ((service['gradient'] as List<Color>?)?.last ?? serviceColor)
+                      .withOpacity(isDark ? 0.25 : 0.28),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: service['imageAsset'] != null
+                ? Padding(
+                    padding: EdgeInsets.all(10.w),
+                    child: Image.asset(
+                      service['imageAsset'] as String,
+                      fit: BoxFit.contain,
                     ),
+                  )
+                : Icon(
+                    service['icon'] as IconData?,
+                    color: Colors.white,
+                    size: 26.sp,
+                  ),
+          ),
+          SizedBox(height: 7.h),
+          Text(
+            service['label'] ?? '',
+            style: TextStyle(
+              fontSize: 11.5.sp,
+              color: context.textPrimaryColor,
+              fontWeight: FontWeight.w500,
             ),
-            SizedBox(height: 8.h),
-            Text(
-              service['label'] ?? '',
-              style: TextStyle(
-                fontSize: 11.sp,
-                color: isDark ? Colors.white70 : Colors.black87,
-                fontWeight: FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Нүүр хуудасны өнгөний токен: ойн ногоон суурь + гаа (mint) өргөлт.
+class _HomeTone {
+  static const Color pine = Color(0xFF0A3328);
+  static const Color mint = Color(0xFF7DF0C6);
+}
+
+/// Дараагийн төлөлт хүртэлх хоногийг цагирагаар харуулна.
+class _PaymentDaysRing extends StatelessWidget {
+  final double progress;
+  final int? days;
+  final String caption;
+  final Color color;
+  final Color foreground;
+  final Animation<double> animation;
+
+  const _PaymentDaysRing({
+    required this.progress,
+    required this.days,
+    required this.caption,
+    required this.color,
+    this.foreground = Colors.white,
+    required this.animation,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 84,
+      height: 84,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, _) => CustomPaint(
+          painter: _RingPainter(
+            progress: (progress * animation.value).clamp(0.0, 1.0),
+            color: color,
+            track: foreground.withOpacity(0.12),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  days?.toString() ?? '—',
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  caption,
+                  style: TextStyle(
+                    color: foreground.withOpacity(0.7),
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
+
+class _RingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final Color track;
+
+  _RingPainter({required this.progress, required this.color, required this.track});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 6.0;
+    final rect = Rect.fromLTWH(
+      stroke / 2,
+      stroke / 2,
+      size.width - stroke,
+      size.height - stroke,
+    );
+    final trackPaint = Paint()
+      ..color = track
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke;
+    canvas.drawArc(rect, 0, 2 * math.pi, false, trackPaint);
+    if (progress > 0) {
+      final arc = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * progress, false, arc);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.color != color || old.track != track;
+}
+

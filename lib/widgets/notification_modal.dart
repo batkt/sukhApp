@@ -7,6 +7,7 @@ import 'package:sukh_app/models/medegdel_model.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/screens/medegdel/medegdel_detail.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class NotificationModal extends StatefulWidget {
   const NotificationModal({super.key});
@@ -100,7 +101,7 @@ class _NotificationModalState extends State<NotificationModal>
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = friendlyError(e, fallback: 'Мэдэгдэл татаж чадсангүй. Дахин оролдоно уу.');
         _isLoading = false;
       });
     }
@@ -204,7 +205,7 @@ class _NotificationModalState extends State<NotificationModal>
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: 24.sp,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       if (unreadCount > 0 && !_isLoading)
@@ -485,7 +486,7 @@ class _NotificationModalState extends State<NotificationModal>
                             fontSize: 15.sp,
                             fontWeight: isRead
                                 ? FontWeight.w500
-                                : FontWeight.bold,
+                                : FontWeight.w600,
                           ),
                         ),
                       ),
@@ -558,7 +559,7 @@ class _NotificationModalState extends State<NotificationModal>
                             style: TextStyle(
                               color: AppColors.secondaryAccent,
                               fontSize: 10.sp,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),

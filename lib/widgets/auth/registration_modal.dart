@@ -9,6 +9,8 @@ import 'package:sukh_app/services/biometric_service.dart';
 import 'package:sukh_app/services/update_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukh_app/utils/error_message.dart';
+import 'package:sukh_app/widgets/otp_code_input.dart';
 
 class RegistrationModal extends StatefulWidget {
   final String? initialPhone;
@@ -29,11 +31,8 @@ class _RegistrationModalState extends State<RegistrationModal> {
   final TextEditingController _phoneController = TextEditingController();
 
   // Step 2: OTP
-  final List<TextEditingController> _otpControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
+  final TextEditingController _otpController = TextEditingController();
+  final FocusNode _otpFocusNode = FocusNode();
   int _resendSeconds = 30;
   bool _canResend = false;
   Timer? _timer;
@@ -83,12 +82,8 @@ class _RegistrationModalState extends State<RegistrationModal> {
   void dispose() {
     _timer?.cancel();
     _phoneController.dispose();
-    for (var c in _otpControllers) {
-      c.dispose();
-    }
-    for (var f in _otpFocusNodes) {
-      f.dispose();
-    }
+    _otpController.dispose();
+    _otpFocusNode.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -147,7 +142,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
         
         // Auto-focus first PIN box
         Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) _otpFocusNodes[0].requestFocus();
+          if (mounted) _otpFocusNode.requestFocus();
         });
         
         showGlassSnackBar(
@@ -160,14 +155,15 @@ class _RegistrationModalState extends State<RegistrationModal> {
       setState(() => _isLoading = false);
       showGlassSnackBar(
         context,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: friendlyError(e),
         icon: Icons.error,
       );
     }
   }
 
   Future<void> _handleOtpSubmit() async {
-    final pin = _otpControllers.map((c) => c.text).join();
+    if (_isLoading) return;
+    final pin = _otpController.text;
     if (pin.length != 4) {
       showGlassSnackBar(context, message: '4 оронтой код оруулна уу', icon: Icons.error);
       return;
@@ -200,11 +196,11 @@ class _RegistrationModalState extends State<RegistrationModal> {
         setState(() => _isLoading = false);
         showGlassSnackBar(
           context,
-          message: e.toString().replaceFirst('Exception: ', ''),
+          message: friendlyError(e),
           icon: Icons.error,
         );
-        for (var c in _otpControllers) c.clear();
-        _otpFocusNodes[0].requestFocus();
+        _otpController.clear();
+        _otpFocusNode.requestFocus();
       }
     }
   }
@@ -223,24 +219,19 @@ class _RegistrationModalState extends State<RegistrationModal> {
       );
       if (mounted) {
         setState(() => _isLoading = false);
-        for (var c in _otpControllers) c.clear();
+        _otpController.clear();
         _startTimer();
-        _otpFocusNodes[0].requestFocus();
+        _otpFocusNode.requestFocus();
         showGlassSnackBar(context, message: 'Код дахин илгээлээ', icon: Icons.check_circle, iconColor: Colors.green);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        showGlassSnackBar(context, message: 'Алдаа гарлаа', icon: Icons.error);
+        showGlassSnackBar(context, message: friendlyError(e, fallback: 'Код дахин илгээж чадсангүй. Дахин оролдоно уу.'), icon: Icons.error);
       }
     }
   }
 
-  void _handleOtpChange(String value, int index) {
-    if (value.length == 1 && index < 3) _otpFocusNodes[index + 1].requestFocus();
-    else if (value.isEmpty && index > 0) _otpFocusNodes[index - 1].requestFocus();
-    if (_otpControllers.map((c) => c.text).join().length == 4) _handleOtpSubmit();
-  }
   Future<void> _handlePasswordSubmit() async {
     if (_passwordController.text.length != 4 ||
         _passwordController.text != _confirmPasswordController.text) {
@@ -285,7 +276,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
       setState(() => _isLoading = false);
       showGlassSnackBar(
         context,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: friendlyError(e),
         icon: Icons.error,
       );
     }
@@ -394,7 +385,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
           'Бүртгүүлэх',
           style: TextStyle(
             fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -438,7 +429,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
           'Нууц код тохируулах',
           style: TextStyle(
             fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -524,7 +515,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
           'Биометрээр нэвтрэх',
           style: TextStyle(
             fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -561,7 +552,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
           'Баталгаажуулах',
           style: TextStyle(
             fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: isDark ? Colors.white : Colors.black,
           ),
         ),
@@ -574,38 +565,11 @@ class _RegistrationModalState extends State<RegistrationModal> {
           ),
         ),
         SizedBox(height: 28.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (i) => SizedBox(
-            width: 60.w,
-            child: TextField(
-              controller: _otpControllers[i],
-              focusNode: _otpFocusNodes[i],
-              textAlign: TextAlign.center,
-              keyboardType: TextInputType.number,
-              maxLength: 1,
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black,
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-              ),
-              decoration: InputDecoration(
-                counterText: '',
-                filled: true,
-                fillColor: isDark ? Colors.white.withOpacity(0.07) : const Color(0xFFF0F2F5),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: isDark ? Colors.white.withOpacity(0.1) : Colors.transparent, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                  borderSide: BorderSide(color: AppColors.deepGreen, width: 2.5),
-                ),
-              ),
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (v) => _handleOtpChange(v, i),
-            ),
-          )),
+        OtpCodeInput(
+          controller: _otpController,
+          focusNode: _otpFocusNode,
+          autofocus: false,
+          onCompleted: (_) => _handleOtpSubmit(),
         ),
         SizedBox(height: 16.h),
         Center(
@@ -742,7 +706,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
       ),
@@ -769,7 +733,7 @@ class _RegistrationModalState extends State<RegistrationModal> {
           style: TextStyle(
             color: AppColors.deepGreen,
             fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

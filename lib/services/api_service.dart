@@ -13,6 +13,7 @@ import 'package:sukh_app/main.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sukh_app/utils/logger.dart';
+import 'package:sukh_app/utils/error_message.dart';
 import 'package:sukh_app/core/api/api_host.dart';
 
 /// Уригдсан машин яг одоо түрээсийн зогсоол дээр байгаа тул урилгыг цуцлах
@@ -49,12 +50,27 @@ class ApiService {
 
   // Helper method to wrap HTTP calls with better error handling
 
+  static final RegExp _cyrillicRe = RegExp(r'[А-Яа-яӨөҮүЁё]');
+
+  /// catch блокт алдааг дахин ороохдоо давхар «Exception: ... : Exception:»
+  /// үүсгэхгүй байх туслах. Манай кодоос/серверээс ирсэн монгол мэдэгдэл бол
+  /// цэвэрлээд хэвээр нь дамжуулна; техникийн (англи) алдаа бол үйлдлийн
+  /// тайлбар + ойлгомжтой шалтгаан болгоно.
+  static Exception _aldaa(String context, Object e) {
+    if (e is ZochinZogsoolDeerException) return e;
+    final raw = e.toString();
+    if (_cyrillicRe.hasMatch(raw)) return Exception(cleanErrorText(raw));
+    return Exception(
+      '$context. ${friendlyError(e, fallback: 'Түр хүлээгээд дахин оролдоно уу.')}',
+    );
+  }
+
   static Future<void> _checkTokenExpiry(http.Response response) async {
     if (response.statusCode == 500 || response.statusCode == 401) {
       try {
         final body = json.decode(response.body);
         final err =
-            body['message']?.toString() ?? body['aldaa']?.toString() ?? '';
+            body['aldaa']?.toString() ?? body['message']?.toString() ?? '';
         if (err.contains('jwt expired')) {
           await handleUnauthorized(
             'Нэвтрэлтийн хугацаа дууссан байна. Дахин нэвтэрнэ үү',
@@ -105,11 +121,11 @@ class ApiService {
         return [];
       } else {
         throw Exception(
-          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
+          'Сервертэй холбогдох үед алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Алдаа гарлаа: $e');
+      throw _aldaa('Байршлын мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -141,7 +157,7 @@ class ApiService {
 
       return khotkhonCodes.toList();
     } catch (e) {
-      throw Exception('Хотхон мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Хотхон мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -160,7 +176,7 @@ class ApiService {
 
       return sokhCodes.toList();
     } catch (e) {
-      throw Exception('СӨХ мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('СӨХ мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -194,7 +210,7 @@ class ApiService {
 
       return null;
     } catch (e) {
-      throw Exception('BaiguullagiinId олоход алдаа гарлаа: $e');
+      throw _aldaa('Байгууллагын мэдээлэл олоход алдаа гарлаа', e);
     }
   }
 
@@ -227,7 +243,7 @@ class ApiService {
         throw Exception('409');
       } else {
         throw Exception(
-          'Утасны дугаар баталгаажуулахад алдаа гарлаа: ${response.statusCode}',
+          'Утасны дугаар баталгаажуулахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
@@ -262,8 +278,8 @@ class ApiService {
             data['error'] != null ||
             data['aldaa'] != null) {
           final errorMessage =
-              data['message'] ??
               data['aldaa'] ??
+              data['message'] ??
               data['error'] ??
               'Баталгаажуулах код буруу байна';
           throw Exception(errorMessage);
@@ -279,14 +295,14 @@ class ApiService {
       } else {
         final errorBody = json.decode(response.body);
         final errorMessage =
-            errorBody['message'] ??
             errorBody['aldaa'] ??
+            errorBody['message'] ??
             errorBody['error'] ??
-            'Баталгаажуулах код буруу байна: ${response.statusCode}';
+            'Баталгаажуулах код шалгаж чадсангүй. ${httpStatusMessage(response.statusCode)}';
         throw Exception(errorMessage);
       }
     } catch (e) {
-      throw Exception('Баталгаажуулах код шалгахад алдаа гарлаа: $e');
+      throw _aldaa('Баталгаажуулах код шалгахад алдаа гарлаа', e);
     }
   }
 
@@ -317,8 +333,8 @@ class ApiService {
             data['error'] != null ||
             data['aldaa'] != null) {
           final errorMessage =
-              data['message'] ??
               data['aldaa'] ??
+              data['message'] ??
               data['error'] ??
               'Баталгаажуулах код буруу байна';
           throw Exception(errorMessage);
@@ -334,14 +350,14 @@ class ApiService {
       } else {
         final errorBody = json.decode(response.body);
         final errorMessage =
-            errorBody['message'] ??
             errorBody['aldaa'] ??
+            errorBody['message'] ??
             errorBody['error'] ??
-            'Баталгаажуулах код буруу байна: ${response.statusCode}';
+            'Баталгаажуулах код шалгаж чадсангүй. ${httpStatusMessage(response.statusCode)}';
         throw Exception(errorMessage);
       }
     } catch (e) {
-      throw Exception('Баталгаажуулах код шалгахад алдаа гарлаа: $e');
+      throw _aldaa('Баталгаажуулах код шалгахад алдаа гарлаа', e);
     }
   }
 
@@ -357,15 +373,16 @@ class ApiService {
       );
       await _checkTokenExpiry(response);
 
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else if (response.statusCode == 404) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 400 ||
+          response.statusCode == 404) {
+        // 400/404 үед ч серверийн тайлбарыг (message) хэрэглэгчид харуулна
         return json.decode(response.body);
       } else {
-        throw Exception('Алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Утасны дугаар шалгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Алдаа гарлаа: $e');
+      throw _aldaa('Утасны дугаар шалгахад алдаа гарлаа', e);
     }
   }
 
@@ -424,10 +441,10 @@ class ApiService {
         }
         return [];
       } else {
-        throw Exception('Хот авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Хот авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Хот авахад алдаа гарлаа: $e');
+      throw _aldaa('Хот авахад алдаа гарлаа', e);
     }
   }
 
@@ -453,10 +470,10 @@ class ApiService {
         }
         return [];
       } else {
-        throw Exception('Дүүрэг авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Дүүрэг авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Дүүрэг авахад алдаа гарлаа: $e');
+      throw _aldaa('Дүүрэг авахад алдаа гарлаа', e);
     }
   }
 
@@ -482,10 +499,10 @@ class ApiService {
         }
         return [];
       } else {
-        throw Exception('Хороо авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Хороо авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Хороо авахад алдаа гарлаа: $e');
+      throw _aldaa('Хороо авахад алдаа гарлаа', e);
     }
   }
 
@@ -508,10 +525,10 @@ class ApiService {
         }
         return [];
       } else {
-        throw Exception('Барилга авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Барилга авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Барилга авахад алдаа гарлаа: $e');
+      throw _aldaa('Барилга авахад алдаа гарлаа', e);
     }
   }
 
@@ -530,10 +547,10 @@ class ApiService {
         }
         return [];
       } else {
-        throw Exception('Орц авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Орц авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Орц авахад алдаа гарлаа: $e');
+      throw _aldaa('Орц авахад алдаа гарлаа', e);
     }
   }
 
@@ -559,10 +576,10 @@ class ApiService {
         }
         return [];
       } else {
-        throw Exception('Тоот авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Тоот авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Тоот авахад алдаа гарлаа: $e');
+      throw _aldaa('Тоот авахад алдаа гарлаа', e);
     }
   }
 
@@ -590,7 +607,7 @@ class ApiService {
         String? errorMsg;
         try {
           final decoded = json.decode(response.body);
-          errorMsg = decoded['message'] ?? decoded['aldaa'];
+          errorMsg = decoded['aldaa'] ?? decoded['message'];
         } catch (_) {}
         await handleUnauthorized(errorMsg);
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
@@ -625,7 +642,7 @@ class ApiService {
         'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү',
       );
       throw Exception(
-        'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү: $e',
+        'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү.',
       );
     }
   }
@@ -692,7 +709,7 @@ class ApiService {
 
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Төлбөр олдсонгүй');
         }
       } else if (response.statusCode == 404) {
         throw Exception('Төлбөр олдсонгүй');
@@ -700,7 +717,7 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Биллинг авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
       if (response != null) {}
@@ -714,7 +731,7 @@ class ApiService {
           e.toString().contains('Биллингийн мэдээлэл олдсонгүй')) {
         throw Exception('Төлбөр олдсонгүй');
       }
-      throw Exception('Биллинг авахад алдаа гарлаа: $e');
+      throw _aldaa('Биллинг авахад алдаа гарлаа', e);
     }
   }
 
@@ -734,7 +751,7 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Төлбөр олдсонгүй');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Төлбөр олдсонгүй');
         }
       } else if (response.statusCode == 404) {
         throw Exception('Төлбөр олдсонгүй');
@@ -742,14 +759,14 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Биллинг авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
       if (e.toString().contains('Төлбөр олдсонгүй') ||
           e.toString().contains('Биллингийн мэдээлэл олдсонгүй')) {
         throw Exception('Төлбөр олдсонгүй');
       }
-      throw Exception('Биллинг авахад алдаа гарлаа: $e');
+      throw _aldaa('Биллинг авахад алдаа гарлаа', e);
     }
   }
 
@@ -886,11 +903,11 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          'Төлбөрийн түүх авахад алдаа гарлаа: ${response.statusCode}',
+          'Төлбөрийн түүх авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Төлбөрийн түүх авахад алдаа гарлаа: $e');
+      throw _aldaa('Төлбөрийн түүх авахад алдаа гарлаа', e);
     }
   }
 
@@ -948,7 +965,7 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Биллингийн мэдээлэл олдсонгүй');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Биллингийн мэдээлэл олдсонгүй');
         }
       } else if (response.statusCode == 404) {
         throw Exception('Биллингийн мэдээлэл олдсонгүй');
@@ -956,10 +973,10 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        throw Exception('Биллинг авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Биллинг авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Биллинг авахад алдаа гарлаа: $e');
+      throw _aldaa('Биллинг авахад алдаа гарлаа', e);
     }
   }
 
@@ -1013,11 +1030,11 @@ class ApiService {
         throw Exception(
           data['aldaa'] ??
               data['message'] ??
-              'Биллинг хадгалахад алдаа гарлаа: ${response.statusCode}',
+              'Биллинг хадгалахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Биллинг хадгалахад алдаа гарлаа: $e');
+      throw _aldaa('Биллинг хадгалахад алдаа гарлаа', e);
     }
   }
 
@@ -1060,12 +1077,12 @@ class ApiService {
         throw Exception(
           data?['aldaa'] ??
               data?['message'] ??
-              'Биллинг устгахад алдаа гарлаа: ${response.statusCode}',
+              'Биллинг устгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Биллинг устгахад алдаа гарлаа: $e');
+      throw _aldaa('Биллинг устгахад алдаа гарлаа', e);
     }
   }
 
@@ -1104,12 +1121,12 @@ class ApiService {
         throw Exception(
           data?['aldaa'] ??
               data?['message'] ??
-              'Билл устгахад алдаа гарлаа: ${response.statusCode}',
+              'Билл устгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Билл устгахад алдаа гарлаа: $e');
+      throw _aldaa('Билл устгахад алдаа гарлаа', e);
     }
   }
 
@@ -1130,19 +1147,19 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Билл сэргээхэд алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Билл сэргээхэд алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Билл сэргээхэд алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Билл сэргээхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Билл сэргээхэд алдаа гарлаа: $e');
+      throw _aldaa('Билл сэргээхэд алдаа гарлаа', e);
     }
   }
 
@@ -1166,7 +1183,7 @@ class ApiService {
           return data;
         } else {
           throw Exception(
-            data['message'] ?? 'Биллингийн нэр өөрчлөхөд алдаа гарлаа',
+            data['aldaa'] ?? data['message'] ?? 'Биллингийн нэр өөрчлөхөд алдаа гарлаа',
           );
         }
       } else if (response.statusCode == 401) {
@@ -1174,12 +1191,12 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Биллингийн нэр өөрчлөхөд алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Биллингийн нэр өөрчлөхөд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Биллингийн нэр өөрчлөхөд алдаа гарлаа: $e');
+      throw _aldaa('Биллингийн нэр өөрчлөхөд алдаа гарлаа', e);
     }
   }
 
@@ -1203,19 +1220,19 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Хоч нэр өөрчлөхөд алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Хоч нэр өөрчлөхөд алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Хоч нэр өөрчлөхөд алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Хоч нэр өөрчлөхөд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Хоч нэр өөрчлөхөд алдаа гарлаа: $e');
+      throw _aldaa('Хоч нэр өөрчлөхөд алдаа гарлаа', e);
     }
   }
 
@@ -1252,19 +1269,19 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Нэхэмжлэх үүсгэхэд алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Нэхэмжлэх үүсгэхэд алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Нэхэмжлэх үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Нэхэмжлэх үүсгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Нэхэмжлэх үүсгэхэд алдаа гарлаа: $e');
+      throw _aldaa('Нэхэмжлэх үүсгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -1285,7 +1302,7 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Нэхэмжлэх олдсонгүй');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Нэхэмжлэх олдсонгүй');
         }
       } else if (response.statusCode == 404) {
         throw Exception('Нэхэмжлэх олдсонгүй');
@@ -1294,12 +1311,12 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Нэхэмжлэх авахад алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Нэхэмжлэх авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Нэхэмжлэх авахад алдаа гарлаа: $e');
+      throw _aldaa('Нэхэмжлэх авахад алдаа гарлаа', e);
     }
   }
 
@@ -1320,19 +1337,19 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Нэхэмжлэх цуцлахад алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Нэхэмжлэх цуцлахад алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Нэхэмжлэх цуцлахад алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Нэхэмжлэх цуцлахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Нэхэмжлэх цуцлахад алдаа гарлаа: $e');
+      throw _aldaa('Нэхэмжлэх цуцлахад алдаа гарлаа', e);
     }
   }
 
@@ -1355,19 +1372,19 @@ class ApiService {
         if (data['success'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Төлбөр үүсгэхэд алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Төлбөр үүсгэхэд алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Төлбөр үүсгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Төлбөр үүсгэхэд алдаа гарлаа: $e');
+      throw _aldaa('Төлбөр үүсгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -1406,7 +1423,7 @@ class ApiService {
           return data;
         } else {
           throw Exception(
-            data['message'] ?? 'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа',
+            data['aldaa'] ?? data['message'] ?? 'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа',
           );
         }
       } else if (response.statusCode == 401) {
@@ -1414,12 +1431,12 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          data['message'] ??
-              'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ?? data['message'] ??
+              'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
+      throw _aldaa('Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа', e);
     }
   }
 
@@ -1448,10 +1465,10 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return data;
       } else {
-        if (data['message'] != null) {
-          throw Exception(data['message']);
-        } else if (data['aldaa'] != null) {
+        if (data['aldaa'] != null) {
           throw Exception(data['aldaa']);
+        } else if (data['message'] != null) {
+          throw Exception(data['message']);
         } else {
           throw Exception('Тоот баталгаажуулахад алдаа гарлаа');
         }
@@ -1460,7 +1477,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Тоот баталгаажуулахад алдаа гарлаа: $e');
+      throw _aldaa('Тоот баталгаажуулахад алдаа гарлаа', e);
     }
   }
 
@@ -1525,10 +1542,10 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (data['success'] == false) {
-          if (data['message'] != null) {
-            throw Exception(data['message']);
-          } else if (data['aldaa'] != null) {
+          if (data['aldaa'] != null) {
             throw Exception(data['aldaa']);
+          } else if (data['message'] != null) {
+            throw Exception(data['message']);
           } else {
             throw Exception('Биллингийн мэдээлэл авахад алдаа гарлаа');
           }
@@ -1541,13 +1558,13 @@ class ApiService {
 
         return data;
       } else {
-        if (data['message'] != null) {
-          throw Exception(data['message']);
-        } else if (data['aldaa'] != null) {
+        if (data['aldaa'] != null) {
           throw Exception(data['aldaa']);
+        } else if (data['message'] != null) {
+          throw Exception(data['message']);
         } else {
           throw Exception(
-            'Биллингийн мэдээлэл авахад алдаа гарлаа: ${response.statusCode}',
+            'Биллингийн мэдээлэл авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
           );
         }
       }
@@ -1555,7 +1572,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Биллингийн мэдээлэл авахад алдаа гарлаа: $e');
+      throw _aldaa('Биллингийн мэдээлэл авахад алдаа гарлаа', e);
     }
   }
 
@@ -1598,23 +1615,23 @@ class ApiService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (data['success'] == false) {
-          if (data['message'] != null) {
-            throw Exception(data['message']);
-          } else if (data['aldaa'] != null) {
+          if (data['aldaa'] != null) {
             throw Exception(data['aldaa']);
+          } else if (data['message'] != null) {
+            throw Exception(data['message']);
           } else {
             throw Exception('Бүртгэл үүсгэхэд алдаа гарлаа');
           }
         }
         return data;
       } else {
-        if (data['message'] != null) {
-          throw Exception(data['message']);
-        } else if (data['aldaa'] != null) {
+        if (data['aldaa'] != null) {
           throw Exception(data['aldaa']);
+        } else if (data['message'] != null) {
+          throw Exception(data['message']);
         } else {
           throw Exception(
-            'Бүртгэл үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+            'Бүртгэл үүсгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
           );
         }
       }
@@ -1622,7 +1639,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Бүртгэл үүсгэхэд алдаа гарлаа: $e');
+      throw _aldaa('Бүртгэл үүсгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -1645,14 +1662,14 @@ class ApiService {
         return data;
       } else {
         throw Exception(
-          'Бүртгэл үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+          'Бүртгэл үүсгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Бүртгэл үүсгэхэд алдаа гарлаа: $e');
+      throw _aldaa('Бүртгэл үүсгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -1732,10 +1749,10 @@ class ApiService {
     final loginData = json.decode(response.body);
 
     if (loginData['success'] == false) {
-      if (loginData['message'] != null) {
-        throw Exception(loginData['message']);
-      } else if (loginData['aldaa'] != null) {
+      if (loginData['aldaa'] != null) {
         throw Exception(loginData['aldaa']);
+      } else if (loginData['message'] != null) {
+        throw Exception(loginData['message']);
       } else {
         throw Exception('Нэвтрэхэд алдаа гарлаа');
       }
@@ -1750,7 +1767,7 @@ class ApiService {
 
       return loginData;
     } else {
-      throw Exception(loginData['message'] ?? 'Нэвтрэхэд алдаа гарлаа');
+      throw Exception(loginData['aldaa'] ?? loginData['message'] ?? 'Нэвтрэхэд алдаа гарлаа');
     }
   }
 
@@ -1866,12 +1883,20 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       } else {
+        // Серверийн тайлбарыг (жишээ: «Хүчингүй код байна») алдахгүй
+        String? serverMsg;
+        try {
+          final body = json.decode(response.body);
+          serverMsg = (body['aldaa'] ?? body['message'])?.toString();
+        } catch (_) {}
         throw Exception(
-          'Нууц үг сэргээхэд алдаа гарлаа: ${response.statusCode}',
+          serverMsg != null && serverMsg.isNotEmpty
+              ? serverMsg
+              : 'Нууц үг сэргээхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Нууц үг сэргээхэд алдаа гарлаа: $e');
+      throw _aldaa('Нууц үг сэргээхэд алдаа гарлаа', e);
     }
   }
 
@@ -1951,10 +1976,10 @@ class ApiService {
         throw Exception('Хэрэглэгч олдсонгүй');
       } else {
         String errorMessage =
-            'Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}';
+            'Мэдээлэл авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          errorMessage = errorData['aldaa']?.toString() ?? errorData['message']?.toString() ?? errorMessage;
         } catch (_) {}
         throw Exception(errorMessage);
       }
@@ -1962,7 +1987,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+      throw _aldaa('Мэдээлэл авахад алдаа гарлаа', e);
     }
   }
 
@@ -2042,10 +2067,10 @@ class ApiService {
         throw Exception('Гадаадын иргэн олдсонгүй');
       } else {
         String errorMessage =
-            'Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}';
+            'Мэдээлэл авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          errorMessage = errorData['aldaa']?.toString() ?? errorData['message']?.toString() ?? errorMessage;
         } catch (_) {}
         throw Exception(errorMessage);
       }
@@ -2053,7 +2078,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+      throw _aldaa('Мэдээлэл авахад алдаа гарлаа', e);
     }
   }
 
@@ -2162,7 +2187,7 @@ class ApiService {
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Системийн алдаа гарлаа: $e');
+      throw _aldaa('Хэрэглэгч хайхад алдаа гарлаа', e);
     }
   }
 
@@ -2237,7 +2262,7 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        throw Exception('Жагсаалт авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Жагсаалт авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
       rethrow;
@@ -2277,7 +2302,7 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        throw Exception('Устгахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Устгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
       rethrow;
@@ -2374,10 +2399,10 @@ class ApiService {
         throw Exception('Гадаадын иргэн олдсонгүй');
       } else {
         String errorMessage =
-            'Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}';
+            'Мэдээлэл авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          errorMessage = errorData['aldaa']?.toString() ?? errorData['message']?.toString() ?? errorMessage;
         } catch (_) {
           print(
             '❌ [API] getForeignerInfoByLoginName - Could not parse error response',
@@ -2389,7 +2414,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+      throw _aldaa('Мэдээлэл авахад алдаа гарлаа', e);
     }
   }
 
@@ -2416,10 +2441,10 @@ class ApiService {
       } else if (response.statusCode == 409) {
         throw Exception('Гадаадын иргэн аль хэдийн бүртгэгдсэн байна');
       } else {
-        String errorMessage = 'Бүртгэхэд алдаа гарлаа: ${response.statusCode}';
+        String errorMessage = 'Бүртгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['message']?.toString() ?? errorMessage;
+          errorMessage = errorData['aldaa']?.toString() ?? errorData['message']?.toString() ?? errorMessage;
         } catch (_) {}
         throw Exception(errorMessage);
       }
@@ -2427,7 +2452,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Бүртгэхэд алдаа гарлаа: $e');
+      throw _aldaa('Бүртгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -2467,10 +2492,10 @@ class ApiService {
         throw Exception('Профайл олдсонгүй');
       } else {
         String errorMessage =
-            'Профайл авахад алдаа гарлаа: ${response.statusCode}';
+            'Профайл авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['message'] ?? errorMessage;
+          errorMessage = errorData['aldaa'] ?? errorData['message'] ?? errorMessage;
         } catch (_) {}
         throw Exception(errorMessage);
       }
@@ -2478,7 +2503,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Профайл авахад алдаа гарлаа: $e');
+      throw _aldaa('Профайл авахад алдаа гарлаа', e);
     }
   }
 
@@ -2528,7 +2553,7 @@ class ApiService {
         } else if (data['success'] != null) {
           result = data;
         } else {
-          throw Exception(data['message'] ?? 'Хэрэглэгчийн мэдээлэл олдсонгүй');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Хэрэглэгчийн мэдээлэл олдсонгүй');
         }
 
         // Persist user data locally so the app is always up to date with web changes
@@ -2560,7 +2585,7 @@ class ApiService {
           throw Exception('Дахин нэвтэрнэ үү');
         }
         throw Exception(
-          'Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+          'Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
@@ -2568,7 +2593,7 @@ class ApiService {
         rethrow;
       }
 
-      throw Exception('Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -2615,12 +2640,12 @@ class ApiService {
         String message = 'Дугаар солиход алдаа гарлаа';
         try {
           final data = json.decode(response.body);
-          message = data['message'] ?? data['aldaa'] ?? message;
+          message = data['aldaa'] ?? data['message'] ?? message;
         } catch (_) {}
         throw Exception(message);
       }
     } catch (e) {
-      throw Exception('Дугаар солиход алдаа гарлаа: $e');
+      throw _aldaa('Дугаар солиход алдаа гарлаа', e);
     }
   }
 
@@ -2651,11 +2676,11 @@ class ApiService {
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception(
-          'Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа: ${response.statusCode}',
+          'Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа: $e');
+      throw _aldaa('Танилцуулга харах тохиргоо хадгалахад алдаа гарлаа', e);
     }
   }
 
@@ -2687,19 +2712,19 @@ class ApiService {
           return data;
         } else {
           throw Exception(
-            data['message'] ?? data['aldaa'] ?? 'Тоот устгахад алдаа гарлаа',
+            data['aldaa'] ?? data['message'] ?? 'Тоот устгахад алдаа гарлаа',
           );
         }
       } else {
         throw Exception(
-          data['message'] ??
-              data['aldaa'] ??
-              'Тоот устгахад алдаа гарлаа: ${response.statusCode}',
+          data['aldaa'] ??
+              data['message'] ??
+              'Тоот устгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Тоот устгахад алдаа гарлаа: $e');
+      throw _aldaa('Тоот устгахад алдаа гарлаа', e);
     }
   }
 
@@ -2771,11 +2796,11 @@ class ApiService {
         return data;
       } else {
         throw Exception(
-          'Мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}',
+          'Мэдээлэл шинэчлэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
+      throw _aldaa('Мэдээлэл шинэчлэхэд алдаа гарлаа', e);
     }
   }
 
@@ -2810,11 +2835,11 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception(
-          'Гэрээний мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+          'Гэрээний мэдээлэл татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Гэрээний мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Гэрээний мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -2901,11 +2926,11 @@ class ApiService {
         }
       } else {
         throw Exception(
-          'Нэхэмжлэхийн түүх татахад алдаа гарлаа: ${response.statusCode}',
+          'Нэхэмжлэхийн түүх татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Нэхэмжлэхийн түүх татахад алдаа гарлаа: $e');
+      throw _aldaa('Нэхэмжлэхийн түүх татахад алдаа гарлаа', e);
     }
   }
 
@@ -3101,6 +3126,58 @@ class ApiService {
         }
       }
 
+      // Хөнгөлөлтийн мөр (вэбийн «Хөнгөлөлт» хэрэгсэл) nekhemjlekhId-гүй
+      // бичигддэг — тухайн сарын нэхэмжлэхийн огноонд суудаг. Вэбийн нэхэмжлэх
+      // шиг сараар нь тохирох нэхэмжлэхэд холбоно; эс бөгөөс тусдаа
+      // «Авлага» карт болж, төлбөр мэт харагддаг байв.
+      String? sarTulkhuur(dynamic ognoo) {
+        final d = DateTime.tryParse(ognoo?.toString() ?? '');
+        if (d == null) return null;
+        final l = d.toLocal();
+        return '${l.year}-${l.month}';
+      }
+
+      bool khungulultEsekh(dynamic item) {
+        if (item is! Map) return false;
+        if (item['source']?.toString() == 'khungulult') return true;
+        final t = '${item['turul'] ?? ''} ${item['zardliinTurul'] ?? ''} ${item['zardliinNer'] ?? ''}'
+            .toLowerCase();
+        return t.contains('хөнгөлөлт') || t.contains('khungulult');
+      }
+
+      for (var item in items) {
+        final id = item['_id']?.toString() ?? '';
+        if (linkedItemIds.contains(id) || !khungulultEsekh(item)) continue;
+        final sar = sarTulkhuur(item['ognoo']);
+        if (sar == null) continue;
+        dynamic invoice = invoices.cast<dynamic>().firstWhere(
+          (inv) =>
+              inv is Map &&
+              sarTulkhuur(inv['nekhemjlekhiinOgnoo'] ?? inv['ognoo']) == sar,
+          orElse: () => null,
+        );
+        // Тухайн сард нэхэмжлэх үүсээгүй (жишээ нь гүйлгээний цонхоор дараа
+        // сард оруулсан) бол огноогоор хамгийн ойр нэхэмжлэхэд холбоно.
+        if (invoice == null) {
+          final itemDate = DateTime.tryParse(item['ognoo']?.toString() ?? '');
+          Duration? best;
+          for (final inv in invoices) {
+            if (inv is! Map || inv['medeelel'] == null) continue;
+            final d = DateTime.tryParse(
+                (inv['nekhemjlekhiinOgnoo'] ?? inv['ognoo'])?.toString() ?? '');
+            if (d == null || itemDate == null) continue;
+            final diff = d.difference(itemDate).abs();
+            if (best == null || diff < best) {
+              best = diff;
+              invoice = inv;
+            }
+          }
+        }
+        if (invoice == null) continue;
+        (invoice['medeelel']['guilgeenuud'] as List).add(item);
+        linkedItemIds.add(id);
+      }
+
       final standaloneItems = items.where((item) {
         final id = item['_id']?.toString() ?? '';
         return !linkedItemIds.contains(id);
@@ -3218,10 +3295,10 @@ class ApiService {
           return {'jagsaalt': []};
         }
       } else {
-        throw Exception('Баримт татахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Баримт татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Баримт татахад алдаа гарлаа: $e');
+      throw _aldaa('Баримт татахад алдаа гарлаа', e);
     }
   }
 
@@ -3262,12 +3339,12 @@ class ApiService {
       } else {
         final errorData = json.decode(response.body);
         throw Exception(
-          errorData['message']?.toString() ??
+          errorData['aldaa']?.toString() ?? errorData['message']?.toString() ??
               'E-barimt холболт хадгалахад алдаа гарлаа',
         );
       }
     } catch (e) {
-      throw Exception('E-barimt холболт хадгалахад алдаа гарлаа: $e');
+      throw _aldaa('E-barimt холболт хадгалахад алдаа гарлаа', e);
     }
   }
 
@@ -3327,12 +3404,12 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         String errorMessage =
-            'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: ${response.statusCode}';
+            'Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorData = json.decode(response.body);
           errorMessage =
-              errorData['message']?.toString() ??
               errorData['aldaa']?.toString() ??
+              errorData['message']?.toString() ??
               errorMessage;
         } catch (_) {
           // If response is not JSON, use default message
@@ -3344,7 +3421,7 @@ class ApiService {
         rethrow;
       }
 
-      throw Exception('Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа: $e');
+      throw _aldaa('Хэрэглэгчийн мэдээлэл шинэчлэхэд алдаа гарлаа', e);
     }
   }
 
@@ -3391,11 +3468,11 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception(
-          'Төлбөрийн төлөв шалгахад алдаа гарлаа: ${response.statusCode}',
+          'Төлбөрийн төлөв шалгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Төлбөрийн төлөв шалгахад алдаа гарлаа: $e');
+      throw _aldaa('Төлбөрийн төлөв шалгахад алдаа гарлаа', e);
     }
   }
 
@@ -3421,11 +3498,11 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception(
-          'Байгууллагын мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+          'Байгууллагын мэдээлэл татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Байгууллагын мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -3459,11 +3536,11 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception(
-          'Байгууллагын мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+          'Байгууллагын мэдээлэл татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Байгууллагын мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Байгууллагын мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -3494,7 +3571,38 @@ class ApiService {
         cameruud.map((c) => Map<String, dynamic>.from(c as Map)),
       );
     } catch (e) {
-      throw Exception('Камерын мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Камерын мэдээлэл татахад алдаа гарлаа', e);
+    }
+  }
+
+  /// Гэрээний үлдэгдлийг ангиллаар (Орон сууц / Зогсоол / Агуулах) авна.
+  /// Вэбийн TransactionModal-ын «Төлөх авлагын төрөл»-тэй ижил эх сурвалж.
+  static Future<Map<String, double>> fetchUldegdelAngilal({
+    required String baiguullagiinId,
+    required String gereeniiId,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      final res = await http.post(
+        Uri.parse('$baseUrl/khungulultSuuriAvya'),
+        headers: headers,
+        body: json.encode({
+          'baiguullagiinId': baiguullagiinId,
+          'gereeniiIdnuud': [gereeniiId],
+        }),
+      );
+      await _checkTokenExpiry(res);
+      if (res.statusCode != 200) return {};
+      final data = json.decode(res.body);
+      final ur = data['uldegdelAngilal']?[gereeniiId];
+      if (ur is! Map) return {};
+      return {
+        for (final k in ['Орон сууц', 'Зогсоол', 'Агуулах'])
+          k: (ur[k] is num) ? (ur[k] as num).toDouble() : 0.0,
+      };
+    } catch (_) {
+      return {};
     }
   }
 
@@ -3516,6 +3624,8 @@ class ApiService {
     String? burtgeliinDugaar, // Registration number (for Custom QPay)
     String? customerTin, // B2B registration number
     String? gereeniiId, // Residency contract ID
+    /// Ангиллаар төлөх: 'Орон сууц' | 'Зогсоол' | 'Агуулах' (вэбийн TransactionModal-тай ижил)
+    String? angilal,
   }) async {
     try {
       final headers = await getAuthHeaders();
@@ -3560,6 +3670,10 @@ class ApiService {
 
         if (gereeniiId != null && gereeniiId.isNotEmpty) {
           requestBody['gereeniiId'] = gereeniiId;
+        }
+
+        if (angilal != null && angilal.isNotEmpty) {
+          requestBody['angilal'] = angilal;
         }
       }
       // Wallet QPay - DEPRECATED: Use createWalletQPayPayment() instead
@@ -3661,12 +3775,12 @@ class ApiService {
           // If error response is not JSON, use status code
 
           throw Exception(
-            'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+            'QPay төлбөр үүсгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
           );
         }
         throw Exception(
-          errorBody?['message']?.toString() ??
-              'QPay төлбөр үүсгэхэд алдаа гарлаа: ${response.statusCode}',
+          errorBody?['aldaa']?.toString() ?? errorBody?['message']?.toString() ??
+              'QPay төлбөр үүсгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
@@ -3674,7 +3788,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+      throw _aldaa('QPay төлбөр үүсгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -3798,7 +3912,7 @@ class ApiService {
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('QPay төлбөр үүсгэхэд алдаа гарлаа: $e');
+      throw _aldaa('QPay төлбөр үүсгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -3861,11 +3975,11 @@ class ApiService {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        throw Exception('Түүх татахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Түүх татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Түүх татахад алдаа гарлаа: $e');
+      throw _aldaa('Түүх татахад алдаа гарлаа', e);
     }
   }
 
@@ -3899,12 +4013,12 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          'Төлбөрийн статус шалгахад алдаа: ${response.statusCode}',
+          'Төлбөрийн төлөв шалгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Төлбөрийн статус шалгахад алдаа: $e');
+      throw _aldaa('Төлбөрийн төлөв шалгахад алдаа гарлаа', e);
     }
   }
 
@@ -3939,12 +4053,12 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          'Төлбөрийн статус шалгахад алдаа: ${response.statusCode}',
+          'Төлбөрийн төлөв шалгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Төлбөрийн статус шалгахад алдаа: $e');
+      throw _aldaa('Төлбөрийн төлөв шалгахад алдаа гарлаа', e);
     }
   }
 
@@ -3963,17 +4077,17 @@ class ApiService {
         if (data['success'] == true) {
           return data['data'] as Map<String, dynamic>;
         } else {
-          throw Exception(data['message'] ?? 'Мэдээлэл авахад алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Мэдээлэл авахад алдаа гарлаа');
         }
       } else if (response.statusCode == 401) {
         await handleUnauthorized();
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
-        throw Exception('Мэдээлэл авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Мэдээлэл авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Мэдээлэл авахад алдаа гарлаа: $e');
+      throw _aldaa('Мэдээлэл авахад алдаа гарлаа', e);
     }
   }
 
@@ -4017,14 +4131,14 @@ class ApiService {
         throw Exception('Нэвтрэлтийн хугацаа дууссан');
       } else {
         throw Exception(
-          'Төлбөрийн статус авахад алдаа гарлаа: ${response.statusCode}',
+          'Төлбөрийн статус авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Төлбөрийн статус авахад алдаа гарлаа: $e');
+      throw _aldaa('Төлбөрийн статус авахад алдаа гарлаа', e);
     }
   }
 
@@ -4050,11 +4164,11 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception(
-          'Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа: ${response.statusCode}',
+          'Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа: $e');
+      throw _aldaa('Нэхэмжлэхийн төлөв шинэчлэхэд алдаа гарлаа', e);
     }
   }
 
@@ -4093,11 +4207,11 @@ class ApiService {
         return data;
       } else {
         throw Exception(
-          'Нэхэмжлэхийн Cron мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+          'Нэхэмжлэхийн хуваарийн мэдээлэл татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Нэхэмжлэхийн Cron мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Нэхэмжлэхийн хуваарийн мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -4125,7 +4239,7 @@ class ApiService {
 
       return data;
     } catch (e) {
-      throw Exception('Нууц үг солиход алдаа гарлаа: $e');
+      throw _aldaa('Нууц үг солиход алдаа гарлаа', e);
     }
   }
 
@@ -4146,7 +4260,7 @@ class ApiService {
       final data = json.decode(response.body);
       return data;
     } catch (e) {
-      throw Exception('Бүртгэлтэй хаяг устгахад алдаа гарлаа: $e');
+      throw _aldaa('Бүртгэлтэй хаяг устгахад алдаа гарлаа', e);
     }
   }
 
@@ -4168,7 +4282,7 @@ class ApiService {
 
       return {'barilguud': matchingBaiguullaga['barilguud'] as List};
     } catch (e) {
-      throw Exception('Барилгын мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Барилгын мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -4211,11 +4325,11 @@ class ApiService {
         return data;
       } else {
         throw Exception(
-          'Ажилтны мэдээлэл татахад алдаа гарлаа: ${response.statusCode}',
+          'Ажилтны мэдээлэл татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Ажилтны мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Ажилтны мэдээлэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -4336,13 +4450,13 @@ class ApiService {
       } else {
         // Try to get error message from response body
         String errorMessage =
-            'Мэдэгдэл татахад алдаа гарлаа: ${response.statusCode}';
+            'Мэдэгдэл татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorBody = json.decode(response.body);
-          if (errorBody['message'] != null) {
-            errorMessage = errorBody['message'].toString();
-          } else if (errorBody['aldaa'] != null) {
+          if (errorBody['aldaa'] != null) {
             errorMessage = errorBody['aldaa'].toString();
+          } else if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
           }
         } catch (_) {
           // If parsing fails, use default message
@@ -4353,7 +4467,7 @@ class ApiService {
       if (e is Exception) {
         rethrow;
       }
-      throw Exception('Мэдэгдэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Мэдэгдэл татахад алдаа гарлаа', e);
     }
   }
 
@@ -4423,13 +4537,13 @@ class ApiService {
       } else {
         // Try to get error message from response body
         String errorMessage =
-            'Гомдол, санал татахад алдаа гарлаа: ${response.statusCode}';
+            'Гомдол, санал татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorBody = json.decode(response.body);
-          if (errorBody['message'] != null) {
-            errorMessage = errorBody['message'].toString();
-          } else if (errorBody['aldaa'] != null) {
+          if (errorBody['aldaa'] != null) {
             errorMessage = errorBody['aldaa'].toString();
+          } else if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
           }
         } catch (_) {
           // If parsing fails, use default message
@@ -4437,7 +4551,7 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      throw Exception('Гомдол, санал татахад алдаа гарлаа: $e');
+      throw _aldaa('Гомдол, санал татахад алдаа гарлаа', e);
     }
   }
 
@@ -4547,7 +4661,7 @@ class ApiService {
         };
       } else {
         String errorMessage =
-            '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа: ${response.statusCode}';
+            '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           if (response.body.contains('<!DOCTYPE html>') ||
               response.body.contains('Cannot POST') ||
@@ -4555,10 +4669,10 @@ class ApiService {
             errorMessage = 'Серверийн алдаа гарлаа. Дахин оролдоно уу.';
           } else {
             final errorBody = json.decode(response.body);
-            if (errorBody['message'] != null) {
-              errorMessage = errorBody['message'].toString();
-            } else if (errorBody['aldaa'] != null) {
+            if (errorBody['aldaa'] != null) {
               errorMessage = errorBody['aldaa'].toString();
+            } else if (errorBody['message'] != null) {
+              errorMessage = errorBody['message'].toString();
             } else if (errorBody['error'] != null) {
               errorMessage = errorBody['error'].toString();
             }
@@ -4577,8 +4691,9 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      throw Exception(
-        '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа: $e',
+      throw _aldaa(
+        '${turulLower == 'gomdol' ? 'Гомдол' : 'Санал'} илгээхэд алдаа гарлаа',
+        e,
       );
     }
   }
@@ -4624,13 +4739,13 @@ class ApiService {
         }
       } else {
         String errorMessage =
-            'Мэдэгдэл тэмдэглэхэд алдаа гарлаа: ${response.statusCode}';
+            'Мэдэгдэл тэмдэглэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
         try {
           final errorBody = json.decode(response.body);
-          if (errorBody['message'] != null) {
-            errorMessage = errorBody['message'].toString();
-          } else if (errorBody['aldaa'] != null) {
+          if (errorBody['aldaa'] != null) {
             errorMessage = errorBody['aldaa'].toString();
+          } else if (errorBody['message'] != null) {
+            errorMessage = errorBody['message'].toString();
           }
         } catch (_) {
           // Use default error message
@@ -4638,7 +4753,7 @@ class ApiService {
         throw Exception(errorMessage);
       }
     } catch (e) {
-      throw Exception('Мэдэгдэл тэмдэглэхэд алдаа гарлаа: $e');
+      throw _aldaa('Мэдэгдэл тэмдэглэхэд алдаа гарлаа', e);
     }
   }
 
@@ -4666,15 +4781,15 @@ class ApiService {
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
-      String msg = 'Thread татахад алдаа: ${response.statusCode}';
+      String msg = 'Хариултуудыг татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
       try {
         final err = json.decode(response.body);
-        if (err['message'] != null) msg = err['message'].toString();
+        final m = err['aldaa'] ?? err['message']; if (m != null) msg = m.toString();
       } catch (_) {}
       throw Exception(msg);
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Thread татахад алдаа: $e');
+      throw _aldaa('Хариултуудыг татахад алдаа гарлаа', e);
     }
   }
 
@@ -4710,10 +4825,10 @@ class ApiService {
       final path = data['path']?.toString();
       if (path != null && path.isNotEmpty) return path;
     }
-    String msg = 'Файл илгээхэд алдаа: ${response.statusCode}';
+    String msg = 'Файл илгээхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
     try {
       final err = json.decode(response.body);
-      if (err['message'] != null) msg = err['message'].toString();
+      final m = err['aldaa'] ?? err['message']; if (m != null) msg = m.toString();
     } catch (_) {}
     throw Exception(msg);
   }
@@ -4774,15 +4889,15 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
-      String msg = 'Хариу илгээхэд алдаа: ${response.statusCode}';
+      String msg = 'Хариу илгээхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}';
       try {
         final err = json.decode(response.body);
-        if (err['message'] != null) msg = err['message'].toString();
+        final m = err['aldaa'] ?? err['message']; if (m != null) msg = m.toString();
       } catch (_) {}
       throw Exception(msg);
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Хариу илгээхэд алдаа: $e');
+      throw _aldaa('Хариу илгээхэд алдаа гарлаа', e);
     }
   }
 
@@ -4872,18 +4987,18 @@ class ApiService {
         String message = 'Зочин хадгалахад алдаа гарлаа';
         try {
           final errorBody = json.decode(response.body);
-          message = errorBody['message'] ?? errorBody['aldaa'] ?? message;
+          message = errorBody['aldaa'] ?? errorBody['message'] ?? message;
         } catch (_) {
           if (response.statusCode == 403) {
             message = 'Зочин урих эрх дууссан байна';
           } else {
-            message = '$message: ${response.statusCode}';
+            message = '$message. ${httpStatusMessage(response.statusCode)}';
           }
         }
         throw Exception(message);
       }
     } catch (e) {
-      throw Exception('Зочин хадгалахад алдаа гарлаа: $e');
+      throw _aldaa('Зочин хадгалахад алдаа гарлаа', e);
     }
   }
 
@@ -4975,15 +5090,15 @@ class ApiService {
         try {
           final errorBody = json.decode(response.body);
           message =
-              errorBody['message'] ??
               errorBody['aldaa'] ??
+              errorBody['message'] ??
               errorBody['error'] ??
               message;
         } catch (_) {
           if (response.statusCode == 403) {
             message = 'Зочин урих эрх дууссан байна';
           } else {
-            message = '$message: ${response.statusCode}';
+            message = '$message. ${httpStatusMessage(response.statusCode)}';
           }
         }
         throw Exception(message);
@@ -5021,11 +5136,11 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception(
-          'Зочны түүх татахад алдаа гарлаа: ${response.statusCode}',
+          'Зочны түүх татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Зочны түүх татахад алдаа гарлаа: $e');
+      throw _aldaa('Зочны түүх татахад алдаа гарлаа', e);
     }
   }
 
@@ -5068,7 +5183,7 @@ class ApiService {
         String message = 'Урилга цуцлахад алдаа гарлаа';
         try {
           final errorBody = json.decode(response.body);
-          message = errorBody['message'] ?? errorBody['aldaa'] ?? message;
+          message = errorBody['aldaa'] ?? errorBody['message'] ?? message;
         } catch (_) {}
 
         // 409 = уригдсан машин яг одоо зогсоол дээр байна. Түрээс тал
@@ -5081,7 +5196,7 @@ class ApiService {
     } on ZochinZogsoolDeerException {
       rethrow;
     } catch (e) {
-      throw Exception('Урилга цуцлахад алдаа гарлаа: $e');
+      throw _aldaa('Урилга цуцлахад алдаа гарлаа', e);
     }
   }
 
@@ -5200,10 +5315,10 @@ class ApiService {
         }
         throw Exception('Серверээс буруу форматтай хариу ирлээ');
       } else {
-        throw Exception('Тохиргоо авахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Тохиргоо авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Тохиргоо авахад алдаа гарлаа: $e');
+      throw _aldaa('Тохиргоо авахад алдаа гарлаа', e);
     }
   }
 
@@ -5239,10 +5354,10 @@ class ApiService {
         }
         return {'success': true, 'message': responseBody};
       } else {
-        throw Exception('Квот шалгахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Квот шалгахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Квот шалгахад алдаа гарлаа: $e');
+      throw _aldaa('Квот шалгахад алдаа гарлаа', e);
     }
   }
 
@@ -5279,14 +5394,14 @@ class ApiService {
         if (data['success'] == true && data['data'] != null) {
           return Map<String, dynamic>.from(data['data']);
         }
-        throw Exception(data['message'] ?? 'Чат үүсгэхэд алдаа гарлаа');
+        throw Exception(data['aldaa'] ?? data['message'] ?? 'Чат үүсгэхэд алдаа гарлаа');
       } else {
         throw Exception(
-          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
+          'Сервертэй холбогдох үед алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Чат үүсгэхэд алдаа гарлаа: $e');
+      throw _aldaa('Чат үүсгэхэд алдаа гарлаа', e);
     }
   }
 
@@ -5305,15 +5420,15 @@ class ApiService {
           return Map<String, dynamic>.from(data['data']);
         }
         throw Exception(
-          data['message'] ?? 'Чатын мэдээлэл авахад алдаа гарлаа',
+          data['aldaa'] ?? data['message'] ?? 'Чатын мэдээлэл авахад алдаа гарлаа',
         );
       } else {
         throw Exception(
-          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
+          'Сервертэй холбогдох үед алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Чатын мэдээлэл авахад алдаа гарлаа: $e');
+      throw _aldaa('Чатын мэдээлэл авахад алдаа гарлаа', e);
     }
   }
 
@@ -5359,14 +5474,14 @@ class ApiService {
         if (data['success'] == true && data['data'] != null) {
           return Map<String, dynamic>.from(data['data']);
         }
-        throw Exception(data['message'] ?? 'Мессеж илгээхэд алдаа гарлаа');
+        throw Exception(data['aldaa'] ?? data['message'] ?? 'Мессеж илгээхэд алдаа гарлаа');
       } else {
         throw Exception(
-          'Сервертэй холбогдох үед алдаа гарлаа: ${response.statusCode}',
+          'Сервертэй холбогдох үед алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Мессеж илгээхэд алдаа гарлаа: $e');
+      throw _aldaa('Мессеж илгээхэд алдаа гарлаа', e);
     }
   }
 
@@ -5413,11 +5528,11 @@ class ApiService {
         return json.decode(response.body);
       } else {
         throw Exception(
-          'Зогсоолын мэдээлэл авахад алдаа гарлаа: ${response.statusCode}',
+          'Зогсоолын мэдээлэл авахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}',
         );
       }
     } catch (e) {
-      throw Exception('Зогсоолын мэдээлэл авахад алдаа гарлаа: $e');
+      throw _aldaa('Зогсоолын мэдээлэл авахад алдаа гарлаа', e);
     }
   }
 
@@ -5467,7 +5582,7 @@ class ApiService {
       return {'success': false, 'message': 'Мэдээлэл олдсонгүй'};
     } catch (e) {
       print('❌ [API] fetchParkingPaymentInfo Error: $e');
-      return {'success': false, 'message': e.toString()};
+      return {'success': false, 'message': friendlyError(e)};
     }
   }
 

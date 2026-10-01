@@ -46,10 +46,78 @@ class UpdateService {
   static AppVersionInfo? _latestVersionInfo;
   static AppVersionInfo? get latestVersionInfo => _latestVersionInfo;
 
+  /// iOS bundle id — App Store-оос сүүлийн хувилбарыг автоматаар асуухад
+  static const String _iosBundleId = 'com.zevtabs.sukhapp';
+  static const String _androidPackage = 'com.home.sukh_app';
+
+  /// Нэг сессэд модалыг нэг л удаа харуулна (resume бүрд дахин гаргахгүй)
+  static bool _shownThisSession = false;
+  static bool get shownThisSession => _shownThisSession;
+  static void markShown() => _shownThisSession = true;
+
+  static String get storeName {
+    if (!kIsWeb && Platform.isIOS) return 'App Store';
+    if (!kIsWeb && Platform.isAndroid) return 'Play Store';
+    return 'дэлгүүр';
+  }
+
+  static String get defaultMessage =>
+      'Аппын шинэ хувилбар гарлаа. Шинэ боломжууд болон сайжруулалтыг ашиглахын тулд $storeName-оос шинэчилнэ үү.';
+
+  /// App Store дээр бодитоор нийтлэгдсэн хувилбар (iOS). Админ backend дээр
+  /// хувилбар шинэчлэхээ мартсан ч App Store-д гарсан даруйд модал гарна.
+  static Future<Map<String, String>?> _appStoreVersion() async {
+    try {
+      final uri = Uri.parse(
+        'https://itunes.apple.com/lookup?bundleId=$_iosBundleId&country=mn&_t=${DateTime.now().millisecondsSinceEpoch}',
+      );
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode != 200) return null;
+      final data = json.decode(res.body);
+      final results = data['results'];
+      if (results is List && results.isNotEmpty) {
+        final r = results.first;
+        return {
+          'version': r['version']?.toString() ?? '',
+          'url': r['trackViewUrl']?.toString() ?? '',
+        };
+      }
+    } catch (e) {
+      print('App Store version lookup failed: $e');
+    }
+    return null;
+  }
+
+  static Future<AppVersionInfo?> _backendVersion(String platform) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/app-version?platform=$platform'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return null;
+      final responseJson = json.decode(response.body);
+      // Handle wrapped response format: {success: true, data: {...}}
+      final Map<String, dynamic> data =
+          responseJson['success'] == true && responseJson['data'] != null
+              ? responseJson['data']
+              : responseJson;
+      return AppVersionInfo.fromJson(data);
+    } catch (e) {
+      print('Error checking app version from API: $e');
+      return null;
+    }
+  }
+
   /// Check if app update is available
   /// Returns the AppVersionInfo if update is available, null otherwise
+  ///
+  /// Эх сурвалж: backend `/app-version` (вэбээс/админаас тохируулдаг,
+  /// minVersion ба isForceUpdate) + iOS дээр App Store-ын бодит хувилбар.
   static Future<AppVersionInfo?> checkForUpdate() async {
     try {
+      if (kIsWeb) return null;
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
       final currentBuildNumber = packageInfo.buildNumber;
@@ -58,61 +126,61 @@ class UpdateService {
       final prefs = await SharedPreferences.getInstance();
       final dismissedVersion = prefs.getString(_updateDismissedKey);
 
-      // Get latest version from API
-      try {
-        String platform = 'unknown'; // Default
-        if (!kIsWeb) {
-          if (Platform.isIOS)
-            platform = 'ios';
-          else if (Platform.isAndroid)
-            platform = 'android';
-          else if (Platform.isWindows)
-            platform = 'windows';
-          else if (Platform.isMacOS)
-            platform = 'macos';
-          else if (Platform.isLinux)
-            platform = 'linux';
-        }
+      final platform = Platform.isIOS
+          ? 'ios'
+          : Platform.isAndroid
+              ? 'android'
+              : 'unknown';
 
-        final apiUrl = '$baseUrl/app-version?platform=$platform';
+      final results = await Future.wait([
+        _backendVersion(platform),
+        Platform.isIOS ? _appStoreVersion() : Future.value(null),
+      ]);
+      final backend = results[0] as AppVersionInfo?;
+      final store = results[1] as Map<String, String>?;
 
-        final response = await http.get(
-          Uri.parse(apiUrl),
-          headers: {'Content-Type': 'application/json'},
-        );
-
-        if (response.statusCode == 200) {
-          final responseJson = json.decode(response.body);
-
-          // Handle wrapped response format: {success: true, data: {...}}
-          Map<String, dynamic> data;
-          if (responseJson['success'] == true && responseJson['data'] != null) {
-            data = responseJson['data'];
-          } else {
-            data = responseJson;
-          }
-
-          final versionInfo = AppVersionInfo.fromJson(data);
-          _latestVersionInfo = versionInfo;
-
-          // Compare versions for normal update (respect API isForceUpdate value)
-          if (_isVersionNewer(
-            versionInfo.version,
-            versionInfo.buildNumber,
-            currentVersion,
-            currentBuildNumber,
-          )) {
-            // Check if user has already dismissed this specific version
-            if (versionInfo.isForceUpdate ||
-                dismissedVersion != versionInfo.version) {
-              return versionInfo;
-            }
-          }
-        }
-      } catch (e) {
-        print('Error checking app version from API: $e');
+      // iOS: App Store-д бодитоор гарсан хувилбар нь үнэн эх сурвалж —
+      // backend дээр зарласан ч дэлгүүрт хараахан гараагүй бол санал болгохгүй.
+      String latest = backend?.version ?? '';
+      String buildNumber = backend?.buildNumber ?? '0';
+      String updateUrl = backend?.updateUrl ?? '';
+      if (store != null && (store['version'] ?? '').isNotEmpty) {
+        latest = store['version']!;
+        buildNumber = '0';
+        if (updateUrl.isEmpty) updateUrl = store['url'] ?? '';
       }
+      if (latest.isEmpty) return null;
 
+      // minVersion-оос доош бол заавал шинэчлэх
+      final minVersion = backend?.minVersion ?? '';
+      final belowMin = minVersion.isNotEmpty &&
+          _isVersionNewer(minVersion, '0', currentVersion, '0');
+      final force = (backend?.isForceUpdate ?? false) || belowMin;
+
+      final message = (backend != null &&
+              backend.message.isNotEmpty &&
+              backend.message != 'Апп-ын шинэ хувилбар гарсан байна. Шинэчлэх үү?')
+          ? backend.message
+          : defaultMessage;
+
+      final info = AppVersionInfo(
+        version: latest,
+        minVersion: minVersion,
+        isForceUpdate: force,
+        updateUrl: updateUrl,
+        message: message,
+        buildNumber: buildNumber,
+      );
+      _latestVersionInfo = info;
+
+      final newer = buildNumber == '0'
+          ? _isVersionNewer(latest, '0', currentVersion, '0')
+          : _isVersionNewer(
+              latest, buildNumber, currentVersion, currentBuildNumber);
+      if (!newer && !belowMin) return null;
+
+      // Check if user has already dismissed this specific version
+      if (force || dismissedVersion != info.version) return info;
       return null;
     } catch (e) {
       print('Error checking for update: $e');
@@ -168,6 +236,9 @@ class UpdateService {
     }
   }
 
+  /// Android-д Play Store аппыг шууд нээх (market://) холбоос
+  static String get androidMarketUrl => 'market://details?id=$_androidPackage';
+
   /// Get store URL based on platform
   static String getStoreUrl() {
     if (_latestVersionInfo != null &&
@@ -182,7 +253,7 @@ class UpdateService {
     if (Platform.isIOS) {
       return 'https://apps.apple.com/mn/app/amar-home/id6738981440';
     } else if (Platform.isAndroid) {
-      return 'https://play.google.com/store/apps/details?id=com.home.sukh_app';
+      return 'https://play.google.com/store/apps/details?id=$_androidPackage';
     }
     return '';
   }

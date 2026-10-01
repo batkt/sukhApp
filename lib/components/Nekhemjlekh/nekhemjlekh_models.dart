@@ -25,6 +25,10 @@ class NekhemjlekhItem {
   final NekhemjlekhMedeelel? medeelel;
 
   final double? ekhniiUldegdel;
+
+  /// Нэхэмжлэх дээр хадгалагдсан (хуучин хэлбэрийн) хөнгөлөлт —
+  /// `medeelel.khungulultuud` ба `khungulult` талбар (backend tailan.js-тэй ижил).
+  final List<Guilgee> nekhemjlekhiinKhungulultuud;
   bool isSelected;
   bool isExpanded;
 
@@ -52,9 +56,36 @@ class NekhemjlekhItem {
     this.medeelel,
 
     this.ekhniiUldegdel,
+    this.nekhemjlekhiinKhungulultuud = const [],
     this.isSelected = false,
     this.isExpanded = false,
   });
+
+  static List<Guilgee> _khungulultuudAvya(Map<String, dynamic> json) {
+    final ur = <Guilgee>[];
+    final medeelel = json['medeelel'];
+    final jagsaalt = medeelel is Map ? medeelel['khungulultuud'] : null;
+    if (jagsaalt is List) {
+      for (final k in jagsaalt) {
+        if (k is! Map) continue;
+        final dun = (k['khungulultiinDun'] ?? k['tulukhDun'] ?? k['dun'] ?? 0);
+        final d = dun is num ? dun.toDouble().abs() : (double.tryParse('$dun') ?? 0).abs();
+        if (d <= 0) continue;
+        ur.add(Guilgee(
+          dun: -d,
+          tailbar: k['tailbar']?.toString() ?? k['ner']?.toString(),
+          turul: 'Хөнгөлөлт',
+          source: 'khungulult',
+          khungulultKhuvi: k['khuvi'] is num ? (k['khuvi'] as num).toDouble() : null,
+        ));
+      }
+    }
+    final niit = json['khungulult'];
+    if (ur.isEmpty && niit is num && niit.abs() > 0) {
+      ur.add(Guilgee(dun: -niit.toDouble().abs(), turul: 'Хөнгөлөлт', source: 'khungulult'));
+    }
+    return ur;
+  }
 
   factory NekhemjlekhItem.fromJson(Map<String, dynamic> json) {
     // Check if medeelel exists, otherwise create it from root-level fields
@@ -147,7 +178,7 @@ class NekhemjlekhItem {
       billingId: json['billingId']?.toString() ?? json['gereeniiDugaar']?.toString() ?? '',
       medeelel: medeelel,
       ekhniiUldegdel: ekhniiUldegdel,
-
+      nekhemjlekhiinKhungulultuud: _khungulultuudAvya(json),
     );
   }
 
@@ -191,6 +222,44 @@ class NekhemjlekhItem {
     if (uldegdel < 0) return true;
     return false;
   }
+
+  /// Энэ нэхэмжлэхэд олгогдсон хөнгөлөлтийн мөрүүд
+  /// Ledger-ийн (вэбийн «Хөнгөлөлт» хэрэгсэл) мөр байвал түүнийг, үгүй бол
+  /// нэхэмжлэх дээр хадгалагдсан хөнгөлөлтийг — давхар тоолохгүй.
+  List<Guilgee> get khungulultuud {
+    final ledger =
+        medeelel?.guilgeenuud?.where((g) => g.isKhungulult).toList() ?? [];
+    return ledger.isNotEmpty ? ledger : nekhemjlekhiinKhungulultuud;
+  }
+
+  /// Нийт хөнгөлөлтийн дүн (эерэг тоо)
+  double get khungulultDun =>
+      khungulultuud.fold<double>(0, (s, g) => s + g.khungulultDun);
+
+  /// Энэ нэхэмжлэхэд холбогдсон БОДИТ төлөлтийн нийлбэр (хөнгөлөлтгүй).
+  /// Жишээ: 149,120₮-ийн нэхэмжлэхэд 150,000₮ төлсөн бол 150,000.
+  double get tulsunDun {
+    final jagsaalt = medeelel?.guilgeenuud ?? const <Guilgee>[];
+    double niit = 0;
+    for (final g in jagsaalt) {
+      if (g.isKhungulult || g.ekhniiUldegdelEsekh) continue;
+      final turul = (g.turul ?? '').toLowerCase();
+      final tulultEsekh = turul == 'tulult' ||
+          turul == 'buun_tulult' ||
+          turul == 'төлөлт' ||
+          (g.dun != null && g.dun! < 0);
+      if (!tulultEsekh) continue;
+      final d = (g.tulsunDun != null && g.tulsunDun! > 0)
+          ? g.tulsunDun!
+          : (g.dun ?? 0).abs();
+      niit += d;
+    }
+    return niit;
+  }
+
+  /// Төлөгдсөн нэхэмжлэхэд харуулах дүн: бодит төлсөн дүн байвал түүнийг,
+  /// үгүй бол нэхэмжилсэн дүнг.
+  double get displayTulsunDun => tulsunDun > 0.005 ? tulsunDun : displayNiitTulbur;
 
   /// The amount that needs to be paid (Remaining balance) - used for payment selection
   double get effectiveNiitTulbur => uldegdel;
@@ -257,6 +326,7 @@ class NekhemjlekhItem {
       billingId: billingId ?? this.billingId,
       medeelel: medeelel ?? this.medeelel,
       ekhniiUldegdel: ekhniiUldegdel ?? this.ekhniiUldegdel,
+      nekhemjlekhiinKhungulultuud: nekhemjlekhiinKhungulultuud,
       isSelected: isSelected ?? this.isSelected,
       isExpanded: isExpanded ?? this.isExpanded,
     );
@@ -419,6 +489,9 @@ class Guilgee {
   final String? id;
   final bool ekhniiUldegdelEsekh;
   final bool isLinked;
+  final String? source;
+  final String? zardliinTurul;
+  final double? khungulultKhuvi;
 
   Guilgee({
     this.ognoo,
@@ -437,7 +510,23 @@ class Guilgee {
     this.id,
     this.ekhniiUldegdelEsekh = false,
     this.isLinked = false,
+    this.source,
+    this.zardliinTurul,
+    this.khungulultKhuvi,
   });
+
+  /// Вэбийн «Хөнгөлөлт» хэрэгсэл (khungulultController) болон гүйлгээний
+  /// цонхоор оруулсан хөнгөлөлтийн мөр эсэх — вэбийн `khungulultMurEsekh`-тэй ижил.
+  bool get isKhungulult {
+    if (source == 'khungulult') return true;
+    final t = '${turul ?? ''} ${zardliinTurul ?? ''} ${zardliinNer ?? ''}'
+        .toLowerCase();
+    return t.contains('хөнгөлөлт') || t.contains('khungulult');
+  }
+
+  /// Хөнгөлөлтийн дүн (эерэг тоо)
+  double get khungulultDun =>
+      (dun ?? -(tulsunDun ?? 0)).abs();
 
   factory Guilgee.fromJson(Map<String, dynamic> json) {
     final rawTailbar = json['tailbar']?.toString() ?? json['zardliinNer']?.toString();
@@ -472,6 +561,11 @@ class Guilgee {
           json['ekhniiUldegdelEsekh'] == true ||
           (zardliinNer.toLowerCase().contains('эхний үлдэгдэл')),
       isLinked: json['isLinked'] == true,
+      source: json['source']?.toString(),
+      zardliinTurul: json['zardliinTurul']?.toString(),
+      khungulultKhuvi: json['khungulultKhuvi'] is num
+          ? (json['khungulultKhuvi'] as num).toDouble()
+          : null,
     );
   }
 }

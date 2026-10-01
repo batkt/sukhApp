@@ -114,7 +114,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                               style: TextStyle(
                                 color: context.textPrimaryColor,
                                 fontSize: 11.sp,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             IconButton(
@@ -268,7 +268,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                                         'СУГАЛААНЫ ДУГААР ХУУЛАХ',
                                         style: TextStyle(
                                           fontSize: 11.sp, 
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.w600,
                                           letterSpacing: 0.5,
                                         ),
                                       ),
@@ -377,7 +377,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
               style: TextStyle(
                 color: context.textPrimaryColor,
                 fontSize: 11.sp,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                fontWeight: isBold ? FontWeight.w600 : FontWeight.w600,
               ),
               overflow: TextOverflow.visible,
             ),
@@ -424,7 +424,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                       style: TextStyle(
                         color: context.textPrimaryColor,
                         fontSize: 11.sp,
-                        fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                        fontWeight: isBold ? FontWeight.w600 : FontWeight.w600,
                         decoration: TextDecoration.underline,
                         decorationColor: context.textSecondaryColor.withOpacity(0.3),
                       ),

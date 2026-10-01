@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:sukh_app/services/api_service.dart' show ApiService;
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 /// App Sanal Asuulga (Polls & Surveys) Screen
 /// Pixel-perfect redesign inspired by modern Emerald/Mint design system.
@@ -20,6 +21,9 @@ const Color _kBorderColor = Color(0xFFE2E8F0);
 const Color _kBgColor = Color(0xFFF8FAFC);
 
 /// Date formatting helper: cleans raw ISO date strings (e.g. 2026-08-31T00:00:00.000Z -> 2026.08.31)
+/// «Бусад (текст хариулт)» сонголтын нэр
+const String _kBusad = 'Бусад';
+
 String _formatDateStr(dynamic raw) {
   if (raw == null) return '-';
   final s = raw.toString().trim();
@@ -101,7 +105,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
       });
     } catch (e) {
       setState(() {
-        _aldaa = 'Алдаа гарлаа';
+        _aldaa = friendlyError(e, fallback: 'Санал асуулга татаж чадсангүй. Дахин оролдоно уу.');
         _achaalj = false;
       });
     }
@@ -140,7 +144,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
           style: TextStyle(
             color: _kDarkText,
             fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -181,7 +185,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
                                   'Идэвхтэй асуулга',
                                   style: TextStyle(
                                     fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                     color: _kDarkText,
                                   ),
                                 ),
@@ -253,7 +257,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
                   'Асуулга',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: _kDarkText,
                   ),
                 ),
@@ -286,7 +290,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
                     'Оролцох',
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -379,7 +383,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
                   khariulsan ? 'Хариулсан' : 'Идэвхтэй',
                   style: const TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: _kDarkEmerald,
                   ),
                 ),
@@ -400,7 +404,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
             title,
             style: const TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: _kDarkText,
               height: 1.3,
             ),
@@ -446,7 +450,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
                   khariulsan ? 'Харах' : 'Оролцох',
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: khariulsan ? _kPrimaryEmerald : Colors.white,
                   ),
                 ),
@@ -563,6 +567,13 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
           }
           if (tekstVal.isNotEmpty) {
             _tekstuud[targetId] = TextEditingController(text: tekstVal);
+            final q = questions.firstWhere(
+              (q) => q['_id']?.toString() == targetId,
+              orElse: () => <String, dynamic>{},
+            );
+            if (q['busadTekst'] == true && q['turul'] != 'tekst') {
+              (_songogdson[targetId] ??= <String>{}).add(_kBusad);
+            }
           }
         }
       }
@@ -646,7 +657,10 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
             return {
               'asuultiinId': id,
               'songogdson': (_songogdson[id] ?? <String>{}).toList(),
-              'tekst': _tekstuud[id]?.text.trim() ?? '',
+              'tekst': (a['turul'] == 'tekst' ||
+                      (_songogdson[id]?.contains(_kBusad) ?? false))
+                  ? (_tekstuud[id]?.text.trim() ?? '')
+                  : '',
             };
           }).toList(),
         }),
@@ -696,8 +710,11 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
     final title = widget.asuulga['garchig']?.toString() ?? 'Асуулгын дэлгэрэнгүй';
     final tailbar = widget.asuulga['tailbar']?.toString() ?? 'Таны үнэлгээ, санал хүсэлт нь бидний үйлчилгээ, орчныг сайжруулахад чухал юм.';
     final totalQuestions = _asuultuud.length;
-    final ekhOgnoo = _formatDateStr(widget.asuulga['ekhlekhOgnoo'] ?? widget.asuulga['createdAt'] ?? '2024.05.20');
-    final duusOgnoo = _formatDateStr(widget.asuulga['duusakhOgnoo'] ?? '2024.05.31');
+    // Огноо оруулаагүй бол зохиомол (өнгөрсөн) огноо биш, тодорхой бичвэр харуулна
+    final ekhRaw = widget.asuulga['ekhlekhOgnoo'] ?? widget.asuulga['createdAt'];
+    final duusRaw = widget.asuulga['duusakhOgnoo'];
+    final ekhOgnoo = (ekhRaw == null || ekhRaw.toString().isEmpty) ? '—' : _formatDateStr(ekhRaw);
+    final duusOgnoo = (duusRaw == null || duusRaw.toString().isEmpty) ? 'Хугацаагүй' : _formatDateStr(duusRaw);
 
     return Scaffold(
       backgroundColor: _kBgColor,
@@ -715,7 +732,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
           style: const TextStyle(
             color: _kDarkText,
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -745,7 +762,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                           'Нийт $totalQuestions асуулт',
                           style: const TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: _kDarkText,
                           ),
                         ),
@@ -753,7 +770,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                           '${_currentIndex + 1}/$totalQuestions',
                           style: const TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: _kSubText,
                           ),
                         ),
@@ -848,16 +865,9 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                   _khariulsanEsekh ? 'Хариулсан' : 'Идэвхтэй',
                   style: const TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: _kDarkEmerald,
                   ),
-                ),
-              ),
-              const Text(
-                'Дуусах огноо',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _kSubText,
                 ),
               ),
             ],
@@ -874,7 +884,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                       title,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: _kDarkText,
                         height: 1.3,
                       ),
@@ -948,7 +958,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
           value,
           style: const TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: _kDarkText,
           ),
         ),
@@ -962,13 +972,18 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
     final questionText = a['asuult']?.toString() ?? '';
     final turul = a['turul']?.toString() ?? 'songolt';
     final olon = turul == 'olonSongolt';
-    final songoltuud = ((a['songoltuud'] as List?) ?? [])
-        .map((s) => s.toString())
-        .toList();
+    // «Бусад (текст хариулт)» — вэбээс идэвхжүүлсэн бол «Бусад» сонголт нэмж,
+    // сонговол бичих талбар гарна. Бичвэр нь 'tekst'-ээр илгээгдэнэ.
+    final busadTekst = turul != 'tekst' && a['busadTekst'] == true;
+    final songoltuud = [
+      ...((a['songoltuud'] as List?) ?? []).map((s) => s.toString()),
+      if (busadTekst) _kBusad,
+    ];
 
-    if (turul == 'tekst') {
+    if (turul == 'tekst' || busadTekst) {
       _tekstuud.putIfAbsent(id, () => TextEditingController());
     }
+    final busadSongogdson = busadTekst && _isOptionSelected(id, _kBusad);
 
     return Container(
       width: double.infinity,
@@ -993,7 +1008,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
             '${index + 1}. $questionText',
             style: const TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: _kDarkText,
               height: 1.35,
             ),
@@ -1065,7 +1080,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                             option,
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: songogdson ? FontWeight.bold : FontWeight.w500,
+                              fontWeight: songogdson ? FontWeight.w600 : FontWeight.w500,
                               color: _kDarkText,
                             ),
                           ),
@@ -1076,6 +1091,36 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                 ),
               );
             }),
+          // «Бусад» сонгосон үед өөрийн хариултыг бичих талбар
+          if (busadSongogdson)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: TextField(
+                controller: _tekstuud[id],
+                enabled: !_khariulsanEsekh,
+                maxLines: 3,
+                autofocus: !_khariulsanEsekh,
+                decoration: InputDecoration(
+                  hintText: _khariulsanEsekh ? 'Хариулт оруулаагүй байна' : 'Өөрийн хариултаа бичнэ үү...',
+                  hintStyle: const TextStyle(color: _kSubText, fontSize: 13),
+                  filled: true,
+                  fillColor: _kBgColor,
+                  contentPadding: const EdgeInsets.all(14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: _kBorderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: _kBorderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: _kPrimaryEmerald, width: 1.5),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1127,7 +1172,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                     SizedBox(width: 4),
                     Text(
                       'Өмнөх',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -1195,7 +1240,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                                 : (isLastQuestion ? 'Илгээх' : 'Дараах'),
                             style: const TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           if (!isLastQuestion) ...[
@@ -1240,7 +1285,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
           style: TextStyle(
             color: _kDarkText,
             fontSize: 16,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -1313,7 +1358,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                       'Баярлалаа!',
                       style: TextStyle(
                         fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: _kDarkText,
                       ),
                     ),
@@ -1351,7 +1396,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                             'Таны оролцоо',
                             style: TextStyle(
                               fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               color: _kDarkText,
                             ),
                           ),
@@ -1423,7 +1468,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                     'Хаах',
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -1464,7 +1509,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
           value,
           style: const TextStyle(
             fontSize: 13,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
             color: _kDarkText,
           ),
         ),
@@ -1524,7 +1569,7 @@ class _KhoosonKharagdats extends StatelessWidget {
                 tovch!,
                 style: const TextStyle(
                   color: _kPrimaryEmerald,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

@@ -9,6 +9,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/common_footer.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 /// Modern minimal background with subtle gradient
 class AppBackground extends StatelessWidget {
@@ -143,10 +144,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
             _isLoading = false;
           });
 
-          String errorMessage = e.toString();
-          if (errorMessage.startsWith('Exception: ')) {
-            errorMessage = errorMessage.substring(11);
-          }
+          final errorMessage = friendlyError(e, fallback: 'Мэдээлэл илгээж чадсангүй. Дахин оролдоно уу.');
 
           showGlassSnackBar(
             context,
@@ -235,7 +233,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                             ? Colors.white
                                             : AppColors.lightTextPrimary,
                                         fontSize: 28.sp,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w600,
                                         letterSpacing: -0.5,
                                       ),
                                     ),
@@ -277,7 +275,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                                               style: TextStyle(
                                                 color: AppColors.success,
                                                 fontSize: 20.sp,
-                                                fontWeight: FontWeight.bold,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                             SizedBox(height: 8.h),
@@ -462,7 +460,7 @@ class _BurtguulekhState extends State<Burtguulekh_Neg> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
               ),

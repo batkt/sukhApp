@@ -18,6 +18,7 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/components/Nekhemjlekh/filter_tabs.dart';
 import 'package:sukh_app/components/Nekhemjlekh/payment_section.dart';
+import 'package:sukh_app/components/Nekhemjlekh/overpayment_banner.dart';
 import 'package:sukh_app/components/Nekhemjlekh/invoice_card.dart';
 import 'package:sukh_app/components/Nekhemjlekh/contract_selection_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/bank_selection_modal.dart';
@@ -26,6 +27,7 @@ import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/utils/format_util.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class NekhemjlekhPage extends StatefulWidget {
   const NekhemjlekhPage({super.key});
@@ -45,6 +47,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
   String? selectedGereeniiDugaar;
   String? selectedContractDisplay;
   double? _contractUldegdel; // Authoritative balance from backend (globalUldegdel)
+  /// Нэг тоот сонгосон үеийн гэрээ — ангиллаар (СӨХ / гараж) төлөхөд
+  String? _songosonGereeniiId;
+  String? _songosonBaiguullagiinId;
   String selectedFilter = 'All'; // All, Overdue, Paid, Due this month, Pending
   List<String> selectedInvoiceIds = [];
   String? qpayInvoiceId;
@@ -124,6 +129,9 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       // - Standard format: title: "Шинэ нэхэмжлэх үүссэн", turul: "мэдэгдэл"
       // - Transaction format: guilgee.turul: "avlaga" (invoice)
       final isInvoiceNotification =
+          // Гүйлгээ (төлөлт, хөнгөлөлт, авлага) өөрчлөгдсөн — backend
+          // realtimeTulbur-аас бодит цагт ирнэ
+          (notification['type']?.toString() == 'billing_update') ||
           // Check for transaction/invoice format (guilgee with turul="avlaga")
           (guilgeeTurul == 'avlaga') ||
           // Check title for invoice/avlaga keywords (including "Шинэ авлага нэмэгдлээ")
@@ -342,7 +350,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Алдаа гарлаа: $e'),
+            content: Text(friendlyError(e, fallback: 'Төлбөрийн нэхэмжлэх үүсгэж чадсангүй. Дахин оролдоно уу.')),
             backgroundColor: Colors.red,
           ),
         );
@@ -381,6 +389,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         if (selectedGereeniiDugaar == 'ALL') {
           selectedContractDisplay = 'Бүх тоот (${availableContracts.length})';
           _contractUldegdel = null; // We'll compute aggregate instead
+          _songosonGereeniiId = null;
+          _songosonBaiguullagiinId = null;
 
           // Fetch all in parallel
           final List<Future<Map<String, dynamic>>> fetchFutures = [];
@@ -472,6 +482,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
           
           final baiguullagiinId = gereeToUse['baiguullagiinId']?.toString() ?? await StorageService.getBaiguullagiinId();
           final gereeniiId = gereeToUse['_id']?.toString();
+          _songosonGereeniiId = gereeniiId;
+          _songosonBaiguullagiinId = baiguullagiinId;
 
           final unifiedResponse = await ApiService.fetchInvoicesWithItems(
             gereeniiDugaar: gereeniiDugaar,
@@ -539,7 +551,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       print('Error in _loadNekhemjlekh: $e');
       setState(() {
         isLoading = false;
-        errorMessage = 'Алдаа гарлаа: $e';
+        errorMessage = friendlyError(e, fallback: 'Нэхэмжлэхийн мэдээлэл татаж чадсангүй. Дахин оролдоно уу.');
       });
     }
   }
@@ -800,7 +812,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   IconButton(
@@ -816,7 +828,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   'Бүх сар',
                   style: TextStyle(
                     color: selectedMonth == null ? AppColors.deepGreen : context.textPrimaryColor,
-                    fontWeight: selectedMonth == null ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: selectedMonth == null ? FontWeight.w600 : FontWeight.w500,
                     fontSize: 14.sp,
                   ),
                 ),
@@ -849,7 +861,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                         label,
                         style: TextStyle(
                           color: isSelected ? AppColors.deepGreen : context.textPrimaryColor,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                           fontSize: 14.sp,
                         ),
                       ),
@@ -1308,7 +1320,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                       tablet: 24,
                                       veryNarrow: 16,
                                     ),
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                     color: context.textPrimaryColor,
                                     letterSpacing: 1.2,
                                   ),
@@ -1501,7 +1513,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Алдаа гарлаа: $e'),
+          content: Text(friendlyError(e, fallback: 'И-баримтын мэдээлэл татаж чадсангүй. Дахин оролдоно уу.')),
           backgroundColor: Colors.red,
         ),
       );
@@ -1552,7 +1564,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Алдаа гарлаа: $e'),
+            content: Text(friendlyError(e, fallback: 'Банкны аппыг нээж чадсангүй. Дахин оролдоно уу.')),
             backgroundColor: Colors.red,
           ),
         );
@@ -1677,7 +1689,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                               tablet: 30,
                               veryNarrow: 20,
                             ),
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1839,7 +1851,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                         'Төлбөр шалгах',
                         style: TextStyle(
                           fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -1965,7 +1977,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Алдаа гарлаа: $e'),
+            content: Text(friendlyError(e, fallback: 'Төлбөрийн төлөв шалгаж чадсангүй. Дахин оролдоно уу.')),
             backgroundColor: Colors.red,
           ),
         );
@@ -2085,7 +2097,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Алдаа гарлаа: $e'),
+            content: Text(friendlyError(e, fallback: 'Төлбөрийн төлөв шалгаж чадсангүй. Дахин оролдоно уу.')),
             backgroundColor: Colors.red,
           ),
         );
@@ -2271,7 +2283,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                           tablet: 24,
                           veryNarrow: 16,
                         ),
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     IconButton(
@@ -2758,7 +2770,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Алдаа гарлаа: $e'),
+            content: Text(friendlyError(e, fallback: 'Апп дэлгүүрийг нээж чадсангүй. Дахин оролдоно уу.')),
             backgroundColor: Colors.red,
           ),
         );
@@ -2778,6 +2790,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
         contractUldegdel: _effectiveTotalAmount > 0
             ? _effectiveTotalAmount
             : _contractUldegdel,
+        gereeniiId: _songosonGereeniiId,
+        baiguullagiinId: _songosonBaiguullagiinId,
         onPaymentTap: () async {
           // Refresh invoice list after payment check
           await _loadNekhemjlekh();
@@ -2878,15 +2892,19 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                   style: TextStyle(
                                     color: context.textPrimaryColor,
                                     fontSize: (isVerySmall ? 17.0 : (isSmall ? 18.5 : 20.0)).sp,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                     letterSpacing: -0.5,
                                   ),
                                 ),
                               ],
                             ),
                             if (selectedContractDisplay != null &&
-                                availableContracts.isNotEmpty)
-                              GestureDetector(
+                                availableContracts.isNotEmpty) ...[
+                              SizedBox(width: 8.w),
+                              // Нарийн дэлгэцэнд гарчигтай зэрэгцэхдээ хальж
+                              // гарахгүй — үлдсэн зайд багтаж, текст нь товчлогдоно
+                              Flexible(
+                              child: GestureDetector(
                                 onTap: () {
                                   HapticFeedback.lightImpact();
                                   _showContractSelectionModal();
@@ -2913,14 +2931,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                         color: AppColors.deepGreen,
                                       ),
                                       SizedBox(width: 4.w),
-                                      ConstrainedBox(
-                                        constraints: BoxConstraints(maxWidth: 130.w),
+                                      Flexible(
                                         child: Text(
                                           selectedContractDisplay!,
                                           style: TextStyle(
                                             color: AppColors.deepGreen,
                                             fontSize: (isVerySmall ? 10.5 : 11.5).sp,
-                                            fontWeight: FontWeight.w700,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -2936,6 +2953,8 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                   ),
                                 ),
                               ),
+                              ),
+                            ],
                           ],
                         ),
                         SizedBox(height: 14.h),
@@ -2980,11 +2999,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'НИЙТ ТӨЛБӨРИЙН ҮЛДЭГДЭЛ',
+                                    _effectiveTotalAmount < -0.5
+                                        ? 'ИЛҮҮ ТӨЛӨЛТ'
+                                        : 'НИЙТ ТӨЛБӨРИЙН ҮЛДЭГДЭЛ',
                                     style: TextStyle(
                                       color: isDark ? Colors.white60 : const Color(0xFF64748B),
                                       fontSize: (isVerySmall ? 9.5 : 10.5).sp,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w600,
                                       letterSpacing: 0.6,
                                     ),
                                   ),
@@ -3012,7 +3033,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                             style: TextStyle(
                                               color: const Color(0xFFF59E0B),
                                               fontSize: 9.sp,
-                                              fontWeight: FontWeight.w700,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ],
@@ -3028,14 +3049,21 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.check_circle_rounded, size: 10.sp, color: const Color(0xFF10B981)),
+                                          Icon(
+                                              _effectiveTotalAmount < -0.5
+                                                  ? Icons.savings_rounded
+                                                  : Icons.check_circle_rounded,
+                                              size: 10.sp,
+                                              color: const Color(0xFF10B981)),
                                           SizedBox(width: 3.w),
                                           Text(
-                                            'Төлөгдсөн',
+                                            _effectiveTotalAmount < -0.5
+                                                ? 'Илүү төлсөн'
+                                                : 'Төлөгдсөн',
                                             style: TextStyle(
                                               color: const Color(0xFF10B981),
                                               fontSize: 9.sp,
-                                              fontWeight: FontWeight.w700,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ],
@@ -3049,11 +3077,14 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    '${formatNumber(_effectiveTotalAmount, 2)}₮',
+                                    // Илүү төлөлтийг хасах тэмдэггүй, ногооноор
+                                    '${formatNumber(_effectiveTotalAmount.abs(), 2)}₮',
                                     style: TextStyle(
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      color: _effectiveTotalAmount < -0.5
+                                          ? const Color(0xFF10B981)
+                                          : (isDark ? Colors.white : const Color(0xFF0F172A)),
                                       fontSize: (isVerySmall ? 22.0 : (isSmall ? 24.0 : 26.0)).sp,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w600,
                                       letterSpacing: -0.6,
                                     ),
                                   ),
@@ -3092,7 +3123,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                               style: TextStyle(
                                                 color: allSelected ? Colors.white : AppColors.deepGreen,
                                                 fontSize: (isVerySmall ? 9.5 : 10.5).sp,
-                                                fontWeight: FontWeight.w700,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                           ],
@@ -3152,6 +3183,13 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                   );
                                 },
                               ),
+
+                              // Илүү төлөлт (гэрээний ledger үлдэгдэл сөрөг)
+                              if (_contractUldegdel != null &&
+                                  _contractUldegdel! < -0.5)
+                                OverpaymentBanner(
+                                  amount: _contractUldegdel!.abs(),
+                                ),
 
                               // Payment Bar
                               if (selectedFilter != 'Paid')
@@ -3216,7 +3254,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
               ),
               child: const Text('Дахин оролдох',
                   style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+                      color: Colors.white, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -3356,7 +3394,7 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: (isVerySmall ? 12.0 : (isSmall ? 13.0 : 14.0)).sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],

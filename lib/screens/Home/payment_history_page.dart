@@ -12,6 +12,7 @@ import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/models/payment_history_model.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/services/storage_service.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class PaymentHistoryPage extends StatefulWidget {
   final String billingId;
@@ -472,7 +473,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ).showSnackBar(SnackBar(content: Text(friendlyError(e, fallback: 'Төлбөрийн түүх татаж чадсангүй. Дахин оролдоно уу.'))));
       }
     }
   }
@@ -549,7 +550,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
         if (Navigator.canPop(context)) Navigator.pop(context);
         showGlassSnackBar(
           context,
-          message: 'Алдаа: ${e.toString().replaceAll('Exception: ', '')}',
+          message: friendlyError(e),
           icon: Icons.error_outline,
         );
       }
@@ -705,7 +706,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 48.sp,
-                                                fontWeight: FontWeight.w700,
+                                                fontWeight: FontWeight.w600,
                                                 height: 1.1,
                                                 letterSpacing: -1.5,
                                               ),
@@ -751,7 +752,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 20.sp,
-                                              fontWeight: FontWeight.w700,
+                                              fontWeight: FontWeight.w600,
                                               letterSpacing: -0.5,
                                             ),
                                           ),
@@ -763,7 +764,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                                 0.35,
                                               ),
                                               fontSize: 11.sp,
-                                              fontWeight: FontWeight.w700,
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                         ],
@@ -867,7 +868,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -922,7 +923,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                     month.toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 12.sp,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w600,
                                       color: isDark
                                           ? const Color(0xFF94A3B8)
                                           : const Color(0xFF64748B),
@@ -1038,7 +1039,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             ).format(payment.paymentStatusDate).toUpperCase(),
                             style: TextStyle(
                               fontSize: 9.sp,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: isDark
                                   ? Colors.white60
                                   : accentColor.withOpacity(0.5),
@@ -1049,7 +1050,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                             dayStr,
                             style: TextStyle(
                               fontSize: 18.sp,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               color: isDark ? Colors.white : accentColor,
                               height: 1.1,
                             ),
@@ -1134,7 +1135,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       '${formatNumber(payment.paymentAmount)} ₮',
                       style: TextStyle(
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
                     ),
@@ -1183,7 +1184,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                               '${formatNumber(bill.billTotalAmount)} ₮',
                               style: TextStyle(
                                 fontSize: 13.sp,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w600,
                                 color: isDark
                                     ? Colors.white70
                                     : const Color(0xFF1E293B),
@@ -1292,7 +1293,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                                 style: TextStyle(
                                   color: isDark ? Colors.white : accentColor,
                                   fontSize: 12.sp,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                   letterSpacing: 0.2,
                                 ),
                               ),

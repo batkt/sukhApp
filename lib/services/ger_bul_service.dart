@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sukh_app/models/ger_buliin_gishuun_model.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/utils/error_message.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/logger.dart';
@@ -18,9 +19,9 @@ class GerBulService {
     try {
       final body = json.decode(response.body);
       if (body is Map) {
-        final msg = body['message'] ?? body['aldaa'] ?? body['error'];
+        final msg = body['aldaa'] ?? body['message'] ?? body['error'];
         if (msg != null && msg.toString().trim().isNotEmpty) {
-          return msg.toString().replaceAll('Exception: ', '');
+          return cleanErrorText(msg.toString(), fallback: undsenMessage);
         }
       }
     } catch (_) {}

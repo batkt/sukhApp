@@ -134,7 +134,7 @@ class _BiometricOnboardingScreenState extends State<BiometricOnboardingScreen> {
                   'Биометрийн баталгаажуулалт',
                   style: TextStyle(
                     fontSize: 28.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                   textAlign: TextAlign.center,

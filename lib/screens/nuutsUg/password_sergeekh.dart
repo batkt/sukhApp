@@ -8,6 +8,8 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/error_message.dart';
+import 'package:sukh_app/widgets/otp_code_input.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -34,14 +36,8 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
   String? _baiguullagiinId;
 
   final TextEditingController _phoneController = TextEditingController();
-  final List<TextEditingController> _pinControllers = List.generate(
-    4,
-    (index) => TextEditingController(),
-  );
-  final List<FocusNode> _pinFocusNodes = List.generate(
-    4,
-    (index) => FocusNode(),
-  );
+  final TextEditingController _otpController = TextEditingController();
+  final FocusNode _otpFocusNode = FocusNode();
 
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -68,12 +64,8 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     _phoneController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
-    for (var controller in _pinControllers) {
-      controller.dispose();
-    }
-    for (var node in _pinFocusNodes) {
-      node.dispose();
-    }
+    _otpController.dispose();
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
@@ -98,6 +90,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
   }
 
   Future<void> _validateAndSubmit() async {
+    if (_isLoading) return;
     if (!_isPhoneSubmitted) {
       if (_phoneController.text.trim().isEmpty) {
         showGlassSnackBar(
@@ -162,7 +155,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           _startResendTimer();
 
           Future.delayed(Duration.zero, () {
-            _pinFocusNodes[0].requestFocus();
+            _otpFocusNode.requestFocus();
           });
         }
       } catch (e) {
@@ -172,14 +165,14 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           });
           showGlassSnackBar(
             context,
-            message: "Алдаа гарлаа: $e",
+            message: friendlyError(e),
             icon: Icons.error,
             iconColor: Colors.red,
           );
         }
       }
     } else if (!_isPinVerified) {
-      String pin = _pinControllers.map((c) => c.text).join();
+      String pin = _otpController.text;
       if (pin.length == 4) {
         setState(() {
           _isLoading = true;
@@ -222,10 +215,8 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
               iconColor: Colors.red,
             );
             // Clear PIN fields on error
-            for (var controller in _pinControllers) {
-              controller.clear();
-            }
-            _pinFocusNodes[0].requestFocus();
+            _otpController.clear();
+            _otpFocusNode.requestFocus();
           }
         }
       }
@@ -302,7 +293,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           });
           showGlassSnackBar(
             context,
-            message: "Алдаа гарлаа: $e",
+            message: friendlyError(e),
             icon: Icons.error,
             iconColor: Colors.red,
           );
@@ -435,7 +426,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     if (!_isPhoneSubmitted) {
       return _phoneController.text.isNotEmpty;
     } else if (!_isPinVerified) {
-      return _pinControllers.every((c) => c.text.isNotEmpty);
+      return _otpController.text.length == 4;
     } else {
       return _newPasswordController.text.isNotEmpty ||
           _confirmPasswordController.text.isNotEmpty;
@@ -446,7 +437,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     if (!_isPhoneSubmitted) {
       return _phoneController.text.length == 8;
     } else if (!_isPinVerified) {
-      return _pinControllers.every((c) => c.text.isNotEmpty);
+      return _otpController.text.length == 4;
     } else {
       return _newPasswordController.text.length == 4 &&
           _confirmPasswordController.text.length == 4 &&
@@ -578,9 +569,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                     _timer?.cancel();
                     _canResend = false;
                     _resendSeconds = 30;
-                    for (var controller in _pinControllers) {
-                      controller.clear();
-                    }
+                    _otpController.clear();
                   });
                 },
                 child: Text(
@@ -605,13 +594,13 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           ),
         ),
 
-        AutofillGroup(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(4, (index) {
-              return _buildPinBox(index);
-            }),
-          ),
+        OtpCodeInput(
+          controller: _otpController,
+          focusNode: _otpFocusNode,
+          autofocus: false,
+          onChanged: (_) => setState(() {}),
+          // Auto-submit when all 4 digits are filled (SMS autofill)
+          onCompleted: (_) => _validateAndSubmit(),
         ),
         SizedBox(
           height: context.responsiveSpacing(
@@ -628,9 +617,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
             TextButton(
               onPressed: _canResend
                   ? () async {
-                      for (var controller in _pinControllers) {
-                        controller.clear();
-                      }
+                      _otpController.clear();
 
                       setState(() {
                         _isLoading = true;
@@ -655,7 +642,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                             iconColor: Colors.green,
                           );
                           _startResendTimer();
-                          _pinFocusNodes[0].requestFocus();
+                          _otpFocusNode.requestFocus();
                         }
                       } catch (e) {
                         if (mounted) {
@@ -664,7 +651,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
                           });
                           showGlassSnackBar(
                             context,
-                            message: "Алдаа гарлаа: $e",
+                            message: friendlyError(e, fallback: 'Утасны дугаар шалгаж чадсангүй. Дахин оролдоно уу.'),
                             icon: Icons.error,
                             iconColor: Colors.red,
                           );
@@ -683,147 +670,6 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildPinBox(int index) {
-    return Container(
-      width: 60.w,
-      height: 70.h,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            offset: const Offset(0, 10),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: KeyboardListener(
-        focusNode: FocusNode(),
-        onKeyEvent: (KeyEvent event) {
-          // Handle backspace key
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.backspace) {
-            if (_pinControllers[index].text.isEmpty && index > 0) {
-              // If current box is empty and backspace is pressed, go to previous box
-              _pinControllers[index - 1].clear();
-              _pinFocusNodes[index - 1].requestFocus();
-              setState(() {});
-            }
-          }
-        },
-        child: TextField(
-          controller: _pinControllers[index],
-          focusNode: _pinFocusNodes[index],
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
-          ),
-          keyboardType: TextInputType.number,
-          autofillHints: const [AutofillHints.oneTimeCode],
-          enableInteractiveSelection: false,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.inputGrayColor.withOpacity(0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 12,
-                  medium: 14,
-                  large: 16,
-                  tablet: 18,
-                  veryNarrow: 10,
-                ),
-              ),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                context.responsiveBorderRadius(
-                  small: 12,
-                  medium: 14,
-                  large: 16,
-                  tablet: 18,
-                  veryNarrow: 10,
-                ),
-              ),
-              borderSide: BorderSide(
-                color: AppColors.grayColor,
-                width: 1.5.w,
-              ),
-            ),
-            contentPadding: EdgeInsets.zero,
-          ),
-          onChanged: (value) {
-            if (value.isEmpty) {
-              setState(() {});
-              return;
-            }
-
-            // Handle autofill - when multiple digits are pasted
-            if (value.length > 1) {
-              // Split the autofilled code into individual digits
-              final digits = value.replaceAll(
-                RegExp(r'\D'),
-                '',
-              ); // Remove non-digits
-
-              // Clear all boxes first
-              for (var controller in _pinControllers) {
-                controller.clear();
-              }
-
-              // Fill each box with a digit
-              for (int i = 0; i < digits.length && i < 4; i++) {
-                _pinControllers[i].text = digits[i];
-              }
-
-              // Move focus to the last filled box
-              final lastIndex = (digits.length - 1).clamp(0, 3);
-              _pinFocusNodes[lastIndex].requestFocus();
-
-              setState(() {});
-
-              // Auto-submit if all 4 digits are filled
-              if (digits.length == 4) {
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  if (_pinControllers.every((c) => c.text.isNotEmpty)) {
-                    _validateAndSubmit();
-                  }
-                });
-              }
-
-              return;
-            }
-
-            // Normal single digit input - keep only the last character
-            if (value.length > 1) {
-              _pinControllers[index].text = value.substring(value.length - 1);
-              _pinControllers[index].selection = TextSelection.fromPosition(
-                TextPosition(offset: _pinControllers[index].text.length),
-              );
-            }
-
-            // Move to next box if there's a value
-            if (_pinControllers[index].text.isNotEmpty && index < 3) {
-              _pinFocusNodes[index + 1].requestFocus();
-            }
-            setState(() {});
-          },
-          onTap: () {
-            // Select all text when tapped
-            _pinControllers[index].selection = TextSelection(
-              baseOffset: 0,
-              extentOffset: _pinControllers[index].text.length,
-            );
-          },
-        ),
-      ),
     );
   }
 
@@ -1017,7 +863,7 @@ class _ForgotPasswordPageState extends State<NuutsUgSergeekh> {
     if (!_isPhoneSubmitted) {
       isValid = _phoneController.text.length == 8;
     } else if (!_isPinVerified) {
-      isValid = _pinControllers.every((c) => c.text.isNotEmpty);
+      isValid = _otpController.text.length == 4;
     } else {
       isValid =
           _newPasswordController.text.length == 4 &&

@@ -230,7 +230,7 @@ class BankSelectionModal extends StatelessWidget {
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: -0.2,
                   ),
                   textAlign: TextAlign.center,

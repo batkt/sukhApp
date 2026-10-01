@@ -181,7 +181,7 @@ class InvoiceCard extends StatelessWidget {
                                 style: TextStyle(
                                   color: context.textPrimaryColor,
                                   fontSize: (isVerySmall ? 12.5 : (isSmall ? 13.5 : 14.5)).sp,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                   letterSpacing: -0.3,
                                 ),
                                 maxLines: 1,
@@ -268,6 +268,35 @@ class InvoiceCard extends StatelessWidget {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
+                            if (invoice.khungulultDun > 0) ...[
+                              SizedBox(width: 6.w),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
+                                decoration: BoxDecoration(
+                                  color: _khungulultColor.withOpacity(isDark ? 0.18 : 0.1),
+                                  borderRadius: BorderRadius.circular(20.r),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.local_offer_rounded,
+                                      size: (isVerySmall ? 8.5 : 9.5).sp,
+                                      color: _khungulultColor,
+                                    ),
+                                    SizedBox(width: 3.w),
+                                    Text(
+                                      'Хөнгөлөлттэй',
+                                      style: TextStyle(
+                                        color: _khungulultColor,
+                                        fontSize: (isVerySmall ? 8.0 : 9.0).sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
 
@@ -277,12 +306,12 @@ class InvoiceCard extends StatelessWidget {
                           children: [
                             Text(
                               invoice.isPaid
-                                  ? '${formatNumber(invoice.displayNiitTulbur.abs(), 2)}₮'
+                                  ? '${formatNumber(invoice.displayTulsunDun.abs(), 2)}₮'
                                   : invoice.formattedAmount,
                               style: TextStyle(
                                 color: context.textPrimaryColor,
                                 fontSize: (isVerySmall ? 13.5 : (isSmall ? 14.5 : 16.0)).sp,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w600,
                                 letterSpacing: -0.4,
                               ),
                             ),
@@ -384,7 +413,7 @@ class InvoiceCard extends StatelessWidget {
             style: TextStyle(
               color: statusColor,
               fontSize: (isVerySmall ? 8.5 : (isSmall ? 9.0 : 9.5)).sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               letterSpacing: 0.2,
             ),
           ),
@@ -437,9 +466,15 @@ class InvoiceCard extends StatelessWidget {
               : (g.tulukhDun ?? g.undsenDun ?? g.dun ?? 0.0);
           return baseAmt != 0 &&
               !g.ekhniiUldegdelEsekh &&
+              !g.isKhungulult &&
               g.turul?.toLowerCase() != 'system_sync';
         }).toList() ??
         [];
+
+    // Хөнгөлөлтийг төлөлтөөс тусад нь харуулна (вэбийн нэхэмжлэхтэй ижил)
+    final khungulultuud =
+        invoice.khungulultuud.where((g) => g.khungulultDun > 0).toList();
+    final khungulultDun = invoice.khungulultDun;
 
     final additionalZardluud = invoice.medeelel?.zardluud
             .where((z) => z.isDisplayable && !z.isEkhniiUldegdel)
@@ -449,6 +484,7 @@ class InvoiceCard extends StatelessWidget {
     final hasStartingBalance = (invoice.ekhniiUldegdel ?? 0) != 0;
     final totalItemsCount = guilgeenuud.length +
         additionalZardluud.length +
+        khungulultuud.length +
         (hasStartingBalance ? 1 : 0);
 
     return Padding(
@@ -506,7 +542,7 @@ class InvoiceCard extends StatelessWidget {
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: (isVerySmall ? 11.5 : 12.5).sp,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -538,7 +574,7 @@ class InvoiceCard extends StatelessWidget {
                       style: TextStyle(
                         color: AppColors.deepGreen,
                         fontSize: (isVerySmall ? 8.5 : 9.5).sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -568,7 +604,7 @@ class InvoiceCard extends StatelessWidget {
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: (isVerySmall ? 9.5 : (isSmall ? 10.5 : 11.5)).sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -727,10 +763,56 @@ class InvoiceCard extends StatelessWidget {
                     ],
                   );
                 }),
+                // Хөнгөлөлт
+                ...khungulultuud.asMap().entries.map((entry) {
+                  final g = entry.value;
+                  final khuvi = g.khungulultKhuvi;
+                  final khuviTekst = khuvi != null && khuvi > 0
+                      ? ' (${khuvi % 1 == 0 ? khuvi.toInt() : khuvi}%)'
+                      : '';
+                  final angilal = (g.zardliinNer ?? '').contains('(')
+                      ? g.zardliinNer!
+                      : 'Хөнгөлөлт';
+                  return Column(
+                    children: [
+                      if (entry.key > 0 ||
+                          guilgeenuud.isNotEmpty ||
+                          additionalZardluud.isNotEmpty ||
+                          hasStartingBalance)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6.h),
+                          child: Divider(
+                            height: 1,
+                            thickness: 0.8,
+                            color: context.borderColor.withOpacity(0.08),
+                          ),
+                        ),
+                      _buildModernChargeRow(
+                        context,
+                        '$angilal$khuviTekst',
+                        -g.khungulultDun,
+                        isDiscount: true,
+                        subtitle: (g.tailbar != null &&
+                                g.tailbar!.isNotEmpty &&
+                                !g.tailbar!.toLowerCase().contains('хөнгөлөлт'))
+                            ? g.tailbar!
+                            : 'Хөнгөлөлт олгогдсон',
+                        isSmall: isSmall,
+                        isVerySmall: isVerySmall,
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
           ),
           SizedBox(height: (isVerySmall ? 10.0 : 12.0).h),
+
+          // 4a. Хөнгөлөлтийн нийлбэр
+          if (khungulultDun > 0) ...[
+            _buildKhungulultSummary(context, khungulultDun, isSmall, isVerySmall),
+            SizedBox(height: (isVerySmall ? 8.0 : 10.0).h),
+          ],
 
           // 4. Final Total Card
           Container(
@@ -758,13 +840,18 @@ class InvoiceCard extends StatelessWidget {
                       style: TextStyle(
                         color: AppColors.deepGreen,
                         fontSize: (isVerySmall ? 9.5 : (isSmall ? 10.5 : 11.5)).sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
                     ),
                     SizedBox(height: 1.h),
                     Text(
-                      invoice.isPaid ? 'Төлбөр бүрэн төлөгдсөн' : 'Нэхэмжлэхийн үлдэгдэл',
+                      !invoice.isPaid
+                          ? 'Нэхэмжлэхийн үлдэгдэл'
+                          : (invoice.tulsunDun - invoice.displayNiitTulbur > 0.5
+                              // Нэхэмжилснээс илүү төлсөн бол ялгааг тодорхой харуулна
+                              ? 'Нэхэмжилсэн ${formatNumber(invoice.displayNiitTulbur, 2)}₮ · ${formatNumber(invoice.tulsunDun - invoice.displayNiitTulbur, 2)}₮ илүү'
+                              : 'Төлбөр бүрэн төлөгдсөн'),
                       style: TextStyle(
                         color: context.textSecondaryColor,
                         fontSize: (isVerySmall ? 8.5 : 9.5).sp,
@@ -775,12 +862,12 @@ class InvoiceCard extends StatelessWidget {
                 ),
                 Text(
                   invoice.isPaid
-                      ? '${formatNumber(invoice.displayNiitTulbur.abs(), 2)}₮'
+                      ? '${formatNumber(invoice.displayTulsunDun.abs(), 2)}₮'
                       : invoice.formattedAmount,
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: (isVerySmall ? 14.5 : (isSmall ? 16.0 : 17.5)).sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -806,7 +893,7 @@ class InvoiceCard extends StatelessWidget {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: (isVerySmall ? 10.5 : 11.5).sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -826,19 +913,75 @@ class InvoiceCard extends StatelessWidget {
     );
   }
 
+  static const Color _khungulultColor = Color(0xFF8B5CF6);
+
+  Widget _buildKhungulultSummary(
+    BuildContext context,
+    double dun,
+    bool isSmall,
+    bool isVerySmall,
+  ) {
+    final isDark = context.isDarkMode;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: (isVerySmall ? 12.0 : (isSmall ? 14.0 : 16.0)).w,
+        vertical: (isVerySmall ? 8.0 : 9.0).h,
+      ),
+      decoration: BoxDecoration(
+        color: _khungulultColor.withOpacity(isDark ? 0.14 : 0.07),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: _khungulultColor.withOpacity(isDark ? 0.3 : 0.18),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.local_offer_rounded,
+            size: (isVerySmall ? 13.0 : 15.0).sp,
+            color: _khungulultColor,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              'Танд хөнгөлөлт олгогдсон',
+              style: TextStyle(
+                color: _khungulultColor,
+                fontSize: (isVerySmall ? 10.0 : (isSmall ? 10.5 : 11.5)).sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            '-${formatNumber(dun, 2)}₮',
+            style: TextStyle(
+              color: _khungulultColor,
+              fontSize: (isVerySmall ? 12.0 : (isSmall ? 13.0 : 14.0)).sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildModernChargeRow(
     BuildContext context,
     String label,
     double amount, {
     bool isStartingBalance = false,
     bool isPayment = false,
+    bool isDiscount = false,
+    String? subtitle,
     bool isSmall = false,
     bool isVerySmall = false,
   }) {
-    final isNegative = amount < 0 || isPayment;
-    final displayLabel = cleanChargeName(label);
-    final (iconData, iconColor, bgTint) =
-        _getChargeMeta(label, isPayment, isStartingBalance);
+    final isNegative = amount < 0 || isPayment || isDiscount;
+    final displayLabel = isDiscount ? label : cleanChargeName(label);
+    final (iconData, iconColor, bgTint) = isDiscount
+        ? (Icons.local_offer_rounded, _khungulultColor, const Color(0xFFF3E8FF))
+        : _getChargeMeta(label, isPayment, isStartingBalance);
     final isDark = context.isDarkMode;
 
     return Padding(
@@ -878,15 +1021,19 @@ class InvoiceCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (isPayment) ...[
+                if (isPayment || isDiscount) ...[
                   SizedBox(height: 1.h),
                   Text(
-                    'Төлөлт хийгдсэн',
+                    isDiscount ? (subtitle ?? 'Хөнгөлөлт') : 'Төлөлт хийгдсэн',
                     style: TextStyle(
-                      color: const Color(0xFF10B981),
+                      color: isDiscount
+                          ? _khungulultColor
+                          : const Color(0xFF10B981),
                       fontSize: (isVerySmall ? 8.5 : 9.5).sp,
                       fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],
@@ -897,11 +1044,13 @@ class InvoiceCard extends StatelessWidget {
           Text(
             '${isNegative ? "-" : ""}${formatNumber(amount.abs(), 2)}₮',
             style: TextStyle(
-              color: isNegative
-                  ? const Color(0xFF10B981)
-                  : context.textPrimaryColor,
+              color: isDiscount
+                  ? _khungulultColor
+                  : isNegative
+                      ? const Color(0xFF10B981)
+                      : context.textPrimaryColor,
               fontSize: (isVerySmall ? 11.5 : (isSmall ? 12.5 : 13.5)).sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

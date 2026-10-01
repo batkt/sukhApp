@@ -4,6 +4,7 @@ import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class HomeBillingManager {
   static Future<bool> deleteBilling({
@@ -72,7 +73,7 @@ class HomeBillingManager {
       if (context.mounted) {
         showGlassSnackBar(
           context,
-          message: e.toString().replaceAll("Exception: ", ""),
+          message: friendlyError(e),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -278,7 +279,7 @@ class HomeBillingManager {
       if (context.mounted) {
         showGlassSnackBar(
           context,
-          message: e.toString().replaceAll("Exception: ", ""),
+          message: friendlyError(e),
           icon: Icons.error,
           iconColor: Colors.red,
         );

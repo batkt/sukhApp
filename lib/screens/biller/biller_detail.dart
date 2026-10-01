@@ -4,6 +4,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/components/Home/biller_utils.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class BillerDetailScreen extends StatefulWidget {
   final String billerCode;
@@ -59,7 +60,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingBillings = false);
-        _showSnack('Жагсаалт авахад алдаа: $e', Colors.red);
+        _showSnack(friendlyError(e, fallback: 'Биллингийн жагсаалт татаж чадсангүй. Дахин оролдоно уу.'), Colors.red);
       }
     }
   }
@@ -109,7 +110,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
         _showSnack(response['message'] ?? 'Биллинг олдсонгүй', Colors.red);
       }
     } catch (e) {
-      if (mounted) _showSnack(e.toString().replaceAll('Exception: ', ''), Colors.red);
+      if (mounted) _showSnack(friendlyError(e), Colors.red);
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
@@ -124,7 +125,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: context.cardBackgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Биллинг устгах', style: TextStyle(color: context.textPrimaryColor, fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text('Биллинг устгах', style: TextStyle(color: context.textPrimaryColor, fontSize: 16, fontWeight: FontWeight.w600)),
         content: Text('Та энэ биллингийг устгахдаа итгэлтэй байна уу?', style: TextStyle(color: context.textSecondaryColor, fontSize: 14)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Үгүй', style: TextStyle(color: AppColors.deepGreen))),
@@ -141,7 +142,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
         _showSnack('Биллинг устгагдлаа', AppColors.deepGreen);
       }
     } catch (e) {
-      if (mounted) _showSnack(e.toString().replaceAll('Exception: ', ''), Colors.red);
+      if (mounted) _showSnack(friendlyError(e), Colors.red);
     }
   }
 
@@ -185,7 +186,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 17,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -212,7 +213,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Харилцагчийн кодоор хайх',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -270,7 +271,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Миний биллингууд',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                       if (_billings.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -279,7 +280,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text('${_billings.length}',
-                              style: TextStyle(fontSize: 12, color: AppColors.deepGreen, fontWeight: FontWeight.w700)),
+                              style: TextStyle(fontSize: 12, color: AppColors.deepGreen, fontWeight: FontWeight.w600)),
                         ),
                     ],
                   ),
@@ -370,7 +371,7 @@ class _BillerDetailScreenState extends State<BillerDetailScreen> {
                   style: TextStyle(
                     color: AppColors.deepGreen,
                     fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

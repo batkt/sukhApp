@@ -6,6 +6,7 @@ import 'package:sukh_app/models/ger_buliin_gishuun_model.dart';
 import 'package:sukh_app/services/ger_bul_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 /// Гэр бүлийн гишүүн урих цонх.
 /// Амжилттай илгээвэл `true` буцаана.
@@ -144,7 +145,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
       setState(() => _isLoading = false);
       showGlassSnackBar(
         context,
-        message: e.toString().replaceAll('Exception: ', ''),
+        message: friendlyError(e, fallback: 'Урилга илгээж чадсангүй. Дахин оролдоно уу.'),
         icon: Icons.error_outline_rounded,
         iconColor: Colors.redAccent,
         duration: const Duration(seconds: 4),
@@ -252,7 +253,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                         'Гэр бүлийн гишүүн урих',
                         style: TextStyle(
                           fontSize: 17.sp,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: context.textPrimaryColor,
                           letterSpacing: -0.3,
                         ),
@@ -327,7 +328,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: TextStyle(
                 fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: context.textPrimaryColor,
                 letterSpacing: 1.2,
               ),
@@ -378,7 +379,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                           operator,
                           style: TextStyle(
                             fontSize: 10.5.sp,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             color: _getOperatorColor(operator),
                           ),
                         ),
@@ -476,7 +477,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                           item,
                           style: TextStyle(
                             fontSize: 12.5.sp,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w600,
                             color: isSelected
                                 ? Colors.white
                                 : context.textPrimaryColor,
@@ -563,7 +564,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 18.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: context.textPrimaryColor,
               letterSpacing: -0.3,
             ),
@@ -630,7 +631,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
               'Урилгын зааврыг хуулах',
               style: TextStyle(
                 fontSize: 14.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: AppColors.deepGreen,
               ),
             ),
@@ -653,7 +654,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -677,7 +678,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
           value,
           style: TextStyle(
             fontSize: 13.sp,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: context.textPrimaryColor,
           ),
         ),
@@ -694,7 +695,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
             title,
             style: TextStyle(
               fontSize: 11.5.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
               color: context.textSecondaryColor,
             ),
@@ -704,7 +705,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
               ' *',
               style: TextStyle(
                 fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: Colors.redAccent,
               ),
             ),
@@ -778,7 +779,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                         title,
                         style: TextStyle(
                           fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: context.textPrimaryColor,
                         ),
                       ),
@@ -796,7 +797,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                           badge,
                           style: TextStyle(
                             fontSize: 9.5.sp,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                             color: badgeColor,
                             letterSpacing: 0.4,
                           ),
@@ -879,7 +880,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 0.2,
                     ),
                   ),

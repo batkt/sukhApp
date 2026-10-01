@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class WebRTCPlayer extends StatefulWidget {
   final String rtspUrl;
@@ -89,7 +90,9 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
       await _localRenderer.initialize();
       _startHandshake();
     } catch (e) {
-      if (mounted) setState(() => _error = 'Renderer error: $e');
+      if (mounted) setState(
+          () => _error = friendlyError(e, fallback: 'Видео тоглуулагчийг эхлүүлж чадсангүй. Дахин оролдоно уу.'),
+        );
     }
   }
 
@@ -191,7 +194,7 @@ class _WebRTCPlayerState extends State<WebRTCPlayer> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Холболт амжилтгүй: $e';
+          _error = friendlyError(e, fallback: 'Камертай холбогдож чадсангүй. Дахин оролдоно уу.');
           _loading = false;
         });
       }

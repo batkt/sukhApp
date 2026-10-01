@@ -381,7 +381,7 @@ class _SideMenuState extends State<SideMenu> {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 8.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 0.5,
                     ),
                   ),

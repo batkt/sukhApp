@@ -243,7 +243,7 @@ class _HlsPlayerState extends State<HlsPlayer> with AutomaticKeepAliveClientMixi
                     const Icon(Icons.videocam_off_rounded, color: Colors.white38, size: 42),
                     const SizedBox(height: 12),
                     Text(
-                      _errorMessage ?? 'Алдаа гарлаа',
+                      _errorMessage ?? 'Видео тоглуулж чадсангүй. Дахин оролдоно уу.',
                       style: const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                     const SizedBox(height: 8),
@@ -277,7 +277,7 @@ class _HlsPlayerState extends State<HlsPlayer> with AutomaticKeepAliveClientMixi
                 children: [
                   Icon(Icons.circle, color: Colors.white, size: 8),
                   SizedBox(width: 4),
-                  Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                  Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -295,7 +295,7 @@ class _HlsPlayerState extends State<HlsPlayer> with AutomaticKeepAliveClientMixi
                 ),
                 child: Text(
                   widget.title!,
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
                 ),
               ),
             ),

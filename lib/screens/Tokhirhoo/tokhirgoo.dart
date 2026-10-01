@@ -156,7 +156,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                     tablet: 18,
                     veryNarrow: 12,
                   ),
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               content: Column(
@@ -274,7 +274,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                     style: TextStyle(
                       color: Colors.red,
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -312,7 +312,7 @@ class _TokhirgooState extends State<Tokhirgoo>
             style: TextStyle(
               color: Colors.white,
               fontSize: 14,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
           content: const Text(
@@ -338,7 +338,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                 style: TextStyle(
                   color: Colors.red,
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -447,7 +447,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -472,7 +472,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13.sp,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         SizedBox(
@@ -584,7 +584,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                                           'Нууц код солих',
                                           style: TextStyle(
                                             fontSize: 12.sp,
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                 ),
@@ -607,7 +607,7 @@ class _TokhirgooState extends State<Tokhirgoo>
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13.sp,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         SizedBox(

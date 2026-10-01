@@ -76,7 +76,7 @@ class _DuudlagaPageState extends State<DuudlagaPage>
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           IconButton(
@@ -388,7 +388,7 @@ class _DuudlagaPageState extends State<DuudlagaPage>
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -471,7 +471,7 @@ class _DuudlagaPageState extends State<DuudlagaPage>
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],

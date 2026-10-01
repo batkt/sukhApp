@@ -9,6 +9,7 @@ import 'package:sukh_app/services/ger_bul_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 /// Гэр бүлийн гишүүд.
 ///
@@ -55,7 +56,7 @@ class _GerBulPageState extends State<GerBulPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _aldaa = e.toString().replaceAll('Exception: ', '');
+        _aldaa = friendlyError(e, fallback: 'Гэр бүлийн гишүүдийн мэдээлэл татаж чадсангүй. Дахин оролдоно уу.');
         _isLoading = false;
       });
     }
@@ -96,7 +97,7 @@ class _GerBulPageState extends State<GerBulPage> {
       if (!mounted) return;
       showGlassSnackBar(
         context,
-        message: e.toString(),
+        message: friendlyError(e),
         icon: Icons.error_outline,
         iconColor: Colors.red,
       );
@@ -128,7 +129,7 @@ class _GerBulPageState extends State<GerBulPage> {
       if (!mounted) return;
       showGlassSnackBar(
         context,
-        message: e.toString(),
+        message: friendlyError(e),
         icon: Icons.error_outline,
         iconColor: Colors.red,
       );
@@ -158,7 +159,7 @@ class _GerBulPageState extends State<GerBulPage> {
       if (!mounted) return;
       showGlassSnackBar(
         context,
-        message: e.toString(),
+        message: friendlyError(e),
         icon: Icons.error_outline,
         iconColor: Colors.red,
       );
@@ -179,7 +180,7 @@ class _GerBulPageState extends State<GerBulPage> {
       if (!mounted) return;
       showGlassSnackBar(
         context,
-        message: e.toString(),
+        message: friendlyError(e),
         icon: Icons.error_outline,
         iconColor: Colors.red,
       );
@@ -222,7 +223,7 @@ class _GerBulPageState extends State<GerBulPage> {
       if (!mounted) return;
       showGlassSnackBar(
         context,
-        message: e.toString(),
+        message: friendlyError(e),
         icon: Icons.error_outline,
         iconColor: Colors.red,
       );
@@ -247,7 +248,7 @@ class _GerBulPageState extends State<GerBulPage> {
           garchig,
           style: TextStyle(
             fontSize: 17.sp,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: context.textPrimaryColor,
           ),
         ),
@@ -276,7 +277,7 @@ class _GerBulPageState extends State<GerBulPage> {
               tovch,
               style: TextStyle(
                 color: ankhaaruulga ? Colors.redAccent : AppColors.deepGreen,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -323,7 +324,7 @@ class _GerBulPageState extends State<GerBulPage> {
                 'Гишүүн урих',
                 style: TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   fontSize: 14.sp,
                 ),
               ),
@@ -367,7 +368,7 @@ class _GerBulPageState extends State<GerBulPage> {
               'Гэр бүлийн гишүүн',
               style: TextStyle(
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: isDark ? Colors.white : context.textPrimaryColor,
                 letterSpacing: -0.3,
               ),
@@ -442,7 +443,7 @@ class _GerBulPageState extends State<GerBulPage> {
               'Дахин оролдох',
               style: TextStyle(
                 color: AppColors.deepGreen,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -480,7 +481,7 @@ class _GerBulPageState extends State<GerBulPage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -508,7 +509,7 @@ class _GerBulPageState extends State<GerBulPage> {
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 11.5.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -542,7 +543,7 @@ class _GerBulPageState extends State<GerBulPage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -575,7 +576,7 @@ class _GerBulPageState extends State<GerBulPage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               );
@@ -597,7 +598,7 @@ class _GerBulPageState extends State<GerBulPage> {
             garchig.toUpperCase(),
             style: TextStyle(
               fontSize: 11.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: AppColors.deepGreen,
               letterSpacing: 1.0,
             ),
@@ -640,7 +641,7 @@ class _GerBulPageState extends State<GerBulPage> {
                   gishuun.buenNer,
                   style: TextStyle(
                     fontSize: 14.5.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: context.textPrimaryColor,
                   ),
                 ),
@@ -708,7 +709,7 @@ class _GerBulPageState extends State<GerBulPage> {
                   urilga.buenNer,
                   style: TextStyle(
                     fontSize: 14.5.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: context.textPrimaryColor,
                   ),
                 ),
@@ -810,7 +811,7 @@ class _GerBulPageState extends State<GerBulPage> {
         style: TextStyle(
           color: ungu,
           fontSize: 15.sp,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -841,7 +842,7 @@ class _GerBulPageState extends State<GerBulPage> {
             erkh,
             style: TextStyle(
               fontSize: 10.5.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: ungu,
             ),
           ),
@@ -873,7 +874,7 @@ class _GerBulPageState extends State<GerBulPage> {
             'Одоогоор гишүүн алга',
             style: TextStyle(
               fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: context.textPrimaryColor,
             ),
           ),
@@ -913,7 +914,7 @@ class _GerBulPageState extends State<GerBulPage> {
           'Гишүүнчлэлээс гарах',
           style: TextStyle(
             color: Colors.redAccent,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             fontSize: 14.sp,
           ),
         ),

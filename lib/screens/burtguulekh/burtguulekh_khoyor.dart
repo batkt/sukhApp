@@ -10,6 +10,8 @@ import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/utils/page_transitions.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/common_footer.dart';
+import 'package:sukh_app/utils/error_message.dart';
+import 'package:sukh_app/widgets/otp_code_input.dart';
 
 /// Modern minimal background with subtle gradient
 class AppBackground extends StatelessWidget {
@@ -96,16 +98,10 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   bool _isLoading = false;
 
   final TextEditingController _phoneController = TextEditingController();
-  final List<TextEditingController> _pinControllers = List.generate(
-    4,
-    (index) => TextEditingController(),
-  );
+  final TextEditingController _otpController = TextEditingController();
 
   final FocusNode phoneFocus = FocusNode();
-  final List<FocusNode> _pinFocusNodes = List.generate(
-    4,
-    (index) => FocusNode(),
-  );
+  final FocusNode _otpFocusNode = FocusNode();
 
   int _resendSeconds = 30;
   bool _canResend = false;
@@ -121,13 +117,9 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   void dispose() {
     _timer?.cancel();
     _phoneController.dispose();
-    for (var controller in _pinControllers) {
-      controller.dispose();
-    }
+    _otpController.dispose();
     phoneFocus.dispose();
-    for (var node in _pinFocusNodes) {
-      node.dispose();
-    }
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
@@ -184,9 +176,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
       );
 
       if (mounted) {
-        for (var controller in _pinControllers) {
-          controller.clear();
-        }
+        _otpController.clear();
 
         setState(() {
           _isLoading = false;
@@ -200,7 +190,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
         );
 
         _startResendTimer();
-        _pinFocusNodes[0].requestFocus();
+        _otpFocusNode.requestFocus();
       }
     } catch (e) {
       if (mounted) {
@@ -209,7 +199,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
         });
         showGlassSnackBar(
           context,
-          message: "Алдаа гарлаа: $e",
+          message: friendlyError(e, fallback: 'Баталгаажуулах код дахин илгээж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -265,7 +255,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
             _startResendTimer();
 
             Future.delayed(Duration.zero, () {
-              _pinFocusNodes[0].requestFocus();
+              _otpFocusNode.requestFocus();
             });
           }
         } catch (e) {
@@ -274,9 +264,9 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
               _isLoading = false;
             });
 
-            String errorMessage = "Алдаа гарлаа: $e";
+            String errorMessage = friendlyError(e, fallback: 'Утасны дугаар баталгаажуулж чадсангүй. Дахин оролдоно уу.');
             if (e.toString().contains('409')) {
-              errorMessage = "Дугаар бүртгэлтэй байна";
+              errorMessage = "Энэ утасны дугаар аль хэдийн бүртгэлтэй байна.";
             }
 
             showGlassSnackBar(
@@ -288,7 +278,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           }
         }
       } else {
-        String pin = _pinControllers.map((c) => c.text).join();
+        String pin = _otpController.text;
         if (pin.length == 4) {
           setState(() {
             _isLoading = true;
@@ -354,10 +344,8 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 iconColor: Colors.red,
               );
 
-              for (var controller in _pinControllers) {
-                controller.clear();
-              }
-              _pinFocusNodes[0].requestFocus();
+              _otpController.clear();
+              _otpFocusNode.requestFocus();
             }
           }
         }
@@ -441,7 +429,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                             ? Colors.white
                                             : AppColors.lightTextPrimary,
                                         fontSize: 28.sp,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w600,
                                         letterSpacing: -0.5,
                                       ),
                                     ),
@@ -476,7 +464,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                                       isLoading: _isLoading,
                                       canContinue: !_isPhoneSubmitted
                                           ? _phoneController.text.length == 8
-                                          : _pinControllers.every((c) => c.text.isNotEmpty),
+                                          : _otpController.text.length == 4,
                                       isDark: isDark,
                                     ),
                                     SizedBox(height: 16.h),
@@ -576,9 +564,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 setState(() {
                   _isPhoneSubmitted = false;
                   _timer?.cancel();
-                  for (var controller in _pinControllers) {
-                    controller.clear();
-                  }
+                  _otpController.clear();
                 });
               }
             },
@@ -591,13 +577,11 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
   Widget _buildSecretCodeField(bool isDark) {
     return Column(
       children: [
-        AutofillGroup(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(4, (index) {
-              return _buildPinBox(index, isDark);
-            }),
-          ),
+        OtpCodeInput(
+          controller: _otpController,
+          focusNode: _otpFocusNode,
+          autofocus: false,
+          onChanged: (_) => setState(() {}),
         ),
         SizedBox(height: 16.h),
         Row(
@@ -617,78 +601,6 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildPinBox(int index, bool isDark) {
-    return Container(
-      width: 65.w,
-      height: 75.h,
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.black.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: _pinFocusNodes[index].hasFocus
-              ? AppColors.deepGreen
-              : (isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05)),
-          width: 1.5,
-        ),
-      ),
-      child: KeyboardListener(
-        focusNode: FocusNode(),
-        onKeyEvent: (KeyEvent event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.backspace) {
-            if (_pinControllers[index].text.isEmpty && index > 0) {
-              _pinControllers[index - 1].clear();
-              _pinFocusNodes[index - 1].requestFocus();
-              setState(() {});
-            }
-          }
-        },
-        child: TextFormField(
-          controller: _pinControllers[index],
-          focusNode: _pinFocusNodes[index],
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-            fontSize: 28.sp,
-            fontWeight: FontWeight.bold,
-            height: 1.2, // Perfect for centering
-          ),
-          keyboardType: TextInputType.number,
-          autofillHints: const [AutofillHints.oneTimeCode],
-          enableInteractiveSelection: true,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-            counterText: '',
-          ),
-          onChanged: (value) {
-            if (value.length > 1) {
-              final digits = value.replaceAll(RegExp(r'\D'), '');
-              for (int i = 0; i < digits.length && i < 4; i++) {
-                if (index + i < 4) {
-                  _pinControllers[index + i].text = digits[i];
-                }
-              }
-              final lastIndex = (index + digits.length - 1).clamp(0, 3);
-              _pinFocusNodes[lastIndex].requestFocus();
-              setState(() {});
-              return;
-            }
-            if (value.isNotEmpty && index < 3) {
-              _pinFocusNodes[index + 1].requestFocus();
-            }
-            setState(() {});
-          },
-        ),
-      ),
     );
   }
 
@@ -737,7 +649,7 @@ class _Burtguulekh_Khoyor_state extends State<Burtguulekh_Khoyor> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
               ),

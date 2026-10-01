@@ -2,8 +2,20 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sukh_app/models/blog_model.dart';
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class BlogService {
+  static final RegExp _cyrillicRe = RegExp(r'[А-Яа-яӨөҮүЁё]');
+
+  /// Монгол мэдэгдэлтэй алдааг хэвээр, техникийн алдааг ойлгомжтой болгоно.
+  static Exception _aldaa(String context, Object e) {
+    final raw = e.toString();
+    if (_cyrillicRe.hasMatch(raw)) return Exception(cleanErrorText(raw));
+    return Exception(
+      '$context. ${friendlyError(e, fallback: 'Түр хүлээгээд дахин оролдоно уу.')}',
+    );
+  }
+
   static Future<List<BlogModel>> getBlogs(String baiguullagiinId) async {
     try {
       final headers = await ApiService.getAuthHeaders();
@@ -26,10 +38,10 @@ class BlogService {
         final blogResponse = BlogResponse.fromJson(data);
         return blogResponse.data;
       } else {
-        throw Exception('Мэдээлэл татахад алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Мэдээ татахад алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
-      throw Exception('Мэдээлэл татахад алдаа гарлаа: $e');
+      throw _aldaa('Мэдээ татахад алдаа гарлаа', e);
     }
   }
 
@@ -66,16 +78,16 @@ class BlogService {
             throw Exception('Өгөгдөл шинэчлэгдсэнгүй');
           }
         } else {
-          throw Exception(data['message'] ?? 'Нөлөөлөл бүртгэхэд алдаа гарлаа');
+          throw Exception(data['aldaa'] ?? data['message'] ?? 'Хариу үйлдэл бүртгэхэд алдаа гарлаа');
         }
       } else {
-        throw Exception('Нөлөөлөл бүртгэхэд алдаа гарлаа: ${response.statusCode}');
+        throw Exception('Хариу үйлдэл бүртгэхэд алдаа гарлаа. ${httpStatusMessage(response.statusCode)}');
       }
     } catch (e) {
       if (e.toString().contains('Өгөгдөл шинэчлэгдсэнгүй')) {
         rethrow;
       }
-      throw Exception('Нөлөөлөл бүртгэхэд алдаа гарлаа: $e');
+      throw _aldaa('Хариу үйлдэл бүртгэхэд алдаа гарлаа', e);
     }
   }
 }

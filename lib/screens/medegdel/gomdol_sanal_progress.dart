@@ -8,6 +8,7 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class GomdolSanalProgressScreen extends StatefulWidget {
   const GomdolSanalProgressScreen({super.key});
@@ -103,7 +104,7 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = friendlyError(e, fallback: 'Санал, гомдлын мэдээлэл татаж чадсангүй. Дахин оролдоно уу.');
         _isLoading = false;
       });
     }
@@ -417,7 +418,7 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                           tablet: 18,
                           veryNarrow: 12,
                         ),
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
@@ -569,7 +570,7 @@ class _GomdolSanalProgressScreenState extends State<GomdolSanalProgressScreen> {
                       tablet: 14,
                       veryNarrow: 10,
                     ),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/utils/error_message.dart';
 import 'package:sukh_app/services/storage_service.dart';
 
 /// AuthConfig - Global configuration for managing baiguullagiinId
@@ -84,7 +85,12 @@ class AuthConfig {
 
       return _baiguullagiinId;
     } catch (e) {
-      throw Exception('AuthConfig initialization failed: $e');
+      throw Exception(
+        friendlyError(
+          e,
+          fallback: 'Байгууллагын мэдээлэл тохируулж чадсангүй. Дахин оролдоно уу.',
+        ),
+      );
     }
   }
 

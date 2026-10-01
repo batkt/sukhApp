@@ -46,7 +46,7 @@ class ResponsiveDebugOverlay extends StatelessWidget {
                   style: TextStyle(
                     color: const Color(0xFFe6ff00),
                     fontSize: 12.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -100,7 +100,7 @@ class ResponsiveDebugOverlay extends StatelessWidget {
             style: TextStyle(
               color: color ?? Colors.white,
               fontSize: 10.sp,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/utils/format_util.dart'
     show formatInvoiceDate, formatBillPeriod;
+import 'package:sukh_app/utils/error_message.dart';
 
 class BillingDetailPage extends StatefulWidget {
   final Map<String, dynamic> billing;
@@ -482,7 +483,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Мэдээлэл ачаалахад алдаа гарлаа: $e';
+          _errorMessage = friendlyError(e, fallback: 'Биллингийн мэдээлэл ачаалж чадсангүй. Дахин оролдоно уу.');
         });
       }
     }
@@ -877,7 +878,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: e.toString().replaceFirst('Exception: ', ''),
+          message: friendlyError(e, fallback: 'Төлбөр төлөх үед алдаа гарлаа. Дахин оролдоно уу.'),
           icon: Icons.error_outline,
           iconColor: Colors.red,
         );
@@ -1487,7 +1488,7 @@ class _BillingDetailPageState extends State<BillingDetailPage> {
                                                   style: TextStyle(
                                                     color: Colors.green,
                                                     fontSize: 8.sp,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
                                               ),

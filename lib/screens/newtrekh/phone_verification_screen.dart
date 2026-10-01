@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
@@ -10,6 +9,8 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/utils/error_message.dart';
+import 'package:sukh_app/widgets/otp_code_input.dart';
 
 class PhoneVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -33,11 +34,8 @@ class PhoneVerificationScreen extends StatefulWidget {
 }
 
 class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
-  final List<TextEditingController> _pinControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
+  final TextEditingController _otpController = TextEditingController();
+  final FocusNode _otpFocusNode = FocusNode();
 
   bool _isLoading = false;
   bool _isPhoneSubmitted = false;
@@ -57,7 +55,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       _startResendTimer();
       // Focus on first PIN field
       Future.delayed(Duration.zero, () {
-        _pinFocusNodes[0].requestFocus();
+        _otpFocusNode.requestFocus();
       });
     });
   }
@@ -65,12 +63,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    for (var controller in _pinControllers) {
-      controller.dispose();
-    }
-    for (var node in _pinFocusNodes) {
-      node.dispose();
-    }
+    _otpController.dispose();
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
@@ -128,9 +122,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       );
 
       if (mounted) {
-        for (var controller in _pinControllers) {
-          controller.clear();
-        }
+        _otpController.clear();
 
         setState(() {
           _isLoading = false;
@@ -144,7 +136,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         );
 
         _startResendTimer();
-        _pinFocusNodes[0].requestFocus();
+        _otpFocusNode.requestFocus();
       }
     } catch (e) {
       if (mounted) {
@@ -153,7 +145,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         });
         showGlassSnackBar(
           context,
-          message: "Алдаа гарлаа: $e",
+          message: friendlyError(e, fallback: 'Баталгаажуулах код дахин илгээж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -162,7 +154,8 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   }
 
   Future<void> _verifyCode() async {
-    String pin = _pinControllers.map((c) => c.text).join();
+    if (_isLoading) return;
+    String pin = _otpController.text;
     if (pin.length != 4) {
       showGlassSnackBar(
         context,
@@ -222,10 +215,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         });
 
         // Extract error message
-        String errorMessage = e.toString();
-        if (errorMessage.startsWith('Exception: ')) {
-          errorMessage = errorMessage.substring(11);
-        }
+        final errorMessage = friendlyError(e, fallback: 'Баталгаажуулах код буруу байна. Шалгаад дахин оролдоно уу.');
 
         print('❌ [VERIFY_CODE] Error: $errorMessage');
 
@@ -238,25 +228,9 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
           iconColor: Colors.red,
         );
 
-        for (var controller in _pinControllers) {
-          controller.clear();
-        }
-        _pinFocusNodes[0].requestFocus();
+        _otpController.clear();
+        _otpFocusNode.requestFocus();
       }
-    }
-  }
-
-  void _handlePinChange(String value, int index) {
-    if (value.length == 1 && index < 3) {
-      _pinFocusNodes[index + 1].requestFocus();
-    } else if (value.isEmpty && index > 0) {
-      _pinFocusNodes[index - 1].requestFocus();
-    }
-
-    // Auto-verify when all 4 digits are entered
-    String pin = _pinControllers.map((c) => c.text).join();
-    if (pin.length == 4 && _isPhoneSubmitted) {
-      _verifyCode();
     }
   }
 
@@ -369,7 +343,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                             large: 22,
                             tablet: 24,
                           ),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -408,78 +382,14 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                   ),
                 ),
                 // PIN input fields
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(4, (index) {
-                    return SizedBox(
-                      width: context.responsiveSpacing(
-                        small: 60,
-                        medium: 65,
-                        large: 70,
-                        tablet: 75,
-                      ),
-                      child: TextField(
-                        controller: _pinControllers[index],
-                        focusNode: _pinFocusNodes[index],
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        maxLength: 1,
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.white
-                              : AppColors.lightTextPrimary,
-                          fontSize: context.responsiveFontSize(
-                            small: 24,
-                            medium: 26,
-                            large: 28,
-                            tablet: 30,
-                          ),
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: InputDecoration(
-                          counterText: '',
-                          filled: true,
-                          fillColor: isDark
-                              ? AppColors.secondaryAccent.withOpacity(0.3)
-                              : Colors.white,
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              context.responsiveBorderRadius(
-                                small: 12,
-                                medium: 14,
-                                large: 16,
-                                tablet: 18,
-                              ),
-                            ),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.1)
-                                  : AppColors.lightInputGray,
-                              width: 2,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              context.responsiveBorderRadius(
-                                small: 12,
-                                medium: 14,
-                                large: 16,
-                                tablet: 18,
-                              ),
-                            ),
-                            borderSide: BorderSide(
-                              color: AppColors.deepGreen,
-                              width: 2.5,
-                            ),
-                          ),
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        onChanged: (value) => _handlePinChange(value, index),
-                      ),
-                    );
-                  }),
+                OtpCodeInput(
+                  controller: _otpController,
+                  focusNode: _otpFocusNode,
+                  autofocus: false,
+                  onCompleted: (_) {
+                    // Auto-verify when all 4 digits are entered
+                    if (_isPhoneSubmitted) _verifyCode();
+                  },
                 ),
                 SizedBox(
                   height: context.responsiveSpacing(
@@ -574,7 +484,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                               large: 20,
                               tablet: 22,
                             ),
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                 ),

@@ -10,6 +10,7 @@ import 'package:sukh_app/components/Menu/side_menu.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -62,7 +63,7 @@ class _GereeState extends State<Geree> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = friendlyError(e, fallback: 'Гэрээний мэдээлэл татаж чадсангүй. Дахин оролдоно уу.');
         _isLoading = false;
       });
     }
@@ -152,7 +153,7 @@ class _GereeState extends State<Geree> {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(friendlyError(e)),
               backgroundColor: Colors.redAccent,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
@@ -638,7 +639,7 @@ class _GereeState extends State<Geree> {
                     'Бүртгэл цуцлах',
                     style: TextStyle(
                       fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                   ),
@@ -723,7 +724,7 @@ class _GereeState extends State<Geree> {
   //       //           '$daysPassed',
   //       //           style: TextStyle(
   //       //             fontSize: 64.sp,
-  //       //             fontWeight: FontWeight.bold,
+  //       //             fontWeight: FontWeight.w600,
   //       //             color: accentColor,
   //       //             height: 1.0,
   //       //           ),
@@ -773,7 +774,7 @@ class _GereeState extends State<Geree> {
   //                       style: TextStyle(
   //                         fontSize: 16.sp,
   //                         color: accentColor,
-  //                         fontWeight: FontWeight.bold,
+  //                         fontWeight: FontWeight.w600,
   //                       ),
   //                     ),
   //                   ],
@@ -875,7 +876,7 @@ class _GereeState extends State<Geree> {
                   'ГЭРЭЭНИЙ ДУГААР',
                   style: TextStyle(
                     fontSize: 9.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.deepGreen,
                     letterSpacing: 1.2,
                   ),
@@ -885,7 +886,7 @@ class _GereeState extends State<Geree> {
                   geree.gereeniiDugaar,
                   style: TextStyle(
                     fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: context.textPrimaryColor,
                     letterSpacing: -0.3,
                     height: 1.2,
@@ -1115,7 +1116,7 @@ class _GereeState extends State<Geree> {
                   value,
                   style: TextStyle(
                     fontSize: isLarge ? 14.sp : 12.sp,
-                    fontWeight: isLarge ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: isLarge ? FontWeight.w600 : FontWeight.w600,
                     color: valueColor ?? context.textPrimaryColor,
                     letterSpacing: -0.2,
                     height: 1.3,

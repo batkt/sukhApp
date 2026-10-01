@@ -12,6 +12,7 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class EbarimtPage extends StatefulWidget {
   const EbarimtPage({super.key});
@@ -98,7 +99,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Устгах', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+        title: Text('Устгах', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
         content: Text('$name хэрэглэгчийг устгах уу?', style: TextStyle(fontSize: 14.sp)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Үгүй')),
@@ -124,7 +125,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: 'Алдаа: ${e.toString().replaceAll('Exception: ', '')}',
+          message: friendlyError(e, fallback: 'Хадгалсан хэрэглэгчийг устгаж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error_outline,
         );
       }
@@ -385,7 +386,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
         msg.toLowerCase().contains("unexpected character")) {
       return "Илэрц олдсонгүй. Мэдээлэлээ зөв оруулсан эсэхээ шалгана уу.";
     }
-    return msg;
+    return cleanErrorText(msg);
   }
 
   Future<void> _searchConsumerInfo() async {
@@ -540,7 +541,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   Container(
@@ -564,7 +565,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             style: TextStyle(
                               color: AppColors.deepGreen,
                               fontSize: 13.sp,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
@@ -714,7 +715,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: 11.sp,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -754,7 +755,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                       style: TextStyle(
                         color: AppColors.deepGreen,
                         fontSize: 13.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     SizedBox(height: 6.h),
@@ -772,7 +773,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             style: TextStyle(
                               color: AppColors.deepGreen,
                               fontSize: 11.sp,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         );
@@ -838,7 +839,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                       'Иргэний код',
                       style: TextStyle(
                         fontSize: 11.sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
                     ),
@@ -974,7 +975,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             'Холбох',
                             style: TextStyle(
                               fontSize: 11.sp,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -1052,7 +1053,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                   style: TextStyle(
                     color: context.textPrimaryColor,
                     fontSize: 11.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -1142,7 +1143,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
           label,
           style: TextStyle(
             fontSize: 11.sp,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w600,
             color: isSelected 
                 ? AppColors.deepGreen 
                 : (isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade600),

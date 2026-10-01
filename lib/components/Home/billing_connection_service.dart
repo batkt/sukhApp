@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class BillingConnectionService {
   static Future<bool> connectByAddress(BuildContext context) async {
@@ -35,8 +36,8 @@ class BillingConnectionService {
     } catch (e) {
       if (context.mounted) {
         final errorMessage = e.toString().contains('олдсонгүй')
-            ? 'Биллингийн мэдээлэл олдсонгүй'
-            : 'Биллинг холбоход алдаа гарлаа: $e';
+            ? 'Биллингийн мэдээлэл олдсонгүй. Хаягаа шалгаад дахин оролдоно уу.'
+            : friendlyError(e, fallback: 'Биллинг холбож чадсангүй. Дахин оролдоно уу.');
         showGlassSnackBar(
           context,
           message: errorMessage,

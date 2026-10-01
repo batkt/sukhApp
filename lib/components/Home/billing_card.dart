@@ -343,10 +343,10 @@ class _BillingCardState extends State<BillingCard>
                                   if (!isPlaceholder && hasBalance)
                                     _buildStatusPill(
                                       icon: isCredit
-                                          ? Icons.trending_up_rounded
+                                          ? Icons.savings_rounded
                                           : Icons.account_balance_wallet_rounded,
                                       label: isCredit
-                                          ? '+${_formatNumber(cardBalance.abs())}₮ Илүү төлөлт'
+                                          ? 'Илүү төлөлт: ${_formatNumber(cardBalance.abs())}₮'
                                           : '${_formatNumber(cardBalance)}₮ Төлөх',
                                       color: isCredit
                                           ? Colors.green[600]!

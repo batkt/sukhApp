@@ -272,7 +272,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
                               '${(_currentData!.progress! * 100).toInt()}%',
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                                 color: _currentData!.color,
                               ),
                             ),

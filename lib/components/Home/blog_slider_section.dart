@@ -123,26 +123,14 @@ class _BlogSliderSectionState extends State<BlogSliderSection> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 4.w,
-                    height: 18.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.deepGreen,
-                      borderRadius: BorderRadius.circular(2.r),
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  Text(
-                    'Мэдээ мэдээлэл',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      color: context.textPrimaryColor,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
+              Text(
+                'Мэдээ мэдээлэл',
+                style: TextStyle(
+                  fontSize: 17.sp,
+                  color: context.textPrimaryColor,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.4,
+                ),
               ),
               GestureDetector(
                 onTap: () {

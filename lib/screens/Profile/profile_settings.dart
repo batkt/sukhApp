@@ -8,6 +8,7 @@ import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
+import 'package:sukh_app/widgets/mongol_plate_keyboard.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
@@ -16,6 +17,7 @@ import 'package:sukh_app/screens/settings/app_icon_selection_sheet.dart';
 import 'package:sukh_app/services/session_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -288,7 +290,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 style: TextStyle(
                   color: AppColors.deepGreen,
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               content: Column(
@@ -324,7 +326,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       style: TextStyle(
                         color: context.textPrimaryColor,
                         fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         letterSpacing: 8,
                       ),
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -392,7 +394,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       'Хадгалах',
                       style: TextStyle(
                         fontSize: 13.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -738,7 +740,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
           'Бүртгэл цуцлах',
           style: TextStyle(
             color: context.textPrimaryColor,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
@@ -757,7 +759,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
               'Тийм, цуцлах',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -789,7 +791,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     } catch (e) {
       showGlassSnackBar(
         context,
-        message: 'Алдаа гарлаа: $e',
+        message: friendlyError(e, fallback: 'Тоотын бүртгэл цуцалж чадсангүй. Дахин оролдоно уу.'),
         icon: Icons.error,
       );
     } finally {
@@ -1020,7 +1022,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
         } else {
           showGlassSnackBar(
             context,
-            message: response['message'] ?? 'Алдаа гарлаа',
+            message: cleanErrorText(
+              (response['aldaa'] ?? response['message'] ?? '').toString(),
+              fallback: 'Машины дугаар шинэчилж чадсангүй. Дахин оролдоно уу.',
+            ),
             icon: Icons.error,
             iconColor: Colors.red,
           );
@@ -1029,7 +1034,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     } catch (e) {
       if (mounted) {
         // Remove technical prefix for cleaner display
-        String error = e.toString().replaceFirst('Exception: ', '');
+        final error = friendlyError(e, fallback: 'Машины дугаар шинэчилж чадсангүй. Дахин оролдоно уу.');
         showGlassSnackBar(
           context,
           message: error,
@@ -1193,7 +1198,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     style: TextStyle(
                       color: Colors.red,
                       fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -1257,7 +1262,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 style: TextStyle(
                   color: Colors.red,
                   fontSize: 12.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -1612,7 +1617,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                           style: TextStyle(
                             color: context.textPrimaryColor,
                             fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1665,7 +1670,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                     style: TextStyle(
                                       color: context.textPrimaryColor,
                                       fontSize: 15.sp,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: FontWeight.w600,
                                       letterSpacing: 1.2,
                                     ),
                                   ),
@@ -1685,40 +1690,56 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         ),
                       ),
                       SizedBox(height: 12.h),
-                      if (_mashiniiDugaarController.text.length < 4)
-                        _buildModernTextField(
-                          key: const ValueKey('plate_number'),
-                          controller: _mashiniiDugaarController,
-                          label: 'Дугаар (Жишээ: 1234УАА)',
-                          icon: Icons.numbers_rounded,
-                          hint: '0000AAA',
-                          enabled: isAllowed,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(7),
-                            PlateNumberFormatter(),
+                      // Монгол гараас (controller-оор) орсон өөрчлөлтийг ч
+                      // сонсож, тоон ба үсгийн талбарыг сольж харуулна.
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _mashiniiDugaarController,
+                        builder: (context, value, _) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                          if (value.text.length < 4)
+                            _buildModernTextField(
+                              key: const ValueKey('plate_number'),
+                              controller: _mashiniiDugaarController,
+                              label: 'Дугаар (Жишээ: 1234УАА)',
+                              icon: Icons.numbers_rounded,
+                              hint: '0000AAA',
+                              enabled: isAllowed,
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(7),
+                                PlateNumberFormatter(),
+                              ],
+                              keyboardType: TextInputType.number,
+                              onChanged: (val) {
+                                setModalState(() {});
+                              },
+                            )
+                          else
+                            _buildModernTextField(
+                              key: const ValueKey('plate_text'),
+                              controller: _mashiniiDugaarController,
+                              label: 'Дугаар (Жишээ: 1234УАА)',
+                              icon: Icons.numbers_rounded,
+                              hint: '0000AAA',
+                              enabled: isAllowed,
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(7),
+                                PlateNumberFormatter(),
+                              ],
+                              // 4 цифр орсны дараа системийн гарыг нууж, доорх монгол гарыг харуулна
+                              keyboardType: TextInputType.none,
+                              onChanged: (val) {
+                                setModalState(() {});
+                              },
+                            ),
+                          if (isAllowed &&
+                              MongolPlateKeyboard.kheregtei(value.text))
+                            MongolPlateKeyboard(
+                              controller: _mashiniiDugaarController,
+                            ),
                           ],
-                          keyboardType: TextInputType.number,
-                          onChanged: (val) {
-                            setModalState(() {});
-                          },
-                        )
-                      else
-                        _buildModernTextField(
-                          key: const ValueKey('plate_text'),
-                          controller: _mashiniiDugaarController,
-                          label: 'Дугаар (Жишээ: 1234УАА)',
-                          icon: Icons.numbers_rounded,
-                          hint: '0000AAA',
-                          enabled: isAllowed,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(7),
-                            PlateNumberFormatter(),
-                          ],
-                          keyboardType: TextInputType.text,
-                          onChanged: (val) {
-                            setModalState(() {});
-                          },
                         ),
+                      ),
                       if (!isAllowed) ...[
                         SizedBox(height: 16.h),
                         Container(
@@ -1827,7 +1848,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   nemekhEsekh ? 'Нэмэх' : 'Хадгалах',
                                   style: TextStyle(
                                     fontSize: 15.sp,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                         ),
@@ -1911,7 +1932,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                         style: TextStyle(
                           color: context.textPrimaryColor,
                           fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -1953,7 +1974,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                     'Солих',
                                     style: TextStyle(
                                       fontSize: 13.sp,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   style: TextButton.styleFrom(
@@ -2055,7 +2076,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   } catch (e) {
                                     showGlassSnackBar(
                                       context,
-                                      message: 'Алдаа гарлаа: $e',
+                                      message: friendlyError(e, fallback: 'Мэдээлэл хадгалж чадсангүй. Дахин оролдоно уу.'),
                                       icon: Icons.error,
                                     );
                                   }
@@ -2073,7 +2094,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   'Хадгалах',
                                   style: TextStyle(
                                     fontSize: 15.sp,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
@@ -2100,7 +2121,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
       style: TextStyle(
         color: context.textSecondaryColor,
         fontSize: 12.sp,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w600,
         letterSpacing: 0.5,
       ),
     );
@@ -2322,7 +2343,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             style: TextStyle(
                               color: modalContext.textPrimaryColor,
                               fontSize: 18.sp,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -2405,7 +2426,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                       'Нууц үг хадгалах',
                                       style: TextStyle(
                                         fontSize: 15.sp,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                             ),
@@ -2464,7 +2485,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
             style: TextStyle(
               color: context.textPrimaryColor,
               fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               letterSpacing: 4,
             ),
             decoration: InputDecoration(
@@ -3037,7 +3058,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     title.toUpperCase(),
                     style: TextStyle(
                       fontSize: 11.sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.deepGreen,
                       letterSpacing: 1.0,
                     ),
@@ -3122,7 +3143,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 style: TextStyle(
                   color: AppColors.deepGreen,
                   fontSize: 20.sp,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: -1,
                 ),
               ),
@@ -3139,7 +3160,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18.sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -3207,7 +3228,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
               'Тохиргоо',
               style: TextStyle(
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: isDark ? Colors.white : context.textPrimaryColor,
                 letterSpacing: -0.3,
               ),
@@ -3356,7 +3377,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   value,
                   style: TextStyle(
                     fontSize: isLarge ? 15.sp : 12.sp,
-                    fontWeight: isLarge ? FontWeight.bold : FontWeight.w600,
+                    fontWeight: isLarge ? FontWeight.w600 : FontWeight.w600,
                     color: valueColor ?? context.textPrimaryColor,
                     letterSpacing: -0.3,
                   ),

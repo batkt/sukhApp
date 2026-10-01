@@ -121,17 +121,17 @@ class BillingBox extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.trending_up_rounded,
+                              Icons.savings_rounded,
                               color: Colors.green[600],
                               size: 12.sp,
                             ),
                             SizedBox(width: 4.w),
                             Flexible(
                               child: Text(
-                                '+${totalBalance.replaceAll('-', '')}₮ Илүү төлөлт',
+                                'Илүү төлөлт: ${totalBalance.replaceAll('-', '')}₮',
                                 style: TextStyle(
                                   fontSize: 11.sp,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                   color: Colors.green[600],
                                 ),
                                 maxLines: 1,
@@ -152,7 +152,7 @@ class BillingBox extends StatelessWidget {
                                 '$totalBalance₮',
                                 style: TextStyle(
                                   fontSize: 13.sp,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.error,
                                 ),
                               ),

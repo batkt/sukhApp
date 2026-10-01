@@ -167,7 +167,7 @@ class _ShakeHintModalState extends State<_ShakeHintModal>
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: 22.sp,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       height: 1.3,
                     ),
                     maxLines: 3,
@@ -212,7 +212,7 @@ class _ShakeHintModalState extends State<_ShakeHintModal>
                       'Дуусгах',
                       style: TextStyle(
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

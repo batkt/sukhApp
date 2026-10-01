@@ -11,6 +11,8 @@ import 'package:sukh_app/services/update_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/widgets/common_footer.dart';
+import 'package:sukh_app/utils/error_message.dart';
+import 'package:sukh_app/widgets/otp_code_input.dart';
 
 enum SignupStep { phone, otp, password }
 
@@ -118,8 +120,8 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   // OTP / PIN
-  final List<TextEditingController> _pinControllers = List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
+  final TextEditingController _otpController = TextEditingController();
+  final FocusNode _otpFocusNode = FocusNode();
   int _resendSeconds = 30;
   bool _canResend = false;
   Timer? _resendTimer;
@@ -191,6 +193,8 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _otpController.dispose();
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
@@ -228,7 +232,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
       if (mounted) {
         setState(() { _isLoading = false; _step = 1; });
         _startResendTimer();
-        Future.delayed(Duration.zero, () => _pinFocusNodes[0].requestFocus());
+        Future.delayed(Duration.zero, () => _otpFocusNode.requestFocus());
       }
     } else {
       // No org — skip OTP and go straight to password step
@@ -250,22 +254,23 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
       );
       if (mounted) {
         setState(() => _isLoading = false);
-        for (var c in _pinControllers) c.clear();
+        _otpController.clear();
         _startResendTimer();
-        _pinFocusNodes[0].requestFocus();
+        _otpFocusNode.requestFocus();
         showGlassSnackBar(context, message: 'Код дахин илгээлээ', icon: Icons.check_circle, iconColor: Colors.green);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        showGlassSnackBar(context, message: 'Алдаа гарлаа', icon: Icons.error, iconColor: Colors.red);
+        showGlassSnackBar(context, message: friendlyError(e, fallback: 'Код дахин илгээж чадсангүй. Дахин оролдоно уу.'), icon: Icons.error, iconColor: Colors.red);
       }
     }
   }
 
   // ─── Step 1 → 2: Verify OTP ──────────────────────────
   Future<void> _handleVerifyOtp() async {
-    final pin = _pinControllers.map((c) => c.text).join();
+    if (_isLoading) return;
+    final pin = _otpController.text;
     if (pin.length != 4) {
       showGlassSnackBar(context, message: '4 оронтой код оруулна уу', icon: Icons.error, iconColor: Colors.red);
       return;
@@ -282,19 +287,12 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        String msg = e.toString();
-        if (msg.startsWith('Exception: ')) msg = msg.substring(11);
-        showGlassSnackBar(context, message: msg.isNotEmpty ? msg : 'Баталгаажуулах код буруу байна', icon: Icons.error, iconColor: Colors.red);
-        for (var c in _pinControllers) c.clear();
-        _pinFocusNodes[0].requestFocus();
+        final msg = friendlyError(e, fallback: 'Баталгаажуулах код буруу байна. Шалгаад дахин оролдоно уу.');
+        showGlassSnackBar(context, message: msg, icon: Icons.error, iconColor: Colors.red);
+        _otpController.clear();
+        _otpFocusNode.requestFocus();
       }
     }
-  }
-
-  void _handlePinChange(String value, int index) {
-    if (value.length == 1 && index < 3) _pinFocusNodes[index + 1].requestFocus();
-    else if (value.isEmpty && index > 0) _pinFocusNodes[index - 1].requestFocus();
-    if (_pinControllers.map((c) => c.text).join().length == 4) _handleVerifyOtp();
   }
 
   // ─── Step 2: Register ─────────────────────────────────
@@ -431,8 +429,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        String msg = e.toString();
-        if (msg.startsWith('Exception: ')) msg = msg.substring(11);
+        final msg = friendlyError(e, fallback: 'Бүртгэл үүсгэж чадсангүй. Дахин оролдоно уу.');
         showGlassSnackBar(context, message: msg, icon: Icons.error, iconColor: Colors.red);
       }
     }
@@ -513,7 +510,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
                                             ? Colors.white
                                             : AppColors.lightTextPrimary,
                                         fontSize: 28.sp,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w600,
                                         letterSpacing: -0.5,
                                       ),
                                     ),
@@ -694,76 +691,12 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
   }
 
   Widget _buildPinInputRow(bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: List.generate(4, (index) {
-        return SizedBox(
-          width: 55.w,
-          child: Container(
-            constraints: BoxConstraints(minHeight: 65.h),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF5F7FA),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: _pinFocusNodes[index].hasFocus
-                    ? AppColors.deepGreen
-                    : (isDark ? Colors.white.withOpacity(0.08) : Colors.transparent),
-                width: 1.5,
-              ),
-            ),
-            child: KeyboardListener(
-              focusNode: FocusNode(),
-              onKeyEvent: (event) {
-                if (event is KeyDownEvent &&
-                    event.logicalKey == LogicalKeyboardKey.backspace) {
-                  if (_pinControllers[index].text.isEmpty && index > 0) {
-                    _pinControllers[index - 1].clear();
-                    _pinFocusNodes[index - 1].requestFocus();
-                    setState(() {});
-                  }
-                }
-              },
-              child: TextField(
-                controller: _pinControllers[index],
-                focusNode: _pinFocusNodes[index],
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.bold,
-                  height: 1.0, // Set to 1.0 to prevent vertical displacement
-                ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(1),
-                ],
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  disabledBorder: InputBorder.none,
-                  errorBorder: InputBorder.none,
-                  filled: false, 
-                  contentPadding: EdgeInsets.symmetric(vertical: 15.h),
-                  counterText: '',
-                ),
-                onChanged: (value) {
-                  if (value.isNotEmpty && index < 3) {
-                    _pinFocusNodes[index + 1].requestFocus();
-                  }
-
-                  // Auto verify if all 4 digits are entered
-                  if (_pinControllers.every((c) => c.text.isNotEmpty)) {
-                    _handleVerifyOtp();
-                  }
-                  setState(() {});
-                },
-              ),
-            ),
-          ),
-        );
-      }),
+    return OtpCodeInput(
+      controller: _otpController,
+      focusNode: _otpFocusNode,
+      autofocus: false,
+      // Auto verify if all 4 digits are entered
+      onCompleted: (_) => _handleVerifyOtp(),
     );
   }
 
@@ -781,7 +714,7 @@ class _BurtguulekhSignupState extends State<BurtguulekhSignup> {
         ),
         child: isLoading
             ? Center(child: SizedBox(width: 22.r, height: 22.r, child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))))
-            : Text(label, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            : Text(label, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
       ),
     );
   }

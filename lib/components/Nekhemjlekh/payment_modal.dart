@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sukh_app/utils/format_util.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -10,6 +11,7 @@ import 'package:sukh_app/components/Nekhemjlekh/qpay_qr_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/nekhemjlekh_models.dart';
 import 'package:sukh_app/components/Nekhemjlekh/bank_selection_modal.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class PaymentModal extends StatefulWidget {
   final String totalSelectedAmount;
@@ -19,6 +21,10 @@ class PaymentModal extends StatefulWidget {
   /// When all unpaid are selected, use this (globalUldegdel) for payment amount
   final double? contractUldegdel;
 
+  /// Нэг гэрээ сонгосон бол — СӨХ / гараж / агуулахаар ялгаж төлөх боломж
+  final String? gereeniiId;
+  final String? baiguullagiinId;
+
   const PaymentModal({
     super.key,
     required this.totalSelectedAmount,
@@ -26,6 +32,8 @@ class PaymentModal extends StatefulWidget {
     required this.onPaymentTap,
     required this.invoices,
     this.contractUldegdel,
+    this.gereeniiId,
+    this.baiguullagiinId,
   });
 
   @override
@@ -42,6 +50,39 @@ class _PaymentModalState extends State<PaymentModal> {
   String? _senderInvoiceNoForSocket;
   String _vatReceiveType = 'CITIZEN';
   final TextEditingController _vatTinController = TextEditingController();
+
+  /// Ангиллын үлдэгдэл (Орон сууц / Зогсоол / Агуулах) — вэбийн TransactionModal-тай ижил
+  Map<String, double> _angilalUldegdel = {};
+  /// null = бүгдийг төлөх
+  String? _songosonAngilal;
+
+  @override
+  void initState() {
+    super.initState();
+    _angilalAchaalya();
+  }
+
+  Future<void> _angilalAchaalya() async {
+    final gid = widget.gereeniiId;
+    final bid = widget.baiguullagiinId;
+    if (gid == null || gid.isEmpty || bid == null || bid.isEmpty) return;
+    final ur = await ApiService.fetchUldegdelAngilal(
+      baiguullagiinId: bid,
+      gereeniiId: gid,
+    );
+    if (mounted) setState(() => _angilalUldegdel = ur);
+  }
+
+  /// Үлдэгдэлтэй ангиллууд — 2+ байвал л ялгаж төлөх сонголт харуулна
+  List<MapEntry<String, double>> get _tulukhAngilluud => _angilalUldegdel.entries
+      .where((e) => e.value > 0.5)
+      .toList();
+
+  static String _angilliinNer(String k) => k == 'Орон сууц'
+      ? 'СӨХ (орон сууц)'
+      : k == 'Зогсоол'
+          ? 'Гараж'
+          : k;
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +214,9 @@ class _PaymentModalState extends State<PaymentModal> {
                         Row(
                           children: [
                             Text(
-                              widget.totalSelectedAmount,
+                              _songosonAngilal != null
+                                  ? '${formatNumber(_angilalUldegdel[_songosonAngilal] ?? 0, 2)}₮'
+                                  : widget.totalSelectedAmount,
                               style: TextStyle(
                                 fontSize: 28.sp,
                                 fontWeight: FontWeight.w600,
@@ -187,6 +230,10 @@ class _PaymentModalState extends State<PaymentModal> {
                     ),
                   ),
                   
+                  if (_tulukhAngilluud.length > 1) ...[
+                    SizedBox(height: 24.h),
+                    _buildAngilalSelector(context),
+                  ],
                   SizedBox(height: 32.h),
                   _buildVATSelector(context),
                   SizedBox(height: 40.h),
@@ -255,6 +302,100 @@ class _PaymentModalState extends State<PaymentModal> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAngilalSelector(BuildContext context) {
+    final isDark = context.isDarkMode;
+    Widget mur({required String? key, required String ner, required double dun, required IconData icon}) {
+      final songogdson = _songosonAngilal == key;
+      return Padding(
+        padding: EdgeInsets.only(bottom: 8.h),
+        child: Material(
+          color: songogdson
+              ? AppColors.deepGreen.withOpacity(isDark ? 0.22 : 0.08)
+              : (isDark ? Colors.white.withOpacity(0.04) : Colors.white),
+          borderRadius: BorderRadius.circular(16.r),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16.r),
+            onTap: () => setState(() => _songosonAngilal = key),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(
+                  color: songogdson
+                      ? AppColors.deepGreen
+                      : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)),
+                  width: songogdson ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, size: 20.sp, color: AppColors.deepGreen),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(
+                      ner,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: context.textPrimaryColor,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${formatNumber(dun, 2)}₮',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: context.textPrimaryColor,
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Icon(
+                    songogdson ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                    size: 20.sp,
+                    color: songogdson ? AppColors.deepGreen : context.textSecondaryColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final niit = _tulukhAngilluud.fold<double>(0, (s, e) => s + e.value);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Юуг төлөх вэ?',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w600,
+            color: context.textPrimaryColor,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          'СӨХ болон гаражийн төлбөрөө тусад нь төлж болно.',
+          style: TextStyle(fontSize: 12.sp, color: context.textSecondaryColor),
+        ),
+        SizedBox(height: 12.h),
+        mur(key: null, ner: 'Бүгдийг төлөх', dun: widget.contractUldegdel ?? niit, icon: Icons.select_all_rounded),
+        ..._tulukhAngilluud.map((e) => mur(
+              key: e.key,
+              ner: _angilliinNer(e.key),
+              dun: e.value,
+              icon: e.key == 'Зогсоол'
+                  ? Icons.garage_rounded
+                  : e.key == 'Агуулах'
+                      ? Icons.inventory_2_rounded
+                      : Icons.apartment_rounded,
+            )),
+      ],
     );
   }
 
@@ -373,12 +514,17 @@ class _PaymentModalState extends State<PaymentModal> {
             );
           } else {
             // Own Org or Hybrid flow (via qpayGargaya which auto-detects)
+            final angilal = _songosonAngilal;
             finalResponse = await ApiService.qpayGargaya(
               baiguullagiinId: ownOrgBaiguullagiinId,
               barilgiinId: ownOrgBarilgiinId,
-              dun: totalAmount,
+              // Ангиллаар төлөхөд тухайн ангиллын үлдэгдлийг гэрээнд төлнө
+              // (нэхэмжлэхгүй) — callback нь төлөлтийг ангиллаар тэмдэглэнэ.
+              dun: angilal != null ? (_angilalUldegdel[angilal] ?? 0) : totalAmount,
               turul: turul,
-              nekhemjlekhiinId: firstInvoiceId,
+              nekhemjlekhiinId: angilal != null ? null : firstInvoiceId,
+              gereeniiId: angilal != null ? widget.gereeniiId : null,
+              angilal: angilal,
               dansniiDugaar: dansniiDugaar,
               burtgeliinDugaar: burtgeliinDugaar,
               customerTin: _vatReceiveType == 'COMPANY' ? _vatTinController.text : null,
@@ -517,7 +663,7 @@ class _PaymentModalState extends State<PaymentModal> {
       if (mounted) {
         showGlassSnackBar(
           context,
-          message: 'Төлбөр үүсгэхэд алдаа гарлаа: $e',
+          message: friendlyError(e, fallback: 'Төлбөрийн нэхэмжлэх үүсгэж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -541,7 +687,7 @@ class _PaymentModalState extends State<PaymentModal> {
             'И-баримт хүлээн авах',
             style: TextStyle(
               fontSize: 13.sp,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: context.textPrimaryColor.withOpacity(0.9),
               letterSpacing: 0.2,
             ),
@@ -678,7 +824,7 @@ class _PaymentModalState extends State<PaymentModal> {
             title,
             style: TextStyle(
               fontSize: 13.sp,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w600,
               color: isSelected ? Colors.white : context.textSecondaryColor,
             ),
           ),

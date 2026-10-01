@@ -8,6 +8,7 @@ import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:intl/intl.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class BlogDetailPage extends StatefulWidget {
   final List<BlogModel> blogs;
@@ -103,7 +104,11 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
          _manuallyToggleReaction(emoji);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Алдаа гарлаа: $e')),
+          SnackBar(
+            content: Text(
+              friendlyError(e, fallback: 'Хариу үйлдэл бүртгэж чадсангүй. Дахин оролдоно уу.'),
+            ),
+          ),
         );
       }
     }

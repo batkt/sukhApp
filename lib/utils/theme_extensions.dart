@@ -57,7 +57,7 @@ extension AppTextStyles on BuildContext {
         large: 24,
         tablet: 26,
       ),
-      fontWeight: fontWeight ?? FontWeight.bold,
+      fontWeight: fontWeight ?? FontWeight.w600,
       color: color ?? textPrimaryColor,
     );
   }
@@ -101,7 +101,7 @@ extension AppTextStyles on BuildContext {
         large: 28,
         tablet: 30,
       ),
-      fontWeight: fontWeight ?? FontWeight.bold,
+      fontWeight: fontWeight ?? FontWeight.w600,
       color: color ?? textPrimaryColor,
     );
   }
@@ -130,7 +130,7 @@ extension AppTextStyles on BuildContext {
         large: 19,
         tablet: 20,
       ),
-      fontWeight: fontWeight ?? FontWeight.bold,
+      fontWeight: fontWeight ?? FontWeight.w600,
       color: color ?? AppColors.deepGreen,
     );
   }

@@ -110,7 +110,7 @@ class ContractSelectionModal extends StatelessWidget {
                               style: TextStyle(
                                 color: isDarkMode ? Colors.white : Colors.black87,
                                 fontSize: 13.sp,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -189,7 +189,7 @@ class ContractSelectionModal extends StatelessWidget {
                                 style: TextStyle(
                                   color: isDarkMode ? Colors.white : Colors.black87,
                                   fontSize: 13.sp,
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                                 ),
                               ),
                               if (displayName != dugaar) ...[

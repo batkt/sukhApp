@@ -15,6 +15,9 @@ class ConnectivityService {
   bool _isConnected = true;
   bool get isConnected => _isConnected;
 
+  /// Апп даяар харагдах «Интернэт холболтгүй» мөрөнд (main.dart) сонсогдоно
+  static final ValueNotifier<bool> online = ValueNotifier<bool>(true);
+
   bool _hasShownOfflineMessage = false;
 
   void initialize(BuildContext context) {
@@ -46,12 +49,13 @@ class ConnectivityService {
     _isConnected = results.any((result) =>
       result != ConnectivityResult.none
     );
+    online.value = _isConnected;
 
     // Show messages only when status changes
     if (!_isConnected && wasConnected) {
       // Lost connection
+      // Байнгын мөр (OfflineBanner) харагдана — богино toast хангалтгүй байв
       _hasShownOfflineMessage = true;
-      _showOfflineMessage();
     } else if (_isConnected && !wasConnected && _hasShownOfflineMessage) {
       // Regained connection
       _hasShownOfflineMessage = false;

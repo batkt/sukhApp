@@ -6,6 +6,7 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/widgets/common/bg_painter.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class UtilityCodeInputPage extends StatefulWidget {
   const UtilityCodeInputPage({super.key});
@@ -67,7 +68,7 @@ class _UtilityCodeInputPageState extends State<UtilityCodeInputPage> {
       }
     } catch (e) {
       if (mounted) {
-        showGlassSnackBar(context, message: e.toString().replaceFirst('Exception: ', ''), icon: Icons.error);
+        showGlassSnackBar(context, message: friendlyError(e, fallback: 'Хэрэглэгчийн код хайж чадсангүй. Дахин оролдоно уу.'), icon: Icons.error);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -94,7 +95,7 @@ class _UtilityCodeInputPageState extends State<UtilityCodeInputPage> {
                   'Хэрэглэгчийн код оруулах',
                   style: TextStyle(
                     fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: isDark ? Colors.white : Colors.black87,
                   ),
                   textAlign: TextAlign.center,
@@ -115,7 +116,7 @@ class _UtilityCodeInputPageState extends State<UtilityCodeInputPage> {
                   style: TextStyle(
                     color: isDark ? Colors.white : Colors.black,
                     fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Жишээ: 123456',
@@ -139,7 +140,7 @@ class _UtilityCodeInputPageState extends State<UtilityCodeInputPage> {
                   ),
                   child: _isLoading 
                     ? SizedBox(width: 20.w, height: 20.w, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Хайж нэмэх', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                    : Text('Хайж нэмэх', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),

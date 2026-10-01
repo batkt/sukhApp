@@ -69,7 +69,7 @@ class _MashinPageState extends State<MashinPage>
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],

@@ -8,6 +8,10 @@ import 'package:sukh_app/tokhirgoo/firebase_tokhirgoo.dart';
 import 'package:sukh_app/services/notification_service.dart';
 import 'package:sukh_app/router/app_router.dart';
 import 'package:sukh_app/utils/logger.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:sukh_app/services/api_service.dart';
+import 'package:sukh_app/services/storage_service.dart';
 
 /// Апп ХААГДСАН эсвэл арын дэвсгэрт байхад ирсэн push.
 ///
@@ -45,6 +49,35 @@ class PushService {
 
   /// Push-ийг ажиллуулах. Тохиргоо дутуу бол ЮУ Ч ХИЙХГҮЙ буцна -
   /// апп унахгүй, socket-ийн мэдэгдэл хэвийн ажиллана.
+  static String? _burtgesenToken;
+
+  /// Нэвтэрсэн хэрэглэгчийн FCM token-ийг серверт хадгална. Өмнө нь зөвхөн
+  /// нууц үгээр нэвтрэх үед илгээгддэг байсан тул token сунгагдсаны дараа
+  /// нийтлэл, санал асуулга, шинэчлэлтийн push ирэхээ больдог байв.
+  static Future<void> serverteBurtgeye() async {
+    try {
+      final token = _token;
+      if (token == null || token.isEmpty || token == _burtgesenToken) return;
+      final userId = await StorageService.getUserId();
+      final authToken = await StorageService.getToken();
+      if (userId == null || userId.isEmpty || authToken == null) return;
+      final res = await http.post(
+        Uri.parse('${ApiService.baseUrl}/orshinSuugchdTokenOnooyo'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+        body: json.encode({'id': userId, 'token': token}),
+      );
+      if (res.statusCode == 200) {
+        _burtgesenToken = token;
+        AppLogger.log('[PUSH] Token серверт бүртгэгдлээ');
+      }
+    } catch (err) {
+      AppLogger.log('[PUSH] Token бүртгэхэд алдаа: $err');
+    }
+  }
+
   static Future<void> asaaya() async {
     if (_asaasan) return;
 
@@ -106,7 +139,9 @@ class PushService {
       messaging.onTokenRefresh.listen((shine) {
         _token = shine;
         AppLogger.log('[PUSH] Token шинэчлэгдлээ');
+        serverteBurtgeye();
       });
+      serverteBurtgeye();
 
       // Апп ОНГОЙ байхад push ирвэл Android өөрөө banner гаргахгүй тул
       // өөрсдөө local notification болгож харуулна.

@@ -4,6 +4,25 @@ import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/update_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+/// Шинэ хувилбар байвал нүүр хуудсан дээр шинэчлэлтийн модал харуулна.
+/// Нэг сессэд нэг удаа; «Дараа нь» дарсан хувилбарыг дахин санал болгохгүй
+/// (заавал шинэчлэх үеэс бусад).
+Future<void> showUpdateModalIfAvailable(BuildContext context) async {
+  if (UpdateService.shownThisSession) return;
+  final info = await UpdateService.checkForUpdate();
+  if (info == null || !context.mounted || UpdateService.shownThisSession) {
+    return;
+  }
+  UpdateService.markShown();
+  await showDialog(
+    context: context,
+    barrierDismissible: !info.isForceUpdate,
+    builder: (_) => UpdateModal(versionInfo: info),
+  );
+}
 
 class UpdateModal extends StatefulWidget {
   final AppVersionInfo versionInfo;
@@ -43,12 +62,18 @@ class _UpdateModalState extends State<UpdateModal>
 
   Future<void> _openStore() async {
     try {
+      // Android: Play Store аппыг шууд нээнэ, болохгүй бол вэб холбоос
+      if (!kIsWeb && Platform.isAndroid) {
+        final market = Uri.parse(UpdateService.androidMarketUrl);
+        if (await launchUrl(market, mode: LaunchMode.externalApplication)
+            .catchError((_) => false)) {
+          return;
+        }
+      }
       final storeUrl = UpdateService.getStoreUrl();
       if (storeUrl.isNotEmpty) {
-        final uri = Uri.parse(storeUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
+        await launchUrl(Uri.parse(storeUrl),
+            mode: LaunchMode.externalApplication);
       }
     } catch (e) {
       print('Error opening store: $e');
@@ -142,12 +167,25 @@ class _UpdateModalState extends State<UpdateModal>
 
                       SizedBox(height: 4.h),
                       Text(
-                        'Шинэ хувилбар гарсан байна',
+                        widget.versionInfo.isForceUpdate
+                            ? 'Шинэчлэлт шаардлагатай'
+                            : 'Шинэ хувилбар гарлаа',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 14.sp,
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      if (widget.versionInfo.version.isNotEmpty) ...[
+                        SizedBox(height: 2.h),
+                        Text(
+                          'Хувилбар ${widget.versionInfo.version}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -236,7 +274,9 @@ class _UpdateModalState extends State<UpdateModal>
                                   Icon(Icons.download, size: 18.sp),
                                   SizedBox(width: 8.w),
                                   Text(
-                                    'Шинэчлэх',
+                                    widget.versionInfo.isForceUpdate
+                                        ? '${UpdateService.storeName}-оос шинэчлэх'
+                                        : 'Шинэчлэх',
                                     style: TextStyle(
                                       fontSize: 15.sp,
                                       fontWeight: FontWeight.w600,

@@ -233,7 +233,7 @@ class _HelpModalState extends State<HelpModal> {
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 24.sp,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             SizedBox(height: 2.h),

@@ -79,7 +79,7 @@ class PaymentSection extends StatelessWidget {
                     style: TextStyle(
                       color: context.textPrimaryColor,
                       fontSize: (isVerySmall ? 14.5 : (isSmall ? 16.0 : 18.0)).sp,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: -0.5,
                     ),
                     maxLines: 1,
@@ -140,7 +140,7 @@ class PaymentSection extends StatelessWidget {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: (isVerySmall ? 11.0 : (isSmall ? 12.0 : 13.0)).sp,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     SizedBox(width: 2.w),

@@ -85,7 +85,7 @@ class FilterTabs extends StatelessWidget {
                     ? (isDark ? Colors.white : const Color(0xFF0F172A))
                     : context.textSecondaryColor,
                 fontSize: (isVerySmall ? 10.5 : (isSmall ? 11.5 : 12.5)).sp,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 letterSpacing: -0.2,
               ),
             ),
@@ -105,7 +105,7 @@ class FilterTabs extends StatelessWidget {
                   style: TextStyle(
                     color: const Color(0xFF10B981),
                     fontSize: (isVerySmall ? 9.0 : 10.0).sp,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

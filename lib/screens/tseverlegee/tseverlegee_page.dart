@@ -6,6 +6,7 @@ import 'package:sukh_app/screens/tseverlegee/ognoo_songokh_sheet.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/tseverlegee_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 /// Цэвэрлэгээ захиалах маягт.
 ///
@@ -87,7 +88,10 @@ class _TseverlegeePageState extends State<TseverlegeePage> {
     } catch (e) {
       if (!mounted) return;
       _medegdye(
-        e.toString().replaceAll('Exception: ', ''),
+        friendlyError(
+          e,
+          fallback: 'Цэвэрлэгээний захиалга илгээж чадсангүй. Дахин оролдоно уу.',
+        ),
         amjilttai: false,
       );
     } finally {

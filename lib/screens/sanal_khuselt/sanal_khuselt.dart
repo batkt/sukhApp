@@ -86,7 +86,7 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
               'Санал хүсэлт',
               style: TextStyle(
                 fontSize: 16.sp,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 color: isDark ? Colors.white : context.textPrimaryColor,
                 letterSpacing: -0.3,
               ),
@@ -185,7 +185,7 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
               style: TextStyle(
                 color: isSelected ? Colors.white : context.textPrimaryColor,
                 fontSize: 14.sp,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w600,
               ),
             ),
           ],
@@ -350,7 +350,7 @@ class _SanalKhuseltPageState extends State<SanalKhuseltPage> {
           buttonText,
           style: TextStyle(
             fontSize: 15.sp,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

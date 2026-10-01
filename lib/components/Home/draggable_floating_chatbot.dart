@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
-import 'package:sukh_app/screens/Home/support_chat_page.dart';
+import 'package:sukh_app/screens/Home/ai_tuslakh_page.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
@@ -82,7 +82,8 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const SupportChatPage(extra: {}),
+        // Вэбийн AI туслахтай ижил (оператор руу шилжих товчтой)
+        builder: (context) => const AiTuslakhPage(),
       ),
     );
   }
@@ -147,7 +148,7 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
                 'Туслах чатбот',
                 style: TextStyle(
                   fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   color: context.textPrimaryColor,
                 ),
               ),
@@ -269,63 +270,74 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
 
         return Stack(
           children: [
-            // 1. DELETE TARGET (Smooth Fade & Slide in during dragging)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              bottom: _isDragging ? widget.bottomPadding + 18.h : widget.bottomPadding - 40.h,
-              left: (widget.screenSize.width - (_isOverDelete ? 170.w : 145.w)) / 2,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: _isDragging ? 1.0 : 0.0,
-                child: AnimatedScale(
+            // 1. DELETE TARGET — дугуй бай + шошго нь ДЭЭР нь (бөмбөлөг шошгыг
+            //    дарж халхлахгүй). Бай нь deleteCenter дээр төвлөрнө.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: deleteCenter.dy - 32.w - 44.h,
+              child: IgnorePointer(
+                child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 200),
-                  scale: _isDragging ? 1.0 : 0.8,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: _isOverDelete ? 22.w : 16.w,
-                      vertical: _isOverDelete ? 12.h : 10.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _isOverDelete
-                          ? const Color(0xFFFF3B30)
-                          : (isDark
-                              ? Colors.black.withValues(alpha: 0.85)
-                              : const Color(0xFF1E293B).withValues(alpha: 0.9)),
-                      borderRadius: BorderRadius.circular(100.r),
-                      border: Border.all(
-                        color: _isOverDelete
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.35),
-                        width: _isOverDelete ? 2 : 1,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (_isOverDelete ? const Color(0xFFFF3B30) : Colors.black)
-                              .withValues(alpha: 0.4),
-                          blurRadius: _isOverDelete ? 22 : 10,
-                          spreadRadius: _isOverDelete ? 3 : 0,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
+                  opacity: _isDragging ? 1.0 : 0.0,
+                  child: AnimatedSlide(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    offset: _isDragging ? Offset.zero : const Offset(0, 0.4),
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          _isOverDelete
-                              ? Icons.delete_forever_rounded
-                              : Icons.delete_outline_rounded,
-                          color: Colors.white,
-                          size: _isOverDelete ? 22.sp : 18.sp,
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                          decoration: BoxDecoration(
+                            color: _isOverDelete
+                                ? const Color(0xFFFF3B30)
+                                : (isDark
+                                    ? Colors.black.withValues(alpha: 0.85)
+                                    : const Color(0xFF1E293B).withValues(alpha: 0.88)),
+                            borderRadius: BorderRadius.circular(100.r),
+                          ),
+                          child: Text(
+                            _isOverDelete ? 'Устгана' : 'Устгахын тулд энд чирнэ үү',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                        SizedBox(width: 6.w),
-                        Text(
-                          _isOverDelete ? 'Энд тавьж устгах' : 'Хаах / Устгах',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: _isOverDelete ? 13.sp : 12.sp,
-                            fontWeight: _isOverDelete ? FontWeight.bold : FontWeight.w600,
+                        SizedBox(height: 10.h),
+                        AnimatedScale(
+                          duration: const Duration(milliseconds: 180),
+                          scale: _isOverDelete ? 1.15 : 1.0,
+                          child: Container(
+                            width: 64.w,
+                            height: 64.w,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _isOverDelete
+                                  ? const Color(0xFFFF3B30)
+                                  : const Color(0xFFFF3B30).withValues(alpha: 0.18),
+                              border: Border.all(
+                                color: const Color(0xFFFF3B30).withValues(alpha: _isOverDelete ? 1 : 0.6),
+                                width: 2,
+                              ),
+                              boxShadow: _isOverDelete
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFFFF3B30).withValues(alpha: 0.45),
+                                        blurRadius: 22,
+                                        spreadRadius: 2,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              color: _isOverDelete ? Colors.white : const Color(0xFFFF3B30),
+                              size: 26.sp,
+                            ),
                           ),
                         ),
                       ],

@@ -10,6 +10,7 @@ import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/common/bg_painter.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
+import 'package:sukh_app/utils/error_message.dart';
 
 class AddressSelectionScreen extends StatefulWidget {
   final bool fromMenu;
@@ -433,7 +434,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
     } catch (e) {
       showGlassSnackBar(
         context,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: friendlyError(e, fallback: 'Хаяг хадгалж чадсангүй. Дахин оролдоно уу.'),
         icon: Icons.error,
       );
     } finally {
@@ -491,107 +492,185 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                   Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(10.r),
+                        width: 44.r,
+                        height: 44.r,
                         decoration: BoxDecoration(
-                          color: AppColors.deepGreen.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12.r),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF1A7A5E), AppColors.deepGreen],
+                          ),
+                          borderRadius: BorderRadius.circular(14.r),
                         ),
                         child: Icon(
-                          Icons.person_search_rounded,
-                          color: AppColors.deepGreen,
-                          size: 20.sp,
+                          Icons.how_to_reg_rounded,
+                          color: Colors.white,
+                          size: 22.sp,
                         ),
                       ),
-                      SizedBox(width: 16.w),
-                      Text(
-                        'Хэрэглэгч сонгох',
-                        style: context.titleStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                        ).copyWith(fontSize: 18.sp),
+                      SizedBox(width: 14.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Өөрийгөө сонгоно уу',
+                              style: TextStyle(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.w600,
+                                color: _gol(isDark),
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              'Энэ хаягт ${customers.length} хэрэглэгч бүртгэлтэй байна',
+                              style: TextStyle(
+                                fontSize: 12.5.sp,
+                                color: _tuslakh(isDark),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: 14.h),
+                  // Нууцлалын тайлбар
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 9.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.deepGreen.withOpacity(isDark ? 0.18 : 0.06),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          size: 15.sp,
+                          color: isDark ? const Color(0xFF8EE3BF) : AppColors.deepGreen,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Нууцлалын үүднээс нэрийг хэсэгчлэн нуусан. Өөрийн нэрийн эхний ба сүүлийн үсгээр танина уу.',
+                            style: TextStyle(
+                              fontSize: 11.5.sp,
+                              height: 1.35,
+                              color: _tuslakh(isDark),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.6,
+                      maxHeight: MediaQuery.of(context).size.height * 0.55,
                     ),
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: customers.length,
                       separatorBuilder: (context, index) =>
-                          SizedBox(height: 12.h),
+                          SizedBox(height: 10.h),
                       itemBuilder: (context, index) {
                         final c = customers[index];
-                        return InkWell(
-                          onTap: () => Navigator.pop(context, c),
-                          borderRadius: BorderRadius.circular(16.r),
-                          child: Container(
-                            padding: EdgeInsets.all(16.r),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withOpacity(0.05)
-                                  : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(16.r),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white.withOpacity(0.05)
-                                    : Colors.black.withOpacity(0.05),
+                        final ner = (c['customerName'] ?? '').toString().trim();
+                        final khayag = (c['customerAddress'] ?? '').toString().trim();
+                        return Material(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(18.r),
+                          child: InkWell(
+                            onTap: () => Navigator.pop(context, c),
+                            borderRadius: BorderRadius.circular(18.r),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 13.h),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18.r),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.07)
+                                      : AppColors.deepGreen.withOpacity(0.10),
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20.r,
-                                  backgroundColor:
-                                      AppColors.deepGreen.withOpacity(0.1),
-                                  child: Text(
-                                    (c['customerName'] ?? 'Н')[0].toUpperCase(),
-                                    style: TextStyle(
-                                      color: AppColors.deepGreen,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14.sp,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 42.r,
+                                    height: 42.r,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.deepGreen.withOpacity(isDark ? 0.22 : 0.08),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      ner.isNotEmpty ? ner.characters.first.toUpperCase() : '?',
+                                      style: TextStyle(
+                                        color: isDark ? const Color(0xFF8EE3BF) : AppColors.deepGreen,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16.sp,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                SizedBox(width: 16.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        c['customerName'] ?? 'Нэргүй',
-                                        style: TextStyle(
-                                          fontSize: 15.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark
-                                              ? Colors.white
-                                              : Colors.black87,
+                                  SizedBox(width: 14.w),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _nerNuukh(ner),
+                                          style: TextStyle(
+                                            fontSize: 15.5.sp,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 1.2,
+                                            color: _gol(isDark),
+                                          ),
                                         ),
-                                      ),
-                                      SizedBox(height: 4.h),
-                                      Text(
-                                        c['customerAddress'] ?? '',
-                                        style: TextStyle(
-                                          fontSize: 12.sp,
-                                          color: isDark
-                                              ? Colors.white54
-                                              : Colors.black54,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
+                                        if (khayag.isNotEmpty) ...[
+                                          SizedBox(height: 5.h),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.location_on_outlined,
+                                                size: 13.sp,
+                                                color: _tuslakh(isDark),
+                                              ),
+                                              SizedBox(width: 3.w),
+                                              Flexible(
+                                                child: Text(
+                                                  khayag,
+                                                  style: TextStyle(
+                                                    fontSize: 12.sp,
+                                                    color: _tuslakh(isDark),
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  color:
-                                      isDark ? Colors.white24 : Colors.grey,
-                                  size: 20.sp,
-                                ),
-                              ],
+                                  Container(
+                                    width: 30.r,
+                                    height: 30.r,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.deepGreen.withOpacity(isDark ? 0.22 : 0.07),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: isDark ? const Color(0xFF8EE3BF) : AppColors.deepGreen,
+                                      size: 20.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );
@@ -670,7 +749,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           'Хаяг олдсонгүй',
                           textAlign: TextAlign.center,
                           style: context.titleStyle(
-                            color: isDark ? Colors.white : Colors.black87,
+                            color: isDark ? Colors.white : const Color(0xFF12382C),
                           ),
                         ),
                         SizedBox(height: 12.h),
@@ -679,7 +758,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                           'Бид таны оруулсан хаягаар мэдээлэл олсонгүй. Та хэрэглэгчийн кодоо гараар оруулах уу?',
                           textAlign: TextAlign.center,
                           style: context.secondaryDescriptionStyle(
-                            color: isDark ? Colors.white70 : Colors.black54,
+                            color: isDark ? Colors.white70 : const Color(0xFF5F7C71),
                           ),
                         ),
                         SizedBox(height: 24.h),
@@ -687,7 +766,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                         TextField(
                           controller: controller,
                           style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black87,
+                            color: isDark ? Colors.white : const Color(0xFF12382C),
                             fontSize: 15.sp,
                           ),
                           decoration: InputDecoration(
@@ -745,7 +824,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                     fontWeight: FontWeight.w600,
                                     color: isDark
                                         ? Colors.white60
-                                        : Colors.black54,
+                                        : const Color(0xFF5F7C71),
                                   ),
                                 ),
                               ),
@@ -768,7 +847,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                   'Оруулах',
                                   style: TextStyle(
                                     fontSize: 15.sp,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
@@ -861,7 +940,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 20.sp,
-            color: isDark ? Colors.white : Colors.black87,
+            color: isDark ? Colors.white : const Color(0xFF12382C),
           ),
         ),
         SizedBox(height: 8.h),
@@ -870,7 +949,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14.sp,
-            color: isDark ? Colors.white54 : Colors.black87,
+            color: isDark ? Colors.white54 : const Color(0xFF12382C),
           ),
         ),
       ],
@@ -1014,7 +1093,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                       fontSize: 14.sp,
                       color: onTap == null
                           ? (isDark ? Colors.white12 : Colors.grey.shade400)
-                          : (isDark ? Colors.white : Colors.black87),
+                          : (isDark ? Colors.white : const Color(0xFF12382C)),
                     ),
                   ),
                 ],
@@ -1065,7 +1144,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
               'Хаалганы дугаар / Тоот',
               style: TextStyle(
                 fontSize: 13.sp,
-                color: isDark ? Colors.white70 : Colors.black54,
+                color: isDark ? Colors.white70 : const Color(0xFF5F7C71),
               ),
             ),
             if (_isFetchingToots) ...[
@@ -1254,7 +1333,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             Text(
                               title,
                               style: context.titleStyle(
-                                color: isDark ? Colors.white : Colors.black87,
+                                color: isDark ? Colors.white : const Color(0xFF12382C),
                               ).copyWith(fontSize: 18.sp, letterSpacing: -0.5),
                             ),
                             const Spacer(),
@@ -1286,7 +1365,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                             child: TextField(
                               controller: searchController,
                               style: TextStyle(
-                                color: isDark ? Colors.white : Colors.black87,
+                                color: isDark ? Colors.white : const Color(0xFF12382C),
                                 fontSize: 14.sp,
                               ),
                               decoration: InputDecoration(
@@ -1375,7 +1454,7 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
                                           style: TextStyle(
                                             color: isDark
                                                 ? Colors.white.withOpacity(0.9)
-                                                : Colors.black87,
+                                                : const Color(0xFF12382C),
                                             fontSize: 15.sp,
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -1407,4 +1486,19 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
       ),
     );
   }
+}
+
+/// Гол текстийн өнгө — хар биш, гүн ногоон (бараан горимд цагаан)
+Color _gol(bool isDark) => isDark ? Colors.white : const Color(0xFF12382C);
+
+/// Туслах текстийн өнгө — зөөлөн ногоон саарал
+Color _tuslakh(bool isDark) =>
+    isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF5F7C71);
+
+/// Нэрийг нуух: «БАДАМДОРЖ» → «Б•••••••Ж». Нэг/хоёр үсэгтэй бол эхний үсгийг л.
+String _nerNuukh(String ner) {
+  final c = ner.characters.toList();
+  if (c.isEmpty) return 'Нэргүй';
+  if (c.length <= 2) return '${c.first}•';
+  return '${c.first}${'•' * (c.length - 2).clamp(2, 8)}${c.last}';
 }
