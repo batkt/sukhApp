@@ -26,12 +26,17 @@ class MongolPlateKeyboard extends StatelessWidget {
   /// «Болсон» товч дарахад (ихэвчлэн focus-ийг авна). null бол товч харагдахгүй.
   final VoidCallback? onDone;
 
+  /// true бол дэлгэцийн доод талд системийн гар шиг бэхлэгдэнэ
+  /// (Scaffold.bottomNavigationBar-д байрлуулна).
+  final bool docked;
+
   const MongolPlateKeyboard({
     super.key,
     required this.controller,
     this.maxLength = 7,
     this.digitCount = 4,
     this.onDone,
+    this.docked = false,
   });
 
   static const List<List<String>> _murnuud = [
@@ -80,11 +85,18 @@ class MongolPlateKeyboard extends StatelessWidget {
     final duussan = text.length >= maxLength;
 
     return Container(
-      margin: EdgeInsets.only(top: 10.h),
-      padding: EdgeInsets.fromLTRB(6.w, 8.h, 6.w, 8.h),
+      margin: docked ? EdgeInsets.zero : EdgeInsets.only(top: 10.h),
+      padding: EdgeInsets.fromLTRB(
+        6.w,
+        8.h,
+        6.w,
+        8.h + (docked ? MediaQuery.of(context).padding.bottom : 0),
+      ),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E242C) : const Color(0xFFE9EDF2),
-        borderRadius: BorderRadius.circular(14.r),
+        borderRadius: docked
+            ? BorderRadius.vertical(top: Radius.circular(14.r))
+            : BorderRadius.circular(14.r),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -32,6 +32,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
   final _ezemshigchiinUtasController = TextEditingController();
   final FocusNode _plateFocusNode = FocusNode();
   TextInputType _plateKeyboardType = TextInputType.number;
+  final GlobalKey _plateFieldKey = GlobalKey();
   
   bool _isLoading = false;
   
@@ -89,15 +90,22 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     // 4 цифр орсны дараа системийн гарыг нууж, апп доторх монгол гарыг харуулна
     final targetType = MongolPlateKeyboard.keyboardTypeFor(text);
     if (_plateKeyboardType != targetType) {
+      // Focus-ийг алдалгүй гарыг солино: тоон гар хаагдаж, доод талд монгол
+      // гар шууд гарна (эсрэгээр үсгээ устгахад тоон гар буцаж гарна).
       setState(() {
         _plateKeyboardType = targetType;
       });
-      if (_plateFocusNode.hasFocus) {
-        _plateFocusNode.unfocus();
-        Future.microtask(() {
-          if (mounted) _plateFocusNode.requestFocus();
-        });
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_plateFocusNode.hasFocus) return;
+        SystemChannels.textInput.invokeMethod(
+          targetType == TextInputType.none ? 'TextInput.hide' : 'TextInput.show',
+        );
+        final ctx = _plateFieldKey.currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(ctx,
+              alignment: 0.3, duration: const Duration(milliseconds: 200));
+        }
+      });
     } else {
       if (mounted) setState(() {});
     }
@@ -556,6 +564,16 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     return Scaffold(
       backgroundColor: context.backgroundColor,
       appBar: buildStandardAppBar(context, title: 'Зочин урих'),
+      // 4 цифр орсны дараа утасны тоон гарын оронд монгол гар доод талд
+      // гарна — утасны хэлийг солих шаардлагагүй.
+      bottomNavigationBar: _plateFocusNode.hasFocus &&
+              MongolPlateKeyboard.kheregtei(_mashiniiDugaarController.text)
+          ? MongolPlateKeyboard(
+              controller: _mashiniiDugaarController,
+              docked: true,
+              onDone: () => _plateFocusNode.unfocus(),
+            )
+          : null,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: context.responsivePadding(
@@ -694,7 +712,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                       
                       // Car plate number (4 digits + 3 letters)
                       TextFormField(
-                        key: ValueKey('plate_field_$_plateKeyboardType'),
+                        key: _plateFieldKey,
                         controller: _mashiniiDugaarController,
                         focusNode: _plateFocusNode,
                         textCapitalization: TextCapitalization.characters,
@@ -819,16 +837,6 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                           return null;
                         },
                       ),
-
-                      // 4 цифр орсны дараа монгол гар шууд гарна - утасны
-                      // хэлийг солих шаардлагагүй
-                      if (_plateFocusNode.hasFocus &&
-                          MongolPlateKeyboard.kheregtei(
-                              _mashiniiDugaarController.text))
-                        MongolPlateKeyboard(
-                          controller: _mashiniiDugaarController,
-                          onDone: () => _plateFocusNode.unfocus(),
-                        ),
 
                       SizedBox(height: context.responsiveSpacing(
                         small: 16,
