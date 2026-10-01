@@ -262,6 +262,8 @@ class NekhemjlekhItem {
   double get displayTulsunDun => tulsunDun > 0.005 ? tulsunDun : displayNiitTulbur;
 
   /// The amount that needs to be paid (Remaining balance) - used for payment selection
+  /// Сервер (syncInvoicesStatus) хөнгөлөлтийг тухайн нэхэмжлэхэд оноож
+  /// бодсон үлдэгдэл — апп дээр дахин хасахгүй.
   double get effectiveNiitTulbur => uldegdel;
 
   /// The original total charge amount - used for display ("Нийт төлбөр")

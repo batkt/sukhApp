@@ -137,8 +137,19 @@ class _PaymentModalState extends State<PaymentModal> {
       }
       final jin = {for (final k in angilluud) k: 0.0};
       nereer.forEach((ner, dun) => jin[_angilalTaniya(ner)] = jin[_angilalTaniya(ner)]! + dun);
+      // Хөнгөлөлтийг ангиллаас нь (тодорхойгүй бол орон сууц) хасна —
+      // «СӨХ 90,000 + Гараж 50,000» биш «СӨХ 76,500 + Гараж 50,000».
+      final kh = inv.khungulultDun;
+      if (kh > 0.005) {
+        final zorilt = jin['Орон сууц']! > 0
+            ? 'Орон сууц'
+            : angilluud.reduce((a, k) => jin[k]! > jin[a]! ? k : a);
+        jin[zorilt] = (jin[zorilt]! - kh).clamp(0, double.infinity).toDouble();
+      }
       final jinNiit = jin.values.fold<double>(0, (a, b) => a + b);
-      final uldegdel = inv.effectiveNiitTulbur;
+      final uldegdel = nereer.isNotEmpty && inv.effectiveNiitTulbur > jinNiit
+          ? jinNiit
+          : inv.effectiveNiitTulbur;
       final angilal = {for (final k in angilluud) k: 0.0};
       if (uldegdel > 0) {
         if (jinNiit <= 0) {

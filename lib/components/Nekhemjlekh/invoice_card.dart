@@ -76,6 +76,7 @@ class InvoiceCard extends StatelessWidget {
         : 'СӨХ төлбөр';
 
     final serviceIcon = _getServiceIcon(displayTitle);
+    final pad = (isVerySmall ? 12.0 : (isSmall ? 14.0 : 16.0)).w;
 
     return RepaintBoundary(
       child: AnimatedContainer(
@@ -110,31 +111,30 @@ class InvoiceCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(18.r),
               child: Column(
                 children: [
-                  // ── ZONE 1: Identity & Status Header ──
+                  // ── ZONE 1: Үйлчилгээ, дүн, байршил, төлөв ──
+                  // Дүн гарчгийн хажууд, төлөв дүнгийн доор — шошгоны хайрцаг
+                  // хаягийг шахаж таслахгүй.
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      (isVerySmall ? 10.0 : (isSmall ? 12.0 : 14.0)).w,
-                      (isVerySmall ? 10.0 : 12.0).h,
-                      (isVerySmall ? 10.0 : (isSmall ? 12.0 : 14.0)).w,
-                      (isVerySmall ? 6.0 : 8.0).h,
+                      pad, (isVerySmall ? 12.0 : 14.0).h, pad, (isVerySmall ? 10.0 : 12.0).h,
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // 1. Selection Checkbox
                         if (!isHistory && onToggleSelect != null && !invoice.isPaid) ...[
                           GestureDetector(
+                            behavior: HitTestBehavior.opaque,
                             onTap: () {
                               HapticFeedback.lightImpact();
                               onToggleSelect!();
                             },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
-                              width: (isVerySmall ? 19.0 : 21.0).w,
-                              height: (isVerySmall ? 19.0 : 21.0).w,
+                              width: (isVerySmall ? 20.0 : 22.0).w,
+                              height: (isVerySmall ? 20.0 : 22.0).w,
                               decoration: BoxDecoration(
                                 color: invoice.isSelected ? AppColors.deepGreen : Colors.transparent,
-                                borderRadius: BorderRadius.circular(7.r),
+                                shape: BoxShape.circle,
                                 border: Border.all(
                                   color: invoice.isSelected
                                       ? AppColors.deepGreen
@@ -143,199 +143,170 @@ class InvoiceCard extends StatelessWidget {
                                 ),
                               ),
                               child: invoice.isSelected
-                                  ? Icon(Icons.check, color: Colors.white, size: (isVerySmall ? 12.0 : 14.0).sp)
+                                  ? Icon(Icons.check_rounded, color: Colors.white, size: (isVerySmall ? 13.0 : 15.0).sp)
                                   : null,
                             ),
                           ),
-                          SizedBox(width: (isVerySmall ? 8.0 : 10.0).w),
+                          SizedBox(width: (isVerySmall ? 10.0 : 12.0).w),
                         ],
-
-                        // 2. Service Icon (Duotone Tinted Square)
                         Container(
-                          width: (isVerySmall ? 34.0 : (isSmall ? 38.0 : 40.0)).w,
-                          height: (isVerySmall ? 34.0 : (isSmall ? 38.0 : 40.0)).w,
+                          width: (isVerySmall ? 38.0 : 42.0).w,
+                          height: (isVerySmall ? 38.0 : 42.0).w,
                           decoration: BoxDecoration(
-                            color: AppColors.deepGreen.withOpacity(isDark ? 0.16 : 0.08),
-                            borderRadius: BorderRadius.circular(11.r),
-                            border: Border.all(
-                              color: AppColors.deepGreen.withOpacity(isDark ? 0.25 : 0.12),
-                              width: 0.8,
-                            ),
+                            color: AppColors.deepGreen.withOpacity(isDark ? 0.18 : 0.08),
+                            borderRadius: BorderRadius.circular(13.r),
                           ),
                           child: Icon(
                             serviceIcon,
-                            color: AppColors.deepGreen,
-                            size: (isVerySmall ? 17.0 : (isSmall ? 19.0 : 20.0)).sp,
+                            color: isDark ? AppColors.secondaryLight : AppColors.deepGreen,
+                            size: (isVerySmall ? 18.0 : 20.0).sp,
                           ),
                         ),
-                        SizedBox(width: (isVerySmall ? 8.0 : 10.0).w),
-
-                        // 3. Service Title & Apartment/Toot
+                        SizedBox(width: (isVerySmall ? 10.0 : 12.0).w),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                displayTitle,
-                                style: TextStyle(
-                                  color: context.textPrimaryColor,
-                                  fontSize: (isVerySmall ? 12.5 : (isSmall ? 13.5 : 14.5)).sp,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: -0.3,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 2.5.h),
                               Row(
-                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
                                 children: [
-                                  Icon(
-                                    Icons.home_outlined,
-                                    size: (isVerySmall ? 10.0 : 11.5).sp,
-                                    color: context.textSecondaryColor,
+                                  Expanded(
+                                    child: Text(
+                                      displayTitle,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: context.textPrimaryColor,
+                                        fontSize: (isVerySmall ? 13.5 : 14.5).sp,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
                                   ),
-                                  SizedBox(width: 3.5.w),
-                                  Flexible(
+                                  SizedBox(width: 8.w),
+                                  Text(
+                                    invoice.isPaid
+                                        ? '${formatNumber(invoice.displayTulsunDun.abs(), 2)}₮'
+                                        : invoice.formattedAmount,
+                                    style: TextStyle(
+                                      color: context.textPrimaryColor,
+                                      fontSize: (isVerySmall ? 14.5 : (isSmall ? 15.5 : 16.5)).sp,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: -0.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 4.h),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    // Байрны нэр урт бол тоот тасрахгүй — 2 мөрөнд ороно
                                     child: Text(
                                       invoice.bairNer.isNotEmpty
-                                          ? '${invoice.bairNer} - ${invoice.toot} тоот'
+                                          ? '${invoice.bairNer} · ${invoice.toot} тоот'
                                           : invoice.toot.isNotEmpty
                                               ? '${invoice.toot} тоот'
                                               : '',
+                                      maxLines: 2,
+                                      softWrap: true,
                                       style: TextStyle(
                                         color: context.textSecondaryColor,
-                                        fontSize: (isVerySmall ? 9.5 : (isSmall ? 10.0 : 11.0)).sp,
+                                        fontSize: (isVerySmall ? 10.5 : 11.5).sp,
                                         fontWeight: FontWeight.w500,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  SizedBox(width: 8.w),
+                                  _buildStatusBadge(statusColor, statusLabel, isDark, isSmall, isVerySmall),
                                 ],
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(width: 8.w),
-
-                        // 4. Status Badge (Top Right Separate Pill Box)
-                        _buildStatusBadge(statusColor, statusLabel, isDark, isSmall, isVerySmall),
                       ],
                     ),
                   ),
 
-                  // ── Subtle Divider ──
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: (isVerySmall ? 10.0 : (isSmall ? 12.0 : 14.0)).w,
-                    ),
-                    child: Divider(
-                      height: 1,
-                      thickness: 0.7,
-                      color: context.borderColor.withOpacity(isDark ? 0.08 : 0.12),
-                    ),
-                  ),
-
-                  // ── ZONE 2: Due Date & Amount ──
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      (isVerySmall ? 10.0 : (isSmall ? 12.0 : 14.0)).w,
-                      (isVerySmall ? 7.0 : 8.5).h,
-                      (isVerySmall ? 10.0 : (isSmall ? 12.0 : 14.0)).w,
-                      (isVerySmall ? 9.0 : 11.0).h,
+                  // ── ZONE 2: Огноо, хөнгөлөлт, дэлгэрэнгүй ──
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: pad, vertical: (isVerySmall ? 8.0 : 9.0).h),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withOpacity(0.025) : const Color(0xFFF7F9F8),
+                      border: Border(
+                        top: BorderSide(
+                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                        ),
+                      ),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Due Date
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: (isVerySmall ? 10.0 : 11.0).sp,
-                              color: context.textSecondaryColor,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              invoice.formattedDate,
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: (isVerySmall ? 10.0 : (isSmall ? 10.5 : 11.5)).sp,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (invoice.khungulultDun > 0) ...[
-                              SizedBox(width: 6.w),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
-                                decoration: BoxDecoration(
-                                  color: _khungulultColor.withOpacity(isDark ? 0.18 : 0.1),
-                                  borderRadius: BorderRadius.circular(20.r),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.local_offer_rounded,
-                                      size: (isVerySmall ? 8.5 : 9.5).sp,
-                                      color: _khungulultColor,
-                                    ),
-                                    SizedBox(width: 3.w),
-                                    Text(
-                                      'Хөнгөлөлттэй',
-                                      style: TextStyle(
-                                        color: _khungulultColor,
-                                        fontSize: (isVerySmall ? 8.0 : 9.0).sp,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: (isVerySmall ? 11.0 : 12.0).sp,
+                          color: context.textSecondaryColor,
                         ),
-
-                        // Amount & Expand Button
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              invoice.isPaid
-                                  ? '${formatNumber(invoice.displayTulsunDun.abs(), 2)}₮'
-                                  : invoice.formattedAmount,
-                              style: TextStyle(
-                                color: context.textPrimaryColor,
-                                fontSize: (isVerySmall ? 13.5 : (isSmall ? 14.5 : 16.0)).sp,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: -0.4,
+                        SizedBox(width: 5.w),
+                        Text(
+                          invoice.formattedDate,
+                          style: TextStyle(
+                            color: context.textSecondaryColor,
+                            fontSize: (isVerySmall ? 10.5 : 11.5).sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (invoice.khungulultDun > 0) ...[
+                          SizedBox(width: 8.w),
+                          Container(
+                              padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: _khungulultColor.withOpacity(isDark ? 0.18 : 0.1),
+                                borderRadius: BorderRadius.circular(20.r),
+                              ),
+                              // Богино: шошгоны дүрс + дүн — «Хөнгөл…» болж тасрахгүй
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.local_offer_rounded,
+                                    size: (isVerySmall ? 9.0 : 10.0).sp,
+                                    color: _khungulultColor,
+                                  ),
+                                  SizedBox(width: 3.w),
+                                  Text(
+                                    '−${formatNumber(invoice.khungulultDun, 0)}₮',
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: _khungulultColor,
+                                      fontSize: (isVerySmall ? 9.5 : 10.5).sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            SizedBox(width: 6.w),
-                            AnimatedRotation(
-                              turns: invoice.isExpanded ? 0.5 : 0.0,
-                              duration: const Duration(milliseconds: 200),
-                              child: Container(
-                                width: (isVerySmall ? 18.0 : 20.0).w,
-                                height: (isVerySmall ? 18.0 : 20.0).w,
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.white.withOpacity(0.06)
-                                      : const Color(0xFFF1F5F9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  size: (isVerySmall ? 12.0 : 14.0).sp,
-                                  color: context.textSecondaryColor,
-                                ),
-                              ),
-                            ),
-                          ],
+                        ],
+                        const Spacer(),
+                        Text(
+                          invoice.isExpanded ? 'Хураах' : 'Дэлгэрэнгүй',
+                          style: TextStyle(
+                            color: context.textSecondaryColor,
+                            fontSize: (isVerySmall ? 10.5 : 11.5).sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(width: 2.w),
+                        AnimatedRotation(
+                          turns: invoice.isExpanded ? 0.5 : 0.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: (isVerySmall ? 15.0 : 17.0).sp,
+                            color: context.textSecondaryColor,
+                          ),
                         ),
                       ],
                     ),
