@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:sukh_app/main.dart' show navigatorKey;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -2534,56 +2535,15 @@ class _BookingScreenState extends State<NuurKhuudas>
   Widget _buildAdditionalServicesSection() {
     final isDark = context.isDarkMode;
 
+    // Нэг өнгөт (брэнд ногоон) нимгэн шугаман icon — тансаг, тайван харагдана
     final services = [
-      {
-        'name': 'Зогсоол',
-        'label': 'Зогсоол',
-        'icon': Icons.local_parking_rounded,
-        'gradient': const [Color(0xFF5AA9FF), Color(0xFF2563EB)],
-        'color': const Color(0xFF3B82F6),
-      }, // Bright Blue
-      {
-        'name': 'камер',
-        'label': 'Камер',
-        'icon': Icons.videocam_rounded,
-        'gradient': const [Color(0xFFB794F6), Color(0xFF7C3AED)],
-        'color': const Color(0xFF8B5CF6),
-      }, // Bright Purple
-      {
-        'name': 'лифт',
-        'label': 'Лифт',
-        'icon': Icons.elevator_rounded,
-        'gradient': const [Color(0xFFFF9A62), Color(0xFFEA580C)],
-        'color': const Color(0xFFF97316),
-      }, // Bright Orange
-      {
-        'name': 'зочин',
-        'label': 'Зочин',
-        'icon': Icons.people_alt_rounded,
-        'gradient': const [Color(0xFF3EDBC8), Color(0xFF0D9488)],
-        'color': const Color(0xFF0EA5E9),
-      }, // Sky Blue
-      {
-        'name': 'дуудлага',
-        'label': 'Дуудлага',
-        'icon': Icons.build_circle_rounded,
-        'gradient': const [Color(0xFFFF7A7A), Color(0xFFDC2626)],
-        'color': const Color(0xFFEF4444),
-      }, // Bright Red
-      {
-        'name': 'цэвэрлэгээ',
-        'label': 'Цэвэрлэгээ',
-        'icon': Icons.cleaning_services_rounded,
-        'gradient': const [Color(0xFF5BE38A), Color(0xFF16A34A)],
-        'color': const Color(0xFF10B981),
-      }, // Bright Emerald
-      {
-        'name': 'санал',
-        'label': 'Асуулга',
-        'icon': Icons.how_to_vote_rounded,
-        'gradient': const [Color(0xFF8C9BFF), Color(0xFF4F46E5)],
-        'color': const Color(0xFF14B8A6),
-      }, // Teal
+      {'name': 'Зогсоол', 'label': 'Зогсоол', 'icon': CupertinoIcons.car_detailed},
+      {'name': 'камер', 'label': 'Камер', 'icon': CupertinoIcons.videocam},
+      {'name': 'лифт', 'label': 'Лифт', 'icon': CupertinoIcons.arrow_up_arrow_down_square},
+      {'name': 'зочин', 'label': 'Зочин', 'icon': CupertinoIcons.person_badge_plus},
+      {'name': 'дуудлага', 'label': 'Дуудлага', 'icon': CupertinoIcons.wrench},
+      {'name': 'цэвэрлэгээ', 'label': 'Цэвэрлэгээ', 'icon': CupertinoIcons.sparkles},
+      {'name': 'санал', 'label': 'Асуулга', 'icon': CupertinoIcons.chart_bar_square},
     ];
 
     return Column(
@@ -2639,8 +2599,6 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   Widget _buildServiceCard(Map<String, dynamic> service, bool isDark) {
-    final serviceColor = service['color'] as Color? ?? AppColors.deepGreen;
-
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () async {
@@ -2742,57 +2700,10 @@ class _BookingScreenState extends State<NuurKhuudas>
           iconColor: Colors.orange,
         );
       },
-      // iOS апп-icon: өнгөт градиент «squircle» + цагаан тэмдэг
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 54.w,
-            height: 54.w,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: (service['gradient'] as List<Color>?) ??
-                    [serviceColor, serviceColor],
-              ),
-              borderRadius: BorderRadius.circular(15.r),
-              boxShadow: [
-                BoxShadow(
-                  color: ((service['gradient'] as List<Color>?)?.last ?? serviceColor)
-                      .withOpacity(isDark ? 0.25 : 0.28),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: service['imageAsset'] != null
-                ? Padding(
-                    padding: EdgeInsets.all(10.w),
-                    child: Image.asset(
-                      service['imageAsset'] as String,
-                      fit: BoxFit.contain,
-                    ),
-                  )
-                : Icon(
-                    service['icon'] as IconData?,
-                    color: Colors.white,
-                    size: 26.sp,
-                  ),
-          ),
-          SizedBox(height: 7.h),
-          Text(
-            service['label'] ?? '',
-            style: TextStyle(
-              fontSize: 11.5.sp,
-              color: context.textPrimaryColor,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+      child: _UilchilgeeIcon(
+        icon: service['icon'] as IconData? ?? Icons.apps_rounded,
+        label: service['label'] as String? ?? '',
+        isDark: isDark,
       ),
     );
   }
@@ -2904,3 +2815,78 @@ class _RingPainter extends CustomPainter {
       old.progress != progress || old.color != color || old.track != track;
 }
 
+/// Үйлчилгээний icon — нэг өнгөт, дарахад зөөлөн шахагдана.
+class _UilchilgeeIcon extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final bool isDark;
+
+  const _UilchilgeeIcon({
+    required this.icon,
+    required this.label,
+    required this.isDark,
+  });
+
+  @override
+  State<_UilchilgeeIcon> createState() => _UilchilgeeIconState();
+}
+
+class _UilchilgeeIconState extends State<_UilchilgeeIcon> {
+  bool _darsan = false;
+
+  void _tuluv(bool v) {
+    if (_darsan != v) setState(() => _darsan = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.isDark;
+    final tamga = dark ? _HomeTone.mint : AppColors.deepGreen;
+
+    return Listener(
+      onPointerDown: (_) => _tuluv(true),
+      onPointerUp: (_) => _tuluv(false),
+      onPointerCancel: (_) => _tuluv(false),
+      child: AnimatedScale(
+        scale: _darsan ? 0.94 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 54.w,
+              height: 54.w,
+              decoration: BoxDecoration(
+                color: dark
+                    ? Colors.white.withOpacity(_darsan ? 0.11 : 0.06)
+                    : (_darsan ? const Color(0xFFE3ECE8) : const Color(0xFFF1F5F3)),
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(
+                  color: dark
+                      ? Colors.white.withOpacity(0.07)
+                      : AppColors.deepGreen.withOpacity(0.06),
+                ),
+              ),
+              child: Icon(widget.icon, color: tamga, size: 25.sp),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 11.5.sp,
+                color: context.textPrimaryColor.withOpacity(0.85),
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.1,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

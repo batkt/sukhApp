@@ -11,10 +11,10 @@ import 'package:sukh_app/utils/error_message.dart';
 /// Pixel-perfect redesign inspired by modern Emerald/Mint design system.
 
 // --- Design Palette & Tokens ---
-const Color _kPrimaryEmerald = Color(0xFF00B074);
-const Color _kDarkEmerald = Color(0xFF00895A);
-const Color _kLightEmerald = Color(0xFFEBF7F0);
-const Color _kSoftMint = Color(0xFFD6F2E3);
+const Color _kPrimaryEmerald = Color(0xFF0D4F3C); // AppColors.deepGreen
+const Color _kDarkEmerald = Color(0xFF0A3D2E); // AppColors.deepGreenDark
+const Color _kLightEmerald = Color(0xFFE9F2EE);
+const Color _kSoftMint = Color(0xFFD2E4DB);
 const Color _kDarkText = Color(0xFF1E293B);
 const Color _kSubText = Color(0xFF64748B);
 const Color _kBorderColor = Color(0xFFE2E8F0);
@@ -327,7 +327,7 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFFB800),
+                      color: Color(0xFF2D8F6F),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1336,7 +1336,7 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Color(0x3300B074),
+                                  color: Color(0x330D4F3C),
                                   blurRadius: 24,
                                   offset: Offset(0, 8),
                                 ),

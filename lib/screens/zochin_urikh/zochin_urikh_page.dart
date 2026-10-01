@@ -14,6 +14,11 @@ import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/logger.dart';
 import 'package:sukh_app/utils/error_message.dart';
 
+
+/// Идэвхтэй/сонгогдсон төлөвийн өнгө — бусад хуудастай адил брэнд ногоон.
+Color _yashil(BuildContext context) =>
+    context.isDarkMode ? AppColors.secondaryLight : AppColors.deepGreen;
+
 class ZochinUrikhPage extends StatefulWidget {
   const ZochinUrikhPage({super.key});
 
@@ -128,7 +133,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
             SnackBar(
               content: Text(medegdel),
               backgroundColor: turul == 'ZOCHIN_ORSON'
-                  ? const Color(0xFF3B82F6)
+                  ? _yashil(context)
                   : AppColors.deepGreen,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -1069,7 +1074,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                     ],
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: Color(0xFF3B82F6), // Active Color
+                  labelColor: _yashil(context), // Active Color
                   unselectedLabelColor: context.textPrimaryColor, // Inactive Color
                   labelStyle: TextStyle(
                     fontSize: 12.sp, 
@@ -1093,7 +1098,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                               decoration: BoxDecoration(
-                                color: _tabController.index == 0 ? Color(0xFF3B82F6).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                                color: _tabController.index == 0 ? _yashil(context).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
                               child: Text(
@@ -1115,7 +1120,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                               decoration: BoxDecoration(
-                                color: _tabController.index == 1 ? Color(0xFF3B82F6).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                                color: _tabController.index == 1 ? _yashil(context).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
                               child: Text(
@@ -1542,7 +1547,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
     // tuluv == 1 үед картын статус аль хэдийн "Идэвхтэй" гэж хэлсэн байгаа
     // тул давхардуулахгүй
     if (dotor && tuluv != 1) {
-      nemye(Icons.local_parking, 'Зогсоол дээр', const Color(0xFF3B82F6));
+      nemye(Icons.local_parking, 'Зогсоол дээр', _yashil(context));
     }
 
     if (uldsen != null && uldsen > 0) {
@@ -1649,7 +1654,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
               Icons.login,
               'Орсон',
               orsonStr,
-              const Color(0xFF3B82F6),
+              _yashil(context),
             ),
           _tuluvMur(
             Icons.payments_outlined,
@@ -1782,8 +1787,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
 
     if (tuluv == 1) {
       statusText = entryTimeStr.isNotEmpty ? 'Идэвхтэй (Орсон: $entryTimeStr)' : 'Идэвхтэй';
-      statusColor = const Color(0xFF3B82F6);
-      statusBgColor = const Color(0xFF1E3A8A).withOpacity(0.3);
+      statusColor = _yashil(context);
+      statusBgColor = _yashil(context).withOpacity(0.12);
     } else if (tuluv == 2) {
       statusText = 'Гарсан';
       statusColor = Colors.grey;
@@ -1814,8 +1819,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage> with SingleTickerProv
                     child: Container(
                       width: 8.w,
                       height: 8.w,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF3B82F6),
+                      decoration: BoxDecoration(
+                        color: _yashil(context),
                         shape: BoxShape.circle,
                       ),
                     ),
