@@ -36,9 +36,13 @@ class _GishuunBatalgaajuulakhPageState
   final _otpController = TextEditingController();
   final _otpFocusNode = FocusNode();
 
-  // Хэрэглэгч өөрийн нэрээ бөглөх талбарууд
-  final _ovogController = TextEditingController();
-  final _nerController = TextEditingController();
+  // Уригдсан дугаар.
+  //
+  // Өмнө энд Овог/Нэр байсан боловч тэднийг УРЬСАН хүн
+  // урилга үүсгэх үедээ бөглөдөг тул дахин асуух шаардлагагүй.
+  // Дугаар нь харин урилгыг нарийвчлахад хэрэгтэй — нэг код олон
+  // баазад давхардвал backend дугаараар ялгана.
+  final _utasController = TextEditingController();
 
   final _nuutsUgController = TextEditingController();
   final _davtakhController = TextEditingController();
@@ -69,8 +73,7 @@ class _GishuunBatalgaajuulakhPageState
   void dispose() {
     _otpController.dispose();
     _otpFocusNode.dispose();
-    _ovogController.dispose();
-    _nerController.dispose();
+    _utasController.dispose();
     _nuutsUgController.dispose();
     _davtakhController.dispose();
     super.dispose();
@@ -80,7 +83,7 @@ class _GishuunBatalgaajuulakhPageState
 
   bool get _bugdBugluusun =>
       _kod.length == 4 &&
-      _nerController.text.trim().isNotEmpty &&
+      _utasController.text.trim().length >= 8 &&
       _nuutsUgController.text.length >= 4 &&
       _davtakhController.text.length >= 4;
 
@@ -130,10 +133,10 @@ class _GishuunBatalgaajuulakhPageState
       return;
     }
 
-    if (_nerController.text.trim().isEmpty) {
+    if (_utasController.text.trim().length < 8) {
       showGlassSnackBar(
         context,
-        message: 'Нэрээ оруулна уу',
+        message: 'Утасны дугаараа бүрэн оруулна уу',
         icon: Icons.error_outline,
         iconColor: Colors.red,
       );
@@ -144,9 +147,8 @@ class _GishuunBatalgaajuulakhPageState
 
     try {
       final khariu = await GerBulService.batalgaajuulya(
+        utas: _utasController.text.trim(),
         code: _kod,
-        ovog: _ovogController.text.trim(),
-        ner: _nerController.text.trim(),
         nuutsUg: _nuutsUgController.text.trim(),
       );
 
@@ -266,6 +268,18 @@ class _GishuunBatalgaajuulakhPageState
           ),
           onPressed: () => Navigator.pop(context),
         ),
+        // Гарчгийг сумны хажууд тавив — өмнө биеийн дээд талд
+        // тусдаа томоор байсан тул дэлгэцийн өндөр дэмий зарцуулдаг байв.
+        titleSpacing: 0,
+        title: Text(
+          'Гишүүн баталгаажуулах',
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: context.textPrimaryColor,
+            letterSpacing: -0.3,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -279,80 +293,59 @@ class _GishuunBatalgaajuulakhPageState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SizedBox(height: 10.h),
-                    Center(
-                      child: Container(
-                        width: 72.w,
-                        height: 72.w,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.deepGreen.withValues(alpha: 0.15),
-                              AppColors.deepGreen.withValues(alpha: 0.05),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.deepGreen.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.how_to_reg_rounded,
-                          size: 34.sp,
-                          color: AppColors.deepGreen,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 20.h),
-
-                    Text(
-                      'Гэр бүлийн гишүүн баталгаажуулах',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 21.sp,
-                        fontWeight: FontWeight.w600,
-                        color: context.textPrimaryColor,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      'Танд ирсэн 4 оронтой урилгын кодыг оруулж, нэр болон нэвтрэх шинэ нууц кодоо тохируулна уу.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: context.textSecondaryColor,
-                        height: 1.45,
-                      ),
-                    ),
                     SizedBox(height: 28.h),
 
+                    // Уригдсан дугаар — өмнө энд OTP байсан.
+                    //
+                    // Нэг код олон баазад давхардах боломжтой тул backend нь
+                    // `utas` өгвөл урилгыг дугаараар нарийвчлан хайдаг.
+                    _buildShoshgo('Утасны дугаар *'),
+                    TextFormField(
+                      controller: _utasController,
+                      keyboardType: TextInputType.phone,
+                      maxLength: 8,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (_) => setState(() {}),
+                      validator: (utga) {
+                        if ((utga ?? '').trim().length < 8) {
+                          return 'Утасны дугаараа бүрэн оруулна уу';
+                        }
+                        return null;
+                      },
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: context.textPrimaryColor,
+                        letterSpacing: 1.2,
+                      ),
+                      decoration: _talbariinChimeglel(
+                        hint: '99112233',
+                        icon: Icons.phone_iphone_rounded,
+                        isDark: isDark,
+                      ).copyWith(counterText: ''),
+                    ),
+                    SizedBox(height: 16.h),
+
+                    // Урилгын код — өмнө хуудсын дээд талд байсан.
+                    //
+                    // Овог/Нэрийг хасав: тэднийг урьсан хүн урилга үүсгэхэдээ
+                    // бөглөдөг тул дахин асуух шаардлагагүй.
                     _buildShoshgo('4 оронтой урилгын код'),
                     SizedBox(height: 6.h),
-
-                    // 4 оронтой код оруулах нүднүүд - тусдаа давхар хүрээгүй
-                    Center(
-                      child: SizedBox(
-                        width: 270.w,
-                        child: OtpCodeInput(
-                          controller: _otpController,
-                          focusNode: _otpFocusNode,
-                          autofocus: false,
-                          onChanged: (_) => setState(() {
-                            _urilgaInfo = null;
-                            _codeError = null;
-                          }),
-                          onCompleted: (_) {
-                            _otpFocusNode.unfocus();
-                            _shalgaya();
-                          },
-                        ),
-                      ),
+                    // Бүтэн өргөн — дээрх утасны талбартай ижил байх ёстой.
+                    // Өмнө 270w-ээр хязгаарлаж төвлүүлсэн тул нарийн харагдаж байсан.
+                    OtpCodeInput(
+                      controller: _otpController,
+                      focusNode: _otpFocusNode,
+                      autofocus: false,
+                      onChanged: (_) => setState(() {
+                        _urilgaInfo = null;
+                        _codeError = null;
+                      }),
+                      onCompleted: (_) => _shalgaya(),
                     ),
+                    SizedBox(height: 16.h),
 
-                    // Урилгын эзнийг шалгасан мэдээллийн хэсэг
                     if (_isCheckingCode) ...[
                       SizedBox(height: 16.h),
                       Row(
@@ -417,67 +410,6 @@ class _GishuunBatalgaajuulakhPageState
                       ),
                     ],
                     SizedBox(height: 24.h),
-
-                    // Хэрэглэгч өөрийн Овог, Нэрийг бөглөх хэсэг
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildShoshgo('Овог (заавал биш)'),
-                              TextFormField(
-                                controller: _ovogController,
-                                textCapitalization: TextCapitalization.words,
-                                onChanged: (_) => setState(() {}),
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: context.textPrimaryColor,
-                                ),
-                                decoration: _talbariinChimeglel(
-                                  hint: 'Овог',
-                                  icon: Icons.badge_outlined,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildShoshgo('Таны нэр *'),
-                              TextFormField(
-                                controller: _nerController,
-                                textCapitalization: TextCapitalization.words,
-                                onChanged: (_) => setState(() {}),
-                                validator: (utga) {
-                                  if ((utga ?? '').trim().isEmpty) {
-                                    return 'Нэрээ оруулна уу';
-                                  }
-                                  return null;
-                                },
-                                style: TextStyle(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: context.textPrimaryColor,
-                                ),
-                                decoration: _talbariinChimeglel(
-                                  hint: 'Нэр',
-                                  icon: Icons.person_outline_rounded,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16.h),
 
                     _buildShoshgo('Шинэ нууц код'),
                     TextFormField(

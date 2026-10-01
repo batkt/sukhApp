@@ -29,6 +29,12 @@ class _GishuunUrikhSheet extends StatefulWidget {
 class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
   final _formKey = GlobalKey<FormState>();
   final _utasController = TextEditingController();
+  // Уригдсан хүний нэр.
+  //
+  // Баталгаажуулах дэлгэц өөрөө нэр асуухаа болсон тул нэрийг
+  // УРЬСАН хүн энд өгнө. Уггүй бол гишүүн дугаараараа л
+  // харагдах болно.
+  final _nerController = TextEditingController();
 
   String _kholboo = 'Эхнэр';
   String _erkh = GishuuniiErkh.kharakhTuluk;
@@ -63,6 +69,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
   @override
   void dispose() {
     _utasController.dispose();
+    _nerController.dispose();
     super.dispose();
   }
 
@@ -96,27 +103,6 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
         return AppColors.deepGreen;
     }
   }
-
-  IconData _getKholbooIcon(String kholboo) {
-    switch (kholboo) {
-      case 'Эхнэр':
-      case 'Нөхөр':
-        return Icons.favorite_rounded;
-      case 'Хүү':
-      case 'Охин':
-        return Icons.child_care_rounded;
-      case 'Аав':
-      case 'Ээж':
-        return Icons.family_restroom_rounded;
-      case 'Ах':
-      case 'Эгч':
-      case 'Дүү':
-        return Icons.escalator_warning_rounded;
-      default:
-        return Icons.person_outline_rounded;
-    }
-  }
-
   Future<void> _ilgeeye() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -128,6 +114,7 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
     try {
       await GerBulService.gishuunUriya(
         utas: utas,
+        ner: _nerController.text.trim(),
         kholboo: kholboo,
         erkh: erkh,
       );
@@ -433,82 +420,133 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
             ),
             SizedBox(height: 18.h),
 
-            // Relationship Selection
-            _buildSectionLabel('ТАНЫ ЮУ БОЛОХ', isRequired: true),
-            Wrap(
-              spacing: 8.w,
-              runSpacing: 8.h,
-              children: _kholboonuud.map((item) {
-                final isSelected = _kholboo == item;
-                return InkWell(
-                  onTap: () => setState(() => _kholboo = item),
-                  borderRadius: BorderRadius.circular(24.r),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 8.h),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.deepGreen
-                          : (isDark
-                              ? Colors.white.withValues(alpha: 0.05)
-                              : Colors.black.withValues(alpha: 0.03)),
-                      borderRadius: BorderRadius.circular(24.r),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.deepGreen
-                            : (isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.black.withValues(alpha: 0.06)),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getKholbooIcon(item),
-                          size: 14.sp,
-                          color: isSelected
-                              ? Colors.white
-                              : context.textSecondaryColor,
-                        ),
-                        SizedBox(width: 6.w),
-                        Text(
-                          item,
-                          style: TextStyle(
-                            fontSize: 12.5.sp,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w600,
-                            color: isSelected
-                                ? Colors.white
-                                : context.textPrimaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
+            // Name Field
+            _buildSectionLabel('НЭР'),
+            TextFormField(
+              controller: _nerController,
+              textCapitalization: TextCapitalization.words,
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w600,
+                color: context.textPrimaryColor,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Жишээ: Дулам',
+                hintStyle: TextStyle(
+                  fontSize: 14.sp,
+                  color: context.inputGrayColor,
+                  fontWeight: FontWeight.w400,
+                ),
+                prefixIcon: Icon(
+                  Icons.person_outline_rounded,
+                  size: 20.sp,
+                  color: AppColors.deepGreen,
+                ),
+                filled: true,
+                fillColor: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.03),
+                contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide(
+                    color: AppColors.deepGreen.withValues(alpha: 0.5),
+                    width: 1.5,
                   ),
-                );
-              }).toList(),
+                ),
+              ),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 18.h),
 
-            // Permissions Selection
-            _buildSectionLabel('ГИШҮҮНИЙ ЭРХ', isRequired: true),
-            _buildErkhOption(
-              title: GishuuniiErkh.kharakhTuluk,
-              badge: 'БҮРЭН ЭРХ',
-              description:
-                  'Байрны төлбөр харах, шууд төлөх, хүсэлт илгээх, хаалга онгойлгох',
-              icon: Icons.payments_rounded,
-              badgeColor: AppColors.deepGreen,
-            ),
-            SizedBox(height: 8.h),
-            _buildErkhOption(
-              title: GishuuniiErkh.kharakh,
-              badge: 'ХЯЗГААРЛАГДМАЛ',
-              description:
-                  'Байрны нэхэмжлэх, үлдэгдэл, мэдэгдлийг зөвхөн харах (төлбөр төлөхгүй)',
-              icon: Icons.visibility_rounded,
-              badgeColor: Colors.blueGrey,
+            // Relationship Selection
+            // Холбоо ба эрх — НЭГ МӨРӨНД хагас хагасаар.
+            //
+            // Өмнө холбоо нь 11 шошготой `Wrap` (гурав мөр), эрх нь хоёр
+            // том карт байсан — хуудсын дийлэнхийг эзэлдэг байв.
+            // Dropdown болгосоноор хоёулаа нэг мөрөнд багтана.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionLabel('ТАНЫ ЮУ БОЛОХ', isRequired: true),
+                      DropdownButtonFormField<String>(
+                        initialValue: _kholboo,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 20.sp,
+                          color: context.inputGrayColor,
+                        ),
+                        // Sheet-ийн дэвсгэр нь `0xFF161A1D` — дээрээс тодорхой
+                        // цайвар саарал авч цэс уусахгүй болгов.
+                        dropdownColor: isDark
+                            ? const Color(0xFF2A2E33)
+                            : const Color(0xFFF1F3F5),
+                        borderRadius: BorderRadius.circular(16.r),
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: context.textPrimaryColor,
+                        ),
+                        decoration: _songoltiinChimeglel(isDark),
+                        items: _kholboonuud
+                            .map((x) => DropdownMenuItem(value: x, child: Text(x)))
+                            .toList(),
+                        onChanged: (utga) {
+                          if (utga != null) setState(() => _kholboo = utga);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionLabel('ГИШҮҮНИЙ ЭРХ', isRequired: true),
+                      DropdownButtonFormField<String>(
+                        initialValue: _erkh,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 20.sp,
+                          color: context.inputGrayColor,
+                        ),
+                        // Sheet-ийн дэвсгэр нь `0xFF161A1D` — дээрээс тодорхой
+                        // цайвар саарал авч цэс уусахгүй болгов.
+                        dropdownColor: isDark
+                            ? const Color(0xFF2A2E33)
+                            : const Color(0xFFF1F3F5),
+                        borderRadius: BorderRadius.circular(16.r),
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: context.textPrimaryColor,
+                        ),
+                        decoration: _songoltiinChimeglel(isDark),
+                        items: GishuuniiErkh.bugd
+                            .map((x) => DropdownMenuItem(value: x, child: Text(x)))
+                            .toList(),
+                        onChanged: (utga) {
+                          if (utga != null) setState(() => _erkh = utga);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 24.h),
 
@@ -686,6 +724,32 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
     );
   }
 
+  /// Dropdown-д зориулсан чимэглэл — текстийн талбаруудтай ижил.
+  InputDecoration _songoltiinChimeglel(bool isDark) {
+    return InputDecoration(
+      filled: true,
+      fillColor: isDark
+          ? Colors.white.withValues(alpha: 0.05)
+          : Colors.black.withValues(alpha: 0.03),
+      contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16.r),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16.r),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16.r),
+        borderSide: BorderSide(
+          color: AppColors.deepGreen.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionLabel(String title, {bool isRequired = false}) {
     return Padding(
       padding: EdgeInsets.only(left: 2.w, bottom: 8.h),
@@ -713,124 +777,6 @@ class _GishuunUrikhSheetState extends State<_GishuunUrikhSheet> {
       ),
     );
   }
-
-  Widget _buildErkhOption({
-    required String title,
-    required String badge,
-    required String description,
-    required IconData icon,
-    required Color badgeColor,
-  }) {
-    final isSelected = _erkh == title;
-    final isDark = context.isDarkMode;
-
-    return InkWell(
-      onTap: () => setState(() => _erkh = title),
-      borderRadius: BorderRadius.circular(16.r),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.deepGreen.withValues(alpha: isDark ? 0.14 : 0.08)
-              : (isDark
-                  ? Colors.white.withValues(alpha: 0.03)
-                  : Colors.black.withValues(alpha: 0.02)),
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.deepGreen
-                : (isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.06)),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 2.h),
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected
-                    ? AppColors.deepGreen.withValues(alpha: 0.15)
-                    : (isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.04)),
-              ),
-              child: Icon(
-                icon,
-                size: 18.sp,
-                color: isSelected
-                    ? AppColors.deepGreen
-                    : context.textSecondaryColor,
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                          color: context.textPrimaryColor,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 7.w,
-                          vertical: 2.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: badgeColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6.r),
-                        ),
-                        child: Text(
-                          badge,
-                          style: TextStyle(
-                            fontSize: 9.5.sp,
-                            fontWeight: FontWeight.w600,
-                            color: badgeColor,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 11.5.sp,
-                      color: context.textSecondaryColor,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              color: isSelected ? AppColors.deepGreen : context.inputGrayColor,
-              size: 20.sp,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSubmitButton() {
     return GestureDetector(
       onTap: _isLoading ? null : _ilgeeye,

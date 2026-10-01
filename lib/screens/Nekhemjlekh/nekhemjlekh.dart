@@ -3076,16 +3076,29 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text(
-                                    // Илүү төлөлтийг хасах тэмдэггүй, ногооноор
-                                    '${formatNumber(_effectiveTotalAmount.abs(), 2)}₮',
-                                    style: TextStyle(
-                                      color: _effectiveTotalAmount < -0.5
-                                          ? const Color(0xFF10B981)
-                                          : (isDark ? Colors.white : const Color(0xFF0F172A)),
-                                      fontSize: (isVerySmall ? 22.0 : (isSmall ? 24.0 : 26.0)).sp,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: -0.6,
+                                  // Хэмжээг багасгав: 26sp нь картыг дарж, хажуудахь
+                                  // товчийг шахаж байсан.
+                                  //
+                                  // `Flexible` + `FittedBox` — урт дүн өмнө `Row`-г
+                                  // хэтрүүлж зурагийг эвдэж байсан. `scaleDown` нь
+                                  // ЗӨВХӨН багтахгүй үед жижигрүүлнэ.
+                                  Flexible(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        // Илүү төлөлтийг хасах тэмдэггүй, ногооноор
+                                        '${formatNumber(_effectiveTotalAmount.abs(), 2)}₮',
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          color: _effectiveTotalAmount < -0.5
+                                              ? const Color(0xFF10B981)
+                                              : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                                          fontSize: (isVerySmall ? 18.0 : (isSmall ? 19.0 : 20.0)).sp,
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   if (unpaidCount > 0 && selectedFilter != 'Paid')
