@@ -3606,6 +3606,34 @@ class ApiService {
     }
   }
 
+  /// Сонгосон нэхэмжлэхүүдийн мөр ба ангиллын үлдэгдэл.
+  /// Ангиллын нийлбэр = сонгосон нэхэмжлэхүүдийн үлдэгдэл (хамрах хүрээ ижил).
+  static Future<Map<String, dynamic>?> fetchNekhemjlekhZadargaa({
+    required String baiguullagiinId,
+    required String gereeniiId,
+    required List<String> nekhemjlekhIdnuud,
+  }) async {
+    try {
+      final headers = await getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+      final res = await http.post(
+        Uri.parse('$baseUrl/nekhemjlekhZadargaa'),
+        headers: headers,
+        body: json.encode({
+          'baiguullagiinId': baiguullagiinId,
+          'gereeniiId': gereeniiId,
+          'nekhemjlekhIdnuud': nekhemjlekhIdnuud,
+        }),
+      );
+      await _checkTokenExpiry(res);
+      if (res.statusCode != 200) return null;
+      final data = json.decode(res.body);
+      return data is Map<String, dynamic> && data['success'] == true ? data : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Create QPay invoice
 
   /// Supports both Custom QPay (OWN_ORG) and Wallet QPay

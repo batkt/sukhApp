@@ -74,37 +74,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
     }
   }
 
-  String? _getOperator(String phone) {
-    final clean = phone.trim();
-    if (clean.length < 2) return null;
-    final prefix = clean.substring(0, 2);
-    const mobicom = {'99', '95', '94', '85'};
-    const unitel = {'88', '86', '89'};
-    const skytel = {'90', '91', '96'};
-    const gmobile = {'98', '93', '97'};
-
-    if (mobicom.contains(prefix)) return 'Mobicom';
-    if (unitel.contains(prefix)) return 'Unitel';
-    if (skytel.contains(prefix)) return 'Skytel';
-    if (gmobile.contains(prefix)) return 'G-Mobile';
-    return null;
-  }
-
-  Color _getOperatorColor(String? op) {
-    switch (op) {
-      case 'Mobicom':
-        return const Color(0xFFE50027);
-      case 'Unitel':
-        return const Color(0xFF00A859);
-      case 'Skytel':
-        return const Color(0xFF0072CE);
-      case 'G-Mobile':
-        return const Color(0xFFFF6F00);
-      default:
-        return AppColors.deepGreen;
-    }
-  }
-
   Future<void> _authenticateWithBiometrics() async {
     if (!_biometricAvailable) {
       showGlassSnackBar(
@@ -553,7 +522,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
         ? EdgeInsets.all(16.r)
         : EdgeInsets.all(isTablet ? 26.r : 20.r);
 
-    final operator = _getOperator(phoneController.text);
 
     return Container(
       padding: cardPadding,
@@ -630,28 +598,6 @@ class _NewtrekhkhuudasState extends State<Newtrekhkhuudas> {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (operator != null)
-                      Container(
-                        margin: EdgeInsets.only(right: 6.w),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8.w,
-                          vertical: 4.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getOperatorColor(
-                            operator,
-                          ).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Text(
-                          operator,
-                          style: TextStyle(
-                            fontSize: 10.5.sp,
-                            fontWeight: FontWeight.w600,
-                            color: _getOperatorColor(operator),
-                          ),
-                        ),
-                      ),
                     if (phoneController.text.isNotEmpty)
                       IconButton(
                         icon: Icon(

@@ -62,21 +62,139 @@ class _PaymentModalState extends State<PaymentModal> {
     _angilalAchaalya();
   }
 
+  /// Нэхэмжлэх бүрийн мөрүүд (сервэрийн дэвтрээс): id → [(нэр, дүн)]
+  Map<String, List<MapEntry<String, double>>> _nekhemjlekhiinMurnuud = {};
+
+  /// Ангиллын дүнг ЗӨВХӨН сонгосон нэхэмжлэхүүдээс авна — гэрээний нийт
+  /// дэвтрийн үлдэгдлээс биш. Ингэснээр «Сонгосон 140,000» = «СӨХ 135,000 +
+  /// Гараж 5,000» гэж нийлбэр нь таарна.
   Future<void> _angilalAchaalya() async {
     final gid = widget.gereeniiId;
     final bid = widget.baiguullagiinId;
-    if (gid == null || gid.isEmpty || bid == null || bid.isEmpty) return;
-    final ur = await ApiService.fetchUldegdelAngilal(
-      baiguullagiinId: bid,
+    final idnuud = _songosonNekhemjlekhuud.map((i) => i.id).toList();
+    if (gid == null || gid.isEmpty || bid == null || bid.isEmpty || idnuud.isEmpty) {
+      return;
+    }
+    final data = await ApiService.fetchNekhemjlekhZadargaa(
+          baiguullagiinId: bid,
+          gereeniiId: gid,
+          nekhemjlekhIdnuud: idnuud,
+        ) ??
+        // Сервер шинэчлэгдээгүй (endpoint байхгүй) бол дэвтрээс апп дээр бодно
+        await _zadargaaDevtreesBodyo(bid, gid);
+    if (data == null || !mounted) return;
+    double too(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
+    final angilal = data['angilal'];
+    final murnuud = <String, List<MapEntry<String, double>>>{};
+    for (final n in (data['nekhemjlekhuud'] as List? ?? const [])) {
+      if (n is! Map) continue;
+      murnuud['${n['_id']}'] = [
+        for (final z in (n['zardluud'] as List? ?? const []))
+          if (z is Map) MapEntry('${z['ner']}', too(z['dun'])),
+      ];
+    }
+    setState(() {
+      _nekhemjlekhiinMurnuud = murnuud;
+      if (angilal is Map) {
+        _angilalUldegdel = {
+          for (final k in ['Орон сууц', 'Зогсоол', 'Агуулах']) k: too(angilal[k]),
+        };
+      }
+    });
+  }
+
+  static String _angilalTaniya(String ner) {
+    final n = ner.toLowerCase();
+    if (n.contains('гараж') || n.contains('гараш') || n.contains('зогсоол')) {
+      return 'Зогсоол';
+    }
+    if (n.contains('агуулах')) return 'Агуулах';
+    return 'Орон сууц';
+  }
+
+  /// `/nekhemjlekhZadargaa`-тай ижил томьёо: нэхэмжлэхэд холбогдсон дэвтрийн
+  /// мөрүүдийг (dun > 0) нэрээр нь нэгтгэж, нэхэмжлэхийн үлдэгдлийг ангиллын
+  /// жингээр хуваарилна.
+  Future<Map<String, dynamic>?> _zadargaaDevtreesBodyo(String bid, String gid) async {
+    final res = await ApiService.fetchGuilgeeAvlaguud(
       gereeniiId: gid,
+      baiguullagiinId: bid,
     );
-    if (mounted) setState(() => _angilalUldegdel = ur);
+    final murnuud = (res['jagsaalt'] as List? ?? const []).whereType<Map>().toList();
+    if (murnuud.isEmpty) return null;
+    double too(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
+    double r2(double v) => (v * 100).roundToDouble() / 100;
+    const angilluud = ['Орон сууц', 'Зогсоол', 'Агуулах'];
+    final niitAngilal = {for (final k in angilluud) k: 0.0};
+    final nekhemjlekhuud = <Map<String, dynamic>>[];
+
+    for (final inv in _songosonNekhemjlekhuud) {
+      final nereer = <String, double>{};
+      for (final m in murnuud) {
+        if ('${m['nekhemjlekhId'] ?? ''}' != inv.id || too(m['dun']) <= 0) continue;
+        final ner = '${m['zardliinNer'] ?? m['tailbar'] ?? m['turul'] ?? 'Төлбөр'}'.trim();
+        nereer[ner] = r2((nereer[ner] ?? 0) + too(m['dun']));
+      }
+      final jin = {for (final k in angilluud) k: 0.0};
+      nereer.forEach((ner, dun) => jin[_angilalTaniya(ner)] = jin[_angilalTaniya(ner)]! + dun);
+      final jinNiit = jin.values.fold<double>(0, (a, b) => a + b);
+      final uldegdel = inv.effectiveNiitTulbur;
+      final angilal = {for (final k in angilluud) k: 0.0};
+      if (uldegdel > 0) {
+        if (jinNiit <= 0) {
+          angilal['Орон сууц'] = r2(uldegdel);
+        } else {
+          var niilber = 0.0;
+          for (final k in angilluud) {
+            angilal[k] = r2(uldegdel * jin[k]! / jinNiit);
+            niilber += angilal[k]!;
+          }
+          final zuruu = r2(uldegdel - niilber);
+          if (zuruu != 0) {
+            final tom = angilluud.reduce((a, k) => angilal[k]! > angilal[a]! ? k : a);
+            angilal[tom] = r2(angilal[tom]! + zuruu);
+          }
+        }
+      }
+      for (final k in angilluud) {
+        niitAngilal[k] = r2(niitAngilal[k]! + angilal[k]!);
+      }
+      nekhemjlekhuud.add({
+        '_id': inv.id,
+        'zardluud': [
+          for (final e in nereer.entries) {'ner': e.key, 'dun': e.value},
+        ],
+      });
+    }
+    return {'nekhemjlekhuud': nekhemjlekhuud, 'angilal': niitAngilal};
   }
 
   /// Үлдэгдэлтэй ангиллууд — 2+ байвал л ялгаж төлөх сонголт харуулна
   List<MapEntry<String, double>> get _tulukhAngilluud => _angilalUldegdel.entries
       .where((e) => e.value > 0.5)
       .toList();
+
+  /// Сонгосон, төлөгдөөгүй нэхэмжлэхүүд — сараар нь эрэмбэлсэн
+  List<NekhemjlekhItem> get _songosonNekhemjlekhuud {
+    final ur = widget.invoices.where((i) => i.isSelected && !i.isPaid).toList();
+    ur.sort((a, b) => a.nekhemjlekhiinOgnoo.compareTo(b.nekhemjlekhiinOgnoo));
+    return ur;
+  }
+
+  /// Сонгосон нэхэмжлэхүүдийн төлөх дүн. Гэрээний нийт үлдэгдлээс (урьдчилж
+  /// төлсөн бол бага байж болно) хэтрүүлж төлүүлэхгүй.
+  double get _songosonDun {
+    final niit = _songosonNekhemjlekhuud.fold<double>(
+        0, (s, i) => s + i.effectiveNiitTulbur);
+    final geree = widget.contractUldegdel;
+    if (geree != null && geree > 0.5 && geree < niit) return geree;
+    return niit;
+  }
+
+  /// Хэрэглэгчийн сонгосон сонголтоор яг төлөх дүн — толгой, QPay хоёулаа үүнийг
+  double get _tulukhDun => _songosonAngilal != null
+      ? (_angilalUldegdel[_songosonAngilal] ?? 0)
+      : _songosonDun;
 
   static String _angilliinNer(String k) => k == 'Орон сууц'
       ? 'СӨХ (орон сууц)'
@@ -200,7 +318,9 @@ class _PaymentModalState extends State<PaymentModal> {
                                 borderRadius: BorderRadius.circular(100),
                               ),
                               child: Text(
-                                '${widget.selectedCount} нэхэмжлэх',
+                                _songosonAngilal != null
+                                    ? _angilliinNer(_songosonAngilal!)
+                                    : '${_songosonNekhemjlekhuud.length} нэхэмжлэх',
                                 style: TextStyle(
                                   fontSize: 10.sp,
                                   fontWeight: FontWeight.w600,
@@ -214,9 +334,7 @@ class _PaymentModalState extends State<PaymentModal> {
                         Row(
                           children: [
                             Text(
-                              _songosonAngilal != null
-                                  ? '${formatNumber(_angilalUldegdel[_songosonAngilal] ?? 0, 2)}₮'
-                                  : widget.totalSelectedAmount,
+                              '${formatNumber(_tulukhDun, 2)}₮',
                               style: TextStyle(
                                 fontSize: 28.sp,
                                 fontWeight: FontWeight.w600,
@@ -230,6 +348,11 @@ class _PaymentModalState extends State<PaymentModal> {
                     ),
                   ),
                   
+                  if (_songosonAngilal == null &&
+                      _songosonNekhemjlekhuud.isNotEmpty) ...[
+                    SizedBox(height: 16.h),
+                    _buildSaraarZadargaa(context),
+                  ],
                   if (_tulukhAngilluud.length > 1) ...[
                     SizedBox(height: 24.h),
                     _buildAngilalSelector(context),
@@ -305,6 +428,82 @@ class _PaymentModalState extends State<PaymentModal> {
     );
   }
 
+  /// Сонгосон нэхэмжлэх бүрийг сараар нь, доор нь зардлуудтай харуулна
+  Widget _buildSaraarZadargaa(BuildContext context) {
+    final nekhemjlekhuud = _songosonNekhemjlekhuud;
+    final khuree = context.isDarkMode
+        ? Colors.white.withOpacity(0.08)
+        : Colors.black.withOpacity(0.06);
+
+    Widget mur(String ner, double dun, {bool tolgoi = false}) => Padding(
+          padding: EdgeInsets.symmetric(vertical: tolgoi ? 0 : 3.h),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  ner,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: tolgoi ? 13.sp : 12.sp,
+                    fontWeight: tolgoi ? FontWeight.w600 : FontWeight.w400,
+                    color: tolgoi
+                        ? context.textPrimaryColor
+                        : context.textSecondaryColor,
+                  ),
+                ),
+              ),
+              Text(
+                '${formatNumber(dun, 2)}₮',
+                style: TextStyle(
+                  fontSize: tolgoi ? 13.sp : 12.sp,
+                  fontWeight: tolgoi ? FontWeight.w600 : FontWeight.w400,
+                  color: tolgoi
+                      ? context.textPrimaryColor
+                      : context.textSecondaryColor,
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18.r),
+        border: Border.all(color: khuree),
+      ),
+      child: Column(
+        children: [
+          for (var n = 0; n < nekhemjlekhuud.length; n++) ...[
+            if (n > 0) Divider(height: 1, color: khuree),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              child: Column(
+                children: [
+                  mur('${nekhemjlekhuud[n].formattedPeriod} сар',
+                      nekhemjlekhuud[n].effectiveNiitTulbur,
+                      tolgoi: true),
+                  SizedBox(height: 4.h),
+                  ...(_nekhemjlekhiinMurnuud[nekhemjlekhuud[n].id] ??
+                          (nekhemjlekhuud[n].medeelel?.zardluud ?? const <Zardal>[])
+                              .where((z) => z.isDisplayable && z.displayAmount.abs() > 0.005)
+                              .map((z) => MapEntry(z.ner, z.displayAmount))
+                              .toList())
+                      .map((e) => mur(e.key, e.value)),
+                  if (nekhemjlekhuud[n].khungulultDun > 0.005)
+                    mur('Хөнгөлөлт', -nekhemjlekhuud[n].khungulultDun),
+                  if (nekhemjlekhuud[n].tulsunDun > 0.005)
+                    mur('Төлсөн', -nekhemjlekhuud[n].tulsunDun),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildAngilalSelector(BuildContext context) {
     final isDark = context.isDarkMode;
     Widget mur({required String? key, required String ner, required double dun, required IconData icon}) {
@@ -366,7 +565,6 @@ class _PaymentModalState extends State<PaymentModal> {
       );
     }
 
-    final niit = _tulukhAngilluud.fold<double>(0, (s, e) => s + e.value);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -384,7 +582,14 @@ class _PaymentModalState extends State<PaymentModal> {
           style: TextStyle(fontSize: 12.sp, color: context.textSecondaryColor),
         ),
         SizedBox(height: 12.h),
-        mur(key: null, ner: 'Бүгдийг төлөх', dun: widget.contractUldegdel ?? niit, icon: Icons.select_all_rounded),
+        mur(
+          key: null,
+          ner: _songosonNekhemjlekhuud.length > 1
+              ? 'Сонгосон ${_songosonNekhemjlekhuud.length} нэхэмжлэх'
+              : 'Сонгосон нэхэмжлэх',
+          dun: _songosonDun,
+          icon: Icons.receipt_long_rounded,
+        ),
         ..._tulukhAngilluud.map((e) => mur(
               key: e.key,
               ner: _angilliinNer(e.key),
@@ -451,9 +656,8 @@ class _PaymentModalState extends State<PaymentModal> {
       }
 
       // Use contract's globalUldegdel (same as HistoryModal) - single source of truth
-      double totalAmount = (widget.contractUldegdel != null && widget.contractUldegdel! > 0)
-          ? widget.contractUldegdel!
-          : 0;
+      // Хэрэглэгчийн харсан, сонгосон дүнгээр л төлүүлнэ
+      double totalAmount = _songosonDun;
 
       _selectedInvoiceIdsForCheck = selectedInvoiceIds;
       _gereeniiDugaarForCheck = turul;
