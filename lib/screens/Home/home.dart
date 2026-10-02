@@ -1932,7 +1932,9 @@ class _BookingScreenState extends State<NuurKhuudas>
         child: Column(
           children: [
             HomeHeader(
-              userName: _userProfile?['ner']?.toString(),
+              userName: (_isNonOrgUser && _userProfile?['hasCustomName'] != true)
+                  ? null
+                  : _userProfile?['ner']?.toString(),
               unreadNotificationCount: _unreadNotificationCount,
               onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
               onThemeToggle: () {

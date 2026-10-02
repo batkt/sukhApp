@@ -62,10 +62,18 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
       if (response['success'] == true && response['result'] != null) {
         final userData = response['result'];
+        final isWalletUser = userData['baiguullagiinId'] == null ||
+            userData['baiguullagiinId'] == '698e7fd3b6dd386b6c56a808' ||
+            userData['baiguullagiinId'].toString().isEmpty;
+        final hasCustomName = userData['hasCustomName'] == true;
 
         setState(() {
           _userData = userData;
-          _nameController.text = userData['ner']?.toString() ?? '';
+          if (isWalletUser && !hasCustomName) {
+            _nameController.text = '';
+          } else {
+            _nameController.text = userData['ner']?.toString() ?? '';
+          }
 
           if (userData['utas'] != null) {
             final utas = userData['utas'];
@@ -524,12 +532,22 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                                       });
 
                                       try {
+                                        final enteredName = _nameController.text.trim();
+                                        final isWallet = _userData?['baiguullagiinId'] == null ||
+                                            _userData?['baiguullagiinId'] == '698e7fd3b6dd386b6c56a808' ||
+                                            _userData?['baiguullagiinId'].toString().isEmpty == true;
                                         final response = await ApiService.updateUserProfile({
-                                          'ner': _nameController.text.trim(),
+                                          'ner': enteredName,
+                                          'hasCustomName': enteredName.isNotEmpty,
                                           'mail': _emailController.text.trim(),
                                           'utas': _phoneController.text.trim(),
                                         });
                                         if (response['success'] == true || response['_id'] != null) {
+                                          if (enteredName.isNotEmpty) {
+                                            await StorageService.saveUserName(enteredName);
+                                          } else if (isWallet) {
+                                            await StorageService.clearUserName();
+                                          }
                                           showGlassSnackBar(
                                             context,
                                             message: 'Мэдээлэл амжилттай хадгалагдлаа',

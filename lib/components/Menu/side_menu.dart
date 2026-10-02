@@ -62,10 +62,16 @@ class _SideMenuState extends State<SideMenu> {
   }
 
   Future<void> _loadUserData() async {
+    final orgId = await StorageService.getBaiguullagiinId();
+    final isWallet = orgId == null || orgId.isEmpty || orgId == '698e7fd3b6dd386b6c56a808';
     final name = await StorageService.getUserName();
-    if (mounted && name != null) {
+    if (mounted) {
       setState(() {
-        _userName = formatDisplayName(name);
+        if (isWallet && (name == null || name.trim().isEmpty)) {
+          _userName = 'Хэрэглэгч';
+        } else if (name != null && name.trim().isNotEmpty) {
+          _userName = formatDisplayName(name);
+        }
       });
     }
   }

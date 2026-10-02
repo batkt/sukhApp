@@ -374,9 +374,6 @@ class _AddressSelectionScreenState extends State<AddressSelectionScreen> {
         baiguullagiinId: _selectedBuilding!['baiguullagiinId']?.toString(),
         customerId: customerId,
         customerCode: _selectedWalletCustomer?['customerCode']?.toString(),
-        // Pass resident name to be saved in the new toot entry
-        ovog: _selectedWalletCustomer?['ovog']?.toString(),
-        ner: _selectedWalletCustomer?['ner']?.toString(),
       );
 
       print('🔍 [DEBUG] Response from fetchWalletBilling:');

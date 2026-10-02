@@ -456,13 +456,32 @@ class StorageService {
     }
   }
 
-  /// Get user name
   static Future<String?> getUserName() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_userNerKey);
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Save user name directly
+  static Future<bool> saveUserName(String name) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setString(_userNerKey, name);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Clear user name
+  static Future<bool> clearUserName() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.remove(_userNerKey);
+    } catch (e) {
+      return false;
     }
   }
 
