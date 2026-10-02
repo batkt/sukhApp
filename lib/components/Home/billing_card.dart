@@ -1,3 +1,4 @@
+import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
@@ -29,49 +30,7 @@ class BillingCard extends StatefulWidget {
   State<BillingCard> createState() => _BillingCardState();
 }
 
-class _BillingCardState extends State<BillingCard>
-    with TickerProviderStateMixin {
-  late AnimationController _blinkController;
-  late Animation<double> _blinkAnimation;
-
-  late AnimationController _swipeHintController;
-  late Animation<Offset> _swipeHintAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _blinkController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _blinkAnimation = Tween<double>(begin: 0.2, end: 1.0).animate(
-      CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
-    );
-
-    _swipeHintController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 5000),
-    )..repeat(reverse: false);
-
-    _swipeHintAnimation =
-        Tween<Offset>(
-          begin: const Offset(0.15, 0),
-          end: const Offset(-0.15, 0),
-        ).animate(
-          CurvedAnimation(
-            parent: _swipeHintController,
-            curve: Curves.easeInOutSine,
-          ),
-        );
-  }
-
-  @override
-  void dispose() {
-    _blinkController.dispose();
-    _swipeHintController.dispose();
-    super.dispose();
-  }
+class _BillingCardState extends State<BillingCard> {
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +106,6 @@ class _BillingCardState extends State<BillingCard>
           ? nickname
           : billingName;
     }
-    final showSubtitle = !isPlaceholder && (nickname != null && nickname.isNotEmpty);
 
     // DEBUG LOG
 
@@ -163,314 +121,222 @@ class _BillingCardState extends State<BillingCard>
 
     final bool hasBalance = cardBalance != 0;
     final bool isCredit = cardBalance < 0;
-    final bool isPaid = cardBalance == 0;
-    final showPillsRow = (hasNewBills && newBillsCount > 0) || hasBalance || isPaid || isPlaceholder;
+
+    final hayag = () {
+      final expanded = widget.expandAddressAbbreviations(bairniiNer);
+      if (expanded.isEmpty) {
+        return customerCode.isNotEmpty ? 'Код: $customerCode' : 'Хаяг сонгоно уу';
+      }
+      if (doorNo.isNotEmpty) {
+        final cleanExpanded = expanded.trim();
+        final cleanDoor = doorNo.trim();
+        if (cleanExpanded.endsWith(cleanDoor) ||
+            cleanExpanded.endsWith(' $cleanDoor') ||
+            cleanExpanded.endsWith(', $cleanDoor') ||
+            cleanExpanded.endsWith('-$cleanDoor')) {
+          return cleanExpanded;
+        }
+        return '$cleanExpanded, $cleanDoor тоот';
+      }
+      return expanded.endsWith('тоот') ? expanded : '$expanded тоот';
+    }();
+
+    final ner = billingName.toLowerCase();
+    final oronSuuts = ner.contains('орон сууц') || ner.contains('сөх') || widget.billing['isLocalData'] == true;
+    const mint = Color(0xFF7DF0C6);
+    final accent = isDark ? mint : AppColors.deepGreen;
+    final tulukhUngu = isDark ? const Color(0xFFFFB86B) : const Color(0xFFC2410C);
+
+    // Төлөвийн мөр (дүнгийн доор)
+    final String tuluvText;
+    final Color tuluvUngu;
+    if (isPlaceholder) {
+      tuluvText = 'Холбогдоогүй';
+      tuluvUngu = tulukhUngu;
+    } else if (isCredit) {
+      tuluvText = 'Илүү төлсөн';
+      tuluvUngu = accent;
+    } else if (hasBalance) {
+      tuluvText = 'Төлөх';
+      tuluvUngu = tulukhUngu;
+    } else {
+      tuluvText = 'Төлөгдсөн';
+      tuluvUngu = accent;
+    }
 
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Main Card ──
-            Expanded(
-              child: GestureDetector(
-                onTap: widget.onTap,
-                child: Container(
-                  constraints: BoxConstraints(minHeight: 56.h),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 12.h,
-                  ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(20.r),
+          child: Ink(
+            padding: EdgeInsets.fromLTRB(14.w, 14.h, 6.w, 14.h),
+            decoration: BoxDecoration(
+              color: context.cardBackgroundColor,
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(
+                color: isPlaceholder
+                    ? tulukhUngu.withOpacity(0.35)
+                    : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05)),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Дүрс
+                Container(
+                  width: 42.w,
+                  height: 42.w,
                   decoration: BoxDecoration(
-                    color: isPlaceholder
-                        ? (isDark ? const Color(0xFF24201A) : const Color(0xFFFFFBF8))
-                        : (isDark ? const Color(0xFF1C2229) : Colors.white),
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(
-                      color: isPlaceholder
-                          ? (isDark ? Colors.orange.withOpacity(0.25) : Colors.orange.withOpacity(0.35))
-                          : (isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE8ECF0)),
-                      width: isPlaceholder ? 1.5 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDark
-                            ? Colors.black.withOpacity(0.2)
-                            : Colors.black.withOpacity(0.04),
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+                    color: (isPlaceholder ? tulukhUngu : accent).withOpacity(isDark ? 0.14 : 0.09),
+                    borderRadius: BorderRadius.circular(13.r),
                   ),
-                  child: Row(
+                  child: Icon(
+                    isPlaceholder
+                        ? Icons.link_rounded
+                        : (oronSuuts ? Icons.apartment_rounded : Icons.bolt_rounded),
+                    size: 20.sp,
+                    color: isPlaceholder ? tulukhUngu : accent,
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                // Нэр, хаяг — бүтнээр нь
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Display name
-                            Text(
-                              displayName,
-                              style: TextStyle(
-                                color: context.textPrimaryColor,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-
-                            // Billing name subtitle (only when no nickname)
-                            if (!isPlaceholder &&
-                                !showSubtitle &&
-                                billingName.isNotEmpty &&
-                                billingName != displayName) ...[
-                              SizedBox(height: 4.h),
-                              Text(
-                                billingName,
-                                style: TextStyle(
-                                  color: context.textSecondaryColor.withOpacity(
-                                    0.6,
-                                  ),
-                                  fontSize: 13.sp,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-
-                            SizedBox(height: 4.h),
-
-                            // Address line
-                            if (!isPlaceholder) ...[
-                              Text(
-                                () {
-                                  final expanded = widget.expandAddressAbbreviations(bairniiNer);
-                                  if (expanded.isEmpty) {
-                                    return customerCode.isNotEmpty ? 'Код: $customerCode' : 'Хаяг сонгоно уу';
-                                  }
-                                  if (doorNo.isNotEmpty) {
-                                    // Avoid duplication (e.g., "8, 8")
-                                    final cleanExpanded = expanded.trim();
-                                    final cleanDoor = doorNo.trim();
-                                    if (cleanExpanded.endsWith(cleanDoor) || 
-                                        cleanExpanded.endsWith(' $cleanDoor') || 
-                                        cleanExpanded.endsWith(', $cleanDoor') ||
-                                        cleanExpanded.endsWith('-$cleanDoor')) {
-                                      return cleanExpanded;
-                                    }
-                                    return '$cleanExpanded, $cleanDoor тоот';
-                                  }
-                                  return expanded.endsWith('тоот') ? expanded : (expanded.isNotEmpty ? '$expanded тоот' : expanded);
-                                }(),
-                                style: TextStyle(
-                                  color: context.textSecondaryColor,
-                                  fontSize: 13.sp,
-                                  height: 1.3,
-                                ),
-                                softWrap: true,
-                                maxLines: null,
-                                overflow: TextOverflow.visible,
-                              ),
-                            ],
-
-                            if (isPlaceholder) ...[
-                              SizedBox(height: 6.h),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline_rounded,
-                                    size: 14.sp,
-                                    color: Colors.orange[700],
-                                  ),
-                                  SizedBox(width: 4.w),
-                                  Expanded(
-                                    child: Text(
-                                      'Хэрэглээний төлбөр холбогдоогүй байна',
-                                      style: TextStyle(
-                                        color: isDark ? Colors.orange[300] : Colors.orange[800],
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-
-                            if (!isPlaceholder &&
-                                billerName != null &&
-                                billerName.isNotEmpty) ...[
-                              SizedBox(height: 4.h),
-                              Text(
-                                billerName,
-                                style: TextStyle(
-                                  color: context.textSecondaryColor.withOpacity(
-                                    0.8,
-                                  ),
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-
-                            if (showPillsRow) ...[
-                              SizedBox(height: 8.h),
-                              Wrap(
-                                spacing: 8.w,
-                                runSpacing: 8.h,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  if (isPlaceholder)
-                                    _buildStatusPill(
-                                      icon: Icons.add_link_rounded,
-                                      label: 'Төлбөр холбох',
-                                      color: Colors.orange[600]!,
-                                      isPrimary: true,
-                                    ),
-                                  if (!isPlaceholder && hasNewBills && newBillsCount > 0)
-                                    _buildStatusPill(
-                                      icon: Icons.notifications_active_rounded,
-                                      label: '$newBillsCount шинэ',
-                                      color: Colors.blue[600]!,
-                                      isPrimary: false,
-                                    ),
-                                  if (!isPlaceholder && hasBalance)
-                                    _buildStatusPill(
-                                      icon: isCredit
-                                          ? Icons.savings_rounded
-                                          : Icons.account_balance_wallet_rounded,
-                                      label: isCredit
-                                          ? 'Илүү төлөлт: ${_formatNumber(cardBalance.abs())}₮'
-                                          : '${_formatNumber(cardBalance)}₮ Төлөх',
-                                      color: isCredit
-                                          ? Colors.green[600]!
-                                          : AppColors.error,
-                                      isPrimary: false,
-                                    ),
-                                  if (!isPlaceholder && isPaid && !(hasNewBills && newBillsCount > 0))
-                                    _buildStatusPill(
-                                      icon: Icons.check_circle_rounded,
-                                      label: 'Төлөгдсөн',
-                                      color: Colors.green[600]!,
-                                      isPrimary: false,
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ],
+                      Text(
+                        displayName,
+                        softWrap: true,
+                        style: TextStyle(
+                          color: context.textPrimaryColor,
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                          height: 1.25,
                         ),
                       ),
-                      SizedBox(width: 4.w),
+                      SizedBox(height: 3.h),
+                      Text(
+                        isPlaceholder ? 'Хэрэглээний төлбөрөө холбоно уу' : hayag,
+                        softWrap: true,
+                        style: TextStyle(
+                          color: context.textSecondaryColor,
+                          fontSize: 12.5.sp,
+                          height: 1.3,
+                        ),
+                      ),
+                      if (!isPlaceholder && billerName != null && billerName.isNotEmpty) ...[
+                        SizedBox(height: 2.h),
+                        Text(
+                          billerName,
+                          softWrap: true,
+                          style: TextStyle(
+                            color: context.textSecondaryColor.withOpacity(0.8),
+                            fontSize: 11.5.sp,
+                          ),
+                        ),
+                      ],
+                      if (!isPlaceholder && hasNewBills && newBillsCount > 0) ...[
+                        SizedBox(height: 8.h),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                          decoration: BoxDecoration(
+                            color: accent.withOpacity(isDark ? 0.14 : 0.09),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Text(
+                            '$newBillsCount шинэ нэхэмжлэх',
+                            style: TextStyle(color: accent, fontSize: 11.sp, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-            ),
-
-            // ── Action Buttons (Edit / Delete) ──
-            if (hasActions) ...[
-              SizedBox(width: 8.w),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (widget.onEditTap != null)
-                    _buildActionButton(
-                      onTap: widget.onEditTap!,
-                      icon: Icons.edit_outlined,
-                      color: AppColors.deepGreen,
-                      isDark: isDark,
-                      context: context,
-                    ),
-                  if (widget.onEditTap != null && widget.onDeleteTap != null)
-                    SizedBox(height: 8.h),
-                  if (widget.onDeleteTap != null)
-                    _buildActionButton(
-                      onTap: widget.onDeleteTap!,
-                      icon: Icons.delete_outline_rounded,
-                      color: Colors.red[400]!,
-                      isDark: isDark,
-                      context: context,
-                    ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required VoidCallback onTap,
-    required IconData icon,
-    required Color color,
-    required bool isDark,
-    required BuildContext context,
-  }) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 42.w,
-        height: 42.h,
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1C2229) : Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withOpacity(0.06)
-                : const Color(0xFFE8ECF0),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.2)
-                  : Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Icon(icon, color: color, size: 18.sp),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusPill({
-    required IconData icon,
-    required String label,
-    required Color color,
-    bool isPrimary = false,
-  }) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: isPrimary ? color : color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: isPrimary ? Colors.white : color, size: 14.sp),
-          SizedBox(width: 6.w),
-          Text(
-            label,
-            style: TextStyle(
-              color: isPrimary ? Colors.white : color,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
+                SizedBox(width: 8.w),
+                // Дүн + төлөв
+                if (shouldShowBalance || isPlaceholder)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (!isPlaceholder)
+                        Text(
+                          '${_formatNumber(cardBalance.abs())}₮',
+                          style: TextStyle(
+                            color: context.textPrimaryColor,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.3,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      SizedBox(height: 4.h),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6.w,
+                            height: 6.w,
+                            decoration: BoxDecoration(color: tuluvUngu, shape: BoxShape.circle),
+                          ),
+                          SizedBox(width: 5.w),
+                          Text(
+                            tuluvText,
+                            style: TextStyle(color: tuluvUngu, fontSize: 11.5.sp, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      if (cardAldangi > 0.5) ...[
+                        SizedBox(height: 3.h),
+                        Text(
+                          'Алданги ${_formatNumber(cardAldangi)}₮',
+                          style: TextStyle(color: context.textSecondaryColor, fontSize: 10.5.sp),
+                        ),
+                      ],
+                    ],
+                  ),
+                // Засах / устгах — цэс
+                if (hasActions)
+                  PopupMenuButton<String>(
+                    padding: EdgeInsets.zero,
+                    iconSize: 20.sp,
+                    icon: Icon(Icons.more_vert_rounded, color: context.textSecondaryColor),
+                    color: context.cardBackgroundColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+                    onSelected: (v) {
+                      if (v == 'edit') widget.onEditTap?.call();
+                      if (v == 'delete') widget.onDeleteTap?.call();
+                    },
+                    itemBuilder: (_) => [
+                      if (widget.onEditTap != null)
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(children: [
+                            Icon(Icons.edit_outlined, size: 18.sp, color: accent),
+                            SizedBox(width: 10.w),
+                            Text('Нэр засах', style: TextStyle(color: context.textPrimaryColor, fontSize: 14.sp)),
+                          ]),
+                        ),
+                      if (widget.onDeleteTap != null)
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(children: [
+                            Icon(Icons.delete_outline_rounded, size: 18.sp, color: const Color(0xFFE5484D)),
+                            SizedBox(width: 10.w),
+                            Text('Устгах', style: TextStyle(color: const Color(0xFFE5484D), fontSize: 14.sp)),
+                          ]),
+                        ),
+                    ],
+                  )
+                else
+                  SizedBox(width: 8.w),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

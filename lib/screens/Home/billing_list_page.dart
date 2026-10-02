@@ -3,12 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/components/Home/billing_list_section.dart';
 import 'package:sukh_app/components/Home/billing_connection_section.dart';
-import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:sukh_app/services/api_service.dart';
-import 'package:intl/intl.dart';
 import 'package:sukh_app/utils/format_util.dart';
 import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 import 'package:sukh_app/services/socket_service.dart';
@@ -468,121 +466,188 @@ class _BillingListPageState extends State<BillingListPage> {
         )
         .toList();
 
+    final hayagToo = residential.length + utility.length + (_localUserBillingData != null ? 1 : 0);
+
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0A0E14)
-          : const Color(0xFFF5F7FA),
-      appBar: buildStandardAppBar(
-        context,
-        title: 'Таны орон сууцнууд',
-        backButtonColor: isDark ? null : Colors.white,
-        backButtonIconColor: isDark ? null : AppColors.deepGreen,
-        titleColor: isDark ? null : Colors.white,
-        actions: [
-          GestureDetector(
-            onTap: _addNewAddress,
-            child: Container(
-              width: 34.w,
-              height: 34.w,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.deepGreen : Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: (isDark ? Colors.black : AppColors.deepGreen)
-                        .withOpacity(0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+      backgroundColor: context.backgroundColor,
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        color: AppColors.deepGreen,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: EdgeInsets.fromLTRB(16.w, MediaQuery.of(context).padding.top + 6.h, 16.w, 32.h),
+          children: [
+            _buildTolgoi(isDark),
+            SizedBox(height: 16.h),
+            if (hayagToo > 0 && !_localIsLoading) ...[
+              _buildNiitKart(isDark, hayagToo),
+              SizedBox(height: 18.h),
+            ],
+            if (widget.billingList.isEmpty &&
+                widget.userBillingData == null &&
+                !_localIsLoading) ...[
+              BillingConnectionSection(
+                isConnecting: widget.isConnecting,
+                onConnect: _addNewAddress,
               ),
-              child: Center(
-                child: Icon(
-                  Icons.add_rounded,
-                  color: isDark ? Colors.white : AppColors.deepGreen,
-                  size: 22.sp,
+              SizedBox(height: 24.h),
+            ] else
+              BillingListSection(
+                isLoading: _localIsLoading,
+                residentialBillings: residential,
+                utilityBillings: utility,
+                userBillingData: _localUserBillingData,
+                onBillingTap: _handleBillingTap,
+                expandAddressAbbreviations: widget.expandAddressAbbreviations,
+                onDeleteTap: widget.onDeleteTap != null
+                    ? (billing) => widget.onDeleteTap!(billing, ctx: context)
+                    : null,
+                onEditTap: widget.onEditTap != null
+                    ? (billing) => widget.onEditTap!(billing, ctx: context, onUpdated: () {
+                          if (mounted) setState(() {});
+                        })
+                    : null,
+                totalBalance: _localTotalBalance,
+                totalAldangi: _localTotalAldangi,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Буцах · гарчиг · нэмэх
+  Widget _buildTolgoi(bool isDark) {
+    final khuree = isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06);
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Container(
+            width: 38.w,
+            height: 38.w,
+            decoration: BoxDecoration(
+              color: context.cardBackgroundColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: khuree),
+            ),
+            child: Icon(Icons.arrow_back_ios_new_rounded, size: 15.sp, color: context.textPrimaryColor),
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            'Таны орон сууцнууд',
+            style: TextStyle(
+              color: context.textPrimaryColor,
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.6,
+            ),
+          ),
+        ),
+        GestureDetector(
+          onTap: _addNewAddress,
+          child: Container(
+            height: 38.w,
+            padding: EdgeInsets.symmetric(horizontal: 14.w),
+            decoration: BoxDecoration(
+              color: AppColors.deepGreen,
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded, color: Colors.white, size: 18.sp),
+                SizedBox(width: 4.w),
+                Text('Нэмэх', style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Бүх хаягийн нийт төлөх — нэхэмжлэхийн хуудасны картын хэв маяг
+  Widget _buildNiitKart(bool isDark, int hayagToo) {
+    const mint = Color(0xFF7DF0C6);
+    final niit = _localTotalBalance;
+    final iluu = niit < -0.5;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24.r),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? const [Color(0xFF123B30), Color(0xFF0A2520)]
+                : const [Color(0xFF0F5A44), Color(0xFF0A3D2E)],
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -60.w,
+              right: -40.w,
+              child: Container(
+                width: 170.w,
+                height: 170.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [mint.withOpacity(0.25), mint.withOpacity(0)]),
                 ),
               ),
             ),
-          ),
-          SizedBox(width: 4.w),
-        ],
-      ),
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          _buildGreenHeader(context, isDark),
-          RefreshIndicator(
-            onRefresh: _refresh,
-            color: AppColors.deepGreen,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(
-                16.w,
-                140.h + MediaQuery.of(context).padding.top,
-                16.w,
-                32.h,
-              ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 18.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.billingList.isEmpty &&
-                      widget.userBillingData == null &&
-                      !_localIsLoading) ...[
-                    BillingConnectionSection(
-                      isConnecting: widget.isConnecting,
-                      onConnect: _addNewAddress,
+                  Text(
+                    iluu ? 'Илүү төлөлт' : 'Нийт төлөх',
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12.5.sp, fontWeight: FontWeight.w500),
+                  ),
+                  SizedBox(height: 4.h),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${formatNumber(niit.abs())} ₮',
+                      style: TextStyle(
+                        color: iluu ? mint : Colors.white,
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: -1,
+                      ),
                     ),
-                    SizedBox(height: 24.h),
-                  ] else
-                    BillingListSection(
-                      isLoading: _localIsLoading,
-                      residentialBillings: residential,
-                      utilityBillings: utility,
-                      userBillingData: _localUserBillingData,
-                      onBillingTap: _handleBillingTap,
-                      expandAddressAbbreviations:
-                          widget.expandAddressAbbreviations,
-                      onDeleteTap: widget.onDeleteTap != null
-                          ? (billing) =>
-                              widget.onDeleteTap!(billing, ctx: context)
-                          : null,
-                      onEditTap: widget.onEditTap != null
-                          ? (billing) => widget.onEditTap!(billing,
-                                  ctx: context, onUpdated: () {
-                                if (mounted) setState(() {});
-                               })
-                          : null,
-                      totalBalance: _localTotalBalance,
-                      totalAldangi: _localTotalAldangi,
-                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Row(
+                    children: [
+                      Icon(Icons.home_work_outlined, size: 14.sp, color: Colors.white.withOpacity(0.75)),
+                      SizedBox(width: 6.w),
+                      Text(
+                        '$hayagToo хаяг холбогдсон',
+                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12.sp),
+                      ),
+                      if (_localTotalAldangi > 0.5) ...[
+                        const Spacer(),
+                        Text(
+                          'Алданги ${formatNumber(_localTotalAldangi)}₮',
+                          style: TextStyle(color: const Color(0xFFFFC46B), fontSize: 12.sp, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGreenHeader(BuildContext context, bool isDark) {
-    if (isDark) return const SizedBox.shrink();
-
-    return Container(
-      height: 240.h,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.deepGreen,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40.r),
-          bottomRight: Radius.circular(40.r),
-        ),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.deepGreen, AppColors.deepGreen.withOpacity(0.85)],
+          ],
         ),
       ),
     );
   }
+
 }

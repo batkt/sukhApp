@@ -53,7 +53,8 @@ class InvoiceCard extends StatelessWidget {
 
   String _getStatusLabel(NekhemjlekhItem inv) {
     if (inv.isPaid) return 'Төлөгдсөн';
-    return 'Хүлээгдэж байгаа';
+    // Богино — хаягийн мөрийг шахахгүй
+    return 'Төлөөгүй';
   }
 
   @override
@@ -466,95 +467,6 @@ class InvoiceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Compact Location & Organization Card
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: (isVerySmall ? 10.0 : 12.0).w,
-              vertical: (isVerySmall ? 8.0 : 10.0).h,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.04) : Colors.white,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.15 : 0.02),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: (isVerySmall ? 30.0 : 34.0).w,
-                  height: (isVerySmall ? 30.0 : 34.0).w,
-                  decoration: BoxDecoration(
-                    color: AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.apartment_rounded,
-                    size: (isVerySmall ? 15.0 : 17.0).sp,
-                    color: AppColors.deepGreen,
-                  ),
-                ),
-                SizedBox(width: (isVerySmall ? 8.0 : 10.0).w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        invoice.baiguullagiinNer.isNotEmpty ? invoice.baiguullagiinNer : 'СӨХ',
-                        style: TextStyle(
-                          color: context.textPrimaryColor,
-                          fontSize: (isVerySmall ? 11.5 : 12.5).sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        '${invoice.khayag.isNotEmpty ? "${invoice.khayag}, " : ""}${invoice.orts.isNotEmpty ? "${invoice.orts}-р орц, " : ""}${invoice.toot.isNotEmpty ? "${invoice.toot} тоот" : (invoice.medeelel?.toot ?? "")} • ${invoice.formattedDate}',
-                        style: TextStyle(
-                          color: context.textSecondaryColor,
-                          fontSize: (isVerySmall ? 9.5 : 10.5).sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                if (invoice.gereeniiDugaar.isNotEmpty) ...[
-                  SizedBox(width: 6.w),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.h),
-                    decoration: BoxDecoration(
-                      color: AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.08),
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
-                    child: Text(
-                      '№ ${invoice.gereeniiDugaar}',
-                      style: TextStyle(
-                        color: AppColors.deepGreen,
-                        fontSize: (isVerySmall ? 8.5 : 9.5).sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          SizedBox(height: (isVerySmall ? 10.0 : 14.0).h),
-
           // 2. Section Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -800,9 +712,11 @@ class InvoiceCard extends StatelessWidget {
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
+                // Тайлбар урт (илүү төлөлт) байж болох тул зайгаа хуваалцана —
+                // өмнө нь дүнтэй давхцаж 62px хальж байв.
+                Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -831,15 +745,24 @@ class InvoiceCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                Text(
-                  invoice.isPaid
-                      ? '${formatNumber(invoice.displayTulsunDun.abs(), 2)}₮'
-                      : invoice.formattedAmount,
-                  style: TextStyle(
-                    color: context.textPrimaryColor,
-                    fontSize: (isVerySmall ? 14.5 : (isSmall ? 16.0 : 17.5)).sp,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.3,
+                ),
+                SizedBox(width: 10.w),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      invoice.isPaid
+                          ? '${formatNumber(invoice.displayTulsunDun.abs(), 2)}₮'
+                          : invoice.formattedAmount,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: context.textPrimaryColor,
+                        fontSize: (isVerySmall ? 14.5 : (isSmall ? 16.0 : 17.5)).sp,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
                   ),
                 ),
               ],

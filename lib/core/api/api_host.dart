@@ -11,7 +11,7 @@ class ApiHost {
   /// `true` бол dev сервер, `false` бол production.
   ///
   /// Release болгохын өмнө `false` болгоно.
-  static const bool devEsekh = true;
+  static const bool devEsekh = false;
 
   static const String _productionOrigin = 'https://amarhome.mn';
   static const String _devOrigin = 'https://dev.amarhome.mn';

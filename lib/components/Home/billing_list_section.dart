@@ -73,6 +73,7 @@ class BillingListSectionState extends State<BillingListSection> {
           _hasUserClicked ? _buildEmptyMessage(isDark) : const SizedBox.shrink()
         else ...[
           if (hasResidential) ...[
+            _buildSectionHeader(context, title: 'Орон сууц'),
             if (widget.userBillingData != null)
               _buildBillingCard(widget.userBillingData!),
             ...widget.residentialBillings.map((b) => _buildBillingCard(b)),
@@ -90,13 +91,13 @@ class BillingListSectionState extends State<BillingListSection> {
 
   Widget _buildSectionHeader(BuildContext context, {required String title}) {
     return Padding(
-      padding: EdgeInsets.only(left: 4.w, right: 4.w, top: 16.h, bottom: 8.h),
+      padding: EdgeInsets.only(left: 4.w, right: 4.w, top: 4.h, bottom: 10.h),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 15.sp,
-          color: context.textPrimaryColor,
-          letterSpacing: -0.3,
+          fontSize: 13.sp,
+          fontWeight: FontWeight.w600,
+          color: context.textSecondaryColor,
         ),
       ),
     );

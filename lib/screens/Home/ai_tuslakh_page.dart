@@ -391,12 +391,21 @@ class _AiTuslakhPageState extends State<AiTuslakhPage> {
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _ilgeekh(),
                       style: TextStyle(fontSize: 14.sp, color: context.textPrimaryColor),
+                      // Аппын ерөнхий InputDecorationTheme дүүргэлт, хүрээ нэмж
+                      // «хайрцаг дотор хайрцаг» болгодог байв — бүгдийг унтраана.
                       decoration: InputDecoration(
                         hintText: 'Асуултаа бичнэ үү...',
                         counterText: '',
+                        filled: false,
+                        isDense: true,
                         border: InputBorder.none,
-                        hintStyle: TextStyle(color: context.textSecondaryColor),
-                        contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        hintStyle: TextStyle(color: context.textSecondaryColor, fontSize: 14.sp),
+                        contentPadding: EdgeInsets.symmetric(vertical: 13.h),
                       ),
                     ),
                   ),
@@ -405,6 +414,7 @@ class _AiTuslakhPageState extends State<AiTuslakhPage> {
                 Material(
                   color: AppColors.deepGreen,
                   shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
                   child: InkWell(
                     customBorder: const CircleBorder(),
                     onTap: _khuleej ? _zogsookh : () => _ilgeekh(),
@@ -423,6 +433,8 @@ class _AiTuslakhPageState extends State<AiTuslakhPage> {
             SizedBox(height: 6.h),
             Text(
               'AI алдаа гаргаж болно. Чухал зүйлийг шалгаарай.',
+              textAlign: TextAlign.center,
+              softWrap: true,
               style: TextStyle(fontSize: 10.5.sp, color: context.textSecondaryColor),
             ),
           ],

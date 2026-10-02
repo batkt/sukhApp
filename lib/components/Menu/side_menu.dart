@@ -469,8 +469,12 @@ class _SideMenuState extends State<SideMenu> {
           width: 280.w,
           padding: EdgeInsets.all(20.w),
           decoration: BoxDecoration(
-            color: Colors.white,
+            // Харанхуй горимд цагаан хайрцаг гарч байсан — сэдвийн өнгөөр
+            color: context.cardBackgroundColor,
             borderRadius: BorderRadius.circular(24.r),
+            border: context.isDarkMode
+                ? Border.all(color: Colors.white.withOpacity(0.08))
+                : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -478,7 +482,7 @@ class _SideMenuState extends State<SideMenu> {
               Text(
                 'Гарах',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: context.textPrimaryColor,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -488,7 +492,7 @@ class _SideMenuState extends State<SideMenu> {
                 'Та системээс гарахдаа итгэлтэй байна уу?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.black54,
+                  color: context.textSecondaryColor,
                   fontSize: 13.sp,
                 ),
               ),
@@ -507,7 +511,7 @@ class _SideMenuState extends State<SideMenu> {
                       child: Text(
                         'Үгүй',
                         style: TextStyle(
-                          color: Colors.grey,
+                          color: context.textSecondaryColor,
                           fontSize: 14.sp,
                         ),
                       ),
