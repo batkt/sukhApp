@@ -47,9 +47,9 @@ class FirebaseTokhirgoo {
 
   // iOS-д өөр apiKey/appId байдаг. iOS дээр push хэрэгтэй бол доорхийг
   // бөглөнө, эс тэгвэл iOS дээр push унтраалттай хэвээр байна.
-  static const String _iosApiKey = "<IOS API KEY>";
-  static const String _iosAppId = "<1:000000000000:ios:0000000000000000>";
-  static const String _iosBundleId = "com.home.sukhApp";
+  static const String _iosApiKey = "AIzaSyBzTdv-QyY6ds4u-fHyc5Z94v5Kh-mt7TQ";
+  static const String _iosAppId = "1:940397540730:ios:4b0788fd59fc97f28612c3";
+  static const String _iosBundleId = "com.zevtabs.sukhapp";
 
   static bool _utgaZuvEsekh(String utga) {
     final u = utga.trim();

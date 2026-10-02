@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:sukh_app/tokhirgoo/firebase_tokhirgoo.dart';
@@ -128,12 +129,25 @@ class PushService {
         return;
       }
 
-      // iOS дээр APNs token бэлэн болтол FCM token null байж болно
-      _token = await messaging.getToken();
-      AppLogger.log(
-        '[PUSH] Token ${_token == null ? "авсангүй" : "авлаа"} '
-        '(${_token?.substring(0, 12) ?? "-"}...)',
-      );
+      // iOS дээр APNs token бэлэн болтол FCM token авах үед алдаа гарахаас сэргийлнэ
+      try {
+        if (defaultTargetPlatform == TargetPlatform.iOS) {
+          String? apns = await messaging.getAPNSToken();
+          if (apns == null) {
+            for (int i = 0; i < 3 && apns == null; i++) {
+              await Future.delayed(const Duration(seconds: 1));
+              apns = await messaging.getAPNSToken();
+            }
+          }
+        }
+        _token = await messaging.getToken();
+        AppLogger.log(
+          '[PUSH] Token ${_token == null ? "авсангүй" : "авлаа"} '
+          '(${_token?.substring(0, 12) ?? "-"}...)',
+        );
+      } catch (tokenErr) {
+        AppLogger.log('[PUSH] Token авахад түр алдаа гарлаа (onTokenRefresh хүлээнэ): $tokenErr');
+      }
 
       // Token сунгагдвал серверт дахин бүртгүүлэх шаардлагатай
       messaging.onTokenRefresh.listen((shine) {
