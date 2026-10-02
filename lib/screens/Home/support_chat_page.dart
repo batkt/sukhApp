@@ -677,7 +677,8 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
             child: AppBar(
               backgroundColor: (isDark ? Colors.black : Colors.white).withOpacity(0.7),
               elevation: 0,
-              centerTitle: true,
+              centerTitle: false,
+        titleSpacing: 4,
               title: Text(
                 'Тусламж & Дэмжлэг',
                 style: TextStyle(

@@ -3114,10 +3114,27 @@ class ApiService {
           invoice['niitTulburOriginal'] ??= invoice['niitTulbur'];
 
           invoice['uldegdel'] = ledgerUldegdel;
+          // Төлвийг ч мөн дэвтрээс авна. Нэхэмжлэхийн жагсаалт /uldegdelBodyo-той
+          // ЗЭРЭГ татагддаг тул сервер «Төлсөн» болгохоос өмнөх хуучин төлөв
+          // ирж, үлдэгдэл 0₮ мөртлөө «Төлөөгүй» харагддаг байв.
+          final ledgerTuluv = summaryMatch['tuluv']?.toString();
+          if (ledgerTuluv != null && ledgerTuluv.isNotEmpty) {
+            invoice['tuluv'] = ledgerTuluv;
+          } else if (ledgerTotal > 0 && ledgerUldegdel <= 0.01) {
+            invoice['tuluv'] = 'Төлсөн';
+          }
           // Synchronize niitTulbur from the ledger ONLY if ledger has positive charges,
           // otherwise keep the original invoice amount.
           if (ledgerTotal > 0) {
             invoice['niitTulbur'] = ledgerTotal;
+          }
+        } else {
+          // Дэвтэрт ямар ч төлбөргүй (хоосон) нэхэмжлэх — төлөх зүйлгүй тул
+          // «0₮ Төлөөгүй» гэж харуулахгүй.
+          final uld = (invoice['uldegdel'] is num) ? (invoice['uldegdel'] as num).toDouble() : 0.0;
+          final niit = (invoice['niitTulbur'] is num) ? (invoice['niitTulbur'] as num).toDouble() : 0.0;
+          if (linked.isEmpty && uld <= 0.01 && niit <= 0.01) {
+            invoice['tuluv'] = 'Төлсөн';
           }
         }
 

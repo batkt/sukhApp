@@ -873,7 +873,8 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                       ),
                     ),
                   ),
-                  centerTitle: true,
+                  centerTitle: false,
+        titleSpacing: 4,
                 ),
 
                 // ── PAYMENT LIST ──

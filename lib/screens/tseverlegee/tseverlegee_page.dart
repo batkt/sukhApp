@@ -132,7 +132,8 @@ class _TseverlegeePageState extends State<TseverlegeePage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 4,
       ),
       body: Form(
         key: _maygtTulkhuur,

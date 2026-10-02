@@ -290,7 +290,8 @@ class _QPayQRModalState extends State<QPayQRModal> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 4,
         toolbarHeight: 60.h,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPrimary, size: 20.sp),

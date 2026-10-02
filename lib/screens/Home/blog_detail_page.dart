@@ -306,7 +306,7 @@ class _BlogDetailPageState extends State<BlogDetailPage> {
   backgroundColor: context.surfaceColor,
   elevation: 0,
   flexibleSpace: FlexibleSpaceBar(
-    centerTitle: true,
+    centerTitle: false,
     background: Stack(
       fit: StackFit.expand,
       children: [

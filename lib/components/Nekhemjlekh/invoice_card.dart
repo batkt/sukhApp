@@ -26,26 +26,6 @@ class InvoiceCard extends StatelessWidget {
     this.onShowVATReceipt,
   });
 
-  IconData _getServiceIcon(String name) {
-    final n = name.toLowerCase();
-    if (n.contains('сөх') || n.contains('байр') || n.contains('орон сууц') || n.contains('ашиглалт')) {
-      return Icons.apartment_rounded;
-    } else if (n.contains('цахилгаан') || n.contains('тог') || n.contains('гэрэл')) {
-      return Icons.bolt_rounded;
-    } else if (n.contains('ус') || n.contains('хүйтэн') || n.contains('халуун') || n.contains('бохир')) {
-      return Icons.water_drop_rounded;
-    } else if (n.contains('лифт') || n.contains('цахилгаан шат')) {
-      return Icons.elevator_rounded;
-    } else if (n.contains('зогсоол') || n.contains('гараж') || n.contains('паркинг')) {
-      return Icons.local_parking_rounded;
-    } else if (n.contains('хог')) {
-      return Icons.delete_outline_rounded;
-    } else if (n.contains('дулаан') || n.contains('халаалт')) {
-      return Icons.thermostat_rounded;
-    }
-    return Icons.receipt_long_rounded;
-  }
-
   Color _getStatusColor(NekhemjlekhItem inv) {
     if (inv.isPaid) return const Color(0xFF10B981);
     return const Color(0xFFF59E0B);
@@ -76,7 +56,6 @@ class InvoiceCard extends StatelessWidget {
         ? invoice.baiguullagiinNer
         : 'СӨХ төлбөр';
 
-    final serviceIcon = _getServiceIcon(displayTitle);
     final pad = (isVerySmall ? 12.0 : (isSmall ? 14.0 : 16.0)).w;
 
     return RepaintBoundary(
@@ -150,20 +129,6 @@ class InvoiceCard extends StatelessWidget {
                           ),
                           SizedBox(width: (isVerySmall ? 10.0 : 12.0).w),
                         ],
-                        Container(
-                          width: (isVerySmall ? 38.0 : 42.0).w,
-                          height: (isVerySmall ? 38.0 : 42.0).w,
-                          decoration: BoxDecoration(
-                            color: AppColors.deepGreen.withOpacity(isDark ? 0.18 : 0.08),
-                            borderRadius: BorderRadius.circular(13.r),
-                          ),
-                          child: Icon(
-                            serviceIcon,
-                            color: isDark ? AppColors.secondaryLight : AppColors.deepGreen,
-                            size: (isVerySmall ? 18.0 : 20.0).sp,
-                          ),
-                        ),
-                        SizedBox(width: (isVerySmall ? 10.0 : 12.0).w),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,

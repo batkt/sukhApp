@@ -134,7 +134,8 @@ class _SanalAsuulgaPageState extends State<SanalAsuulgaPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _kDarkText, size: 20),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -722,7 +723,8 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _kDarkText, size: 20),
           onPressed: () => Navigator.of(context).maybePop(false),
@@ -1275,7 +1277,8 @@ class _AsuulgaKhariultPageState extends State<_AsuulgaKhariultPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: true,
+        centerTitle: false,
+        titleSpacing: 4,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _kDarkText, size: 20),
           onPressed: () => Navigator.of(context).pop(true),

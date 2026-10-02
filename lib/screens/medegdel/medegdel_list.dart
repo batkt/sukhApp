@@ -314,7 +314,20 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
                         size: 20.sp, color: context.textPrimaryColor),
                     tooltip: 'Буцах',
                   ),
-                  const Spacer(),
+                  // Гарчиг буцах сумтай нэг мөрөнд
+                  Expanded(
+                    child: Text(
+                      'Мэдэгдэл',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 21.sp,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.6,
+                        color: context.textPrimaryColor,
+                      ),
+                    ),
+                  ),
                   if (unreadCount > 0)
                     TextButton.icon(
                       onPressed: _markAllAsRead,
@@ -333,16 +346,6 @@ class _MedegdelListScreenState extends State<MedegdelListScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Мэдэгдэл',
-                    style: TextStyle(
-                      fontSize: 30.sp,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.8,
-                      color: context.textPrimaryColor,
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
                   Text(
                     unreadCount > 0
                         ? '$unreadCount уншаагүй мэдэгдэл'
