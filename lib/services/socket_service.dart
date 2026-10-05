@@ -123,7 +123,10 @@ class SocketService {
               turul == 'medegdel' ||
               turul == 'khariu' ||
               turul == 'хариу';
-          if (showAsBanner && (isAppType || message.isNotEmpty)) {
+          final isUserOwnReply = turul == 'user_reply' ||
+              data['sentByMe'] == true ||
+              (data['orshinSuugchId']?.toString() == _userId && turul == 'user_reply');
+          if (!isUserOwnReply && showAsBanner && (isAppType || message.isNotEmpty)) {
             NotificationService.showNotification(
               id: DateTime.now().millisecondsSinceEpoch % 100000,
               title: title.isNotEmpty ? title : 'Шинэ мэдэгдэл',

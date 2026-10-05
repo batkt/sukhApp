@@ -216,8 +216,17 @@ class PushService {
     }
   }
 
-  static void _urdTalUyed(RemoteMessage message) {
+  static void _urdTalUyed(RemoteMessage message) async {
     try {
+      final type = message.data['type']?.toString();
+      final senderId = message.data['senderId']?.toString();
+      if (type == 'medegdel_user_reply' && senderId != null && senderId.isNotEmpty) {
+        final currentUserId = await StorageService.getUserId();
+        if (currentUserId != null && currentUserId == senderId) {
+          return;
+        }
+      }
+
       final notification = message.notification;
       final title = notification?.title ?? message.data['title']?.toString();
       final body = notification?.body ?? message.data['body']?.toString();
