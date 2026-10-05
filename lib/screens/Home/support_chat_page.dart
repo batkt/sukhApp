@@ -178,9 +178,9 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       if (_authToken != null) {
         request.headers['Authorization'] = 'Bearer $_authToken';
       }
-      if (_baiguullagiinId != null) {
-        request.fields['baiguullagiinId'] = _baiguullagiinId!;
-      }
+      request.fields['baiguullagiinId'] = (_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty)
+          ? _baiguullagiinId!
+          : ApiService.CENTRALIZED_ORG_ID;
 
       final length = await file.length();
       int byteCount = 0;
@@ -218,7 +218,9 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
 
           final body = <String, dynamic>{
             'parentId': _chatId,
-            'baiguullagiinId': _baiguullagiinId ?? '',
+            'baiguullagiinId': (_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty)
+                ? _baiguullagiinId!
+                : ApiService.CENTRALIZED_ORG_ID,
             'orshinSuugchId': _userId ?? '',
             'message': '',
           };
@@ -338,16 +340,35 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       _userId = await StorageService.getUserId();
       final userName = await StorageService.getUserName() ?? 'Оршин суугч';
       final customerName = await StorageService.getWalletCustomerName();
-      _baiguullagiinId = await StorageService.getBaiguullagiinId();
-      _barilgiinId = await StorageService.getBarilgiinId();
+
+      final extraOrgId = widget.extra['baiguullagiinId']?.toString();
+      final storedOrgId = await StorageService.getBaiguullagiinId();
+      if (extraOrgId != null && extraOrgId.trim().isNotEmpty && extraOrgId != 'null') {
+        _baiguullagiinId = extraOrgId.trim();
+      } else if (storedOrgId != null && storedOrgId.trim().isNotEmpty && storedOrgId != 'null') {
+        _baiguullagiinId = storedOrgId.trim();
+      } else {
+        // Pure Bpay / non-org user: connect to centralized AmarSukh support
+        _baiguullagiinId = ApiService.CENTRALIZED_ORG_ID;
+      }
+
+      final extraBarilgaId = widget.extra['barilgiinId']?.toString();
+      _barilgiinId = (extraBarilgaId != null && extraBarilgaId.trim().isNotEmpty && extraBarilgaId != 'null')
+          ? extraBarilgaId.trim()
+          : await StorageService.getBarilgiinId();
+
       _authToken = await StorageService.getToken();
       final bairName = await StorageService.getWalletBairName() ?? '';
       final doorNo = await StorageService.getWalletDoorNo() ?? '';
 
       _displayName = customerName ?? userName;
-      _baiguullagaName = bairName.isNotEmpty ? '$bairName - $doorNo тоот' : 'СӨХ Апп';
+      if (_baiguullagiinId == ApiService.CENTRALIZED_ORG_ID && bairName.isEmpty) {
+        _baiguullagaName = 'AmarSukh Дэмжлэг';
+      } else {
+        _baiguullagaName = bairName.isNotEmpty ? '$bairName - $doorNo тоот' : 'СӨХ Апп';
+      }
 
-      if (_userId == null || _baiguullagiinId == null) {
+      if (_userId == null) {
         if (mounted) {
           setState(() => _isLoading = false);
           showGlassSnackBar(context, message: 'Хэрэглэгчийн мэдээлэл олдсонгүй');
@@ -409,7 +430,13 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   /// Thread байхгүй бол эхний мессежийг агуулгатай нь үүсгэнэ.
   Future<bool> _ensureThread(String ekhniiMessej) async {
     if (_chatId != null) return true;
-    if (_userId == null || _baiguullagiinId == null) return false;
+    if (_userId == null) return false;
+    final orgId = (_baiguullagiinId != null &&
+            _baiguullagiinId!.trim().isNotEmpty &&
+            _baiguullagiinId != 'null')
+        ? _baiguullagiinId!
+        : ApiService.CENTRALIZED_ORG_ID;
+
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
     final createRes = await http.post(
@@ -417,8 +444,11 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       headers: headers,
       body: jsonEncode({
         'orshinSuugchId': _userId,
-        'baiguullagiinId': _baiguullagiinId,
-        if (_barilgiinId != null) 'barilgiinId': _barilgiinId,
+        'baiguullagiinId': orgId,
+        if (_barilgiinId != null &&
+            _barilgiinId!.trim().isNotEmpty &&
+            _barilgiinId != 'null')
+          'barilgiinId': _barilgiinId,
         'turul': 'sanal',
         'medeelel': {
           'title': '$_baiguullagaName - Чат',
@@ -431,6 +461,16 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
       final dataList = createData['data'] as List<dynamic>?;
       if (dataList != null && dataList.isNotEmpty) {
         _chatId = dataList.first['_id']?.toString();
+      }
+    } else {
+      debugPrint('❌ [_ensureThread] failed: ${createRes.statusCode} - ${createRes.body}');
+      try {
+        final errJson = jsonDecode(createRes.body);
+        if (errJson['message'] != null) {
+          throw Exception(errJson['message']);
+        }
+      } catch (e) {
+        if (e is Exception) rethrow;
       }
     }
     if (_chatId != null && _socket == null) _connectSocket();
@@ -548,7 +588,9 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         headers: headers,
         body: jsonEncode({
           'parentId': _chatId,
-          'baiguullagiinId': _baiguullagiinId ?? '',
+          'baiguullagiinId': (_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty)
+              ? _baiguullagiinId!
+              : ApiService.CENTRALIZED_ORG_ID,
           'orshinSuugchId': _userId ?? '',
           'message': text,
         }),
@@ -594,7 +636,9 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
         headers: headers,
         body: jsonEncode({
           'parentId': _chatId,
-          'baiguullagiinId': _baiguullagiinId ?? '',
+          'baiguullagiinId': (_baiguullagiinId != null && _baiguullagiinId!.isNotEmpty)
+              ? _baiguullagiinId!
+              : ApiService.CENTRALIZED_ORG_ID,
           'orshinSuugchId': _userId ?? '',
           'message': text,
         }),
