@@ -439,8 +439,9 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
 
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (_authToken != null) headers['Authorization'] = 'Bearer $_authToken';
+    debugPrint('🚀 [_ensureThread] sending baiguullagiinId=$orgId, userId=$_userId');
     final createRes = await http.post(
-      Uri.parse('$_kChatApiBase/medegdelIlgeeye'),
+      Uri.parse('$_kChatApiBase/medegdelIlgeeye?baiguullagiinId=$orgId'),
       headers: headers,
       body: jsonEncode({
         'orshinSuugchId': _userId,
@@ -458,9 +459,24 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
     );
     if (createRes.statusCode == 200 || createRes.statusCode == 201) {
       final createData = jsonDecode(createRes.body);
-      final dataList = createData['data'] as List<dynamic>?;
-      if (dataList != null && dataList.isNotEmpty) {
-        _chatId = dataList.first['_id']?.toString();
+      final rawData = createData['data'];
+      if (rawData is Map) {
+        _chatId = rawData['_id']?.toString();
+      } else if (rawData is List && rawData.isNotEmpty) {
+        _chatId = rawData.first['_id']?.toString();
+      }
+      if (_chatId != null && mounted) {
+        setState(() {
+          if (_messages.isEmpty) {
+            _messages.add({
+              '_id': _chatId,
+              'message': ekhniiMessej,
+              'turul': 'user_reply',
+              'orshinSuugchId': _userId,
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+          }
+        });
       }
     } else {
       debugPrint('❌ [_ensureThread] failed: ${createRes.statusCode} - ${createRes.body}');
@@ -712,54 +728,43 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
     final isDark = context.isDarkMode;
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF5F7FA),
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight + 10.h),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: AppBar(
-              backgroundColor: (isDark ? Colors.black : Colors.white).withOpacity(0.7),
-              elevation: 0,
-              centerTitle: false,
+      extendBodyBehindAppBar: false,
+      appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        elevation: 0.5,
+        centerTitle: false,
         titleSpacing: 4,
-              title: Text(
-                'Тусламж & Дэмжлэг',
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontSize: 17.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black87, size: 20.sp),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
+        title: Text(
+          'Тусламж & Дэмжлэг',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontSize: 17.sp,
+            fontWeight: FontWeight.w600,
           ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : Colors.black87, size: 20.sp),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Stack(
         children: [
-          // Background Blobs
+          // Background Blobs (Fast RadialGradient - zero GPU BackdropFilter lag)
           Positioned(
-            top: -100.h,
-            right: -50.w,
-            child: _buildBlob(AppColors.deepGreen.withOpacity(0.15), 250.w),
+            top: -60.h,
+            right: -40.w,
+            child: _buildBlob(AppColors.deepGreen.withOpacity(0.08), 240.w),
           ),
           Positioned(
-            bottom: 100.h,
-            left: -80.w,
-            child: _buildBlob(Colors.blue.withOpacity(0.1), 300.w),
+            bottom: 80.h,
+            left: -60.w,
+            child: _buildBlob(Colors.blue.withOpacity(0.05), 260.w),
           ),
           
           SafeArea(
-            child: FadeTransition(
-              opacity: _fadeController,
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.deepGreen))
-                  : _buildChatRoomView(),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.deepGreen))
+                : _buildChatRoomView(),
           ),
         ],
       ),
@@ -767,68 +772,76 @@ class _SupportChatPageState extends State<SupportChatPage> with TickerProviderSt
   }
 
   Widget _buildBlob(Color color, double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-        child: Container(color: Colors.transparent),
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withOpacity(0.0)],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildChatRoomView() {
+    if (_messages.isEmpty) {
+      return Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.chat_bubble_outline_rounded, size: 64.sp, color: AppColors.deepGreen.withOpacity(0.1)),
+                  SizedBox(height: 16.h),
+                  Text('Мессеж байхгүй байна', style: TextStyle(color: Colors.grey[500], fontSize: 14.sp)),
+                ],
+              ),
+            ),
+          ),
+          _buildChoicesContainer(),
+          _buildMessageInput(),
+        ],
+      );
+    }
+
+    int lastKhariuIdx = -1;
+    int lastUserIdx = -1;
+    for (int i = _messages.length - 1; i >= 0; i--) {
+      final t = _messages[i]['turul'];
+      final isUserMsg = t == 'user_reply' ||
+          _messages[i]['isTemp'] == true ||
+          _messages[i]['_id']?.toString() == _chatId;
+      if (!isUserMsg && lastKhariuIdx == -1) lastKhariuIdx = i;
+      if (isUserMsg && lastUserIdx == -1) lastUserIdx = i;
+      if (lastKhariuIdx != -1 && lastUserIdx != -1) break;
+    }
+
     return Column(
       children: [
         Expanded(
-          child: _messages.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.chat_bubble_outline_rounded, size: 64.sp, color: AppColors.deepGreen.withOpacity(0.1)),
-                      SizedBox(height: 16.h),
-                      Text('Мессеж байхгүй байна', style: TextStyle(color: Colors.grey[500], fontSize: 14.sp)),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = _messages[index];
-                    // medegdel backend: user replies have turul='user_reply'
-                    // The root medegdel itself (turul='sanal') is the admin greeting,
-                    // shown as agent message. Temp messages added locally also use 'user_reply'.
-                    // Thread-ийн эх (root) нь одоо оршин суугчийн эхний мессеж
-                    final isMe = msg['turul'] == 'user_reply' ||
-                        msg['isTemp'] == true ||
-                        (msg['_id']?.toString() == _chatId && msg['orshinSuugchId'] != null);
-                    int lastKhariuIdx = -1;
-                    int lastUserIdx = -1;
-                    for (int i = _messages.length - 1; i >= 0; i--) {
-                      final t = _messages[i]['turul'];
-                      final isUserMsg = t == 'user_reply' ||
-                          _messages[i]['isTemp'] == true ||
-                          _messages[i]['_id']?.toString() == _chatId;
-                      if (!isUserMsg && lastKhariuIdx == -1) lastKhariuIdx = i;
-                      if (isUserMsg && lastUserIdx == -1) lastUserIdx = i;
-                    }
-                    final isLastAgentMsg = (index == lastKhariuIdx);
-                    final isLastUserMsg = (index == lastUserIdx);
-                    return _buildMessageBubble(
-                      msg,
-                      isMe,
-                      isLastAgentMsg: isLastAgentMsg,
-                      isLastUserMsg: isLastUserMsg,
-                    );
-                  },
-                ),
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+            itemCount: _messages.length,
+            itemBuilder: (context, index) {
+              final msg = _messages[index];
+              final isMe = msg['turul'] == 'user_reply' ||
+                  msg['isTemp'] == true ||
+                  (msg['_id']?.toString() == _chatId && msg['orshinSuugchId'] != null);
+              final isLastAgentMsg = (index == lastKhariuIdx);
+              final isLastUserMsg = (index == lastUserIdx);
+              return _buildMessageBubble(
+                msg,
+                isMe,
+                isLastAgentMsg: isLastAgentMsg,
+                isLastUserMsg: isLastUserMsg,
+              );
+            },
+          ),
         ),
         _buildChoicesContainer(),
         _buildMessageInput(),
