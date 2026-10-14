@@ -13,6 +13,10 @@ class NekhemjlekhItem {
   final String orts;
   final String gereeniiDugaar;
   final String nekhemjlekhiinOgnoo;
+
+  /// Нэхэмжлэхийн дугаар («НЭХ-20260918-0028») — хариунд ирдэг боловч
+  /// өмнө нь ангилагдахгүй тул карт дээр харуулах аргагүй байв.
+  final String nekhemjlekhiinDugaar;
   final double niitTulbur;
   final double niitTulburOriginal;
   final double uldegdel;
@@ -44,6 +48,7 @@ class NekhemjlekhItem {
     this.orts = '',
     required this.gereeniiDugaar,
     required this.nekhemjlekhiinOgnoo,
+    this.nekhemjlekhiinDugaar = '',
     required this.niitTulbur,
     this.niitTulburOriginal = 0.0,
     this.uldegdel = 0.0,
@@ -120,7 +125,9 @@ class NekhemjlekhItem {
       }
     }
 
-    // Compute ekhniiUldegdel: use top-level if present, else sum from zardluud + guilgeenuud (matches web)
+    // Compute ekhniiUldegdel: use top-level if present, else take it from the
+    // ledger (`guilgeenuud`) and fall back to the invoice snapshot (`zardluud`).
+    // NEVER add the two — they are the same charge recorded twice.
     double? ekhniiUldegdel;
     if (json['ekhniiUldegdel'] != null) {
       ekhniiUldegdel = (json['ekhniiUldegdel'] as num).toDouble();
@@ -136,17 +143,28 @@ class NekhemjlekhItem {
         }
       }
       double fromGuilgee = 0;
+      // ledger дээр ЭХНИЙ ҮЛДЭГДЛИЙН мөр БАЙГАА эсэх. Бүрэн ТӨЛӨГДСӨН үед
+      // дүн нь 0 болдог тул зөвхөн дүнгээр шийдвэл хуулбар рүү буцаж унаад
+      // төлөгдсөн үлдэгдлийг дахин харуулна.
+      bool guilgeendBii = false;
       if (medeelel.guilgeenuud != null) {
         for (final g in medeelel.guilgeenuud!) {
           if (g.ekhniiUldegdelEsekh) {
+            guilgeendBii = true;
             final base = g.tulukhDun ?? g.undsenDun ?? 0.0;
             final tulsun = g.tulsunDun ?? 0.0;
-            final amt = base - tulsun;
-            if (amt != 0) fromGuilgee += amt;
+            fromGuilgee += base - tulsun;
           }
         }
       }
-      final total = fromZardluud + fromGuilgee;
+      // ЭХНИЙ ҮЛДЭГДЭЛ НЭГ бөгөөд түүнийг ХОЕР газар бичдэг:
+      // `zardluud` нь нэхэмжлэхийн АГШНЫ ХУУЛБАР, `guilgeenuud` нь ledger.
+      // Тэднийг НЭМЭХ нь эхний үлдэгдлийг ХОЕР ДАХИН бодож байв
+      // (396,000 → 792,000). Вэб ч эдгээрийг `||`-ээр НЭГ зүйл гэж үздэг.
+      //
+      // ledger дээр байвал түүнийг эрхэмлэнэ (төлөлт хассан бодогдол),
+      // байхгүй үед л хуулбараас авна.
+      final total = guilgeendBii ? fromGuilgee : fromZardluud;
       if (total != 0) ekhniiUldegdel = total;
     }
 
@@ -165,6 +183,7 @@ class NekhemjlekhItem {
           json['nekhemjlekhiinOgnoo']?.toString() ??
           json['ognoo']?.toString() ??
           '',
+      nekhemjlekhiinDugaar: json['nekhemjlekhiinDugaar']?.toString() ?? '',
       niitTulbur: (json['niitTulbur'] ?? 0).toDouble(),
       niitTulburOriginal: (json['niitTulburOriginal'] ?? 0).toDouble(),
       uldegdel: (json['uldegdel'] ?? 0).toDouble(),
@@ -193,6 +212,15 @@ class NekhemjlekhItem {
 
   String get formattedPeriod {
     try {
+      // ISO агшин бол УБ-ийн цагаар бодно. `2026-10-04T17:01Z` нь УБ-д
+      // 10-05 — сарын зааг дээр текстээр тасдахад буруу сар гарна.
+      if (nekhemjlekhiinOgnoo.contains('T')) {
+        final d = DateTime.tryParse(nekhemjlekhiinOgnoo);
+        if (d != null) {
+          final ub = d.toUtc().add(const Duration(hours: 8));
+          return '${ub.year}.${ub.month.toString().padLeft(2, '0')}';
+        }
+      }
       if (nekhemjlekhiinOgnoo.contains('-')) {
         final parts = nekhemjlekhiinOgnoo.split('-');
         if (parts.length >= 2) return '${parts[0]}.${parts[1]}';
@@ -207,6 +235,16 @@ class NekhemjlekhItem {
       }
     } catch (_) {}
     return nekhemjlekhiinOgnoo;
+  }
+
+  /// «2026 оны 9-р сар» — карт дээр аль сарын нэхэмжлэх болохыг заана.
+  String get sariinNer {
+    final kh = formattedPeriod.split('.');
+    if (kh.length >= 2) {
+      final sar = int.tryParse(kh[1]);
+      if (sar != null) return '${kh[0]} оны $sar-р сар';
+    }
+    return formattedPeriod;
   }
 
   /// Mirrors web's getPaymentStatusLabel + backend pre-save logic:
@@ -291,6 +329,7 @@ class NekhemjlekhItem {
     String? orts,
     String? gereeniiDugaar,
     String? nekhemjlekhiinOgnoo,
+    String? nekhemjlekhiinDugaar,
     double? niitTulbur,
     double? niitTulburOriginal,
     double? uldegdel,
@@ -317,6 +356,7 @@ class NekhemjlekhItem {
       orts: orts ?? this.orts,
       gereeniiDugaar: gereeniiDugaar ?? this.gereeniiDugaar,
       nekhemjlekhiinOgnoo: nekhemjlekhiinOgnoo ?? this.nekhemjlekhiinOgnoo,
+      nekhemjlekhiinDugaar: nekhemjlekhiinDugaar ?? this.nekhemjlekhiinDugaar,
       niitTulbur: niitTulbur ?? this.niitTulbur,
       niitTulburOriginal: niitTulburOriginal ?? this.niitTulburOriginal,
       uldegdel: uldegdel ?? this.uldegdel,

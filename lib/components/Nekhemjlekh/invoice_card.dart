@@ -171,19 +171,42 @@ class InvoiceCard extends StatelessWidget {
                                 children: [
                                   Expanded(
                                     // Байрны нэр урт бол тоот тасрахгүй — 2 мөрөнд ороно
-                                    child: Text(
-                                      invoice.bairNer.isNotEmpty
-                                          ? '${invoice.bairNer} · ${invoice.toot} тоот'
-                                          : invoice.toot.isNotEmpty
-                                              ? '${invoice.toot} тоот'
-                                              : '',
-                                      maxLines: 2,
-                                      softWrap: true,
-                                      style: TextStyle(
-                                        color: context.textSecondaryColor,
-                                        fontSize: (isVerySmall ? 10.5 : 11.5).sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          invoice.bairNer.isNotEmpty
+                                              ? '${invoice.bairNer} · ${invoice.toot} тоот'
+                                              : invoice.toot.isNotEmpty
+                                                  ? '${invoice.toot} тоот'
+                                                  : '',
+                                          maxLines: 2,
+                                          softWrap: true,
+                                          style: TextStyle(
+                                            color: context.textSecondaryColor,
+                                            fontSize: (isVerySmall ? 10.5 : 11.5).sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        // АЛЬ САРЫН нэхэмжлэх болох нь харагддаггүй тул
+                                        // хоёр нэхэмжлэх яг ижил харагдаж байв.
+                                        if (invoice.formattedPeriod.isNotEmpty) ...[
+                                          SizedBox(height: 2.h),
+                                          Text(
+                                            invoice.nekhemjlekhiinDugaar.isNotEmpty
+                                                ? '${invoice.sariinNer} · ${invoice.nekhemjlekhiinDugaar}'
+                                                : invoice.sariinNer,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: context.textSecondaryColor
+                                                  .withOpacity(0.75),
+                                              fontSize: (isVerySmall ? 9.5 : 10.5).sp,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   SizedBox(width: 8.w),
@@ -413,8 +436,29 @@ class InvoiceCard extends StatelessWidget {
         invoice.khungulultuud.where((g) => g.khungulultDun > 0).toList();
     final khungulultDun = invoice.khungulultDun;
 
+    // `zardluud` нь нэхэмжлэхийн АГШНЫ ХУУЛБАР, `guilgeenuud` нь ledger — эдгээр
+    // нь ИЖИЛ зардлын хоёр дүрслэл. Хоёуланг нь зурвал зардал бүр ХОЕР
+    // УДАА харагдана (11 + 11 + 1 = «23 зүйл»).
+    //
+    // ledger дээр байгаа зардлыг эрхэмлэнэ. Харин зөвхөн хуулбарт байгаа
+    // зардлыг (жишээ нь ledger-т бичигдээгүй «Баримт») АЛДАХГҮЙ үлдээнэ.
+    //
+    // Нэрийг зай, таб тэвчэж тулгана — өгөгдөл дээр «Хуримтлалын 10%	»,
+    // «Ажилчдын  цалин» (давхар зай), «Зогсоолын хаалт » гэх мэт байдаг.
+    String nerTulkhuur(String? ner) =>
+        (ner ?? '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+    final ledgerNeruud = guilgeenuud
+        .map((g) => nerTulkhuur(
+            (g.tailbar?.isNotEmpty ?? false) ? g.tailbar : g.zardliinNer))
+        .where((n) => n.isNotEmpty)
+        .toSet();
+
     final additionalZardluud = invoice.medeelel?.zardluud
-            .where((z) => z.isDisplayable && !z.isEkhniiUldegdel)
+            .where((z) =>
+                z.isDisplayable &&
+                !z.isEkhniiUldegdel &&
+                !ledgerNeruud.contains(nerTulkhuur(z.ner)))
             .toList() ??
         [];
 
