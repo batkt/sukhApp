@@ -9,6 +9,7 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/screens/contact/contact_bottom_sheet.dart';
 import 'package:sukh_app/services/version_service.dart';
 import 'package:sukh_app/utils/format_util.dart';
+import 'package:sukh_app/components/Home/guided_component.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({super.key});
@@ -258,6 +259,15 @@ class _SideMenuState extends State<SideMenu> {
                         }
                         Navigator.pop(context);
                         context.push('/sanal_asuulga');
+                      },
+                    ),
+                    _buildNavTile(
+                      context,
+                      icon: Icons.tips_and_updates_outlined,
+                      title: 'Аппын заавар үзэх',
+                      onTap: () {
+                        Navigator.pop(context);
+                        GuidedComponent.trigger();
                       },
                     ),
                     _buildNavTile(

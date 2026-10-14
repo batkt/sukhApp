@@ -40,6 +40,7 @@ import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/components/Home/draggable_floating_chatbot.dart';
+import 'package:sukh_app/components/Home/guided_component.dart';
 import 'package:sukh_app/utils/error_message.dart';
 import 'support_chat_page.dart';
 
@@ -125,6 +126,11 @@ class _BookingScreenState extends State<NuurKhuudas>
   final PageController _billerPageController = PageController();
   final PageController _contractPageController = PageController();
 
+  // In-component Onboarding guide state
+  final ScrollController _homeScrollController = ScrollController();
+  int _activeGuideStep = -1;
+  static const int _totalGuideSteps = 5;
+
   // New variables for invoice tracking
   int? nekhemjlekhUusgekhOgnoo;
   DateTime? oldestUnpaidInvoiceDate;
@@ -204,6 +210,54 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (mounted && _gereeResponse != null) {
         _progressAnimationController.forward();
       }
+    });
+
+    // Register global guide trigger and check if first login
+    GuidedComponent.onTriggerGuide = _startOnboardingGuide;
+    _checkFirstTimeGuide();
+  }
+
+  Future<void> _checkFirstTimeGuide() async {
+    final hasSeen = await StorageService.hasSeenHomeGuide();
+    if (!hasSeen && mounted) {
+      Future.delayed(const Duration(milliseconds: 1400), () {
+        if (mounted && _activeGuideStep == -1) {
+          _startOnboardingGuide();
+        }
+      });
+    }
+  }
+
+  void _startOnboardingGuide() {
+    if (!mounted) return;
+    if (_homeScrollController.hasClients && _homeScrollController.offset > 0) {
+      _homeScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    }
+    setState(() {
+      _activeGuideStep = 0;
+    });
+  }
+
+  void _nextGuideStep() {
+    if (!mounted) return;
+    if (_activeGuideStep < _totalGuideSteps - 1) {
+      setState(() {
+        _activeGuideStep++;
+      });
+    } else {
+      _finishOnboardingGuide();
+    }
+  }
+
+  void _finishOnboardingGuide() {
+    StorageService.setHasSeenHomeGuide(true);
+    if (!mounted) return;
+    setState(() {
+      _activeGuideStep = -1;
     });
   }
 
@@ -349,6 +403,10 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   @override
   void dispose() {
+    _homeScrollController.dispose();
+    if (GuidedComponent.onTriggerGuide == _startOnboardingGuide) {
+      GuidedComponent.onTriggerGuide = null;
+    }
     _balanceRefreshTimer?.cancel();
     _balanceRefreshTimer = null;
     WidgetsBinding.instance.removeObserver(this);
@@ -998,19 +1056,42 @@ class _BookingScreenState extends State<NuurKhuudas>
                 navigatorKey.currentContext));
     if (activeContext == null) return;
 
+    // БҮРТГЭЛИЙН ЭХ СУРВАЛЖ. «WALLET_API» гэдэг нь BPay-д холбогдсон хаяг,
+    // «OWN_ORG» гэдэг нь өөрийн СӨХ-ийн ГЭРЭЭ. Сүүлдийнхийн `billingId` нь
+    // гэрээний ДУГААР бөгөөд BPay дээр тийм биллинг БАЙХГҮЙ — тийм
+    // бичлэг дээр «Устгах» дарахад сервер рүү байхгүй id явуулж, ойлгомжгүй
+    // алдаагаар зогсдог байв.
+    final ekhSurvalj = billing['source']?.toString();
+    if (ekhSurvalj == 'OWN_ORG') {
+      showGlassSnackBar(
+        activeContext,
+        message:
+            'Энэ нь СӨХ-тэй байгуулсан гэрээ тул эндээс салгах боломжгүй. СӨХ-тэйгээ холбогдоно уу.',
+        icon: Icons.info_outline,
+        iconColor: Colors.orange,
+      );
+      return;
+    }
+
+    // `?.toString()` нь ХООСОН мөр ба «null» гэсэн текстийг ч буцаадаг тул
+    // доорхи `== null` шалгалт тэднийг ӘНГӨРҮҮЛДЭГ байв — улмаар
+    // `DELETE /wallet/billing/` рүү яваад 404 болдог.
+    String? tseverId(Object? utga) {
+      final mur = utga?.toString().trim() ?? '';
+      if (mur.isEmpty || mur == 'null') return null;
+      return mur;
+    }
+
     final billingId =
-        billing['billingId']?.toString() ??
-        billing['walletBillingId']?.toString();
+        tseverId(billing['billingId']) ?? tseverId(billing['walletBillingId']);
 
     if (billingId == null) {
-      if (billing['isLocalData'] == true) {
-        showGlassSnackBar(
-          activeContext,
-          message: 'Энэ биллинг API-тай холбогдоогүй байна.',
-          icon: Icons.info_outline,
-          iconColor: Colors.orange,
-        );
-      }
+      showGlassSnackBar(
+        activeContext,
+        message: 'Энэ хаяг BPay-д бүртгэгдээгүй тул салгах боломжгүй байна.',
+        icon: Icons.info_outline,
+        iconColor: Colors.orange,
+      );
       return;
     }
 
@@ -1019,11 +1100,11 @@ class _BookingScreenState extends State<NuurKhuudas>
       useRootNavigator: true,
       builder: (ctx) => AlertDialog(
         title: Text(
-          'Биллинг устгах',
+          'Хаяг салгах',
           style: TextStyle(color: ctx.textPrimaryColor),
         ),
         content: Text(
-          'Та энэ биллингийг устгахдаа итгэлтэй байна уу?',
+          'Энэ хаягийг жагсаалтаасаа салгах уу? Төлсөн төлбөрийн түүх устахгүй.',
           style: TextStyle(color: ctx.textSecondaryColor),
         ),
         backgroundColor: ctx.backgroundColor,
@@ -1059,7 +1140,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (finalContext != null) {
         showGlassSnackBar(
           finalContext,
-          message: 'Биллинг амжилттай устгагдлаа',
+          message: 'Хаяг салгагдлаа',
           icon: Icons.check_circle,
           iconColor: Colors.green,
         );
@@ -1073,7 +1154,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       if (finalContext != null) {
         showGlassSnackBar(
           finalContext,
-          message: friendlyError(e, fallback: 'Биллинг устгаж чадсангүй. Дахин оролдоно уу.'),
+          message: friendlyError(e, fallback: 'Хаяг салгаж чадсангүй. Дахин оролдоно уу.'),
           icon: Icons.error,
           iconColor: Colors.red,
         );
@@ -1932,24 +2013,38 @@ class _BookingScreenState extends State<NuurKhuudas>
         color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF3F5F2),
         child: Column(
           children: [
-            HomeHeader(
-              userName: (_isNonOrgUser && _userProfile?['hasCustomName'] != true)
-                  ? null
-                  : _userProfile?['ner']?.toString(),
-              unreadNotificationCount: _unreadNotificationCount,
-              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
-              onThemeToggle: () {
-                final themeService = Provider.of<ThemeService>(
-                  context,
-                  listen: false,
-                );
-                themeService.toggleTheme();
-              },
-              onNotificationTap: () {
-                context
-                    .push('/medegdel-list')
-                    .then((_) => _loadNotificationCount());
-              },
+            GuidedComponent(
+              stepIndex: 0,
+              activeStep: _activeGuideStep,
+              totalSteps: _totalGuideSteps,
+              title: 'Хувийн цэс & Горим',
+              description: 'СӨХ-ийн мэдээлэл, хаяг холболт, өдөр/шөнийн горим солих болон чухал мэдэгдлээ эндээс хянаарай.',
+              tag: 'ЦЭС & ТОХИРГОО',
+              icon: Icons.tune_rounded,
+              tipBelow: true,
+              borderRadius: 20.0,
+              tipMargin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+              onNext: _nextGuideStep,
+              onSkip: _finishOnboardingGuide,
+              child: HomeHeader(
+                userName: (_isNonOrgUser && _userProfile?['hasCustomName'] != true)
+                    ? null
+                    : _userProfile?['ner']?.toString(),
+                unreadNotificationCount: _unreadNotificationCount,
+                onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+                onThemeToggle: () {
+                  final themeService = Provider.of<ThemeService>(
+                    context,
+                    listen: false,
+                  );
+                  themeService.toggleTheme();
+                },
+                onNotificationTap: () {
+                  context
+                      .push('/medegdel-list')
+                      .then((_) => _loadNotificationCount());
+                },
+              ),
             ),
 
             Expanded(
@@ -1966,6 +2061,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                 },
                 color: AppColors.deepGreen,
                 child: SingleChildScrollView(
+                  controller: _homeScrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: Column(
@@ -1974,7 +2070,19 @@ class _BookingScreenState extends State<NuurKhuudas>
                       SizedBox(height: 4.h),
 
                       // 1. Merged Remaining Days & Billing Box - PageView for multiple contracts
-                      Builder(builder: (context) {
+                      GuidedComponent(
+                        stepIndex: 1,
+                        activeStep: _activeGuideStep,
+                        totalSteps: _totalGuideSteps,
+                        title: 'Төлбөрийн үлдэгдэл',
+                        description: 'Таны сарын төлбөрийн үлдэгдэл, төлөх хугацаа болон хөнгөлөлтийн дэлгэрэнгүй энд харагдана.',
+                        tag: 'ТӨЛБӨРИЙН КАРТ',
+                        icon: Icons.account_balance_wallet_rounded,
+                        tipBelow: true,
+                        borderRadius: 28.0,
+                        onNext: _nextGuideStep,
+                        onSkip: _finishOnboardingGuide,
+                        child: Builder(builder: (context) {
                         final isCurrentlyLoading = _isLoadingBillingList || _isRefreshing;
                         // While both cache and network have not loaded at all, show a premium glass loading card
                         if (!_isInitialBillingLoaded || (isCurrentlyLoading && _billingList.isEmpty && (_gereeResponse == null || _gereeResponse!.jagsaalt.isEmpty))) {
@@ -2203,63 +2311,102 @@ class _BookingScreenState extends State<NuurKhuudas>
                           ],
                         );
                       }),
+                    ),
 
                       SizedBox(height: 22.h),
 
-                      // 3. Нэмэлт боломж Section
-                      _buildAdditionalServicesSection(),
+                      // 2. Нэмэлт боломж Section
+                      GuidedComponent(
+                        stepIndex: 2,
+                        activeStep: _activeGuideStep,
+                        totalSteps: _totalGuideSteps,
+                        title: 'Шуурхай үйлчилгээ',
+                        description: 'Зогсоол, Камер шүүх, Лифт, Зочны бүртгэл, Дуудлага засвар зэрэг СӨХ-ийн нэмэлт боломжууд.',
+                        tag: 'ШУУРХАЙ БОЛОМЖ',
+                        icon: Icons.dashboard_customize_rounded,
+                        tipBelow: true,
+                        borderRadius: 26.0,
+                        onNext: _nextGuideStep,
+                        onSkip: _finishOnboardingGuide,
+                        child: _buildAdditionalServicesSection(),
+                      ),
 
                       SizedBox(height: 22.h),
 
-                      // 4. Billers Grid
-                      if (_isLoadingBillers)
-                        SizedBox(
-                          height: 200.h,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.deepGreen,
-                            ),
-                          ),
-                        )
-                      else if (_billers.isEmpty)
-                        SizedBox(
-                          height: 200.h,
-                          child: Center(
-                            child: Text(
-                              'Биллер олдсонгүй',
-                              style: TextStyle(
-                                color: context.textSecondaryColor,
-                                fontSize: 16.sp,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        BillersGrid(
-                          billers: _billers,
-                          onDevelopmentTap: () =>
-                              _showDevelopmentModal(context),
-                          onBillerTap: () {
-                            if (_isLoadingBillingList || _isRefreshing) {
-                              showGlassSnackBar(
-                                context,
-                                message: 'Мэдээлэл ачаалж байна, түр хүлээнэ үү.',
-                                icon: Icons.hourglass_empty_rounded,
-                                iconColor: Colors.orange,
-                              );
-                              return;
-                            }
-                            if (_billingList.isEmpty &&
-                                _userBillingData == null) {
-                              _navigateToBillingList();
-                            }
-                          },
-                        ),
+                      // 3. Billers Grid
+                      GuidedComponent(
+                        stepIndex: 3,
+                        activeStep: _activeGuideStep,
+                        totalSteps: _totalGuideSteps,
+                        title: 'Өдөр тутмын үйлчилгээ',
+                        description: 'Цахилгаан, СӨХ, Юнивишн, Скайтел зэрэг ахуйн хэрэглээний төлбөрүүдээ нэг дороос хялбар төлөөрэй.',
+                        tag: 'ҮЙЛЧИЛГЭЭ ТӨЛӨЛТ',
+                        icon: Icons.grid_view_rounded,
+                        tipBelow: false,
+                        borderRadius: 24.0,
+                        onNext: _nextGuideStep,
+                        onSkip: _finishOnboardingGuide,
+                        child: _isLoadingBillers
+                            ? SizedBox(
+                                height: 200.h,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.deepGreen,
+                                  ),
+                                ),
+                              )
+                            : _billers.isEmpty
+                                ? SizedBox(
+                                    height: 200.h,
+                                    child: Center(
+                                      child: Text(
+                                        'Биллер олдсонгүй',
+                                        style: TextStyle(
+                                          color: context.textSecondaryColor,
+                                          fontSize: 16.sp,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : BillersGrid(
+                                    billers: _billers,
+                                    onDevelopmentTap: () =>
+                                        _showDevelopmentModal(context),
+                                    onBillerTap: () {
+                                      if (_isLoadingBillingList || _isRefreshing) {
+                                        showGlassSnackBar(
+                                          context,
+                                          message: 'Мэдээлэл ачаалж байна, түр хүлээнэ үү.',
+                                          icon: Icons.hourglass_empty_rounded,
+                                          iconColor: Colors.orange,
+                                        );
+                                        return;
+                                      }
+                                      if (_billingList.isEmpty &&
+                                          _userBillingData == null) {
+                                        _navigateToBillingList();
+                                      }
+                                    },
+                                  ),
+                      ),
 
                       SizedBox(height: 12.h),
 
-                      // 5. Blog Slider Section
-                      const BlogSliderSection(),
+                      // 4. Blog Slider Section
+                      GuidedComponent(
+                        stepIndex: 4,
+                        activeStep: _activeGuideStep,
+                        totalSteps: _totalGuideSteps,
+                        title: 'Хотхоны мэдээ & Зарлал',
+                        description: 'СӨХ болон хотхоны захиргааны албан ёсны зар, цахилгаан ус тасрах тухай болон нийтлэлүүд.',
+                        tag: 'МЭДЭЭ МЭДЭЭЛЭЛ',
+                        icon: Icons.newspaper_rounded,
+                        tipBelow: false,
+                        borderRadius: 24.0,
+                        onNext: _nextGuideStep,
+                        onSkip: _finishOnboardingGuide,
+                        child: const BlogSliderSection(),
+                      ),
 
                       SizedBox(height: 24.h), // More bottom spacing
                     ],

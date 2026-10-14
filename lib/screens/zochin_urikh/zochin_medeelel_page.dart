@@ -54,7 +54,11 @@ class _ZochinMedeelelPageState extends State<ZochinMedeelelPage> {
   }
 
   String _formatPlate(String raw) {
-    return raw.replaceAll(' ', '').trim().toUpperCase();
+    final clean = raw.replaceAll(' ', '').trim().toUpperCase();
+    if (clean.length == 7 && RegExp(r'^[0-9]{4}[А-ЯӨҮЁA-Z]{3}$').hasMatch(clean)) {
+      return '${clean.substring(0, 4)} ${clean.substring(4)}';
+    }
+    return clean;
   }
 
 

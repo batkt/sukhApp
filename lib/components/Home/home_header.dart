@@ -13,6 +13,7 @@ class HomeHeader extends StatelessWidget {
 
   /// Хэрэглэгчийн нэр (байхгүй бол зөвхөн мэндчилгээ)
   final String? userName;
+  final GlobalKey? notificationKey;
 
   const HomeHeader({
     super.key,
@@ -21,6 +22,7 @@ class HomeHeader extends StatelessWidget {
     required this.onThemeToggle,
     required this.onNotificationTap,
     this.userName,
+    this.notificationKey,
   });
 
   static String _mendchilgee() {
@@ -84,6 +86,7 @@ class HomeHeader extends StatelessWidget {
             ),
             SizedBox(width: 8.w),
             Stack(
+              key: notificationKey,
               clipBehavior: Clip.none,
               children: [
                 _buildIconButton(

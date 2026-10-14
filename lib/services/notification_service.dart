@@ -105,11 +105,24 @@ class NotificationService {
   }
 
   /// Show session expired notification
+  /// Гарсан тухай мэдэгдлийн ДУГААР.
+  ///
+  /// Өмнө нь энэ мэдэгдэл 0 дугаартай байсан — харин `SessionService.logout()`
+  /// ба `clearLoginTimestamp()` хоёулаа ТОВЛОСОН мэдэгдлийг цэвэрлэхийн
+  /// тулд `cancel(0)` дууддаг. Иймээс дөнгөж гаргасан мэдэгдлээ тэр дороо
+  /// өөрөө устгадаг байсан тул хэрэглэгч юу ч хардаггүй байв.
+  static const int sessionExpiredId = 9001;
+
+  /// Нэвтрэлт дууссан тухай НЭГ л эх сурвалжтай текст.
+  static const String sessionExpiredTitle = 'Системээс гарлаа';
+  static const String sessionExpiredBody =
+      'Та удаан хугацаанд идэвхгүй байсан тул системээс гарлаа. Дахин нэвтэрнэ үү.';
+
   static Future<void> showSessionExpiredNotification([String? message]) async {
     const androidDetails = AndroidNotificationDetails(
       'session_channel',
       'Нэвтрэлтийн мэдэгдэл',
-      channelDescription: 'Таны нэвтрэлтийн хугацаа дууслаа!',
+      channelDescription: 'Системээс гарсан тухай мэдэгдэл',
       importance: Importance.high,
       priority: Priority.high,
       showWhen: true,
@@ -127,9 +140,9 @@ class NotificationService {
     );
 
     await _notifications.show(
-      0,
-      'Нэвтрэлтийн хугацаа дууссан',
-      message ?? 'Таны нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.',
+      sessionExpiredId,
+      sessionExpiredTitle,
+      message ?? sessionExpiredBody,
       notificationDetails,
       payload: 'session_expired',
     );
@@ -197,7 +210,7 @@ class NotificationService {
     const androidDetails = AndroidNotificationDetails(
       'session_channel',
       'Нэвтрэлтийн мэдэгдэл',
-      channelDescription: 'Таны нэвтрэлтийн хугацаа дууслаа!',
+      channelDescription: 'Системээс гарсан тухай мэдэгдэл',
       importance: Importance.high,
       priority: Priority.high,
       showWhen: true,
@@ -215,10 +228,12 @@ class NotificationService {
     );
 
     // Schedule the notification
+    // Товлосон мэдэгдэл нь 0 дугаартай хэвээр — `cancel(0)` энэнийг цэвэрлэнэ.
+    // Текст нь шууд гардагтайгаа НЭГ ижил.
     await _notifications.zonedSchedule(
       0,
-      'Нэвтрэлтийн хугацаа дууссан',
-      'Таны нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.',
+      sessionExpiredTitle,
+      sessionExpiredBody,
       _convertToTZDateTime(scheduledDate),
       notificationDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

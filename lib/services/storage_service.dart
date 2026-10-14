@@ -556,6 +556,28 @@ class StorageService {
     }
   }
 
+  static const String _homeGuideShownKey = 'home_guide_shown_v1';
+
+  /// Check if user has seen the animated home feature guide
+  static Future<bool> hasSeenHomeGuide() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_homeGuideShownKey) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Mark home feature guide as seen/unseen
+  static Future<bool> setHasSeenHomeGuide(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return await prefs.setBool(_homeGuideShownKey, value);
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Clear all stored data (use on logout)
   static Future<bool> clearAll() async {
     try {

@@ -156,9 +156,17 @@ class _BillingListPageState extends State<BillingListPage> {
     }
   }
 
-  Future<void> _refresh() async {
+  /// Жагсаалтыг шинэчлэнэ.
+  ///
+  /// [tsegtseerKharuulakh] нь `false` бол биеийн доторх эргэгчийг ГАРГАХГҮЙ.
+  /// Татаж шинэчлэхэд `RefreshIndicator` өөрөө эргэгч харуулдаг тул
+  /// дээрээс нь бас биед нь хоёр дахь эргэгч гарч хоёр ачаалалт зэрэг
+  /// харагддаг байв.
+  Future<void> _refresh({bool tsegtseerKharuulakh = true}) async {
     if (!mounted) return;
-    setState(() => _localIsLoading = true);
+    if (tsegtseerKharuulakh) {
+      setState(() => _localIsLoading = true);
+    }
     
     // Call parent refresh
     await widget.onRefresh();
@@ -471,7 +479,8 @@ class _BillingListPageState extends State<BillingListPage> {
     return Scaffold(
       backgroundColor: context.backgroundColor,
       body: RefreshIndicator(
-        onRefresh: _refresh,
+        // `RefreshIndicator` өөрийн эргэгчтэй — биед нь дахин гаргахгүй.
+        onRefresh: () => _refresh(tsegtseerKharuulakh: false),
         color: AppColors.deepGreen,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -535,17 +544,23 @@ class _BillingListPageState extends State<BillingListPage> {
           ),
         ),
         SizedBox(width: 12.w),
+        // Гарчиг богино — «Таны орон сууцнууд» нь буцах товч ба нэмэх
+        // товчны хооронд багтахгүй, жижиг дэлгэцэнд тасардаг байв. Жагсаалтад
+        // орон сууцнаас гадна нийтийн үйлчилгээний хаяг ч ордог.
         Expanded(
           child: Text(
-            'Таны орон сууцнууд',
+            'Миний хаягууд',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: context.textPrimaryColor,
-              fontSize: 20.sp,
+              fontSize: 18.sp,
               fontWeight: FontWeight.w600,
-              letterSpacing: -0.6,
+              letterSpacing: -0.4,
             ),
           ),
         ),
+        SizedBox(width: 8.w),
         GestureDetector(
           onTap: _addNewAddress,
           child: Container(
@@ -560,7 +575,11 @@ class _BillingListPageState extends State<BillingListPage> {
               children: [
                 Icon(Icons.add_rounded, color: Colors.white, size: 18.sp),
                 SizedBox(width: 4.w),
-                Text('Нэмэх', style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                // «Нэмэх» гэхээр ЮУГ нэмэх нь тодоргүй — төлбөрийн хаяг нэмнэ.
+                Text(
+                  'Төлбөр',
+                  style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
           ),

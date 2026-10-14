@@ -59,9 +59,10 @@ class SessionService {
     final isValid = await isSessionValid();
 
     if (!isValid) {
-      // Session expired - show notification and logout
-      await NotificationService.showSessionExpiredNotification();
+      // ЭХЛЭЭД гаргаж, ДАРАА нь мэдэгдэнэ. `logout()` нь сессийн
+      // мэдэгдлийг цуцалдаг тул өмнө нь гаргасан мэдэгдэл устаж байв.
       await logout();
+      await NotificationService.showSessionExpiredNotification();
       return false;
     }
 
@@ -75,8 +76,11 @@ class SessionService {
 
     await AuthConfig.instance.logout();
     await clearLoginTimestamp();
-    // Cancel any scheduled session expiry notification
+    // Товлосон (0) ба шууд гаргасан (`sessionExpiredId`) хоёуланг цэвэрлэнэ
+    // — гар аргаар гарсан хэрэглэгчид «идэвхгүй удсан» гэсэн хуучин
+    // мэдэгдэл үлдэх ёсгүй.
     await NotificationService.cancel(0);
+    await NotificationService.cancel(NotificationService.sessionExpiredId);
   }
 
   /// Clear the login timestamp
@@ -84,7 +88,8 @@ class SessionService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_loginTimestampKey);
-      // Cancel any scheduled session expiry notification
+      // ЗӨВХӨН товлосоныг цуцална. Шууд гаргасан мэдэгдэл нь
+      // өөр дугаартай бөгөөд түүнийг зөвхөн `logout()` цэвэрлэнэ.
       await NotificationService.cancel(0);
     } catch (e) {
       // Silent fail

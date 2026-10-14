@@ -324,9 +324,9 @@ class _BillingCardState extends State<BillingCard> {
                         PopupMenuItem(
                           value: 'delete',
                           child: Row(children: [
-                            Icon(Icons.delete_outline_rounded, size: 18.sp, color: const Color(0xFFE5484D)),
+                            Icon(Icons.link_off_rounded, size: 18.sp, color: const Color(0xFFE5484D)),
                             SizedBox(width: 10.w),
-                            Text('Устгах', style: TextStyle(color: const Color(0xFFE5484D), fontSize: 14.sp)),
+                            Text('Салгах', style: TextStyle(color: const Color(0xFFE5484D), fontSize: 14.sp)),
                           ]),
                         ),
                     ],

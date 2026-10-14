@@ -271,6 +271,14 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage>
     return raw.replaceAll(' ', '').trim().toUpperCase();
   }
 
+  String _formatPlateDisplay(String raw) {
+    final clean = raw.replaceAll(' ', '').trim().toUpperCase();
+    if (clean.length == 7 && RegExp(r'^[0-9]{4}[А-ЯӨҮЁA-Z]{3}$').hasMatch(clean)) {
+      return '${clean.substring(0, 4)} ${clean.substring(4)}';
+    }
+    return clean;
+  }
+
   Future<void> _inviteGuest() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -1143,7 +1151,7 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage>
       onTap: () => _openDetails(guest),
       borderRadius: BorderRadius.circular(14.r),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
         decoration: BoxDecoration(
           color: context.cardBackgroundColor,
           borderRadius: BorderRadius.circular(14.r),
@@ -1163,8 +1171,8 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage>
               children: [
                 // Circular car icon
                 Container(
-                  width: 44.w,
-                  height: 44.w,
+                  width: 40.w,
+                  height: 40.w,
                   decoration: BoxDecoration(
                     color: _yashil(context).withOpacity(0.12),
                     shape: BoxShape.circle,
@@ -1173,97 +1181,119 @@ class _ZochinUrikhPageState extends State<ZochinUrikhPage>
                     child: Icon(
                       Icons.directions_car_rounded,
                       color: _yashil(context),
-                      size: 24.sp,
+                      size: 22.sp,
                     ),
                   ),
                 ),
-                SizedBox(width: 12.w),
-                // Plate
-                Expanded(
-                  child: Text(
-                    plateStr,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: context.textPrimaryColor,
-                    ),
+                SizedBox(width: 10.w),
+                // Plate Number - formatted with space and never wraps
+                Text(
+                  _formatPlateDisplay(plateStr),
+                  style: TextStyle(
+                    fontSize: 15.5.sp,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: context.textPrimaryColor,
                   ),
                 ),
+                const Spacer(),
                 // Status pill in top right
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.5.h),
                   decoration: BoxDecoration(
                     color: statusBgColor,
-                    borderRadius: BorderRadius.circular(12.r),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 6.w,
-                        height: 6.w,
+                        width: 5.w,
+                        height: 5.w,
                         decoration: BoxDecoration(
                           color: statusColor,
                           shape: BoxShape.circle,
                         ),
                       ),
-                      SizedBox(width: 5.w),
+                      SizedBox(width: 4.w),
                       Text(
                         statusText,
                         style: TextStyle(
                           color: statusColor,
-                          fontSize: 11.sp,
+                          fontSize: 10.5.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(width: 4.w),
-                // 3 dots menu
-                PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, color: context.textSecondaryColor, size: 20),
-                  color: context.cardBackgroundColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                  onSelected: (val) {
-                    if (val == 'details') {
-                      _openDetails(guest);
-                    } else if (val == 'delete') {
-                      _deleteInvitation(guest);
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    PopupMenuItem(
-                      value: 'details',
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: context.textPrimaryColor, size: 18),
-                          const SizedBox(width: 8),
-                          Text('Зочны мэдээлэл', style: TextStyle(color: context.textPrimaryColor)),
-                        ],
-                      ),
-                    ),
-                    if (isWaiting)
-                      const PopupMenuItem(
-                        value: 'delete',
+                SizedBox(width: 2.w),
+                // Compact 3 dots menu
+                SizedBox(
+                  width: 24.w,
+                  height: 24.w,
+                  child: PopupMenuButton<String>(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(Icons.more_vert, color: context.textSecondaryColor, size: 18.sp),
+                    color: context.cardBackgroundColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    onSelected: (val) {
+                      if (val == 'details') {
+                        _openDetails(guest);
+                      } else if (val == 'delete') {
+                        _deleteInvitation(guest);
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(
+                        value: 'details',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline, color: AppColors.error, size: 18),
-                            SizedBox(width: 8),
-                            Text('Устгах', style: TextStyle(color: AppColors.error)),
+                            Icon(Icons.info_outline, color: context.textPrimaryColor, size: 18),
+                            const SizedBox(width: 8),
+                            Text('Зочны мэдээлэл', style: TextStyle(color: context.textPrimaryColor)),
                           ],
                         ),
                       ),
-                  ],
+                      if (isWaiting)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, color: AppColors.error, size: 18),
+                              SizedBox(width: 8),
+                              Text('Устгах', style: TextStyle(color: AppColors.error)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 8.h),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: context.textSecondaryColor,
-                fontSize: 12.sp,
+            SizedBox(height: 6.h),
+            Padding(
+              padding: EdgeInsets.only(left: 50.w),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 13.sp,
+                    color: context.textSecondaryColor,
+                  ),
+                  SizedBox(width: 4.w),
+                  Expanded(
+                    child: Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.textSecondaryColor,
+                        fontSize: 11.5.sp,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

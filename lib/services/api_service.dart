@@ -72,9 +72,7 @@ class ApiService {
         final err =
             body['aldaa']?.toString() ?? body['message']?.toString() ?? '';
         if (err.contains('jwt expired')) {
-          await handleUnauthorized(
-            'Нэвтрэлтийн хугацаа дууссан байна. Дахин нэвтэрнэ үү',
-          );
+          await handleUnauthorized();
           throw Exception('jwt expired');
         }
       } catch (_) {}
@@ -627,9 +625,7 @@ class ApiService {
           );
         }
       } else {
-        await handleUnauthorized(
-          'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү',
-        );
+        await handleUnauthorized();
         throw Exception(
           'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү',
         );
@@ -638,9 +634,7 @@ class ApiService {
       if (e.toString().contains('404')) {
         rethrow;
       }
-      await handleUnauthorized(
-        'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү',
-      );
+      await handleUnauthorized();
       throw Exception(
         'Таны хүчинтэй хугацаа дууссан байна, дахин нэвтэрнэ үү.',
       );
@@ -1763,6 +1757,8 @@ class ApiService {
         await StorageService.saveToken(loginData['token']);
         await StorageService.saveUserData(loginData);
         await SessionService.saveLoginTimestamp();
+        // Шинэ сесс — дараагийн гаралтад дахин мэдэгдэж болно.
+        resetGarsanMedegdel();
       }
 
       return loginData;
@@ -1783,25 +1779,42 @@ class ApiService {
     };
   }
 
+  /// Нэг гаралтад ЗӨВХӨН НЭГ удаа мэдэгдэнэ.
+  ///
+  /// API дуудлагууд зэрэг явдаг тул токен дуусахад `handleUnauthorized`
+  /// арваад удаа дуудагдаж болно. Өмнө нь «нэвтэрсэн эсэх» шалгалт
+  /// нь давхардлыг зогсоодог байсан боловч зэрэгцээ ДЭЭР нь хэрэглэгч
+  /// аль хэдийн гарсан байвал мэдэгдлийг бүрэн дардаг тул хэрэглэгч
+  /// юунд гарсанаа мэдэхгүй үлддэг байв.
+  static bool _garsanTukhaiMedegdsen = false;
+
+  /// Амжилттай нэвтрэхэд дахин мэдэгдэх боломжтой болгоно.
+  static void resetGarsanMedegdel() {
+    _garsanTukhaiMedegdsen = false;
+  }
+
   static Future<void> handleUnauthorized([
     String? message,
     bool showNotification = true,
   ]) async {
     final isLoggedIn = await StorageService.isLoggedIn();
-    if (!isLoggedIn) {
-      if (showNotification &&
-          message != null &&
-          message.contains('өөр төхөөрөмж')) {
-        await NotificationService.showSessionExpiredNotification(message);
-      }
-      return;
+
+    // ГАРГАЛТЫГ ЭХЛЭЭД ХИЙНЭ. `SessionService.logout()` нь сессийн
+    // мэдэгдлийг цуцалдаг тул мэдэгдлийг Түүний ДАРАА гаргах ёстой —
+    // урвуу дарааллаар дөнгөж гаргасан мэдэгдэл тэр дороо устаж байв.
+    if (isLoggedIn) {
+      await SessionService.logout();
     }
 
-    if (showNotification) {
+    // Хэрэглэгч аль хэдийн ГАРСАН байсан ч мэдэгдэнэ — өмнө нь зөвхөн
+    // «өөр төхөөрөмж» гэсэн мэссежийг л үлдээдэг тул сесс дууссан тухай
+    // хэзээ ч мэдэгдэхгүй байв.
+    if (showNotification && !_garsanTukhaiMedegdsen) {
+      _garsanTukhaiMedegdsen = true;
       await NotificationService.showSessionExpiredNotification(message);
     }
 
-    await SessionService.logout();
+    if (!isLoggedIn) return;
 
     final context = navigatorKey.currentContext;
     if (context != null) {
@@ -2579,9 +2592,7 @@ class ApiService {
         return result;
       } else {
         if (response.statusCode == 401 || response.statusCode == 404) {
-          await handleUnauthorized(
-            'Нэвтрэлтийн мэдээлэл хүчингүй байна. Дахин нэвтэрнэ үү',
-          );
+          await handleUnauthorized();
           throw Exception('Дахин нэвтэрнэ үү');
         }
         throw Exception(
