@@ -82,7 +82,7 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                     maxHeight: MediaQuery.of(context).size.height * 0.85,
                   ),
                   decoration: BoxDecoration(
-                    color: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                    color: context.isDarkMode ? const Color(0xFF141820) : Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(16.r),
                       topRight: Radius.circular(16.r),
@@ -186,13 +186,13 @@ class _VATReceiptModalState extends State<VATReceiptModal>
                                   padding: EdgeInsets.all(14.w),
                                   decoration: BoxDecoration(
                                     color: context.isDarkMode
-                                        ? Colors.white.withOpacity(0.05)
-                                        : const Color(0xFFF8F8F8),
-                                    borderRadius: BorderRadius.circular(12.r),
+                                        ? Colors.white.withOpacity(0.06)
+                                        : const Color(0xFFF1F5F3),
+                                    borderRadius: BorderRadius.circular(14.r),
                                     border: Border.all(
                                       color: context.isDarkMode
-                                          ? Colors.white.withOpacity(0.1)
-                                          : Colors.black.withOpacity(0.08),
+                                          ? Colors.white.withOpacity(0.07)
+                                          : Colors.black.withOpacity(0.04),
                                       width: 1,
                                     ),
                                   ),

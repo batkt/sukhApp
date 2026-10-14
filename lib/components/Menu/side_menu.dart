@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:sukh_app/widgets/selectable_logo_image.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/services/session_service.dart';
@@ -119,14 +118,21 @@ class _SideMenuState extends State<SideMenu> {
     final isTablet = screenWidth > 600;
     double drawerWidth = isTablet ? 280 : screenWidth * 0.78;
 
+    final isDark = context.isDarkMode;
+    final sidebarBg = isDark ? const Color(0xFF141820) : const Color(0xFFF1F5F3);
+
     return Drawer(
-      backgroundColor: context.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+      backgroundColor: sidebarBg,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
       width: drawerWidth,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.zero,
       ),
-      child: Column(
-        children: [
+      child: Container(
+        color: sidebarBg,
+        child: Column(
+          children: [
           _buildProfileHeader(context),
           Expanded(
             child: ListView(
@@ -271,7 +277,8 @@ class _SideMenuState extends State<SideMenu> {
           _buildLogoutSection(context),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildProfileHeader(BuildContext context) {
@@ -286,22 +293,19 @@ class _SideMenuState extends State<SideMenu> {
       ),
       child: Column(
         children: [
-          Container(
-            padding: EdgeInsets.all(10.w),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-            ),
-            child: const SelectableLogoImage(width: 44, height: 44),
+          Image.asset(
+            'lib/assets/img/main_logo.png',
+            width: 50.w,
+            height: 50.w,
+            fit: BoxFit.contain,
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 14.h),
           Text(
-            'Амархоум',
+            'АмарХоум',
             style: TextStyle(
               color: Colors.white,
               fontSize: 20.sp,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w600,
               letterSpacing: -0.5,
             ),
           ),
@@ -410,10 +414,12 @@ class _SideMenuState extends State<SideMenu> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
       decoration: BoxDecoration(
-        color: context.isDarkMode ? Colors.white.withOpacity(0.02) : Colors.grey[50],
+        color: Colors.transparent,
         border: Border(
           top: BorderSide(
-            color: context.isDarkMode ? Colors.white10 : Colors.grey[200]!,
+            color: context.isDarkMode
+                ? Colors.white.withOpacity(0.06)
+                : Colors.black.withOpacity(0.04),
           ),
         ),
       ),
@@ -427,7 +433,14 @@ class _SideMenuState extends State<SideMenu> {
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.red.withOpacity(0.2)),
+                  color: context.isDarkMode
+                      ? Colors.red.withOpacity(0.08)
+                      : Colors.white,
+                  border: Border.all(
+                    color: context.isDarkMode
+                        ? Colors.red.withOpacity(0.3)
+                        : Colors.red.withOpacity(0.15),
+                  ),
                   borderRadius: BorderRadius.circular(16.r),
                 ),
                 child: Row(

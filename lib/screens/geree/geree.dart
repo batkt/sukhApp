@@ -168,7 +168,7 @@ class _GereeState extends State<Geree> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      drawer: const SideMenu(),
+      drawer: SideMenu(),
       appBar: buildStandardAppBar(
         context,
         title: 'Гэрээ',

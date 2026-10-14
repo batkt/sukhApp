@@ -374,7 +374,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF1F5F9),
+      backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF3F5F2),
       body: SafeArea(
         child: Column(
           children: [
@@ -396,17 +396,19 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                             width: double.infinity,
                             padding: EdgeInsets.all(16.w),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
                               borderRadius: BorderRadius.circular(20.r),
                               border: Border.all(
-                                color: isDark ? Colors.white.withOpacity(0.05) : AppColors.deepGreen.withOpacity(0.05),
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.06)
+                                    : Colors.black.withOpacity(0.04),
                                 width: 1,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: isDark ? Colors.black.withOpacity(0.4) : AppColors.deepGreen.withOpacity(0.06),
+                                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
                                   blurRadius: 15,
-                                  offset: const Offset(0, 8),
+                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
@@ -458,17 +460,19 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                             width: double.infinity,
                             padding: EdgeInsets.all(16.w),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                              color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
                               borderRadius: BorderRadius.circular(20.r),
                               border: Border.all(
-                                color: isDark ? Colors.white.withOpacity(0.05) : AppColors.deepGreen.withOpacity(0.05),
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.06)
+                                    : Colors.black.withOpacity(0.04),
                                 width: 1,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: isDark ? Colors.black.withOpacity(0.4) : AppColors.deepGreen.withOpacity(0.06),
+                                  color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
                                   blurRadius: 15,
-                                  offset: const Offset(0, 8),
+                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
@@ -653,21 +657,19 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       margin: EdgeInsets.only(top: 24.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.05)
-              : AppColors.deepGreen.withOpacity(0.05),
+              ? Colors.white.withOpacity(0.06)
+              : Colors.black.withOpacity(0.04),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.4)
-                : AppColors.deepGreen.withOpacity(0.06),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
             blurRadius: 15,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -857,22 +859,20 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              padding: EdgeInsets.all(8.w),
+              padding: EdgeInsets.all(7.w),
               decoration: BoxDecoration(
-                color: AppColors.deepGreen,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.deepGreen.withOpacity(0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.black.withOpacity(0.06),
+                ),
               ),
               child: Icon(
                 Icons.arrow_back_rounded,
-                color: Colors.white,
-                size: 20.sp,
+                color: isDark ? Colors.white : Colors.black87,
+                size: 18.sp,
               ),
             ),
           ),
@@ -910,10 +910,14 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+          color: isDark
+              ? Colors.white.withOpacity(0.06)
+              : const Color(0xFFF1F5F3),
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.white.withOpacity(0.07)
+                : Colors.black.withOpacity(0.03),
           ),
         ),
         child: Row(
@@ -1047,16 +1051,18 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         final isRemovable = item['isRemovable'] == true;
 
         return Container(
-          padding: EdgeInsets.symmetric(vertical: 10.h),
+          margin: EdgeInsets.only(bottom: isLast ? 0 : 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
           decoration: BoxDecoration(
-            border: isLast
-                ? null
-                : Border(
-                    bottom: BorderSide(
-                      color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
-                      width: 1,
-                    ),
-                  ),
+            color: isDark
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF1F5F3),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.07)
+                  : Colors.black.withOpacity(0.03),
+            ),
           ),
           child: Row(
             children: [
@@ -1164,23 +1170,23 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         prefixIcon: Icon(icon, color: AppColors.deepGreen, size: 18.sp),
         filled: true,
         fillColor: isDark
-            ? Colors.white.withOpacity(0.08)
-            : const Color(0xFFF8F8F8),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+            ? Colors.white.withOpacity(0.06)
+            : const Color(0xFFF1F5F3),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.w),
+          borderRadius: BorderRadius.circular(14.r),
           borderSide: BorderSide(
             color: isDark
-                ? Colors.white.withOpacity(0.15)
-                : AppColors.deepGreen.withOpacity(0.3),
+                ? Colors.white.withOpacity(0.07)
+                : Colors.black.withOpacity(0.03),
           ),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.w),
+          borderRadius: BorderRadius.circular(14.r),
           borderSide: BorderSide(
             color: isDark
-                ? Colors.white.withOpacity(0.1)
-                : AppColors.deepGreen.withOpacity(0.2),
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.02),
           ),
         ),
         focusedBorder: OutlineInputBorder(

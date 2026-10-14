@@ -517,7 +517,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
     final isDark = context.isDarkMode;
 
     return Scaffold(
-      backgroundColor: context.backgroundColor,
+      backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF3F5F2),
       appBar: buildStandardAppBar(context, title: 'И-Баримт'),
       body: SafeArea(
         child: Column(
@@ -564,7 +564,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
                             '${_ebarimtReceipts.length}',
                             style: TextStyle(
                               color: AppColors.deepGreen,
-                              fontSize: 13.sp,
+                              fontSize: 11.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -648,7 +648,9 @@ class _EbarimtPageState extends State<EbarimtPage> {
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
-        color: context.cardBackgroundColor,
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : const Color(0xFFF1F5F3),
         borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
@@ -659,14 +661,16 @@ class _EbarimtPageState extends State<EbarimtPage> {
           ),
         ],
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+          color: isDark
+              ? Colors.white.withOpacity(0.07)
+              : Colors.black.withOpacity(0.04),
           width: 1,
         ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20.r),
+          borderRadius: BorderRadius.circular(24.r),
           onTap: () {
             showModalBottomSheet(
               context: context,
@@ -793,23 +797,20 @@ class _EbarimtPageState extends State<EbarimtPage> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark 
-              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-              : [Colors.white, const Color(0xFFF1F5F9)],
-        ),
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : const Color(0xFFF1F5F3),
         borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+          color: isDark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.04),
           width: 1,
         ),
       ),
@@ -929,10 +930,24 @@ class _EbarimtPageState extends State<EbarimtPage> {
                                 .toList(),
                           ),
                     filled: true,
-                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
+                    fillColor: isDark ? Colors.black12 : Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: const BorderSide(
+                        color: AppColors.deepGreen,
+                      ),
                     ),
                     contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                   ),
@@ -996,26 +1011,21 @@ class _EbarimtPageState extends State<EbarimtPage> {
     final isDark = context.isDarkMode;
 
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark 
-              ? [const Color(0xFF1E293B), const Color(0xFF334155)]
-              : [const Color(0xFFF8FAFC), Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(28.r),
+        color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F3),
+        borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : Colors.white,
-          width: 1.5,
+          color: isDark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.04),
+          width: 1,
         ),
       ),
       child: Column(
@@ -1028,13 +1038,6 @@ class _EbarimtPageState extends State<EbarimtPage> {
                 decoration: BoxDecoration(
                   color: AppColors.deepGreen,
                   borderRadius: BorderRadius.circular(8.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.deepGreen.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Icon(
                   _infoType == 'consumer'
@@ -1132,10 +1135,12 @@ class _EbarimtPageState extends State<EbarimtPage> {
         decoration: BoxDecoration(
           color: isSelected 
               ? AppColors.deepGreen.withOpacity(0.15) 
-              : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100),
+              : (isDark ? Colors.white.withOpacity(0.06) : Colors.white),
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppColors.deepGreen : Colors.transparent,
+            color: isSelected
+                ? AppColors.deepGreen
+                : (isDark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.04)),
             width: 1.2,
           ),
         ),
@@ -1143,7 +1148,7 @@ class _EbarimtPageState extends State<EbarimtPage> {
           label,
           style: TextStyle(
             fontSize: 11.sp,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w600,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             color: isSelected 
                 ? AppColors.deepGreen 
                 : (isDark ? Colors.blueGrey.shade300 : Colors.blueGrey.shade600),

@@ -18,6 +18,8 @@ import 'package:sukh_app/services/session_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sukh_app/utils/error_message.dart';
+import 'package:sukh_app/widgets/help_modal.dart';
+import 'package:sukh_app/widgets/selectable_logo_image.dart';
 
 class AppBackground extends StatelessWidget {
   final Widget child;
@@ -28,7 +30,7 @@ class AppBackground extends StatelessWidget {
     final isDark = context.isDarkMode;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkBackground : const Color(0xFFF1F5F9),
+        color: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF3F5F2),
       ),
       child: child,
     );
@@ -309,8 +311,8 @@ class _ProfileSettingsState extends State<ProfileSettings>
                   Container(
                     decoration: BoxDecoration(
                       color: context.isDarkMode
-                          ? Colors.white.withOpacity(0.05)
-                          : const Color(0xFFF8FAFC),
+                          ? Colors.white.withOpacity(0.06)
+                          : const Color(0xFFF1F5F3),
                       borderRadius: BorderRadius.circular(16.r),
                       border: Border.all(
                         color: AppColors.deepGreen.withOpacity(0.2),
@@ -2153,11 +2155,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withOpacity(0.05)
-              : const Color(0xFFF8FAFC),
+              ? Colors.white.withOpacity(0.06)
+              : const Color(0xFFF1F5F3),
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.white.withOpacity(0.07)
+                : Colors.black.withOpacity(0.03),
           ),
         ),
         child: Row(
@@ -2248,13 +2252,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : const Color(0xFFF8FAFC),
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF1F5F3),
             borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withOpacity(0.07)
+                  : Colors.black.withOpacity(0.03),
             ),
           ),
           child: TextField(
@@ -2486,13 +2490,13 @@ class _ProfileSettingsState extends State<ProfileSettings>
         Container(
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : const Color(0xFFF8FAFC),
+                ? Colors.white.withOpacity(0.06)
+                : const Color(0xFFF1F5F3),
             borderRadius: BorderRadius.circular(20.r),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withOpacity(0.07)
+                  : Colors.black.withOpacity(0.03),
             ),
           ),
           child: TextFormField(
@@ -3041,19 +3045,27 @@ class _ProfileSettingsState extends State<ProfileSettings>
     String? title,
     IconData? icon,
     required List<Widget> children,
+    EdgeInsetsGeometry? margin,
   }) {
     final isDark = context.isDarkMode;
     return Container(
-      margin: EdgeInsets.only(bottom: 24.h),
+      margin: margin ?? EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.05)
-              : AppColors.deepGreen.withOpacity(0.05),
+              ? Colors.white.withOpacity(0.06)
+              : Colors.black.withOpacity(0.04),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3213,45 +3225,163 @@ class _ProfileSettingsState extends State<ProfileSettings>
 
   Widget _buildHeader() {
     final isDark = context.isDarkMode;
+    final canPop = Navigator.canPop(context);
     return SafeArea(
       bottom: false,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-        child: Row(
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: AppColors.deepGreen,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.deepGreen.withOpacity(0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
+            Row(
+              children: [
+                Image.asset(
+                  'lib/assets/img/main_logo.png',
+                  width: 28.w,
+                  height: 28.w,
+                  fit: BoxFit.contain,
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  'АмарХоум',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : context.textPrimaryColor,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const Spacer(),
+                if (canPop)
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: EdgeInsets.all(6.w),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : Colors.black.withOpacity(0.04),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: isDark ? Colors.white70 : Colors.black54,
+                        size: 18.sp,
+                      ),
                     ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: 20.sp,
-                ),
-              ),
+                  ),
+              ],
             ),
-            SizedBox(width: 16.w),
+            SizedBox(height: 14.h),
             Text(
               'Тохиргоо',
               style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
+                fontSize: 26.sp,
+                fontWeight: FontWeight.bold,
                 color: isDark ? Colors.white : context.textPrimaryColor,
-                letterSpacing: -0.3,
+                letterSpacing: -0.5,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCard() {
+    final isDark = context.isDarkMode;
+    String rawName = _nameController.text.isNotEmpty
+        ? _nameController.text
+        : (_userData?['ner']?.toString() ?? 'Хэрэглэгч');
+    final displayName = formatDisplayName(rawName);
+
+    String phone = _phoneController.text;
+    if (phone.isEmpty && _userData != null && _userData!['utas'] != null) {
+      final u = _userData!['utas'];
+      phone = (u is List && u.isNotEmpty) ? u.first.toString() : u.toString();
+    }
+    if (phone.isEmpty) phone = 'Утасны дугааргүй';
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20.r),
+          onTap: () async {
+            await context.push('/personal_info');
+            _loadUserProfile();
+            _loadCurrentAddress();
+          },
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            child: Row(
+              children: [
+                Container(
+                  width: 48.w,
+                  height: 48.w,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0D5E42),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 26.sp,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 14.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      SizedBox(height: 3.h),
+                      Text(
+                        phone,
+                        style: TextStyle(
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : Colors.black54,
+                          fontSize: 13.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark ? const Color(0xFF64748B) : Colors.black26,
+                  size: 22.sp,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -3279,67 +3409,93 @@ class _ProfileSettingsState extends State<ProfileSettings>
     Widget? trailing,
     required VoidCallback onTap,
     Color? iconColor,
+    Color? titleColor,
     bool showBorder = true,
   }) {
     final isDark = context.isDarkMode;
+    final effectiveColor = iconColor ?? AppColors.deepGreen;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 16.h),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: (iconColor ?? AppColors.deepGreen).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor ?? AppColors.deepGreen,
-                  size: 18.sp,
-                ),
-              ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: isDark
-                            ? Colors.white.withOpacity(0.9)
-                            : Colors.black87,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 14.h),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36.w,
+                    height: 36.w,
+                    decoration: BoxDecoration(
+                      color: effectiveColor.withOpacity(isDark ? 0.15 : 0.1),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        icon,
+                        color: effectiveColor,
+                        size: 20.sp,
                       ),
                     ),
-                    if (subtitle != null) ...[
-                      SizedBox(height: 2.h),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: isDark ? Colors.white38 : Colors.grey[500],
-                          fontSize: 11.sp,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              trailing ??
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: isDark ? Colors.white24 : Colors.black12,
-                    size: 20.sp,
                   ),
-            ],
-          ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: titleColor ??
+                                (isDark
+                                    ? Colors.white.withOpacity(0.95)
+                                    : Colors.black87),
+                            fontSize: 14.5.sp,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        if (subtitle != null && subtitle.isNotEmpty) ...[
+                          SizedBox(height: 2.h),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : Colors.grey[500],
+                              fontSize: 11.5.sp,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  trailing ??
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: isDark
+                            ? (titleColor != null
+                                ? titleColor.withOpacity(0.7)
+                                : const Color(0xFF64748B))
+                            : Colors.black26,
+                        size: 20.sp,
+                      ),
+                ],
+              ),
+            ),
+            if (showBorder)
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : Colors.black.withOpacity(0.04),
+              ),
+          ],
         ),
       ),
     );
@@ -3458,7 +3614,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     final isDark = context.isDarkMode;
 
     return Scaffold(
-      backgroundColor: context.surfaceColor,
+      backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF3F5F2),
       body: AppBackground(
         child: _isLoading
             ? _buildLoadingSkeleton()
@@ -3470,15 +3626,19 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     _buildHeader(),
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 40.h),
+                        padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 40.h),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // 1. Account Info
+                            // Profile Header Card
+                            _buildProfileCard(),
+
+                            // 1. Account Info & Services
                             _buildSection(
                               children: [
                                 _buildSettingsTile(
-                                  icon: Icons.account_circle_outlined,
+                                  icon: Icons.person_outline_rounded,
+                                  iconColor: const Color(0xFF10B981),
                                   title: 'Хувийн мэдээлэл',
                                   subtitle: 'Утас, хаягийн мэдээлэл',
                                   onTap: () async {
@@ -3489,9 +3649,10 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 ),
                                 _buildSettingsTile(
                                   icon: Icons.directions_car_filled_outlined,
+                                  iconColor: const Color(0xFF3B82F6),
                                   title: _mashiniiKhyazgaar > 1
-                                      ? 'Миний машин (${_mashinuud.length}/$_mashiniiKhyazgaar)'
-                                      : 'Миний машин',
+                                      ? 'Машин (${_mashinuud.length}/$_mashiniiKhyazgaar)'
+                                      : 'Машин',
                                   subtitle: _mashinuud.isNotEmpty
                                       ? _mashinuud.join(', ')
                                       : (_mashiniiDugaarController
@@ -3503,14 +3664,11 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                     _showCarPlateModal(context);
                                   },
                                 ),
-                                // Байрын удирдлага урихыг хаасан бол мөрийг
-                                // харуулахгүй. Гэхдээ хэрэглэгч ӨӨРӨӨ гишүүн
-                                // бол хэвээр харагдана — тэр нь өөрийн
-                                // гишүүнчлэлийн мэдээллийг харах хэсэг.
                                 if (_gerBuliinGishuunZovshoorson ||
                                     _gishuunEsekh)
                                   _buildSettingsTile(
-                                    icon: Icons.family_restroom_rounded,
+                                    icon: Icons.people_outline_rounded,
+                                    iconColor: const Color(0xFF8B5CF6),
                                     title: 'Гэр бүлийн гишүүн',
                                     subtitle: _gishuunEsekh
                                         ? (_undsenEzemshigchNer != null &&
@@ -3519,26 +3677,53 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                               ? '$_undsenEzemshigchNer-ийн байр'
                                               : 'Гишүүнчлэлийн мэдээлэл')
                                         : 'Гэр бүлийнхээ гишүүдийг нэмэх',
-                                    showBorder: false,
                                     onTap: () async {
                                       await context.push('/ger-bul');
                                       _gerBuliinTuluvAchaalya();
                                     },
                                   ),
-                              ],
-                            ),
-
-                            // 2. Unified Settings (Security & App)
-                            _buildSection(
-                              children: [
                                 _buildSettingsTile(
-                                  icon: Icons.lock_reset_rounded,
+                                  icon: Icons.description_outlined,
+                                  iconColor: const Color(0xFF06B6D4),
+                                  title: 'Гэрээ',
+                                  subtitle: 'Гэрээний мэдээлэл харах',
+                                  onTap: () {
+                                    context.push('/geree');
+                                  },
+                                ),
+                                _buildSettingsTile(
+                                  icon: Icons.receipt_long_outlined,
+                                  iconColor: const Color(0xFFF59E0B),
+                                  title: 'И-Баримт',
+                                  subtitle: 'НӨАТ баримтын бүртгэл',
+                                  onTap: () {
+                                    context.push('/ebarimt');
+                                  },
+                                ),
+                                _buildSettingsTile(
+                                  icon: Icons.help_outline_rounded,
+                                  iconColor: const Color(0xFF6366F1),
+                                  title: 'Тусламж',
+                                  subtitle: 'Түгээмэл асуулт, холбоо барих',
+                                  onTap: () {
+                                    showHelpModal(context);
+                                  },
+                                ),
+                                _buildSettingsTile(
+                                  icon: Icons.lock_outline_rounded,
+                                  iconColor: const Color(0xFFF97316),
                                   title: 'Нууц код солих',
                                   subtitle: 'Нэвтрэх 4 оронтой код солих',
-                                  showBorder: true,
+                                  showBorder: false,
                                   onTap: () =>
                                       _showChangePasswordModal(context),
                                 ),
+                              ],
+                            ),
+
+                            // 2. Preferences & App Toggles
+                            _buildSection(
+                              children: [
                                 if (_biometricAvailable)
                                   _buildSettingsTile(
                                     icon:
@@ -3546,37 +3731,41 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                             TargetPlatform.iOS
                                         ? Icons.face_rounded
                                         : Icons.fingerprint_rounded,
+                                    iconColor: const Color(0xFF10B981),
                                     title:
                                         Theme.of(context).platform ==
                                             TargetPlatform.iOS
-                                        ? 'Face ID'
-                                        : 'Хурууны хээ',
+                                        ? 'Face ID ашиглах'
+                                        : 'Хурууны хээ ашиглах',
                                     subtitle: _biometricEnabled
                                         ? 'Идэвхтэй'
                                         : 'Идэвхгүй',
                                     showBorder: true,
-                                    trailing: Switch(
+                                    trailing: Switch.adaptive(
                                       value: _biometricEnabled,
                                       onChanged: (val) =>
                                           _handleBiometricToggle(val),
-                                      activeColor: AppColors.deepGreen,
+                                      activeThumbColor: const Color(0xFF10B981),
+                                      activeTrackColor: const Color(0xFF10B981).withOpacity(0.5),
                                     ),
                                     onTap: () => _handleBiometricToggle(
                                       !_biometricEnabled,
                                     ),
                                   ),
                                 _buildSettingsTile(
-                                  icon: Icons.support_agent_rounded,
-                                  title: 'Туслах чатбот',
+                                  icon: Icons.smart_toy_outlined,
+                                  iconColor: const Color(0xFF38BDF8),
+                                  title: 'Туслах chatbot',
                                   subtitle: _chatbotEnabled
                                       ? 'Нүүр хуудсанд харагдаж байна'
                                       : 'Нүүр хуудсанд нуугдсан',
                                   showBorder: false,
-                                  trailing: Switch(
+                                  trailing: Switch.adaptive(
                                     value: _chatbotEnabled,
                                     onChanged: (val) =>
                                         _handleChatbotToggle(val),
-                                    activeColor: AppColors.deepGreen,
+                                    activeThumbColor: const Color(0xFF10B981),
+                                    activeTrackColor: const Color(0xFF10B981).withOpacity(0.5),
                                   ),
                                   onTap: () => _handleChatbotToggle(
                                     !_chatbotEnabled,
@@ -3584,15 +3773,17 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                 ),
                               ],
                             ),
-                            // 4. Logout & Delete
+
+                            // 3. Danger Zone / Account Deletion
                             _buildSection(
                               children: [
                                 _buildSettingsTile(
-                                  icon: Icons.delete_forever_rounded,
+                                  icon: Icons.delete_outline_rounded,
                                   title: 'Бүртгэл устгах',
                                   subtitle:
                                       'Бүртгэл болон бүх мэдээллийг устгах',
-                                  iconColor: Colors.redAccent,
+                                  iconColor: const Color(0xFFEF4444),
+                                  titleColor: const Color(0xFFEF4444),
                                   showBorder: false,
                                   onTap: _handleDeleteAccount,
                                 ),

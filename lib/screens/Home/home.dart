@@ -1917,7 +1917,8 @@ class _BookingScreenState extends State<NuurKhuudas>
 
     return Scaffold(
       key: _scaffoldKey,
-      drawer: const SideMenu(),
+      drawer: SideMenu(),
+      backgroundColor: isDark ? const Color(0xFF0A0E14) : const Color(0xFFF3F5F2),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final mediaQuery = MediaQuery.of(context);
