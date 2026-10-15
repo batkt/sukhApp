@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:io' show File;
+import 'dart:io' show File, Platform;
 import 'dart:typed_data' show Uint8List;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
@@ -1689,10 +1690,15 @@ class ApiService {
       version = packageInfo.version;
     } catch (e) {}
 
+    final platform = kIsWeb
+        ? 'web'
+        : (Platform.isIOS ? 'ios' : (Platform.isAndroid ? 'android' : 'unknown'));
+
     final requestBody = <String, dynamic>{
       'utas': utas,
       'nuutsUg': nuutsUg,
       'version': version,
+      'platform': platform,
     };
 
     if (firebaseToken != null && firebaseToken.isNotEmpty) {

@@ -52,6 +52,13 @@ class PushService {
   /// апп унахгүй, socket-ийн мэдэгдэл хэвийн ажиллана.
   static String? _burtgesenToken;
 
+  static String get _odoogiinPlatform {
+    if (kIsWeb) return 'web';
+    if (defaultTargetPlatform == TargetPlatform.iOS) return 'ios';
+    if (defaultTargetPlatform == TargetPlatform.android) return 'android';
+    return 'unknown';
+  }
+
   /// Нэвтэрсэн хэрэглэгчийн FCM token-ийг серверт хадгална. Өмнө нь зөвхөн
   /// нууц үгээр нэвтрэх үед илгээгддэг байсан тул token сунгагдсаны дараа
   /// нийтлэл, санал асуулга, шинэчлэлтийн push ирэхээ больдог байв.
@@ -68,11 +75,15 @@ class PushService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $authToken',
         },
-        body: json.encode({'id': userId, 'token': token}),
+        body: json.encode({
+          'id': userId,
+          'token': token,
+          'platform': _odoogiinPlatform,
+        }),
       );
       if (res.statusCode == 200) {
         _burtgesenToken = token;
-        AppLogger.log('[PUSH] Token серверт бүртгэгдлээ');
+        AppLogger.log('[PUSH] Token серверт бүртгэгдлээ ($_odoogiinPlatform)');
       }
     } catch (err) {
       AppLogger.log('[PUSH] Token бүртгэхэд алдаа: $err');
@@ -157,6 +168,21 @@ class PushService {
       });
       serverteBurtgeye();
 
+      // Платформын шинэчлэлтийн сэдэвт бүртгүүлэх (Android нь iOS update авахгүй байхын тулд)
+      try {
+        if (!kIsWeb) {
+          if (defaultTargetPlatform == TargetPlatform.iOS) {
+            await messaging.subscribeToTopic('app_update_ios');
+            await messaging.unsubscribeFromTopic('app_update_android');
+          } else if (defaultTargetPlatform == TargetPlatform.android) {
+            await messaging.subscribeToTopic('app_update_android');
+            await messaging.unsubscribeFromTopic('app_update_ios');
+          }
+        }
+      } catch (topicErr) {
+        AppLogger.log('[PUSH] Сэдэвт бүртгүүлэхэд алдаа: $topicErr');
+      }
+
       // Апп ОНГОЙ байхад push ирвэл Android өөрөө banner гаргахгүй тул
       // өөрсдөө local notification болгож харуулна.
       FirebaseMessaging.onMessage.listen(_urdTalUyed);
@@ -189,6 +215,14 @@ class PushService {
   ///   app_update      - controller/appVersionController.js (upsertVersion)
   static void _medegdelDeerDarlaa(RemoteMessage message) {
     try {
+      final type = message.data['type']?.toString();
+      final targetPlatform = message.data['platform']?.toString()?.toLowerCase();
+      if (type == 'app_update' && targetPlatform != null && targetPlatform.isNotEmpty) {
+        if (targetPlatform != _odoogiinPlatform) {
+          return;
+        }
+      }
+
       final zam = _zamAvya(message.data);
       if (zam != null) appRouter.push(zam);
     } catch (err) {
@@ -219,6 +253,13 @@ class PushService {
   static void _urdTalUyed(RemoteMessage message) async {
     try {
       final type = message.data['type']?.toString();
+      final targetPlatform = message.data['platform']?.toString()?.toLowerCase();
+      if (type == 'app_update' && targetPlatform != null && targetPlatform.isNotEmpty) {
+        if (targetPlatform != _odoogiinPlatform) {
+          AppLogger.log('[PUSH] Өөр платформын ($targetPlatform != $_odoogiinPlatform) шинэчлэлтийг алгаслаа');
+          return;
+        }
+      }
       final senderId = message.data['senderId']?.toString();
       if (type == 'medegdel_user_reply' && senderId != null && senderId.isNotEmpty) {
         final currentUserId = await StorageService.getUserId();
