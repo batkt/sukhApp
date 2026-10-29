@@ -711,8 +711,11 @@ class _BookingScreenState extends State<NuurKhuudas>
 
       // 1. Parallel Initial Fetch for core data
       final userId = await StorageService.getUserId();
+      // Гэрээг профайлын дараа татна: профайл нь холбоотой (харилцагч/оршин
+      // суугч) бүртгэлийн тоотыг хадгалж, fetchGeree түүнийг ашигладаг.
+      final profileFuture = ApiService.getUserProfile(forceRefresh: forceRefresh);
       final initialData = await Future.wait([
-        ApiService.getUserProfile(forceRefresh: forceRefresh),
+        profileFuture,
         ApiService.getWalletBillingList(forceRefresh: forceRefresh).catchError((e) {
           print('⚠️ [REFRESH] getWalletBillingList failed: $e');
           return <Map<String, dynamic>>[];
@@ -721,7 +724,10 @@ class _BookingScreenState extends State<NuurKhuudas>
           print('⚠️ [REFRESH] fetchWalletQpayList failed (non-fatal): $e');
           return <Map<String, dynamic>>[];
         }),
-        if (userId != null && !isWalletOnlyOrg) ApiService.fetchGeree(userId).catchError((e) {
+        if (userId != null && !isWalletOnlyOrg) profileFuture
+            .catchError((_) => <String, dynamic>{})
+            .then((_) => ApiService.fetchGeree(userId))
+            .catchError((e) {
           print('⚠️ [REFRESH] fetchGeree failed: $e');
           return <String, dynamic>{'jagsaalt': []};
         }) else Future.value({'jagsaalt': []}),

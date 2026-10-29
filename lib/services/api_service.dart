@@ -2830,8 +2830,26 @@ class ApiService {
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
       final tukhainBaaziinKholbolt = await getEffectiveKholbolt(isOther: true);
 
+      // Ижил утсаар оршин суугч + харилцагч хоёр бүртгэлтэй бол сервер
+      // нөгөө бүртгэлийн тоотыг `ezemshigchiinId`-тай нэгтгэж өгдөг —
+      // тэдгээрийн гэрээг ч хамт татна.
+      final iduud = <String>{orshinSuugchId};
+      for (final t in await StorageService.getToots()) {
+        final id = t is Map ? t['ezemshigchiinId']?.toString() : null;
+        if (id != null && id.isNotEmpty && id != 'null') iduud.add(id);
+      }
+      final query = iduud.length == 1
+          ? {'orshinSuugchId': orshinSuugchId, 'tuluv': 'Идэвхтэй'}
+          : {
+              r'$or': [
+                {'orshinSuugchId': {r'$in': iduud.toList()}},
+                {'khariltsagchId': {r'$in': iduud.toList()}},
+              ],
+              'tuluv': 'Идэвхтэй',
+            };
+
       final queryParams = <String, String>{
-        'query': '{"orshinSuugchId":"$orshinSuugchId","tuluv":"Идэвхтэй"}',
+        'query': json.encode(query),
         '_t': DateTime.now().millisecondsSinceEpoch.toString(),
       };
 
