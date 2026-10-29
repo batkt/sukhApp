@@ -15,10 +15,6 @@ class HomeHeader extends StatelessWidget {
   final String? userName;
   final GlobalKey? notificationKey;
 
-  /// Идэвхтэй барилгын нэр. Хэрэглэгч олон барилгатай үед л дамжуулна.
-  final String? barilgaNer;
-  final VoidCallback? onBarilgaTap;
-
   const HomeHeader({
     super.key,
     required this.unreadNotificationCount,
@@ -27,8 +23,6 @@ class HomeHeader extends StatelessWidget {
     required this.onNotificationTap,
     this.userName,
     this.notificationKey,
-    this.barilgaNer,
-    this.onBarilgaTap,
   });
 
   static String _mendchilgee() {
@@ -80,60 +74,6 @@ class HomeHeader extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                    ),
-                  if (barilgaNer != null && onBarilgaTap != null)
-                    Padding(
-                      padding: EdgeInsets.only(top: 4.h),
-                      child: InkWell(
-                        onTap: onBarilgaTap,
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.deepGreen.withOpacity(
-                              isDark ? 0.25 : 0.08,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.apartment_rounded,
-                                size: 14.sp,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.deepGreen,
-                              ),
-                              SizedBox(width: 6.w),
-                              Flexible(
-                                child: Text(
-                                  barilgaNer!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.deepGreen,
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 16.sp,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.deepGreen,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ),
                 ],
               ),

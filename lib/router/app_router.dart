@@ -441,6 +441,8 @@ final GoRouter appRouter = GoRouter(
             isConnecting: extra?['isConnecting'] ?? false,
             onConnect: extra?['onConnect'] ?? () {},
             onRefresh: extra?['onRefresh'] ?? () async {},
+            shuult: extra?['shuult'],
+            suuliinJagsaalt: extra?['suuliinJagsaalt'],
           ),
         );
       },
