@@ -26,6 +26,7 @@ class StorageService {
   static const String _baiguullagiinIdKey = 'baiguullagiinId';
   static const String _baiguullagiinNerKey = 'baiguullagiinNer';
   static const String _barilgiinIdKey = 'barilgiinId';
+  static const String _songosonBarilgiinIdKey = 'songoson_barilgiin_id';
   static const String _userIdKey = 'user_id';
   static const String _userNerKey = 'user_ner';
   static const String _userMailKey = 'user_mail';
@@ -298,6 +299,23 @@ class StorageService {
         await prefs.setString(_baiguullagiinNerKey, baiguullagiinNer);
       }
 
+      // Хэрэглэгч олон барилгатай бол өөрөө сонгосон барилгыг хадгална —
+      // профайл шинэчлэгдэх бүрт серверийн үндсэн barilgiinId дарж бичихгүй.
+      final songoson = prefs.getString(_songosonBarilgiinIdKey);
+      if (songoson != null && songoson.isNotEmpty && user?['toots'] is List) {
+        final tootondBaina = (user!['toots'] as List).any((t) =>
+            t is Map &&
+            t['barilgiinId']?.toString() == songoson &&
+            (baiguullagiinId == null ||
+                t['baiguullagiinId'] == null ||
+                t['baiguullagiinId'].toString() == baiguullagiinId));
+        if (tootondBaina) {
+          barilgiinId = songoson;
+        } else {
+          await prefs.remove(_songosonBarilgiinIdKey);
+        }
+      }
+
       if (barilgiinId != null && barilgiinId != "null" && barilgiinId.isNotEmpty) {
         await prefs.setString(_barilgiinIdKey, barilgiinId);
       }
@@ -525,6 +543,18 @@ class StorageService {
     }
   }
 
+  /// Идэвхтэй барилгыг сольно (олон барилгатай хэрэглэгчид).
+  /// Камер, зочин, санал асуулга зэрэг бүх хэсэг [getBarilgiinId]-аас уншдаг.
+  static Future<bool> setSongosonBarilga(String barilgiinId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_songosonBarilgiinIdKey, barilgiinId);
+      return await prefs.setString(_barilgiinIdKey, barilgiinId);
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Get duusakhOgnoo (expiration date)
   static Future<String?> getDuusakhOgnoo() async {
     try {
@@ -613,6 +643,7 @@ class StorageService {
       await prefs.remove(_baiguullagiinIdKey);
       await prefs.remove(_baiguullagiinNerKey);
       await prefs.remove(_barilgiinIdKey);
+      await prefs.remove(_songosonBarilgiinIdKey);
       await prefs.remove(_duusakhOgnooKey);
       await prefs.remove(_taniltsuulgaKharakhEsekhKey);
       // Clear wallet address on logout - each user should set their own address

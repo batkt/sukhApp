@@ -8,7 +8,6 @@ import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukh_app/constants/constants.dart';
-import 'package:sukh_app/widgets/mongol_plate_keyboard.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
@@ -69,8 +68,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
   bool _isLoading = true;
   bool _isChangingPassword = false;
   bool _isDeletingAccount = false;
-  bool _isUpdatingPlate = false;
-  bool _isPlateEditMode = false;
 
   /// Бүртгэлтэй машины дугаарууд.
   ///
@@ -882,185 +879,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
     }
   }
 
-  int _getPlateChangeRemainingDays() {
-    if (_userData == null) return 0;
-
-    // If plate is empty/null or "БҮРТГЭЛГҮЙ", allow change regardless of date (remaining days = 0)
-    final plateNumber = _userData!['mashiniiDugaar'] ?? _userData!['dugaar'];
-    if (plateNumber == null ||
-        plateNumber.toString().isEmpty ||
-        plateNumber.toString().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
-      return 0;
-    }
-
-    final lastUpdate = _userData!['dugaarUurchilsunOgnoo'];
-    if (lastUpdate == null) return 0;
-
-    try {
-      final lastDate = DateTime.parse(lastUpdate.toString());
-      final now = DateTime.now();
-
-      // Strict 30-day difference check
-      final difference = now.difference(lastDate);
-      final daysPassed = difference.inDays;
-      final remaining = 30 - daysPassed;
-
-      return remaining > 0 ? remaining : 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  bool _isPlateChangeAllowed() {
-    return _getPlateChangeRemainingDays() <= 0;
-  }
-
-  Future<void> _handleUpdatePlateNumber() async {
-    if (_mashiniiDugaarController.text.isEmpty) {
-      showGlassSnackBar(
-        context,
-        message: 'Машины дугаар оруулна уу',
-        icon: Icons.warning_amber_rounded,
-        iconColor: Colors.orange,
-      );
-      return;
-    }
-
-    // Сул слот байгаа бол энэ нь дугаар СОЛИХ биш, ШИНЭ машин НЭМЭХ үйлдэл —
-    // 30 хоногийн хязгаарлалт хамаарахгүй (backend ч ижил дүрмээр шалгадаг).
-    final remainingDays = _getPlateChangeRemainingDays();
-    if (!_sulSlotBaina && remainingDays > 0) {
-      showGlassSnackBar(
-        context,
-        message: 'Машины дугаарыг 30 хоногт 1 удаа өөрчлөх боломжтой. Дахин өөрчлөхөд $remainingDays хоног үлдсэн байна.',
-        icon: Icons.info_outline,
-        iconColor: Colors.blue,
-      );
-      return;
-    }
-
-    if (_mashinuud.length >= _mashiniiKhyazgaar && _mashiniiKhyazgaar > 1) {
-      showGlassSnackBar(
-        context,
-        message:
-            'Та хамгийн олон $_mashiniiKhyazgaar машин бүртгэх боломжтой. Хязгаар дүүрсэн байна.',
-        icon: Icons.info_outline,
-        iconColor: Colors.blue,
-      );
-      return;
-    }
-
-    setState(() {
-      _isUpdatingPlate = true;
-    });
-
-    try {
-      String? baiguullagiinId = await StorageService.getBaiguullagiinId();
-      String? barilgiinId = await StorageService.getBarilgiinId();
-
-      // Fallback to class variables or userData if storage is null
-      baiguullagiinId ??= _baiguullagiinId;
-      barilgiinId ??= _barilgiinId;
-
-      if (baiguullagiinId == null && _userData != null) {
-        baiguullagiinId = _userData!['baiguullagiinId']?.toString();
-        barilgiinId ??= _userData!['barilgiinId']?.toString();
-
-        // If still null, try to find it in the toots array
-        if (baiguullagiinId == null &&
-            _userData!['toots'] != null &&
-            (_userData!['toots'] as List).isNotEmpty) {
-          final firstToot = _userData!['toots'][0] as Map<String, dynamic>;
-          baiguullagiinId = firstToot['baiguullagiinId']?.toString();
-          barilgiinId ??= firstToot['barilgiinId']?.toString();
-        }
-      }
-
-      if (baiguullagiinId == null) {
-        throw Exception('Байгууллагын мэдээлэл олдсонгүй');
-      }
-
-      final response = await ApiService.zochinHadgalya(
-        mashiniiDugaar: _mashiniiDugaarController.text,
-        baiguullagiinId: baiguullagiinId,
-        barilgiinId: barilgiinId,
-        ezemshigchiinUtas: _phoneController.text,
-        orshinSuugchMedeelel: {'zochinTurul': 'Оршин суугч'},
-      );
-
-      if (mounted) {
-        if (response['success'] == true) {
-          setState(() {
-            _isPlateEditMode = false;
-            // Immediate UI update derived from the response
-            final data = response['data'] ?? response;
-            final osm = data['orshinSuugchMashin'];
-            final mashin = data['mashin'];
-
-            final plate = (osm != null)
-                ? (osm['mashiniiDugaar'] ?? osm['dugaar'])
-                : mashin?['dugaar'];
-            if (plate != null && _userData != null) {
-              final newPlate = plate.toString();
-
-              // Remove "БҮРТГЭЛГҮЙ" default value and set to empty
-              if (newPlate.trim().toUpperCase() == 'БҮРТГЭЛГҮЙ') {
-                _mashiniiDugaarController.text = '';
-              } else {
-                _mashiniiDugaarController.text = newPlate;
-              }
-
-              _userData!['mashiniiDugaar'] = _mashiniiDugaarController.text;
-
-              // Update metadata for restriction logic
-              final updateDate =
-                  osm?['dugaarUurchilsunOgnoo'] ??
-                  mashin?['dugaarUurchilsunOgnoo'];
-              if (updateDate != null) {
-                _userData!['dugaarUurchilsunOgnoo'] = updateDate;
-              }
-            }
-          });
-          showGlassSnackBar(
-            context,
-            message: 'Машины дугаар амжилттай шинэчлэгдлээ',
-            icon: Icons.check_circle,
-            iconColor: Colors.green,
-          );
-          // Refresh background data to ensure everything is perfect
-          _loadUserProfile();
-        } else {
-          showGlassSnackBar(
-            context,
-            message: cleanErrorText(
-              (response['aldaa'] ?? response['message'] ?? '').toString(),
-              fallback: 'Машины дугаар шинэчилж чадсангүй. Дахин оролдоно уу.',
-            ),
-            icon: Icons.error,
-            iconColor: Colors.red,
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        // Remove technical prefix for cleaner display
-        final error = friendlyError(e, fallback: 'Машины дугаар шинэчилж чадсангүй. Дахин оролдоно уу.');
-        showGlassSnackBar(
-          context,
-          message: error,
-          icon: Icons.error,
-          iconColor: Colors.red,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUpdatingPlate = false;
-        });
-      }
-    }
-  }
-
   Future<String?> _showPasswordInputDialog() async {
     _deletePasswordController.clear();
     return showDialog<String>(
@@ -1553,45 +1371,31 @@ class _ProfileSettingsState extends State<ProfileSettings>
     );
   }
 
+  /// Машины мэдээлэл — ЗӨВХӨН харах. Оршин суугч/харилцагч аппаас машин
+  /// бүртгэх, дугаар солих эрхгүй; бүртгэлийг байрны удирдлага хийнэ.
   void _showCarPlateModal(BuildContext context) {
-    // Олон машин зөвшөөрөгдсөн бөгөөд сул слот байвал оролт нь ШИНЭ дугаар
-    // нэмэхэд зориулагдана — байгаа дугаараар нь бөглөвөл хэрэглэгч засаж
-    // байна гэж андуурч, хуучин машиныг дарж нэрлэнэ.
-    if (_mashiniiKhyazgaar > 1 && _sulSlotBaina) {
-      _mashiniiDugaarController.text = '';
-    }
+    final mashinuud = _mashinuud.isNotEmpty
+        ? _mashinuud
+        : (_mashiniiDugaarController.text.trim().isNotEmpty
+              ? [_mashiniiDugaarController.text.trim()]
+              : <String>[]);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext modalContext) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final isDark = context.isDarkMode;
-
-          /// Шинэ машин НЭМЭХ горим (хязгаар 2+ бөгөөд сул слот байна).
-          final nemekhEsekh = _mashiniiKhyazgaar > 1 && _sulSlotBaina;
-
-          /// Хязгаар дүүрсэн — шинээр нэмэх боломжгүй.
-          final duurenEsekh = _mashiniiKhyazgaar > 1 && !_sulSlotBaina;
-
-          // Шинэ машин нэмэхэд «30 хоногт 1 удаа солино» хамаарахгүй.
-          final isAllowed =
-              duurenEsekh ? false : (nemekhEsekh || _isPlateChangeAllowed());
-          final remainingDays = _getPlateChangeRemainingDays();
-
-          return Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF161618) : Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-            ),
+      builder: (BuildContext modalContext) {
+        final isDark = modalContext.isDarkMode;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161618) : Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+          ),
+          child: SafeArea(
+            top: false,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle
                 Container(
                   margin: EdgeInsets.only(top: 12.h),
                   width: 40.w,
@@ -1601,7 +1405,6 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
-                // Header
                 Padding(
                   padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 16.h),
                   child: Row(
@@ -1621,11 +1424,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                       SizedBox(width: 14.w),
                       Expanded(
                         child: Text(
-                          _mashiniiKhyazgaar > 1
-                              ? 'Миний машин (${_mashinuud.length}/$_mashiniiKhyazgaar)'
-                              : 'Миний машин',
+                          'Миний машин',
                           style: TextStyle(
-                            color: context.textPrimaryColor,
+                            color: modalContext.textPrimaryColor,
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1634,26 +1435,33 @@ class _ProfileSettingsState extends State<ProfileSettings>
                     ],
                   ),
                 ),
-
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Бүртгэлтэй бүх машин. Хязгаар 1 үед хуучин дэлгэц
-                      // хэвээр — жагсаалт нь зөвхөн олон машинтай үед л
-                      // нэмэлт мэдээлэл болно.
-                      if (_mashiniiKhyazgaar > 1 && _mashinuud.isNotEmpty) ...[
-                        Text(
-                          'Бүртгэлтэй машин',
-                          style: TextStyle(
-                            color: context.textSecondaryColor,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
+                      if (mashinuud.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(vertical: 20.h),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white10
+                                : Colors.black.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(12.r),
                           ),
-                        ),
-                        SizedBox(height: 8.h),
-                        ..._mashinuud.map(
+                          child: Text(
+                            'Бүртгэлтэй машин байхгүй',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: modalContext.textSecondaryColor,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        )
+                      else
+                        ...mashinuud.map(
                           (dugaar) => Container(
                             margin: EdgeInsets.only(bottom: 8.h),
                             padding: EdgeInsets.symmetric(
@@ -1678,7 +1486,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                   child: Text(
                                     dugaar,
                                     style: TextStyle(
-                                      color: context.textPrimaryColor,
+                                      color: modalContext.textPrimaryColor,
                                       fontSize: 15.sp,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 1.2,
@@ -1689,178 +1497,35 @@ class _ProfileSettingsState extends State<ProfileSettings>
                             ),
                           ),
                         ),
-                        SizedBox(height: 20.h),
-                      ],
-                      Text(
-                        nemekhEsekh ? 'Шинэ машины улсын дугаар' : 'Улсын дугаар',
-                        style: TextStyle(
-                          color: context.textSecondaryColor,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
+                      SizedBox(height: 16.h),
+                      Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.2),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 12.h),
-                      // Монгол гараас (controller-оор) орсон өөрчлөлтийг ч
-                      // сонсож, тоон ба үсгийн талбарыг сольж харуулна.
-                      ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: _mashiniiDugaarController,
-                        builder: (context, value, _) => Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                          if (value.text.length < 4)
-                            _buildModernTextField(
-                              key: const ValueKey('plate_number'),
-                              controller: _mashiniiDugaarController,
-                              label: 'Дугаар (Жишээ: 1234УАА)',
-                              icon: Icons.numbers_rounded,
-                              hint: '0000AAA',
-                              enabled: isAllowed,
-                              inputFormatters: [
-                                LengthLimitingTextInputFormatter(7),
-                                PlateNumberFormatter(),
-                              ],
-                              keyboardType: TextInputType.number,
-                              onChanged: (val) {
-                                setModalState(() {});
-                              },
-                            )
-                          else
-                            _buildModernTextField(
-                              key: const ValueKey('plate_text'),
-                              controller: _mashiniiDugaarController,
-                              label: 'Дугаар (Жишээ: 1234УАА)',
-                              icon: Icons.numbers_rounded,
-                              hint: '0000AAA',
-                              enabled: isAllowed,
-                              inputFormatters: [
-                                LengthLimitingTextInputFormatter(7),
-                                PlateNumberFormatter(),
-                              ],
-                              // 4 цифр орсны дараа системийн гарыг нууж, доорх монгол гарыг харуулна
-                              keyboardType: TextInputType.none,
-                              onChanged: (val) {
-                                setModalState(() {});
-                              },
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.blue,
+                              size: 18.sp,
                             ),
-                          if (isAllowed &&
-                              MongolPlateKeyboard.kheregtei(value.text))
-                            MongolPlateKeyboard(
-                              controller: _mashiniiDugaarController,
+                            SizedBox(width: 10.w),
+                            Expanded(
+                              child: Text(
+                                'Машин бүртгэх, дугаар өөрчлөхийг байрны удирдлагад хандана уу.',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
                           ],
-                        ),
-                      ),
-                      if (!isAllowed) ...[
-                        SizedBox(height: 16.h),
-                        Container(
-                          padding: EdgeInsets.all(12.w),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(
-                              color: Colors.blue.withOpacity(0.2),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                color: Colors.blue,
-                                size: 18.sp,
-                              ),
-                              SizedBox(width: 10.w),
-                              Expanded(
-                                child: Text(
-                                  duurenEsekh
-                                      ? 'Та хамгийн олон $_mashiniiKhyazgaar машин бүртгэсэн байна. Шинээр нэмэхийн тулд байрын удирдлагад хандана уу.'
-                                      : 'Машины дугаарыг 30 хоногт 1 удаа өөрчлөх боломжтой. Дахин өөрчлөхөд $remainingDays хоног үлдсэн байна.',
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: 32.h),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: (isAllowed && !_isUpdatingPlate)
-                              ? () async {
-                                  // Validation
-                                  final text = _mashiniiDugaarController.text
-                                      .toUpperCase()
-                                      .replaceAll(' ', '')
-                                      .trim();
-                                  if (text.length != 7) {
-                                    showGlassSnackBar(
-                                      context,
-                                      message: 'Дугаар 7 тэмдэгт байх ёстой',
-                                      icon: Icons.warning,
-                                    );
-                                    return;
-                                  }
-                                  // First 4 numbers
-                                  final numbers = text.substring(0, 4);
-                                  if (int.tryParse(numbers) == null) {
-                                    showGlassSnackBar(
-                                      context,
-                                      message: 'Эхний 4 тэмдэгт тоо байх ёстой',
-                                      icon: Icons.warning,
-                                    );
-                                    return;
-                                  }
-                                  // Last 3 letters
-                                  final letters = text.substring(4);
-                                  final letterRegex = RegExp(
-                                    r'^[A-ZА-ЯЁӨҮ]{3}$',
-                                  );
-                                  if (!letterRegex.hasMatch(letters)) {
-                                    showGlassSnackBar(
-                                      context,
-                                      message:
-                                          'Сүүлийн 3 тэмдэгт үсэг байх ёстой',
-                                      icon: Icons.warning,
-                                    );
-                                    return;
-                                  }
-
-                                  // Update the controller text with the CAPS version before API call
-                                  _mashiniiDugaarController.text = text;
-
-                                  Navigator.pop(context);
-                                  await _handleUpdatePlateNumber();
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.deepGreen,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.r),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isUpdatingPlate
-                              ? SizedBox(
-                                  width: 20.w,
-                                  height: 20.w,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  nemekhEsekh ? 'Нэмэх' : 'Хадгалах',
-                                  style: TextStyle(
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
                         ),
                       ),
                       SizedBox(height: 32.h),
@@ -1869,9 +1534,9 @@ class _ProfileSettingsState extends State<ProfileSettings>
                 ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -3659,7 +3324,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
                                                 .text
                                                 .isNotEmpty
                                             ? _mashiniiDugaarController.text
-                                            : 'Дугаар тохируулах'),
+                                            : 'Бүртгэлгүй'),
                                   onTap: () {
                                     _showCarPlateModal(context);
                                   },

@@ -157,7 +157,132 @@ class _BookingScreenState extends State<NuurKhuudas>
   bool _isInitialBillingLoaded = false;
   bool _isNonOrgUser = false;
 
-  bool get hasAnyAddress => _billingList.isNotEmpty || 
+  /// Идэвхтэй барилга (камер, зочин, санал асуулга зэрэг үүнийг ашиглана)
+  String? _idevkhteiBarilgiinId;
+
+  /// Хэрэглэгчийн тоотуудаас гаргасан давхардалгүй барилгууд (нэвтэрсэн
+  /// байгууллагынх л — token нэг байгууллагад холбогддог).
+  List<Map<String, String>> get _barilguud {
+    final toots = _userProfile?['toots'];
+    if (toots is! List) return [];
+    final orgId = _userProfile?['baiguullagiinId']?.toString();
+    final seen = <String>{};
+    final result = <Map<String, String>>[];
+    for (final t in toots) {
+      if (t is! Map) continue;
+      final id = t['barilgiinId']?.toString() ?? '';
+      if (id.isEmpty || id == 'null' || seen.contains(id)) continue;
+      final tOrg = t['baiguullagiinId']?.toString();
+      if (orgId != null && orgId.isNotEmpty && tOrg != null && tOrg.isNotEmpty && tOrg != orgId) {
+        continue;
+      }
+      seen.add(id);
+      final ner = (t['bairniiNer'] ?? t['baiguullagiinNer'] ?? 'Барилга').toString();
+      result.add({'id': id, 'ner': ner});
+    }
+    return result;
+  }
+
+  String? get _idevkhteiBarilgaNer {
+    final list = _barilguud;
+    if (list.length < 2) return null;
+    return list.firstWhere(
+      (b) => b['id'] == _idevkhteiBarilgiinId,
+      orElse: () => list.first,
+    )['ner'];
+  }
+
+  Future<void> _barilgaSongokh() async {
+    final list = _barilguud;
+    if (list.length < 2) return;
+    final songoson = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = ctx.isDarkMode;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161618) : Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    margin: EdgeInsets.only(top: 12.h),
+                    width: 40.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 8.h),
+                  child: Text(
+                    'Барилга сонгох',
+                    style: TextStyle(
+                      color: ctx.textPrimaryColor,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ...list.map((b) {
+                  final selected = b['id'] == (_idevkhteiBarilgiinId ?? list.first['id']);
+                  return ListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 24.w),
+                    leading: Icon(
+                      Icons.apartment_rounded,
+                      color: AppColors.deepGreen,
+                    ),
+                    title: Text(
+                      b['ner']!,
+                      style: TextStyle(
+                        color: ctx.textPrimaryColor,
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                    ),
+                    trailing: selected
+                        ? Icon(Icons.check_circle_rounded, color: AppColors.deepGreen)
+                        : null,
+                    onTap: () => Navigator.pop(ctx, b['id']),
+                  );
+                }),
+                SizedBox(height: 16.h),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (songoson == null || songoson == _idevkhteiBarilgiinId || !mounted) return;
+    await StorageService.setSongosonBarilga(songoson);
+    if (!mounted) return;
+    setState(() => _idevkhteiBarilgiinId = songoson);
+
+    // Тухайн барилгын гэрээний карт руу шилжинэ
+    final jagsaalt = _gereeResponse?.jagsaalt ?? [];
+    final index = jagsaalt.indexWhere((g) => g.barilgiinId == songoson);
+    if (index >= 0 && _contractPageController.hasClients) {
+      _contractPageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    }
+
+    _refreshBillingInfo(forceRefresh: true);
+    _loadNekhemjlekhCron();
+  }
+
+  bool get hasAnyAddress => _billingList.isNotEmpty ||
                          (_userProfile != null && _userProfile!['toots'] != null && (_userProfile!['toots'] as List).isNotEmpty);
 
   // Periodic refresh for balance (fallback when socket notification is missed)
@@ -279,6 +404,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
       // 2. Load cached toots
       final cachedToots = await StorageService.getToots();
+      _idevkhteiBarilgiinId = await StorageService.getBarilgiinId();
 
       // 3. Load other cached fields (account-scoped by userId)
       final cachedBillingList = await StorageService.getCachedBillingList(userId);
@@ -607,9 +733,12 @@ class _BookingScreenState extends State<NuurKhuudas>
       final gereeResponse = initialData[3] as Map<String, dynamic>;
 
       final user = userProfile['result'];
+      // getUserProfile нь сонгосон барилгыг хадгалсны дараа уншина
+      final idevkhteiBarilga = await StorageService.getBarilgiinId();
       if (mounted) {
         setState(() {
           _userProfile = user;
+          _idevkhteiBarilgiinId = idevkhteiBarilga;
           _gereeResponse = GereeResponse.fromJson(gereeResponse);
           // Identify non-organization users (Bpay signups or users with no linked org)
           final String? baigIdValue = user?['baiguullagiinId']?.toString();
@@ -2031,6 +2160,8 @@ class _BookingScreenState extends State<NuurKhuudas>
                     ? null
                     : _userProfile?['ner']?.toString(),
                 unreadNotificationCount: _unreadNotificationCount,
+                barilgaNer: _idevkhteiBarilgaNer,
+                onBarilgaTap: _barilgaSongokh,
                 onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
                 onThemeToggle: () {
                   final themeService = Provider.of<ThemeService>(
