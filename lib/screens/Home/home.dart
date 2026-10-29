@@ -139,6 +139,12 @@ class _BookingScreenState extends State<NuurKhuudas>
   // Nekhemjlekh cron data for date calculation
   Map<String, dynamic>? _nekhemjlekhCronData;
 
+  /// Барилга бүрийн нэхэмжлэхийн хуваарь (олон барилгатай үед карт бүр өөрийнхийг)
+  final Map<String, Map<String, dynamic>> _cronBarilgaar = {};
+
+  /// Нүүрний одоо харагдаж буй картын индекс
+  int _kartIndex = 0;
+
   // Notification count
   int _unreadNotificationCount = 0;
 
@@ -166,12 +172,24 @@ class _BookingScreenState extends State<NuurKhuudas>
   /// Карт солигдоход идэвхтэй барилгыг сольно — камер, зочин, санал
   /// асуулга зэрэг бүх хэсэг тухайн барилгынхыг харуулна.
   void _kartSoligdloo(int index) {
+    if (mounted) setState(() => _kartIndex = index);
     final jagsaalt = _gereeResponse?.jagsaalt ?? [];
     if (index < 0 || index >= jagsaalt.length) return;
     final id = jagsaalt[index].barilgiinId;
     if (id.isEmpty || id == _idevkhteiBarilgiinId) return;
     _idevkhteiBarilgiinId = id;
     StorageService.setSongosonBarilga(id);
+  }
+
+  /// Header-т харуулах нэр: тухайн картын гэрээн дээрх нэр (барилга бүрт
+  /// өөр нэрээр бүртгэгдсэн байж болно), эс бөгөөс профайлын нэр.
+  String? get _kartiinNer {
+    final jagsaalt = _gereeResponse?.jagsaalt ?? [];
+    if (_kartIndex < jagsaalt.length) {
+      final ner = jagsaalt[_kartIndex].ner.trim();
+      if (ner.isNotEmpty) return ner;
+    }
+    return _userProfile?['ner']?.toString();
   }
 
   /// Апп нээгдэхэд өмнө сонгосон барилгын карт руу шилжинэ.
@@ -185,6 +203,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _contractPageController.hasClients) {
         _contractPageController.jumpToPage(index);
+        setState(() => _kartIndex = index);
       }
     });
   }
@@ -655,6 +674,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           _idevkhteiBarilgiinId = idevkhteiBarilga;
           _gereeResponse = GereeResponse.fromJson(gereeResponse);
           _kartSergeeye();
+          _gereeniiCronAchaalya();
           // Identify non-organization users (Bpay signups or users with no linked org)
           final String? baigIdValue = user?['baiguullagiinId']?.toString();
           _isNonOrgUser = baigIdValue == null ||
@@ -1260,61 +1280,53 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
+  /// Хариунаас тухайн барилгын хуваарийг сонгоно.
+  /// Хариу нь { data: {...} } эсвэл { data: [ {...}, ... ] } хэлбэртэй.
+  Map<String, dynamic>? _cronSongoyo(dynamic rawData, String barilgiinId) {
+    if (rawData is Map<String, dynamic>) {
+      return rawData['barilgiinId']?.toString() == barilgiinId ? rawData : null;
+    }
+    if (rawData is List) {
+      for (final item in rawData) {
+        if (item is Map<String, dynamic> &&
+            item['barilgiinId']?.toString() == barilgiinId) {
+          return item;
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> _barilgiinCronAvya(String barilgiinId) async {
+    final response = await ApiService.fetchNekhemjlekhCron(
+      barilgiinId: barilgiinId,
+    );
+    final cron = _cronSongoyo(response['data'], barilgiinId);
+    if (cron != null) _cronBarilgaar[barilgiinId] = cron;
+    return cron;
+  }
+
   Future<void> _loadNekhemjlekhCron() async {
     try {
       final barilgiinId = await StorageService.getBarilgiinId();
-
       if (barilgiinId != null) {
-        final response = await ApiService.fetchNekhemjlekhCron(
-          barilgiinId: barilgiinId,
-        );
-
-        if (mounted) {
-          setState(() {
-            // Handle both shapes:
-            // 1) { success, data: { ... } }
-            // 2) { success, data: [ { ... }, ... ] }
-            final rawData = response['data'];
-
-            if (rawData is Map<String, dynamic>) {
-              // Check if this single record matches our barilgiinId
-              final recordBarilgiinId = rawData['barilgiinId']?.toString();
-
-              if (recordBarilgiinId == barilgiinId) {
-                _nekhemjlekhCronData = rawData;
-              } else {
-                _nekhemjlekhCronData = null;
-              }
-            } else if (rawData is List) {
-              if (rawData.isEmpty) {
-                // Empty list is a valid response - just means no data
-                _nekhemjlekhCronData = null;
-              } else {
-                // Filter list to find record matching barilgiinId
-                final matchingRecords = rawData
-                    .where(
-                      (item) =>
-                          item is Map<String, dynamic> &&
-                          item['barilgiinId']?.toString() == barilgiinId,
-                    )
-                    .toList();
-
-                if (matchingRecords.isNotEmpty) {
-                  _nekhemjlekhCronData =
-                      matchingRecords.first as Map<String, dynamic>;
-                } else {
-                  _nekhemjlekhCronData = null;
-                }
-              }
-            } else {
-              _nekhemjlekhCronData = null;
-            }
-          });
-        }
+        final cron = await _barilgiinCronAvya(barilgiinId);
+        if (mounted) setState(() => _nekhemjlekhCronData = cron);
       }
     } catch (e) {
       // Silent fail - date calculation will fallback to contract date
     }
+  }
+
+  /// Гэрээнүүдийн бусад барилгын хуваарийг татна (карт бүрийн үлдсэн өдөр).
+  Future<void> _gereeniiCronAchaalya() async {
+    final iduud = (_gereeResponse?.jagsaalt ?? [])
+        .map((g) => g.barilgiinId)
+        .where((id) => id.isNotEmpty && !_cronBarilgaar.containsKey(id))
+        .toSet();
+    if (iduud.isEmpty) return;
+    await Future.wait(iduud.map((id) => _barilgiinCronAvya(id).catchError((_) => null)));
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadBillers() async {
@@ -1554,12 +1566,16 @@ class _BookingScreenState extends State<NuurKhuudas>
     /// шошгондоо тодотгоно.
     int unitCount = 1,
   }) {
-    // Determine next invoice date from nekhemjlekhCron (if available)
+    // Determine next invoice date from nekhemjlekhCron (if available).
+    // Карт бүр өөрийн барилгын хуваарийг ашиглана.
+    final cronData = (geree != null && _cronBarilgaar[geree.barilgiinId] != null)
+        ? _cronBarilgaar[geree.barilgiinId]
+        : _nekhemjlekhCronData;
     DateTime? nextInvoiceDate;
-    if (_nekhemjlekhCronData != null &&
-        _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] != null) {
+    if (cronData != null &&
+        cronData['nekhemjlekhUusgekhOgnoo'] != null) {
       final nekhemjlekhUusgekhOgnooValue =
-          _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'];
+          cronData['nekhemjlekhUusgekhOgnoo'];
       final nekhemjlekhUusgekhOgnoo = nekhemjlekhUusgekhOgnooValue is int
           ? nekhemjlekhUusgekhOgnooValue
           : (nekhemjlekhUusgekhOgnooValue is num
@@ -2073,7 +2089,7 @@ class _BookingScreenState extends State<NuurKhuudas>
               child: HomeHeader(
                 userName: (_isNonOrgUser && _userProfile?['hasCustomName'] != true)
                     ? null
-                    : _userProfile?['ner']?.toString(),
+                    : _kartiinNer,
                 unreadNotificationCount: _unreadNotificationCount,
                 onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
                 onThemeToggle: () {
