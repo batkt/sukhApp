@@ -139,6 +139,12 @@ class _BookingScreenState extends State<NuurKhuudas>
   // Nekhemjlekh cron data for date calculation
   Map<String, dynamic>? _nekhemjlekhCronData;
 
+  /// Барилга бүрийн нэхэмжлэхийн хуваарь (олон барилгатай үед карт бүр өөрийнхийг)
+  final Map<String, Map<String, dynamic>> _cronBarilgaar = {};
+
+  /// Нүүрний одоо харагдаж буй картын индекс
+  int _kartIndex = 0;
+
   // Notification count
   int _unreadNotificationCount = 0;
 
@@ -160,126 +166,46 @@ class _BookingScreenState extends State<NuurKhuudas>
   /// Идэвхтэй барилга (камер, зочин, санал асуулга зэрэг үүнийг ашиглана)
   String? _idevkhteiBarilgiinId;
 
-  /// Хэрэглэгчийн тоотуудаас гаргасан давхардалгүй барилгууд (нэвтэрсэн
-  /// байгууллагынх л — token нэг байгууллагад холбогддог).
-  List<Map<String, String>> get _barilguud {
-    final toots = _userProfile?['toots'];
-    if (toots is! List) return [];
-    final orgId = _userProfile?['baiguullagiinId']?.toString();
-    final seen = <String>{};
-    final result = <Map<String, String>>[];
-    for (final t in toots) {
-      if (t is! Map) continue;
-      final id = t['barilgiinId']?.toString() ?? '';
-      if (id.isEmpty || id == 'null' || seen.contains(id)) continue;
-      final tOrg = t['baiguullagiinId']?.toString();
-      if (orgId != null && orgId.isNotEmpty && tOrg != null && tOrg.isNotEmpty && tOrg != orgId) {
-        continue;
-      }
-      seen.add(id);
-      final ner = (t['bairniiNer'] ?? t['baiguullagiinNer'] ?? 'Барилга').toString();
-      result.add({'id': id, 'ner': ner});
-    }
-    return result;
-  }
+  /// Нүүрний картыг сэргээсэн эсэх (хадгалсан барилгын карт руу нэг удаа шилжинэ)
+  bool _kartSergeesen = false;
 
-  String? get _idevkhteiBarilgaNer {
-    final list = _barilguud;
-    if (list.length < 2) return null;
-    return list.firstWhere(
-      (b) => b['id'] == _idevkhteiBarilgiinId,
-      orElse: () => list.first,
-    )['ner'];
-  }
-
-  Future<void> _barilgaSongokh() async {
-    final list = _barilguud;
-    if (list.length < 2) return;
-    final songoson = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final isDark = ctx.isDarkMode;
-        return Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF161618) : Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28.r)),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    margin: EdgeInsets.only(top: 12.h),
-                    width: 40.w,
-                    height: 4.h,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white12 : Colors.black12,
-                      borderRadius: BorderRadius.circular(2.r),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 8.h),
-                  child: Text(
-                    'Барилга сонгох',
-                    style: TextStyle(
-                      color: ctx.textPrimaryColor,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                ...list.map((b) {
-                  final selected = b['id'] == (_idevkhteiBarilgiinId ?? list.first['id']);
-                  return ListTile(
-                    contentPadding: EdgeInsets.symmetric(horizontal: 24.w),
-                    leading: Icon(
-                      Icons.apartment_rounded,
-                      color: AppColors.deepGreen,
-                    ),
-                    title: Text(
-                      b['ner']!,
-                      style: TextStyle(
-                        color: ctx.textPrimaryColor,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                      ),
-                    ),
-                    trailing: selected
-                        ? Icon(Icons.check_circle_rounded, color: AppColors.deepGreen)
-                        : null,
-                    onTap: () => Navigator.pop(ctx, b['id']),
-                  );
-                }),
-                SizedBox(height: 16.h),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (songoson == null || songoson == _idevkhteiBarilgiinId || !mounted) return;
-    await StorageService.setSongosonBarilga(songoson);
-    if (!mounted) return;
-    setState(() => _idevkhteiBarilgiinId = songoson);
-
-    // Тухайн барилгын гэрээний карт руу шилжинэ
+  /// Карт солигдоход идэвхтэй барилгыг сольно — камер, зочин, санал
+  /// асуулга зэрэг бүх хэсэг тухайн барилгынхыг харуулна.
+  void _kartSoligdloo(int index) {
+    if (mounted) setState(() => _kartIndex = index);
     final jagsaalt = _gereeResponse?.jagsaalt ?? [];
-    final index = jagsaalt.indexWhere((g) => g.barilgiinId == songoson);
-    if (index >= 0 && _contractPageController.hasClients) {
-      _contractPageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeOutCubic,
-      );
-    }
+    if (index < 0 || index >= jagsaalt.length) return;
+    final id = jagsaalt[index].barilgiinId;
+    if (id.isEmpty || id == _idevkhteiBarilgiinId) return;
+    _idevkhteiBarilgiinId = id;
+    StorageService.setSongosonBarilga(id);
+  }
 
-    _refreshBillingInfo(forceRefresh: true);
-    _loadNekhemjlekhCron();
+  /// Header-т харуулах нэр: тухайн картын гэрээн дээрх нэр (барилга бүрт
+  /// өөр нэрээр бүртгэгдсэн байж болно), эс бөгөөс профайлын нэр.
+  String? get _kartiinNer {
+    final jagsaalt = _gereeResponse?.jagsaalt ?? [];
+    if (_kartIndex < jagsaalt.length) {
+      final ner = jagsaalt[_kartIndex].ner.trim();
+      if (ner.isNotEmpty) return ner;
+    }
+    return _userProfile?['ner']?.toString();
+  }
+
+  /// Апп нээгдэхэд өмнө сонгосон барилгын карт руу шилжинэ.
+  void _kartSergeeye() {
+    if (_kartSergeesen) return;
+    final jagsaalt = _gereeResponse?.jagsaalt ?? [];
+    if (jagsaalt.length < 2) return;
+    _kartSergeesen = true;
+    final index = jagsaalt.indexWhere((g) => g.barilgiinId == _idevkhteiBarilgiinId);
+    if (index <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _contractPageController.hasClients) {
+        _contractPageController.jumpToPage(index);
+        setState(() => _kartIndex = index);
+      }
+    });
   }
 
   bool get hasAnyAddress => _billingList.isNotEmpty ||
@@ -425,6 +351,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           }
           if (cachedGereeData != null && cachedGereeData.isNotEmpty) {
             _gereeResponse = GereeResponse.fromJson(cachedGereeData);
+            _kartSergeeye();
             _isInitialBillingLoaded = true;
             _progressAnimationController.forward(); // Animate early
           }
@@ -755,6 +682,8 @@ class _BookingScreenState extends State<NuurKhuudas>
           _userProfile = user;
           _idevkhteiBarilgiinId = idevkhteiBarilga;
           _gereeResponse = GereeResponse.fromJson(gereeResponse);
+          _kartSergeeye();
+          _gereeniiCronAchaalya();
           // Identify non-organization users (Bpay signups or users with no linked org)
           final String? baigIdValue = user?['baiguullagiinId']?.toString();
           _isNonOrgUser = baigIdValue == null ||
@@ -1360,61 +1289,53 @@ class _BookingScreenState extends State<NuurKhuudas>
     }
   }
 
+  /// Хариунаас тухайн барилгын хуваарийг сонгоно.
+  /// Хариу нь { data: {...} } эсвэл { data: [ {...}, ... ] } хэлбэртэй.
+  Map<String, dynamic>? _cronSongoyo(dynamic rawData, String barilgiinId) {
+    if (rawData is Map<String, dynamic>) {
+      return rawData['barilgiinId']?.toString() == barilgiinId ? rawData : null;
+    }
+    if (rawData is List) {
+      for (final item in rawData) {
+        if (item is Map<String, dynamic> &&
+            item['barilgiinId']?.toString() == barilgiinId) {
+          return item;
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> _barilgiinCronAvya(String barilgiinId) async {
+    final response = await ApiService.fetchNekhemjlekhCron(
+      barilgiinId: barilgiinId,
+    );
+    final cron = _cronSongoyo(response['data'], barilgiinId);
+    if (cron != null) _cronBarilgaar[barilgiinId] = cron;
+    return cron;
+  }
+
   Future<void> _loadNekhemjlekhCron() async {
     try {
       final barilgiinId = await StorageService.getBarilgiinId();
-
       if (barilgiinId != null) {
-        final response = await ApiService.fetchNekhemjlekhCron(
-          barilgiinId: barilgiinId,
-        );
-
-        if (mounted) {
-          setState(() {
-            // Handle both shapes:
-            // 1) { success, data: { ... } }
-            // 2) { success, data: [ { ... }, ... ] }
-            final rawData = response['data'];
-
-            if (rawData is Map<String, dynamic>) {
-              // Check if this single record matches our barilgiinId
-              final recordBarilgiinId = rawData['barilgiinId']?.toString();
-
-              if (recordBarilgiinId == barilgiinId) {
-                _nekhemjlekhCronData = rawData;
-              } else {
-                _nekhemjlekhCronData = null;
-              }
-            } else if (rawData is List) {
-              if (rawData.isEmpty) {
-                // Empty list is a valid response - just means no data
-                _nekhemjlekhCronData = null;
-              } else {
-                // Filter list to find record matching barilgiinId
-                final matchingRecords = rawData
-                    .where(
-                      (item) =>
-                          item is Map<String, dynamic> &&
-                          item['barilgiinId']?.toString() == barilgiinId,
-                    )
-                    .toList();
-
-                if (matchingRecords.isNotEmpty) {
-                  _nekhemjlekhCronData =
-                      matchingRecords.first as Map<String, dynamic>;
-                } else {
-                  _nekhemjlekhCronData = null;
-                }
-              }
-            } else {
-              _nekhemjlekhCronData = null;
-            }
-          });
-        }
+        final cron = await _barilgiinCronAvya(barilgiinId);
+        if (mounted) setState(() => _nekhemjlekhCronData = cron);
       }
     } catch (e) {
       // Silent fail - date calculation will fallback to contract date
     }
+  }
+
+  /// Гэрээнүүдийн бусад барилгын хуваарийг татна (карт бүрийн үлдсэн өдөр).
+  Future<void> _gereeniiCronAchaalya() async {
+    final iduud = (_gereeResponse?.jagsaalt ?? [])
+        .map((g) => g.barilgiinId)
+        .where((id) => id.isNotEmpty && !_cronBarilgaar.containsKey(id))
+        .toSet();
+    if (iduud.isEmpty) return;
+    await Future.wait(iduud.map((id) => _barilgiinCronAvya(id).catchError((_) => null)));
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadBillers() async {
@@ -1654,12 +1575,16 @@ class _BookingScreenState extends State<NuurKhuudas>
     /// шошгондоо тодотгоно.
     int unitCount = 1,
   }) {
-    // Determine next invoice date from nekhemjlekhCron (if available)
+    // Determine next invoice date from nekhemjlekhCron (if available).
+    // Карт бүр өөрийн барилгын хуваарийг ашиглана.
+    final cronData = (geree != null && _cronBarilgaar[geree.barilgiinId] != null)
+        ? _cronBarilgaar[geree.barilgiinId]
+        : _nekhemjlekhCronData;
     DateTime? nextInvoiceDate;
-    if (_nekhemjlekhCronData != null &&
-        _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'] != null) {
+    if (cronData != null &&
+        cronData['nekhemjlekhUusgekhOgnoo'] != null) {
       final nekhemjlekhUusgekhOgnooValue =
-          _nekhemjlekhCronData!['nekhemjlekhUusgekhOgnoo'];
+          cronData['nekhemjlekhUusgekhOgnoo'];
       final nekhemjlekhUusgekhOgnoo = nekhemjlekhUusgekhOgnooValue is int
           ? nekhemjlekhUusgekhOgnooValue
           : (nekhemjlekhUusgekhOgnooValue is num
@@ -2173,10 +2098,8 @@ class _BookingScreenState extends State<NuurKhuudas>
               child: HomeHeader(
                 userName: (_isNonOrgUser && _userProfile?['hasCustomName'] != true)
                     ? null
-                    : _userProfile?['ner']?.toString(),
+                    : _kartiinNer,
                 unreadNotificationCount: _unreadNotificationCount,
-                barilgaNer: _idevkhteiBarilgaNer,
-                onBarilgaTap: _barilgaSongokh,
                 onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
                 onThemeToggle: () {
                   final themeService = Provider.of<ThemeService>(
@@ -2272,6 +2195,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                                       .clamp(1.0, 1.5),
                               child: PageView.builder(
                                 controller: _contractPageController,
+                                onPageChanged: _kartSoligdloo,
                                 itemCount: (_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty)
                                     ? _gereeResponse!.jagsaalt.length
                                     : (_cardBillings.isNotEmpty ? _cardBillings.length : 1),
@@ -2285,6 +2209,8 @@ class _BookingScreenState extends State<NuurKhuudas>
                                   double currentTootAldangi = 0.0;
                                   double currentTootKhungulult = 0.0;
                                   bool foundMatch = false;
+                                  // Энэ картад хамаарах төлбөрүүд («Төлбөр харах»-д шүүнэ)
+                                  List<Map<String, dynamic>> kartiinTulburuud = [];
 
                                   if (g != null) {
                                     // 1. _cardBillings-ээс энэ гэрээ/тоотод хамаарах бичлэгүүдийг шүүнэ
@@ -2314,6 +2240,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
                                     if (matchedBillings.isNotEmpty) {
                                       foundMatch = true;
+                                      kartiinTulburuud = matchedBillings;
                                       for (var b in matchedBillings) {
                                         currentTootBalance += _parseNum(b['perItemTotal'] ?? b['uldegdel']);
                                         currentTootAldangi += _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
@@ -2324,6 +2251,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                                       if (index < _cardBillings.length && _cardBillings.length == (_gereeResponse?.jagsaalt.length ?? 0)) {
                                         foundMatch = true;
                                         final b = _cardBillings[index];
+                                        kartiinTulburuud = [b];
                                         currentTootBalance = _parseNum(b['perItemTotal'] ?? b['uldegdel']);
                                         currentTootAldangi = _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
                                         currentTootKhungulult = _parseNum(b['khungulult'] ?? 0);
@@ -2336,6 +2264,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                                     if (index < _cardBillings.length) {
                                       foundMatch = true;
                                       final b = _cardBillings[index];
+                                      kartiinTulburuud = [b];
                                       currentTootBalance = _parseNum(b['perItemTotal'] ?? b['uldegdel']);
                                       currentTootAldangi = _parseNum(b['perItemAldangi'] ?? b['uldegdelAldangi']);
                                       currentTootKhungulult = _parseNum(b['khungulult'] ?? 0);
@@ -2405,7 +2334,11 @@ class _BookingScreenState extends State<NuurKhuudas>
                                           return;
                                         }
                                         if ((_gereeResponse != null && _gereeResponse!.jagsaalt.isNotEmpty) || _billingList.isNotEmpty) {
-                                          _navigateToBillingList();
+                                          // Олон карттай бол зөвхөн энэ картын (барилгын) төлбөрийг харуулна
+                                          final kartOlon = ((_gereeResponse?.jagsaalt.length ?? 0) > 1) || _cardBillings.length > 1;
+                                          _navigateToBillingList(
+                                            kartiinTulburuud: kartOlon ? kartiinTulburuud : null,
+                                          );
                                         } else {
                                           context.push('/address_selection');
                                         }
@@ -2680,15 +2613,30 @@ class _BookingScreenState extends State<NuurKhuudas>
     return expanded;
   }
 
-  void _navigateToBillingList() {
+  /// Төлбөрийг тодорхойлох түлхүүр (шинэчлэгдсэн жагсаалтад ч таарна)
+  static String _tulburiinTulkhuur(Map<String, dynamic> b) =>
+      '${b['source'] ?? ''}|${b['gereeniiId'] ?? ''}|${b['billingId'] ?? ''}|${b['customerId'] ?? ''}';
+
+  /// [kartiinTulburuud] өгсөн бол зөвхөн тэдгээрийг (нэг барилгынх) харуулна.
+  void _navigateToBillingList({List<Map<String, dynamic>>? kartiinTulburuud}) {
+    final tulkhuuruud = kartiinTulburuud?.map(_tulburiinTulkhuur).toSet();
     context.push(
       '/billing-list',
       extra: {
         'billingList': _billingList,
-        'userBillingData': _userBillingData,
+        'userBillingData': tulkhuuruud == null ? _userBillingData : null,
         'isLoading': _isLoadingBillingList,
         'totalBalance': totalNiitTulbur,
         'totalAldangi': totalNiitAldangi,
+        'shuult': tulkhuuruud == null
+            ? null
+            : (Map<String, dynamic> b) =>
+                tulkhuuruud.contains(_tulburiinTulkhuur(b)),
+        'suuliinJagsaalt': () => <String, dynamic>{
+              'list': _billingList,
+              'total': totalNiitTulbur,
+              'aldangi': totalNiitAldangi,
+            },
         'expandAddressAbbreviations': _expandAddressAbbreviations,
         'onDeleteTap': _deleteBilling,
         'onEditTap': _editBilling,

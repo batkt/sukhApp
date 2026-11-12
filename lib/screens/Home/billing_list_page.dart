@@ -26,6 +26,14 @@ class BillingListPage extends StatefulWidget {
   final VoidCallback onConnect;
   final Future<void> Function() onRefresh;
 
+  /// Нүүрний картаас нээсэн бол зөвхөн тэр барилгын төлбөрийг харуулна.
+  final bool Function(Map<String, dynamic>)? shuult;
+
+  /// Нүүр хуудасны шинэчилсэн жагсаалт (СӨХ-ийн гэрээ + Bpay). Байвал
+  /// шинэчлэхэд Bpay-г дахин татахын оронд үүнийг ашиглана.
+  /// Хариу: {'list': [...], 'total': double, 'aldangi': double}
+  final Map<String, dynamic> Function()? suuliinJagsaalt;
+
   const BillingListPage({
     super.key,
     required this.billingList,
@@ -40,6 +48,8 @@ class BillingListPage extends StatefulWidget {
     required this.isConnecting,
     required this.onConnect,
     required this.onRefresh,
+    this.shuult,
+    this.suuliinJagsaalt,
   });
 
   @override
@@ -54,6 +64,24 @@ class _BillingListPageState extends State<BillingListPage> {
   late double _localTotalAldangi;
 
   void Function(Map<String, dynamic>)? _notificationCallback;
+
+  double _too(dynamic v) =>
+      v is num ? v.toDouble() : double.tryParse(v?.toString() ?? '') ?? 0.0;
+
+  List<Map<String, dynamic>> get _kharagdakh => widget.shuult == null
+      ? _localBillingList
+      : _localBillingList.where(widget.shuult!).toList();
+
+  /// Шүүлттэй үед нийт дүнг зөвхөн тухайн барилгын төлбөрөөс бодно.
+  double get _niitDun => widget.shuult == null
+      ? _localTotalBalance
+      : _kharagdakh.fold(
+          0.0, (s, b) => s + _too(b['perItemTotal'] ?? b['uldegdel']));
+
+  double get _niitAldangi => widget.shuult == null
+      ? _localTotalAldangi
+      : _kharagdakh.fold(
+          0.0, (s, b) => s + _too(b['perItemAldangi'] ?? b['uldegdelAldangi']));
 
   String _resolveWalletPaymentState(Map<String, dynamic> walletData) {
     final state = walletData['paymentStatus']?.toString().toUpperCase() ?? '';
@@ -170,6 +198,25 @@ class _BillingListPageState extends State<BillingListPage> {
     
     // Call parent refresh
     await widget.onRefresh();
+
+    // Нүүр хуудас бүх (СӨХ + Bpay) төлбөрийг шинэчилсэн — тэрийг авна.
+    // Доорх Bpay-ийн дахин татах нь СӨХ-ийн гэрээг жагсаалтаас хасдаг байв.
+    if (widget.suuliinJagsaalt != null) {
+      if (mounted) {
+        final suuliin = widget.suuliinJagsaalt!();
+        setState(() {
+          _localBillingList = List<Map<String, dynamic>>.from(
+            suuliin['list'] as List? ?? const [],
+          );
+          _localTotalBalance =
+              (suuliin['total'] as num?)?.toDouble() ?? _localTotalBalance;
+          _localTotalAldangi =
+              (suuliin['aldangi'] as num?)?.toDouble() ?? _localTotalAldangi;
+          _localIsLoading = false;
+        });
+      }
+      return;
+    }
     
     // Also fetch latest list locally to ensure UI updates even when pushed
     if (mounted) {
@@ -446,7 +493,9 @@ class _BillingListPageState extends State<BillingListPage> {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
 
-    final residential = _localBillingList
+    final kharagdakh = _kharagdakh;
+
+    final residential = kharagdakh
         .where((b) {
           final name = (b['billingName'] ?? '').toString().toLowerCase();
           return name.contains('орон сууц') ||
@@ -463,7 +512,7 @@ class _BillingListPageState extends State<BillingListPage> {
         )
         .toList();
 
-    final utility = _localBillingList
+    final utility = kharagdakh
         .where((b) {
           return !residential.any((r) => r['billingId'] == b['billingId']);
         })
@@ -516,8 +565,8 @@ class _BillingListPageState extends State<BillingListPage> {
                           if (mounted) setState(() {});
                         })
                     : null,
-                totalBalance: _localTotalBalance,
-                totalAldangi: _localTotalAldangi,
+                totalBalance: _niitDun,
+                totalAldangi: _niitAldangi,
               ),
           ],
         ),
@@ -591,7 +640,7 @@ class _BillingListPageState extends State<BillingListPage> {
   /// Бүх хаягийн нийт төлөх — нэхэмжлэхийн хуудасны картын хэв маяг
   Widget _buildNiitKart(bool isDark, int hayagToo) {
     const mint = Color(0xFF7DF0C6);
-    final niit = _localTotalBalance;
+    final niit = _niitDun;
     final iluu = niit < -0.5;
     return ClipRRect(
       borderRadius: BorderRadius.circular(24.r),
@@ -651,10 +700,10 @@ class _BillingListPageState extends State<BillingListPage> {
                         '$hayagToo хаяг холбогдсон',
                         style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12.sp),
                       ),
-                      if (_localTotalAldangi > 0.5) ...[
+                      if (_niitAldangi > 0.5) ...[
                         const Spacer(),
                         Text(
-                          'Алданги ${formatNumber(_localTotalAldangi)}₮',
+                          'Алданги ${formatNumber(_niitAldangi)}₮',
                           style: TextStyle(color: const Color(0xFFFFC46B), fontSize: 12.sp, fontWeight: FontWeight.w500),
                         ),
                       ],
