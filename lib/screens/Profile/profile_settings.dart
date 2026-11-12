@@ -1,3 +1,4 @@
+import 'package:sukh_app/utils/toot_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -2429,10 +2430,7 @@ class _ProfileSettingsState extends State<ProfileSettings>
     List<Map<String, dynamic>> dataItems = [];
 
     // Check for multiple toots (units)
-    final List toots =
-        (_userData!['toots'] != null && _userData!['toots'] is List)
-            ? List.from(_userData!['toots'])
-            : [];
+    final List toots = harakhTootuud(_userData);
 
     if (toots.isNotEmpty) {
       // Group toots by building to avoid repeating building name if multiple toots in same building

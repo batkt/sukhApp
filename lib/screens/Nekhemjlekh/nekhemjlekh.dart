@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui';
 import 'dart:convert';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,6 +21,7 @@ import 'package:sukh_app/components/Nekhemjlekh/invoice_card.dart';
 import 'package:sukh_app/components/Nekhemjlekh/contract_selection_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/bank_selection_modal.dart';
 import 'package:sukh_app/components/Nekhemjlekh/payment_modal.dart';
+import 'package:sukh_app/screens/Home/billing_detail_page.dart';
 import 'package:sukh_app/components/Nekhemjlekh/vat_receipt_modal.dart';
 import 'package:sukh_app/services/socket_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
@@ -66,6 +66,57 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     WidgetsBinding.instance.addObserver(this);
     _loadNekhemjlekh();
     _connectSocketAndSetupListener();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _sokhTulburNeey());
+  }
+
+  bool _sokhTulburNeesen = false;
+
+  /// Сервер талын тохиргоотой СӨХ-д нэхэмжлэх нь төлбөрийн дэлгэрэнгүйгээр (ердийн
+  /// төлбөрийн дэлгэц) харагдана — оршин суугчид ялгаа мэдэгдэхгүй.
+  Future<void> _sokhTulburNeey() async {
+    if (_sokhTulburNeesen) return;
+    if (!await StorageService.isBpayBaiguullaga()) return;
+    final jagsaalt = await ApiService.getMiniiSokhBilling();
+    if (!mounted || jagsaalt.isEmpty) return;
+    final orgId = await StorageService.getBaiguullagiinId();
+    final h = jagsaalt.firstWhere(
+      (x) => x['baiguullagiinId']?.toString() == orgId,
+      orElse: () => jagsaalt.first,
+    );
+    final billingId = h['billingId']?.toString() ?? '';
+    if (billingId.isEmpty || !mounted) return;
+    _sokhTulburNeesen = true;
+
+    Map<String, dynamic>? billingData;
+    try {
+      final r = await ApiService.getWalletBillingBills(billingId: billingId);
+      if (r.isNotEmpty && r['billingId'] != null) billingData = r;
+    } catch (_) {}
+    if (!mounted) return;
+
+    final billing = <String, dynamic>{
+      'billingId': billingId,
+      'customerId': h['customerId'],
+      'customerCode': h['customerCode'],
+      'customerName': h['customerName'],
+      'customerAddress': h['customerAddress'],
+      'bairniiNer': h['customerAddress'],
+      'billingName': billingData?['billingName'] ?? 'Орон сууцны төлбөр',
+      'source': 'WALLET_API',
+      'baiguullagiinId': h['baiguullagiinId'],
+      'gereeniiId': h['gereeniiId'],
+    };
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => BillingDetailPage(
+          billing: billing,
+          billingData: billingData,
+          expandAddressAbbreviations: (v) => v,
+          formatNumberWithComma: (n) => formatNumber(n, 0),
+        ),
+      ),
+    );
+    if (mounted) Navigator.of(context).maybePop();
   }
 
   @override
@@ -2777,7 +2828,25 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
     }
   }
 
-  void _showPaymentModal() {
+  Future<void> _showPaymentModal() async {
+    // Төрийн банк (BPay) горим: СӨХ-ийн төлбөрийг BPay-ээр төлнө; Sukh-ийн
+    // нэхэмжлэх зөвхөн лавлагаа (сервер ч QPay-г татгалздаг).
+    final orgId = _songosonBaiguullagiinId ?? await StorageService.getBaiguullagiinId();
+    if (await StorageService.isBpayBaiguullaga(orgId)) {
+      if (mounted) {
+        showGlassSnackBar(
+          context,
+          message: 'Нүүр хуудасны «Байрны төлбөр»-өөс төлнө үү.',
+          icon: Icons.info_outline,
+          iconColor: Colors.orange,
+          textColor: context.textPrimaryColor,
+          opacity: 0.3,
+          blur: 15,
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2801,6 +2870,23 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
 
   @override
   Widget build(BuildContext context) {
+    // Хуудасны бүх текст нэг font family-тай: iOS-ийн typography гарчгийн
+    // style-уудад 'CupertinoSystemDisplay', биеийн style-уудад
+    // 'CupertinoSystemText' өгдөг тул Material widget-ууд (товч, chip г.м.)
+    // өөр family-тай гарч болдог. Бүх textTheme-ийг bodyMedium-ийн family руу
+    // нэгтгэнэ (Android дээр Roboto хэвээр). Хэмжээ/жин хэвээр.
+    final theme = Theme.of(context);
+    final family = theme.textTheme.bodyMedium?.fontFamily;
+    return Theme(
+      data: theme.copyWith(
+        textTheme: theme.textTheme.apply(fontFamily: family),
+        primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: family),
+      ),
+      child: _buildScaffold(),
+    );
+  }
+
+  Widget _buildScaffold() {
     return Scaffold(
       backgroundColor: context.backgroundColor,
       body: Stack(
@@ -3180,17 +3266,16 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                                   text: formatNumber(_effectiveTotalAmount.abs(), 2),
                                   style: TextStyle(
                                     fontSize: (isVerySmall ? 28.0 : 32.0).sp,
-                                    fontWeight: FontWeight.w300,
+                                    fontWeight: FontWeight.w500,
                                     letterSpacing: -1.2,
                                     color: iluu ? mint : Colors.white,
-                                    fontFeatures: const [FontFeature.tabularFigures()],
                                   ),
                                 ),
                                 TextSpan(
                                   text: ' ₮',
                                   style: TextStyle(
                                     fontSize: (isVerySmall ? 18.0 : 20.0).sp,
-                                    fontWeight: FontWeight.w300,
+                                    fontWeight: FontWeight.w500,
                                     color: Colors.white.withOpacity(0.6),
                                   ),
                                 ),
@@ -3333,7 +3418,6 @@ class _NekhemjlekhPageState extends State<NekhemjlekhPage>
                               fontSize: 18.sp,
                               fontWeight: FontWeight.w500,
                               letterSpacing: -0.4,
-                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ),

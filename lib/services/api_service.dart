@@ -2878,6 +2878,27 @@ class ApiService {
     }
   }
 
+  /// Оршин суугчийн өөрийн СӨХ-ийн төлбөрийн холболт(ууд) (сервер талын тохиргоотой СӨХ-д).
+  static Future<List<Map<String, dynamic>>> getMiniiSokhBilling() async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/bpay/miniiBilling'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is Map && data['jagsaalt'] is List) {
+          return (data['jagsaalt'] as List)
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+        }
+      }
+    } catch (_) {}
+    return <Map<String, dynamic>>[];
+  }
+
   /// Оршин суугчийн БҮХ байгууллага, БҮХ тоотын үлдэгдлийг нэг дуудалтаар авна.
   ///
   /// `fetchGeree` нь зөвхөн нэвтэрсэн байгууллагын гэрээг буцаадаг — сервер

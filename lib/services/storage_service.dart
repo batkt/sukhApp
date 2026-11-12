@@ -50,6 +50,7 @@ class StorageService {
   static const String _zochinTulburiinTurulKey = 'zochin_tulburiin_turul';
   static const String _walletDoorNoKey = 'wallet_door_no';
   static const String _walletBairNameKey = 'wallet_bair_name';
+  static const String _bpayBaiguullaguudKey = 'bpay_baiguullaguud';
   static const String _walletBairSourceKey =
       'wallet_bair_source'; // 'WALLET_API' or 'OWN_ORG'
   static const String _walletBairBaiguullagiinIdKey =
@@ -257,6 +258,15 @@ class StorageService {
 
       if (user?['_id'] != null) {
         await prefs.setString(_userIdKey, user!['_id'].toString());
+      }
+
+      // Төрийн банк (BPay) горимтой байгууллагууд — тэдний СӨХ-ийн төлбөрийг
+      // зөвхөн BPay-ээр харуулж, Sukh-ийн нэхэмжлэхийг лавлагаа болгоно.
+      if (user?['bpayBaiguullaguud'] is List) {
+        await prefs.setStringList(
+          _bpayBaiguullaguudKey,
+          (user!['bpayBaiguullaguud'] as List).map((e) => e.toString()).toList(),
+        );
       }
 
       // Save user name
@@ -520,6 +530,18 @@ class StorageService {
       return prefs.getString(_baiguullagiinIdKey);
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Төрийн банк (BPay) горимтой эсэх. [baiguullagiinId] өгөөгүй бол одоогийн байгууллага.
+  static Future<bool> isBpayBaiguullaga([String? baiguullagiinId]) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = baiguullagiinId ?? prefs.getString(_baiguullagiinIdKey);
+      if (id == null || id.isEmpty) return false;
+      return (prefs.getStringList(_bpayBaiguullaguudKey) ?? const <String>[]).contains(id);
+    } catch (e) {
+      return false;
     }
   }
 

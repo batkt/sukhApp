@@ -637,7 +637,7 @@ class _BillingListPageState extends State<BillingListPage> {
                       style: TextStyle(
                         color: iluu ? mint : Colors.white,
                         fontSize: 28.sp,
-                        fontWeight: FontWeight.w300,
+                        fontWeight: FontWeight.w500,
                         letterSpacing: -1,
                       ),
                     ),

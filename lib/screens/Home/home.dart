@@ -739,6 +739,15 @@ class _BookingScreenState extends State<NuurKhuudas>
       final gereeResponse = initialData[3] as Map<String, dynamic>;
 
       final user = userProfile['result'];
+      // Төрийн банк (BPay) горим: СӨХ-ийн төлбөрийг зөвхөн BPay-ээр харуулна.
+      // Sukh-ийн гэрээ/нэхэмжлэх төлөх дүнд орохгүй (задаргаа нь BPay биллийн
+      // дэлгэрэнгүйд лавлагаа болж харагдана).
+      final bool bpayGorim = user is Map &&
+          user['bpayBaiguullaguud'] is List &&
+          (user['bpayBaiguullaguud'] as List)
+              .map((e) => e.toString())
+              .contains(currentBaiguullagiinId);
+      final bool walletOnlyEsekh = isWalletOnlyOrg || bpayGorim;
       // getUserProfile нь сонгосон барилгыг хадгалсны дараа уншина
       final idevkhteiBarilga = await StorageService.getBarilgiinId();
       if (mounted) {
@@ -756,7 +765,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       }
 
       // Load Local Residency Contracts (OWN_ORG)
-      if (!isWalletOnlyOrg && gereeResponse['jagsaalt'] != null && gereeResponse['jagsaalt'] is List) {
+      if (!walletOnlyEsekh && gereeResponse['jagsaalt'] != null && gereeResponse['jagsaalt'] is List) {
         try {
           final contracts = gereeResponse['jagsaalt'] as List;
 
@@ -932,7 +941,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       // бичдэг тул клиентээс өөр байгууллагын гэрээ татах боломжгүй. Тиймээс
       // олон СӨХ-д бүртгэлтэй хэрэглэгчийн үлдсэн тоотуудыг сервер талд
       // нэгтгүүлсэн `/orshinSuugch/niitTulbur`-аас авч нэмнэ.
-      if (!isWalletOnlyOrg) {
+      if (!walletOnlyEsekh) {
         try {
           final niit = await ApiService.fetchNiitTulburBukhOrg();
           final orgs = niit['baiguullaguud'];
@@ -1223,7 +1232,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     if (billingId == null) {
       showGlassSnackBar(
         activeContext,
-        message: 'Энэ хаяг BPay-д бүртгэгдээгүй тул салгах боломжгүй байна.',
+        message: 'Энэ хаяг банкинд бүртгэгдээгүй тул салгах боломжгүй байна.',
         icon: Icons.info_outline,
         iconColor: Colors.orange,
       );
@@ -1931,7 +1940,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                               style: TextStyle(
                                 color: numBalance < -0.5 ? accent : fg,
                                 fontSize: hasAnyAddress ? 32 : 20,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w500,
                                 letterSpacing: -1,
                                 height: 1.15,
                               ),

@@ -1,3 +1,4 @@
+import 'package:sukh_app/utils/toot_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -732,8 +733,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
   /// Тоот бүрийн бүрэн мэдээлэл (олон тоотыг бүгдийг харуулна).
   Widget _buildTootuudKheseg() {
-    final List toots =
-        (_userData?['toots'] is List) ? List.from(_userData!['toots']) : [];
+    final List toots = harakhTootuud(_userData);
     if (toots.isEmpty) return _buildKhooson('Бүртгэлтэй тоот алга');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,9 +977,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
     List<Map<String, dynamic>> dataItems = [];
 
-    final List toots = (_userData!['toots'] != null && _userData!['toots'] is List)
-        ? List.from(_userData!['toots'])
-        : [];
+    final List toots = harakhTootuud(_userData);
 
     if (toots.isNotEmpty) {
       for (var t in toots) {
