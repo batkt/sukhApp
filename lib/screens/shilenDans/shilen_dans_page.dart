@@ -396,8 +396,10 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
           _Mur(
             ner: '${a['toot'] ?? '—'} тоот',
             utga: _mungu(_toDouble(a['dun'])),
-            dedUtga: ((a['khonog'] as num?)?.toInt() ?? 0) > 0
-                ? '${(a['khonog'] as num?)?.toInt()} хоног'
+            dedUtga: (a['khonog'] as num?) != null
+                ? (((a['khonog'] as num?)?.toInt() ?? 0) == 0
+                    ? 'Өнөөдөр'
+                    : '${(a['khonog'] as num?)?.toInt()} хоног')
                 : null,
             ungu: const Color(0xFFC05621),
           ),
