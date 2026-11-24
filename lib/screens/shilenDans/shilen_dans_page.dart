@@ -1011,7 +1011,7 @@ class _ZardalJagsaaltModal extends StatelessWidget {
   }
 }
 
-/// Санхүүгийн бүтэц — Circular Step Infographic (Хэрэглэгчийн хүссэн мокапын яг ижил загвар)
+/// Санхүүгийн бүтэц — Circular Step Infographic (Хэрэглэгчийн мокап загвартай яг ижил шийдэл)
 class _CircleDonutChart extends StatefulWidget {
   const _CircleDonutChart({
     required this.tolovlogoot,
@@ -1040,7 +1040,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
   late Animation<double> _curve;
-  int _selectedIndex = -1; // -1: Ерөнхий тойм, 0: Төлөвлөгөөт, 1: Орлого, 2: Авлага, 3: Зардал
+  int _selectedIndex = -1; // -1: Бүх нийтийн тойм
 
   @override
   void initState() {
@@ -1084,8 +1084,8 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     final dy = localPos.dy - center.dy;
     final dist = math.sqrt(dx * dx + dy * dy);
 
-    // Төвийн цагаан таваг дээр дарвал:
-    if (dist <= 38.w) {
+    // Голын төв таваг дээр дарвал:
+    if (dist <= 36.w) {
       if (_selectedIndex == 3) {
         widget.onZardalTap?.call();
       } else {
@@ -1094,32 +1094,30 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
       return;
     }
 
-    // Өнцгөөр 4 сегментийг ялгах [-pi, pi]
-    final angle = math.atan2(dy, dx);
+    final angle = math.atan2(dy, dx); // [-pi, pi]
 
     if (angle >= -math.pi && angle < -math.pi / 2) {
-      // Top-Left (2-р квадрант) -> Төлөвлөгөөт (idx: 0)
+      // Top-Left (2-р квадрант) -> Төлөвлөгөөт
       _onTapSegment(0);
     } else if (angle >= -math.pi / 2 && angle < 0) {
-      // Top-Right (1-р квадрант) -> Орлого (idx: 1)
+      // Top-Right (1-р квадрант) -> Орлого
       _onTapSegment(1);
     } else if (angle >= 0 && angle < math.pi / 2) {
-      // Bottom-Right (4-р квадрант) -> Зардал (idx: 3)
+      // Bottom-Right (4-р квадрант) -> Зардал
       if (_selectedIndex == 3) {
         widget.onZardalTap?.call();
       } else {
         _onTapSegment(3);
       }
     } else {
-      // Bottom-Left (3-р квадрант) -> Авлага (idx: 2)
+      // Bottom-Left (3-р квадрант) -> Авлага
       _onTapSegment(2);
     }
   }
 
-  Widget _buildCallout({
+  Widget _buildCalloutItem({
     required int idx,
     required String step,
-    required String title,
     required String amount,
     required String subtitle,
     required Color color,
@@ -1134,59 +1132,60 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h),
         decoration: BoxDecoration(
           color: isSelected
-              ? color.withValues(alpha: isDark ? 0.22 : 0.08)
+              ? color.withValues(alpha: isDark ? 0.18 : 0.08)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(
-            color: isSelected ? color : Colors.transparent,
-            width: 1.2,
-          ),
+          borderRadius: BorderRadius.circular(8.r),
         ),
         child: Column(
           crossAxisAlignment:
               alignLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (!alignLeft) ...[
                   Container(
-                    width: 7.w,
-                    height: 7.w,
+                    width: 6.w,
+                    height: 6.w,
                     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
-                  SizedBox(width: 5.w),
+                  SizedBox(width: 4.w),
                 ],
                 Text(
                   step,
                   style: TextStyle(
-                    fontSize: 10.5.sp,
+                    fontSize: 9.5.sp,
                     fontWeight: FontWeight.w900,
                     color: color,
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.3,
                   ),
                 ),
                 if (alignLeft) ...[
-                  SizedBox(width: 5.w),
+                  SizedBox(width: 4.w),
                   Container(
-                    width: 7.w,
-                    height: 7.w,
+                    width: 6.w,
+                    height: 6.w,
                     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
                 ],
               ],
             ),
             SizedBox(height: 2.h),
-            Text(
-              amount,
-              style: TextStyle(
-                fontSize: 14.5.sp,
-                fontWeight: FontWeight.w800,
-                color: isSelected ? color : context.textPrimaryColor,
-                letterSpacing: -0.2,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
+              child: Text(
+                amount,
+                style: TextStyle(
+                  fontSize: 13.5.sp,
+                  fontWeight: FontWeight.w800,
+                  color: isSelected ? color : context.textPrimaryColor,
+                  letterSpacing: -0.2,
+                ),
               ),
             ),
             SizedBox(height: 1.5.h),
@@ -1194,7 +1193,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
               Text(
                 actionText,
                 style: TextStyle(
-                  fontSize: 10.5.sp,
+                  fontSize: 9.5.sp,
                   fontWeight: FontWeight.w700,
                   color: color,
                 ),
@@ -1203,7 +1202,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 10.sp,
+                  fontSize: 9.sp,
                   color: context.textSecondaryColor,
                 ),
               ),
@@ -1237,14 +1236,15 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
       _CircleDonutChart.zardalColor,      // 3: Bottom-Right (Зардал)
     ];
 
+    // Сайжруулсан, тод цул санхүүгийн дүрсүүд
     const icons = [
-      Icons.lightbulb_outline,                  // Төлөвлөгөөт (Мокап шиг гэрлийн шил)
-      Icons.account_balance_wallet_outlined,    // Орлого (Түрийвч / төлөлт)
-      Icons.hourglass_empty_rounded,            // Авлага (Цаг хугацаа / хүлээгдэж буй)
-      Icons.receipt_long_outlined,              // Зардал (Зарлагын баримт)
+      Icons.fact_check_rounded,                // Төлөвлөгөөт (Нэхэмжлэх төлөвлөгөөний хуудас)
+      Icons.account_balance_wallet_rounded,    // Орлого (Цул цэвэр түрийвч)
+      Icons.pending_actions_rounded,            // Авлага (Хүлээгдэж буй хугацаа / үйлдэл)
+      Icons.receipt_long_rounded,              // Зардал (Цул зарлагын баримт)
     ];
 
-    // Төвийн текст сонголтоос хамаарч өөрчлөгдөнө
+    // Төвийн таваг дээрх мэдээлэл
     Widget centerText;
     if (_selectedIndex == 0) {
       centerText = Column(
@@ -1252,7 +1252,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
         children: [
           Text('ТӨЛӨВЛӨГӨӨТ',
               style: TextStyle(
-                  fontSize: 8.5.sp,
+                  fontSize: 7.5.sp,
                   fontWeight: FontWeight.w800,
                   color: _CircleDonutChart.tolovlogootColor)),
           SizedBox(height: 1.h),
@@ -1260,13 +1260,13 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
             fit: BoxFit.scaleDown,
             child: Text(_mungu(widget.tolovlogoot),
                 style: TextStyle(
-                    fontSize: 12.5.sp,
+                    fontSize: 11.5.sp,
                     fontWeight: FontWeight.w900,
                     color: _CircleDonutChart.tolovlogootColor)),
           ),
           SizedBox(height: 1.h),
           Text('100% суурь',
-              style: TextStyle(fontSize: 8.sp, color: context.textSecondaryColor)),
+              style: TextStyle(fontSize: 7.5.sp, color: context.textSecondaryColor)),
         ],
       );
     } else if (_selectedIndex == 1) {
@@ -1275,7 +1275,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
         children: [
           Text('ОРЛОГО',
               style: TextStyle(
-                  fontSize: 9.sp,
+                  fontSize: 8.sp,
                   fontWeight: FontWeight.w800,
                   color: _CircleDonutChart.orlogoColor)),
           SizedBox(height: 1.h),
@@ -1283,13 +1283,13 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
             fit: BoxFit.scaleDown,
             child: Text(_mungu(widget.orlogo),
                 style: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w900,
                     color: _CircleDonutChart.orlogoColor)),
           ),
           SizedBox(height: 1.h),
           Text('$orlogoPStr% төлөгдсөн',
-              style: TextStyle(fontSize: 8.sp, color: context.textSecondaryColor)),
+              style: TextStyle(fontSize: 7.5.sp, color: context.textSecondaryColor)),
         ],
       );
     } else if (_selectedIndex == 2) {
@@ -1298,7 +1298,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
         children: [
           Text('АВЛАГА',
               style: TextStyle(
-                  fontSize: 9.sp,
+                  fontSize: 8.sp,
                   fontWeight: FontWeight.w800,
                   color: _CircleDonutChart.avlagaColor)),
           SizedBox(height: 1.h),
@@ -1306,13 +1306,13 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
             fit: BoxFit.scaleDown,
             child: Text(_mungu(widget.avlaga),
                 style: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w900,
                     color: _CircleDonutChart.avlagaColor)),
           ),
           SizedBox(height: 1.h),
           Text('$avlagaPStr% төлөөгүй',
-              style: TextStyle(fontSize: 8.sp, color: context.textSecondaryColor)),
+              style: TextStyle(fontSize: 7.5.sp, color: context.textSecondaryColor)),
         ],
       );
     } else if (_selectedIndex == 3) {
@@ -1321,7 +1321,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
         children: [
           Text('ЗАРДАЛ',
               style: TextStyle(
-                  fontSize: 9.sp,
+                  fontSize: 8.sp,
                   fontWeight: FontWeight.w800,
                   color: _CircleDonutChart.zardalColor)),
           SizedBox(height: 1.h),
@@ -1329,100 +1329,95 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
             fit: BoxFit.scaleDown,
             child: Text(_mungu(widget.zardal),
                 style: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w900,
                     color: _CircleDonutChart.zardalColor)),
           ),
           SizedBox(height: 1.h),
           Text('Жагсаалт ›',
               style: TextStyle(
-                  fontSize: 8.5.sp,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 8.sp,
+                  fontWeight: FontWeight.w800,
                   color: _CircleDonutChart.zardalColor)),
         ],
       );
     } else {
-      // Мокап шиг 3 мөр гоёмсог гарчиг
       centerText = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'САНХҮҮ',
             style: TextStyle(
-              fontSize: 9.sp,
+              fontSize: 8.sp,
               fontWeight: FontWeight.w800,
               color: _CircleDonutChart.tolovlogootColor,
-              letterSpacing: 0.6,
+              letterSpacing: 0.5,
             ),
           ),
           Text(
             'БҮТЭЦ',
             style: TextStyle(
-              fontSize: 13.5.sp,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w900,
               color: _CircleDonutChart.orlogoColor,
-              letterSpacing: 0.6,
+              letterSpacing: 0.5,
             ),
           ),
           Text(
             'ТОЙМ',
             style: TextStyle(
-              fontSize: 8.5.sp,
+              fontSize: 7.5.sp,
               fontWeight: FontWeight.w800,
               color: const Color(0xFFE8B04A),
-              letterSpacing: 0.6,
+              letterSpacing: 0.5,
             ),
           ),
         ],
       );
     }
 
-    return Column(
-      children: [
-        // ── 1. Дээд 2 үзүүлэлт (Төлөвлөгөөт & Орлого) ──
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildCallout(
-                idx: 0,
-                step: 'ТӨЛӨВЛӨГӨӨТ',
-                title: 'Төлөвлөгөөт',
-                amount: _mungu(widget.tolovlogoot),
-                subtitle: 'Нэхэмжилсэн · 100%',
-                color: _CircleDonutChart.tolovlogootColor,
-                alignLeft: true,
-                isDark: isDark,
-              ),
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // ── ЗҮҮН ТАЛ (Төлөвлөгөөт & Авлага) ──
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCalloutItem(
+                  idx: 0,
+                  step: 'ТӨЛӨВЛӨГӨӨТ',
+                  amount: _mungu(widget.tolovlogoot),
+                  subtitle: 'Нэхэмжилсэн · 100%',
+                  color: _CircleDonutChart.tolovlogootColor,
+                  alignLeft: true,
+                  isDark: isDark,
+                ),
+                SizedBox(height: 30.h),
+                _buildCalloutItem(
+                  idx: 2,
+                  step: 'АВЛАГА',
+                  amount: _mungu(widget.avlaga),
+                  subtitle: 'Төлөөгүй · $avlagaPStr%',
+                  color: _CircleDonutChart.avlagaColor,
+                  alignLeft: true,
+                  isDark: isDark,
+                ),
+              ],
             ),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: _buildCallout(
-                idx: 1,
-                step: 'ОРЛОГО',
-                title: 'Орлого',
-                amount: _mungu(widget.orlogo),
-                subtitle: 'Төлөгдсөн · $orlogoPStr%',
-                color: _CircleDonutChart.orlogoColor,
-                alignLeft: false,
-                isDark: isDark,
-              ),
-            ),
-          ],
-        ),
+          ),
 
-        SizedBox(height: 4.h),
-
-        // ── 2. Төвийн Circular Step Infographic ──
-        Center(
-          child: GestureDetector(
+          // ── ГОЛЫН ДУГУЙ ИНФОГРАФИК (154.w x 154.w) ──
+          GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapUp: (details) =>
-                _handleInfographicTap(details.localPosition, Size(196.w, 196.w)),
+                _handleInfographicTap(details.localPosition, Size(154.w, 154.w)),
             child: SizedBox(
-              width: 196.w,
-              height: 196.w,
+              width: 154.w,
+              height: 154.w,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -1430,7 +1425,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
                     animation: _curve,
                     builder: (context, _) {
                       return CustomPaint(
-                        size: Size(196.w, 196.w),
+                        size: Size(154.w, 154.w),
                         painter: _CircularStepInfographicPainter(
                           colors: colors,
                           icons: icons,
@@ -1441,9 +1436,9 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
                       );
                     },
                   ),
-                  // Голын дугуй цагаан таваг дээрх текст
+                  // Төвийн цагаан өргөгдсөн таваг дээрх текст
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 56.w),
+                    padding: EdgeInsets.symmetric(horizontal: 40.w),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
                       child: Container(
@@ -1457,54 +1452,48 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
               ),
             ),
           ),
-        ),
 
-        SizedBox(height: 4.h),
-
-        // ── 3. Доод 2 үзүүлэлт (Авлага & Зардал) ──
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildCallout(
-                idx: 2,
-                step: 'АВЛАГА',
-                title: 'Авлага',
-                amount: _mungu(widget.avlaga),
-                subtitle: 'Төлөөгүй · $avlagaPStr%',
-                color: _CircleDonutChart.avlagaColor,
-                alignLeft: true,
-                isDark: isDark,
-              ),
+          // ── БАРУУН ТАЛ (Орлого & Зардал) ──
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildCalloutItem(
+                  idx: 1,
+                  step: 'ОРЛОГО',
+                  amount: _mungu(widget.orlogo),
+                  subtitle: 'Төлөгдсөн · $orlogoPStr%',
+                  color: _CircleDonutChart.orlogoColor,
+                  alignLeft: false,
+                  isDark: isDark,
+                ),
+                SizedBox(height: 30.h),
+                _buildCalloutItem(
+                  idx: 3,
+                  step: 'ЗАРДАЛ',
+                  amount: _mungu(widget.zardal),
+                  subtitle: 'СӨХ-ийн зардал',
+                  actionText: 'Жагсаалт харах ›',
+                  color: _CircleDonutChart.zardalColor,
+                  alignLeft: false,
+                  isDark: isDark,
+                  onTap: () {
+                    _onTapSegment(3);
+                    widget.onZardalTap?.call();
+                  },
+                ),
+              ],
             ),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: _buildCallout(
-                idx: 3,
-                step: 'ЗАРДАЛ',
-                title: 'Зардал',
-                amount: _mungu(widget.zardal),
-                subtitle: 'СӨХ-ийн зардал',
-                actionText: 'Жагсаалт харах ›',
-                color: _CircleDonutChart.zardalColor,
-                alignLeft: false,
-                isDark: isDark,
-                onTap: () {
-                  _onTapSegment(3);
-                  widget.onZardalTap?.call();
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
 
 /// Circular Step Infographic Custom Painter
-/// Хэрэглэгчийн мокап дахь дугуй блок, цагаан дүрс, холбогч шугамтай яг ижил зурагч
+/// Алдаагүй, цэвэр төгс дугуй хэлбэр (no broken geometry) ба өнцөгт холбогч шугамтай зурагч
 class _CircularStepInfographicPainter extends CustomPainter {
   _CircularStepInfographicPainter({
     required this.colors,
@@ -1523,29 +1512,24 @@ class _CircularStepInfographicPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final outerR = 76.w;
-    final innerR = 43.w;
-    final centerDiscR = 40.5.w;
-    final gap = 0.08; // Сегментүүд хоорондын цэвэр цагаан зай (~4.6 градус)
+    final outerR = 64.w;
+    final innerR = 38.w;
+    final centerDiscR = 34.5.w;
+    const gap = 0.055; // Сегментүүд хоорондын тэгш цэвэр зай (~3.2 градус)
 
     // 4 квадрантын өнцгүүд ба төв өнцгүүд:
-    // idx 0: Top-Left (Төлөвлөгөөт, цэнхэр)   -> midAngle: -3*pi/4 (-135°)
-    // idx 1: Top-Right (Орлого, ногоон)       -> midAngle: -pi/4   (-45°)
-    // idx 2: Bottom-Left (Авлага, шар)        -> midAngle: 3*pi/4  (135°)
-    // idx 3: Bottom-Right (Зардал, улаан)     -> midAngle: pi/4    (45°)
-
+    // idx 0: Top-Left (Төлөвлөгөөт) -> mid: -3*pi/4 (-135°)
+    // idx 1: Top-Right (Орлого)      -> mid: -pi/4   (-45°)
+    // idx 2: Bottom-Left (Авлага)   -> mid: 3*pi/4  (135°)
+    // idx 3: Bottom-Right (Зардал)  -> mid: pi/4    (45°)
     final sectorAngles = [
-      // 0: Top-Left
-      {'start': -math.pi, 'mid': -3 * math.pi / 4},
-      // 1: Top-Right
-      {'start': -math.pi / 2, 'mid': -math.pi / 4},
-      // 2: Bottom-Left
-      {'start': math.pi / 2, 'mid': 3 * math.pi / 4},
-      // 3: Bottom-Right
-      {'start': 0.0, 'mid': math.pi / 4},
+      {'start': -math.pi, 'mid': -3 * math.pi / 4},     // 0: Top-Left
+      {'start': -math.pi / 2, 'mid': -math.pi / 4},     // 1: Top-Right
+      {'start': math.pi / 2, 'mid': 3 * math.pi / 4},    // 2: Bottom-Left
+      {'start': 0.0, 'mid': math.pi / 4},               // 3: Bottom-Right
     ];
 
-    // ── 1. 4 өнгийн цагираг блок сегментүүдийг зурах ──
+    // ── 1. 4 өнгийн цагираг блок сегментүүд (Албан төгс дугуй) ──
     for (var i = 0; i < 4; i++) {
       final info = sectorAngles[i];
       final start = (info['start']! + gap / 2);
@@ -1554,54 +1538,38 @@ class _CircularStepInfographicPainter extends CustomPainter {
       final color = colors[i];
       final isSel = selectedIndex == i;
 
-      // Сонгогдсон үед сектор бага зэрэг гадагшаа тодорч түрэх (pop-out)
-      final popDist = isSel ? 4.5.w : 0.0;
-      final sectorCenter = Offset(
-        center.dx + popDist * math.cos(mid),
-        center.dy + popDist * math.sin(mid),
-      );
-
-      // Сонгогдсон үед зөөлөн glow аура
-      if (isSel) {
-        final glowPath = Path()
-          ..arcTo(
-            Rect.fromCircle(center: sectorCenter, radius: outerR + 4.w),
-            start,
-            sweep,
-            false,
-          )
-          ..arcTo(
-            Rect.fromCircle(center: sectorCenter, radius: innerR - 2.w),
-            start + sweep,
-            -sweep,
-            false,
-          )
-          ..close();
-
-        canvas.drawPath(
-          glowPath,
-          Paint()
-            ..color = color.withValues(alpha: 0.35)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-        );
-      }
-
-      // Үндсэн өнгийн блок сегмент
+      // Үндсэн дугуй хэлбэрийг эвдэхгүйгээр төв нь ЯГ голдоо байрлана
       final segPath = Path()
         ..arcTo(
-          Rect.fromCircle(center: sectorCenter, radius: outerR),
+          Rect.fromCircle(center: center, radius: outerR),
           start,
           sweep,
           false,
         )
         ..arcTo(
-          Rect.fromCircle(center: sectorCenter, radius: innerR),
+          Rect.fromCircle(center: center, radius: innerR),
           start + sweep,
           -sweep,
           false,
         )
         ..close();
 
+      // Сонгогдсон үед гадна талын тод glow болон цагаан хүрээ
+      if (isSel) {
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: outerR + 2.w),
+          start,
+          sweep,
+          false,
+          Paint()
+            ..color = color.withValues(alpha: 0.5)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 6.w
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        );
+      }
+
+      // Цул өнгийн сектор
       canvas.drawPath(
         segPath,
         Paint()
@@ -1609,14 +1577,25 @@ class _CircularStepInfographicPainter extends CustomPainter {
           ..style = PaintingStyle.fill,
       );
 
-      // ── 2. Блок доторх цагаан дүрс (White Icon) ──
+      // Сонгогдсон сектор дээр гоёмсог тод цагаан хүрээ
+      if (isSel) {
+        canvas.drawPath(
+          segPath,
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.9)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.8.w,
+        );
+      }
+
+      // ── 2. Блок доторх цул цагаан дүрс (White Icon) ──
       final icon = icons[i];
       final iconR = (outerR + innerR) / 2;
       final tp = TextPainter(
         text: TextSpan(
           text: String.fromCharCode(icon.codePoint),
           style: TextStyle(
-            fontSize: 20.w,
+            fontSize: 18.w,
             fontFamily: icon.fontFamily,
             package: icon.fontPackage,
             color: Colors.white,
@@ -1626,33 +1605,32 @@ class _CircularStepInfographicPainter extends CustomPainter {
       )..layout();
 
       final iconPos = Offset(
-        sectorCenter.dx + iconR * math.cos(mid) - tp.width / 2,
-        sectorCenter.dy + iconR * math.sin(mid) - tp.height / 2,
+        center.dx + iconR * math.cos(mid) - tp.width / 2,
+        center.dy + iconR * math.sin(mid) - tp.height / 2,
       );
       tp.paint(canvas, iconPos);
 
-      // ── 3. Мокап дахь өнцөгт холбогч шугам (Angled Connector Lines) ──
+      // ── 3. Өнцөгт холбогч шугам (Angled Connector Lines) ──
       final linePaint = Paint()
-        ..color = isSel ? color : color.withValues(alpha: isDark ? 0.6 : 0.45)
+        ..color = isSel ? color : color.withValues(alpha: isDark ? 0.7 : 0.5)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = isSel ? 1.8.w : 1.2.w
+        ..strokeWidth = isSel ? 1.6.w : 1.1.w
         ..strokeCap = StrokeCap.round;
 
       final startPt = Offset(
-        center.dx + (outerR + 2.w) * math.cos(mid),
-        center.dy + (outerR + 2.w) * math.sin(mid),
+        center.dx + (outerR + 1.w) * math.cos(mid),
+        center.dy + (outerR + 1.w) * math.sin(mid),
       );
 
-      // 4 зүг рүү тэлэх өнцөгт цэгүүд:
       final signX = math.cos(mid) > 0 ? 1 : -1;
       final signY = math.sin(mid) > 0 ? 1 : -1;
 
       final cornerPt = Offset(
-        startPt.dx + 11.w * signX,
-        startPt.dy + 11.w * signY,
+        startPt.dx + 6.w * signX,
+        startPt.dy + 6.w * signY,
       );
       final endPt = Offset(
-        cornerPt.dx + 12.w * signX,
+        cornerPt.dx + 8.w * signX,
         cornerPt.dy,
       );
 
@@ -1666,22 +1644,20 @@ class _CircularStepInfographicPainter extends CustomPainter {
       // Төгсгөлийн цэг (Pin Dot)
       canvas.drawCircle(
         endPt,
-        isSel ? 3.w : 2.2.w,
+        isSel ? 2.5.w : 1.8.w,
         Paint()..color = color..style = PaintingStyle.fill,
       );
     }
 
-    // ── 4. Голын цагаан өргөгдсөн таваг (Elevated Center Disc with Shadow) ──
-    // Зөөлөн сүүдэр
+    // ── 4. Голын цагаан өргөгдсөн таваг (Elevated Center Disc) ──
     canvas.drawCircle(
       center,
       centerDiscR,
       Paint()
-        ..color = Colors.black.withValues(alpha: isDark ? 0.45 : 0.10)
+        ..color = Colors.black.withValues(alpha: isDark ? 0.35 : 0.08)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
 
-    // Цагаан дэвсгэр
     canvas.drawCircle(
       center,
       centerDiscR,
@@ -1690,12 +1666,11 @@ class _CircularStepInfographicPainter extends CustomPainter {
         ..style = PaintingStyle.fill,
     );
 
-    // Хүрээ
     canvas.drawCircle(
       center,
       centerDiscR,
       Paint()
-        ..color = isDark ? Colors.white12 : const Color(0xFFF1F5F9)
+        ..color = isDark ? Colors.white12 : const Color(0xFFE2E8F0)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.w,
     );
