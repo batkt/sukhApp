@@ -618,8 +618,8 @@ class _Mur extends StatelessWidget {
   }
 }
 
-/// Дугуй график (Donut) — Төлөвлөгөөт, Орлого, Авлага, Зардал
-class _CircleDonutChart extends StatelessWidget {
+/// Дугуй график (Donut) — Интерактив Төлөвлөгөөт, Орлого, Авлага, Зардал
+class _CircleDonutChart extends StatefulWidget {
   const _CircleDonutChart({
     required this.tolovlogoot,
     required this.orlogo,
@@ -638,90 +638,235 @@ class _CircleDonutChart extends StatelessWidget {
   static const Color zardalColor = Color(0xFFDC2626);      // Улаан
 
   @override
+  State<_CircleDonutChart> createState() => _CircleDonutChartState();
+}
+
+class _CircleDonutChartState extends State<_CircleDonutChart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _anim;
+  late Animation<double> _curve;
+  int _selectedIndex = 1; // Анхдагчаар "Орлого"-г тодотгож сонгоно
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+    _curve = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
+    _anim.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CircleDonutChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tolovlogoot != widget.tolovlogoot ||
+        oldWidget.orlogo != widget.orlogo ||
+        oldWidget.avlaga != widget.avlaga ||
+        oldWidget.zardal != widget.zardal) {
+      _anim.reset();
+      _anim.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  void _onTapSegment(int idx) {
+    setState(() {
+      _selectedIndex = _selectedIndex == idx ? -1 : idx;
+    });
+  }
+
+  void _handleDonutTap(Offset localPos, Size size, List<double> values) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final dx = localPos.dx - center.dx;
+    final dy = localPos.dy - center.dy;
+    final dist = math.sqrt(dx * dx + dy * dy);
+    final outerRadius = math.min(size.width, size.height) / 2;
+    const innerRadius = 35.0;
+
+    // Зөвхөн donut-ын цагираг дээр дарвал
+    if (dist < innerRadius || dist > outerRadius + 15) {
+      if (dist < innerRadius) {
+        // Төв дээр дарвал ерөнхий тойм руу буцна
+        setState(() => _selectedIndex = -1);
+      }
+      return;
+    }
+
+    final total = values.fold<double>(0, (sum, v) => sum + math.max(0, v));
+    if (total <= 0) return;
+
+    var angle = math.atan2(dy, dx);
+    // 12 цагаас (-pi / 2) эхэлсэн өнцөг рүү шилжүүлэх [0, 2*pi]
+    var relAngle = angle + (math.pi / 2);
+    if (relAngle < 0) relAngle += 2 * math.pi;
+
+    double curr = 0;
+    for (var i = 0; i < values.length; i++) {
+      final sweep = (math.max(0, values[i]) / total) * 2 * math.pi;
+      if (relAngle >= curr && relAngle <= curr + sweep) {
+        _onTapSegment(i);
+        return;
+      }
+      curr += sweep;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    final collectionPercent = tolovlogoot > 0 ? ((orlogo / tolovlogoot) * 100).round() : 0;
+    final values = [
+      widget.tolovlogoot,
+      widget.orlogo,
+      widget.avlaga,
+      widget.zardal,
+    ];
+    const colors = [
+      _CircleDonutChart.tolovlogootColor,
+      _CircleDonutChart.orlogoColor,
+      _CircleDonutChart.avlagaColor,
+      _CircleDonutChart.zardalColor,
+    ];
+    final titles = ['Төлөвлөгөөт', 'Орлого', 'Авлага', 'Зардал'];
+    final subtitles = ['Нэхэмжилсэн', 'Төлөгдсөн', 'Төлөөгүй үлдсэн', 'СӨХ-ийн зардал'];
+
+    final collectionPercent = widget.tolovlogoot > 0
+        ? ((widget.orlogo / widget.tolovlogoot) * 100).round()
+        : 0;
+
+    // Төв хэсэгт сонгосон үзүүлэлтээс хамаарч мэдээлэл харуулах
+    String centerTitle;
+    String centerValue;
+    String centerSubtitle;
+    Color centerColor;
+
+    if (_selectedIndex >= 0 && _selectedIndex < 4) {
+      centerTitle = titles[_selectedIndex];
+      centerValue = _mungu(values[_selectedIndex]);
+      centerSubtitle = subtitles[_selectedIndex];
+      centerColor = colors[_selectedIndex];
+    } else {
+      centerTitle = 'Төлөлт';
+      centerValue = '$collectionPercent%';
+      centerSubtitle = 'нийт гүйцэтгэл';
+      centerColor = context.textPrimaryColor;
+    }
 
     return Column(
       children: [
         SizedBox(height: 6.h),
-        // Дугуй график
+        // Интерактив Дугуй график
         SizedBox(
-          height: 150.h,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 140.w,
-                height: 140.w,
-                child: CustomPaint(
-                  painter: _DonutPainter(
-                    values: [tolovlogoot, orlogo, avlaga, zardal],
-                    colors: const [
-                      tolovlogootColor,
-                      orlogoColor,
-                      avlagaColor,
-                      zardalColor,
+          height: 160.h,
+          child: LayoutBuilder(
+            builder: (ctx, constraints) {
+              final size = Size(150.w, 150.w);
+              return Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) => _handleDonutTap(details.localPosition, size, values),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _curve,
+                        builder: (context, _) {
+                          return SizedBox(
+                            width: size.width,
+                            height: size.height,
+                            child: CustomPaint(
+                              painter: _DonutPainter(
+                                values: values,
+                                colors: colors,
+                                selectedIndex: _selectedIndex,
+                                progress: _curve.value,
+                                backgroundColor: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : const Color(0xFFF0F3F1),
+                                strokeWidth: 15.w,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Column(
+                            key: ValueKey<int>(_selectedIndex),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                centerTitle,
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: context.textSecondaryColor,
+                                ),
+                              ),
+                              SizedBox(height: 2.h),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  centerValue,
+                                  style: TextStyle(
+                                    fontSize: _selectedIndex >= 0 ? 16.sp : 22.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: centerColor,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: 1.h),
+                              Text(
+                                centerSubtitle,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 10.sp,
+                                  color: context.textSecondaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
-                    backgroundColor: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : const Color(0xFFF0F3F1),
-                    strokeWidth: 14.w,
                   ),
                 ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Төлөлт',
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w400,
-                      color: context.textSecondaryColor,
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    '$collectionPercent%',
-                    style: TextStyle(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.w700,
-                      color: context.textPrimaryColor,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  Text(
-                    'гүйцэтгэл',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: context.textSecondaryColor,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              );
+            },
           ),
         ),
-        SizedBox(height: 16.h),
-        // 4 үзүүлэлтийн 2x2 grid карт
+        SizedBox(height: 14.h),
+        // 4 үзүүлэлтийн интерактив 2x2 карт
         Row(
           children: [
             Expanded(
               child: _ChartLegendItem(
-                color: tolovlogootColor,
+                color: _CircleDonutChart.tolovlogootColor,
                 title: 'Төлөвлөгөөт',
                 subtitle: 'Нэхэмжилсэн',
-                amount: _mungu(tolovlogoot),
+                amount: _mungu(widget.tolovlogoot),
+                isSelected: _selectedIndex == 0,
+                onTap: () => _onTapSegment(0),
               ),
             ),
             SizedBox(width: 8.w),
             Expanded(
               child: _ChartLegendItem(
-                color: orlogoColor,
+                color: _CircleDonutChart.orlogoColor,
                 title: 'Орлого',
                 subtitle: 'Төлөгдсөн',
-                amount: _mungu(orlogo),
+                amount: _mungu(widget.orlogo),
+                isSelected: _selectedIndex == 1,
+                onTap: () => _onTapSegment(1),
               ),
             ),
           ],
@@ -731,19 +876,23 @@ class _CircleDonutChart extends StatelessWidget {
           children: [
             Expanded(
               child: _ChartLegendItem(
-                color: avlagaColor,
+                color: _CircleDonutChart.avlagaColor,
                 title: 'Авлага',
                 subtitle: 'Төлөөгүй үлдсэн',
-                amount: _mungu(avlaga),
+                amount: _mungu(widget.avlaga),
+                isSelected: _selectedIndex == 2,
+                onTap: () => _onTapSegment(2),
               ),
             ),
             SizedBox(width: 8.w),
             Expanded(
               child: _ChartLegendItem(
-                color: zardalColor,
+                color: _CircleDonutChart.zardalColor,
                 title: 'Зардал',
                 subtitle: 'СӨХ-ийн зардал',
-                amount: _mungu(zardal),
+                amount: _mungu(widget.zardal),
+                isSelected: _selectedIndex == 3,
+                onTap: () => _onTapSegment(3),
               ),
             ),
           ],
@@ -759,67 +908,93 @@ class _ChartLegendItem extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.amount,
+    required this.isSelected,
+    required this.onTap,
   });
 
   final Color color;
   final String title;
   final String subtitle;
   final String amount;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : const Color(0xFFF9FAFA),
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: context.borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8.w,
-                height: 8.w,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-              SizedBox(width: 6.w),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                    color: context.textPrimaryColor,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: isDark ? 0.22 : 0.09)
+              : (isDark ? AppColors.darkSurface : const Color(0xFFF9FAFA)),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(
+            color: isSelected ? color : context.borderColor,
+            width: isSelected ? 1.6 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
-                  overflow: TextOverflow.ellipsis,
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: isSelected ? 10.w : 8.w,
+                  height: isSelected ? 10.w : 8.w,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                 ),
+                SizedBox(width: 6.w),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: isSelected ? color : context.textPrimaryColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isSelected)
+                  Icon(Icons.check_circle_rounded, size: 13.w, color: color),
+              ],
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              amount,
+              style: TextStyle(
+                fontSize: 13.5.sp,
+                fontWeight: FontWeight.w700,
+                color: color,
               ),
-            ],
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            amount,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w600,
-              color: color,
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          SizedBox(height: 1.h),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 10.sp,
-              color: context.textSecondaryColor,
+            SizedBox(height: 1.h),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 10.sp,
+                color: context.textSecondaryColor,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -829,27 +1004,31 @@ class _DonutPainter extends CustomPainter {
   _DonutPainter({
     required this.values,
     required this.colors,
+    required this.selectedIndex,
+    required this.progress,
     required this.backgroundColor,
-    this.strokeWidth = 14.0,
+    this.strokeWidth = 15.0,
   });
 
   final List<double> values;
   final List<Color> colors;
+  final int selectedIndex;
+  final double progress;
   final Color backgroundColor;
   final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = (math.min(size.width, size.height) - strokeWidth) / 2;
-    if (radius <= 0) return;
+    final baseRadius = (math.min(size.width, size.height) - strokeWidth) / 2;
+    if (baseRadius <= 0) return;
 
     final bgPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
 
-    canvas.drawCircle(center, radius, bgPaint);
+    canvas.drawCircle(center, baseRadius, bgPaint);
 
     final total = values.fold<double>(0, (sum, v) => sum + math.max(0, v));
     if (total <= 0) return;
@@ -862,17 +1041,28 @@ class _DonutPainter extends CustomPainter {
       final val = math.max(0, values[i]);
       if (val <= 0) continue;
 
-      final sweep = (val / total) * 2 * math.pi;
+      final fullSweep = (val / total) * 2 * math.pi;
+      final sweep = fullSweep * progress;
       final effectiveSweep = math.max(0.01, sweep - gap);
 
+      final isSelected = selectedIndex == i;
+      final hasSelection = selectedIndex >= 0;
+
+      final paintColor = hasSelection && !isSelected
+          ? colors[i].withValues(alpha: 0.35)
+          : colors[i];
+
+      final arcRadius = isSelected ? baseRadius + 2.w : baseRadius;
+      final arcWidth = isSelected ? strokeWidth + 4.w : strokeWidth;
+
       final paint = Paint()
-        ..color = colors[i]
+        ..color = paintColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
+        ..strokeWidth = arcWidth
         ..strokeCap = StrokeCap.round;
 
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
+        Rect.fromCircle(center: center, radius: arcRadius),
         startAngle + (gap / 2),
         effectiveSweep,
         false,
@@ -887,6 +1077,8 @@ class _DonutPainter extends CustomPainter {
   bool shouldRepaint(covariant _DonutPainter oldDelegate) {
     return oldDelegate.values != values ||
         oldDelegate.colors != colors ||
+        oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.progress != progress ||
         oldDelegate.backgroundColor != backgroundColor ||
         oldDelegate.strokeWidth != strokeWidth;
   }
