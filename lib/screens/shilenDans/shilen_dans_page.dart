@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 import 'package:sukh_app/constants/constants.dart';
@@ -85,6 +86,24 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
         _loading = false;
       });
     }
+  }
+
+  void _showZardalModal(BuildContext context, Map<String, dynamic> d, double zardal) {
+    final rawZarlaguud = d['zarlaguud'] as List? ?? [];
+    final rawAngilalaar = d['zarlagaAngilalaar'] as List? ?? [];
+    final sarNer = _sarNer(_sar);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _ZardalJagsaaltModal(
+        sarNer: sarNer,
+        niitZardal: zardal,
+        zarlaguud: rawZarlaguud.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+        angilalaar: rawAngilalaar.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      ),
+    );
   }
 
   @override
@@ -215,7 +234,13 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
           Expanded(child: _Utga(ner: 'Энэ сарын орлого', utga: _mungu(orlogo))),
           Container(width: 1, height: 36.h, color: context.borderColor),
           SizedBox(width: 12.w),
-          Expanded(child: _Utga(ner: 'Энэ сарын зардал', utga: _mungu(zardal))),
+          Expanded(
+            child: _Utga(
+              ner: 'Энэ сарын зардал',
+              utga: _mungu(zardal),
+              onTap: () => _showZardalModal(context, d, zardal),
+            ),
+          ),
         ],
       ),
       Divider(height: 28.h, color: context.borderColor),
@@ -229,6 +254,7 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
           orlogo: orlogo,
           avlaga: avlaga,
           zardal: zardal,
+          onZardalTap: () => _showZardalModal(context, d, zardal),
         ),
       ),
       SizedBox(height: 16.h),
@@ -501,28 +527,54 @@ class _Kart extends StatelessWidget {
 }
 
 class _Utga extends StatelessWidget {
-  const _Utga({required this.ner, required this.utga});
+  const _Utga({
+    required this.ner,
+    required this.utga,
+    this.onTap,
+  });
 
   final String ner;
   final String utga;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(ner, style: TextStyle(fontSize: 13.sp, color: context.textSecondaryColor)),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(ner, style: TextStyle(fontSize: 13.sp, color: context.textSecondaryColor)),
+            if (onTap != null) ...[
+              SizedBox(width: 4.w),
+              Icon(Icons.open_in_new_rounded, size: 12.5.sp, color: context.textSecondaryColor),
+            ],
+          ],
+        ),
         SizedBox(height: 2.h),
         Text(
           utga,
           style: TextStyle(
             fontSize: 17.sp,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: context.textPrimaryColor,
           ),
         ),
       ],
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8.r),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 2.h),
+          child: content,
+        ),
+      );
+    }
+    return content;
   }
 }
 
@@ -608,19 +660,372 @@ class _Mur extends StatelessWidget {
   }
 }
 
-/// Бүрэн шинэчилсэн санхүүгийн олон цагирагт (Concentric Activity Rings) систем
+/// Зардлын дэлгэрэнгүй жагсаалт харуулах модал
+class _ZardalJagsaaltModal extends StatelessWidget {
+  const _ZardalJagsaaltModal({
+    required this.sarNer,
+    required this.niitZardal,
+    required this.zarlaguud,
+    required this.angilalaar,
+  });
+
+  final String sarNer;
+  final double niitZardal;
+  final List<Map<String, dynamic>> zarlaguud;
+  final List<Map<String, dynamic>> angilalaar;
+
+  IconData _angilalIcon(String angilal) {
+    final a = angilal.toLowerCase();
+    if (a.contains('цэвэрлэгээ')) return Icons.cleaning_services_outlined;
+    if (a.contains('засвар')) return Icons.build_outlined;
+    if (a.contains('цалин')) return Icons.badge_outlined;
+    if (a.contains('ндш') || a.contains('татвар')) return Icons.account_balance_outlined;
+    if (a.contains('цахилгаан')) return Icons.bolt_outlined;
+    if (a.contains('ус')) return Icons.water_drop_outlined;
+    if (a.contains('дулаан')) return Icons.thermostat_outlined;
+    if (a.contains('лифт')) return Icons.elevator_outlined;
+    if (a.contains('харуул') || a.contains('хамгаалалт')) return Icons.security_outlined;
+    if (a.contains('банк') || a.contains('шимтгэл')) return Icons.credit_card_outlined;
+    return Icons.receipt_long_outlined;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    final hasItems = zarlaguud.isNotEmpty || angilalaar.isNotEmpty;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.82,
+      ),
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: 10.h),
+            Center(
+              child: Container(
+                width: 36.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: context.borderColor,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            // Толгой
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18.w),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38.w,
+                    height: 38.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.receipt_long_rounded,
+                      color: Color(0xFFEF4444),
+                      size: 20,
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Энэ сарын зардал',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                            color: context.textPrimaryColor,
+                          ),
+                        ),
+                        SizedBox(height: 1.h),
+                        Text(
+                          '$sarNer · ${zarlaguud.isNotEmpty ? '${zarlaguud.length} зарлага' : '${angilalaar.length} ангилал'}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: context.textSecondaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close_rounded, color: context.textSecondaryColor, size: 22.sp),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 12.h),
+            // Нийт зардал карт
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18.w),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: isDark ? 0.16 : 0.08),
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Нийт зарцуулалт',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                        color: context.textSecondaryColor,
+                      ),
+                    ),
+                    Text(
+                      _mungu(niitZardal),
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFEF4444),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Divider(height: 1, color: context.borderColor),
+            // Жагсаалт
+            Flexible(
+              child: !hasItems
+                  ? Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 20.w),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 42.w,
+                            color: context.textSecondaryColor.withValues(alpha: 0.5),
+                          ),
+                          SizedBox(height: 10.h),
+                          Text(
+                            'Зардлын бичилт байхгүй байна',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: context.textPrimaryColor,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            'Энэ сард гарсан зарлага хараахан бүртгэгдээгүй байна.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: context.textSecondaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.fromLTRB(18.w, 10.h, 18.w, 20.h),
+                      itemCount: zarlaguud.isNotEmpty ? zarlaguud.length : angilalaar.length,
+                      separatorBuilder: (_, _) =>
+                          Divider(height: 14.h, color: context.borderColor.withValues(alpha: 0.6)),
+                      itemBuilder: (context, index) {
+                        if (zarlaguud.isNotEmpty) {
+                          final item = zarlaguud[index];
+                          final angilal = '${item['angilal'] ?? 'Бусад'}';
+                          final tailbar = '${item['tailbar'] ?? ''}'.trim();
+                          final ajiltan = '${item['ajiltniiNer'] ?? ''}'.trim();
+                          final ognoo = '${item['ognoo'] ?? ''}'.split('T').first;
+                          final dun = _toDouble(item['dun']);
+
+                          final ded = [
+                            if (ognoo.isNotEmpty) ognoo,
+                            if (ajiltan.isNotEmpty) ajiltan,
+                          ].join(' · ');
+
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 4.h),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 38.w,
+                                  height: 38.w,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
+                                  child: Icon(
+                                    _angilalIcon(angilal),
+                                    color: const Color(0xFFEF4444),
+                                    size: 19.w,
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        angilal,
+                                        style: TextStyle(
+                                          fontSize: 13.5.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: context.textPrimaryColor,
+                                        ),
+                                      ),
+                                      if (tailbar.isNotEmpty && tailbar != '..') ...[
+                                        SizedBox(height: 2.h),
+                                        Text(
+                                          tailbar,
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            color: context.textSecondaryColor,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                      if (ded.isNotEmpty) ...[
+                                        SizedBox(height: 2.h),
+                                        Text(
+                                          ded,
+                                          style: TextStyle(
+                                            fontSize: 11.sp,
+                                            color: context.textSecondaryColor.withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  '−${_mungu(dun)}',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFEF4444),
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          final item = angilalaar[index];
+                          final angilal = '${item['angilal'] ?? 'Бусад'}';
+                          final dun = _toDouble(item['dun']);
+                          final huvi = niitZardal > 0
+                              ? (dun / niitZardal * 100).toStringAsFixed(1)
+                              : '0';
+
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 4.h),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 38.w,
+                                  height: 38.w,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
+                                  child: Icon(
+                                    _angilalIcon(angilal),
+                                    color: const Color(0xFFEF4444),
+                                    size: 19.w,
+                                  ),
+                                ),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        angilal,
+                                        style: TextStyle(
+                                          fontSize: 13.5.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: context.textPrimaryColor,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2.h),
+                                      Text(
+                                        'Нийт зардлын $huvi%',
+                                        style: TextStyle(
+                                          fontSize: 11.5.sp,
+                                          color: context.textSecondaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  '−${_mungu(dun)}',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFEF4444),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Санхүүгийн бүтэц — Нэгдмэл Донут тойрог (Unified Hero Donut & Zardal Arc)
 class _CircleDonutChart extends StatefulWidget {
   const _CircleDonutChart({
     required this.tolovlogoot,
     required this.orlogo,
     required this.avlaga,
     required this.zardal,
+    this.onZardalTap,
   });
 
   final double tolovlogoot;
   final double orlogo;
   final double avlaga;
   final double zardal;
+  final VoidCallback? onZardalTap;
 
   static const Color tolovlogootColor = Color(0xFF2563EB); // Цэнхэр (Төлөвлөгөөт)
   static const Color orlogoColor = Color(0xFF10B981);      // Маргад ногоон (Орлого)
@@ -635,14 +1040,14 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
   late Animation<double> _curve;
-  int _selectedIndex = 1; // Анхдагчаар "Орлого"-г тодотгож сонгоно
+  int _selectedIndex = 1; // Анхдагчаар "Орлого"-г сонгоно
 
   @override
   void initState() {
     super.initState();
     _anim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 750),
+      duration: const Duration(milliseconds: 700),
     );
     _curve = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
     _anim.forward();
@@ -667,32 +1072,56 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
   }
 
   void _onTapSegment(int idx) {
+    HapticFeedback.selectionClick();
     setState(() {
       _selectedIndex = _selectedIndex == idx ? -1 : idx;
     });
   }
 
-  void _handleRingTap(Offset localPos, Size size) {
+  void _handleDonutTap(Offset localPos, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPos.dx - center.dx;
     final dy = localPos.dy - center.dy;
     final dist = math.sqrt(dx * dx + dy * dy);
 
-    if (dist < 37.w) {
-      // Төв дээр дарвал ерөнхий тойм руу шилжинэ
-      setState(() => _selectedIndex = -1);
+    // Хэрэв голын дотоод хэсэгт дарвал:
+    if (dist <= 48.w) {
+      if (_selectedIndex == 3) {
+        widget.onZardalTap?.call();
+      } else {
+        setState(() {
+          _selectedIndex = (_selectedIndex + 1) % 4;
+        });
+      }
       return;
     }
 
-    // 4 цагирагийн радиусын бүсүүд
-    if (dist >= 72.w) {
-      _onTapSegment(0); // Төлөвлөгөөт
-    } else if (dist >= 60.w) {
+    // Хэрэв дотор зардал нуман дээр дарвал (48.w <= dist <= 68.w):
+    if (dist <= 68.w) {
+      _onTapSegment(3);
+      return;
+    }
+
+    // Гадна тойргийн өнцгөөр нь Орлого, Авлага ялгах:
+    var angle = math.atan2(dy, dx);
+    var relAngle = angle - (-math.pi / 2);
+    while (relAngle < 0) {
+      relAngle += 2 * math.pi;
+    }
+    while (relAngle >= 2 * math.pi) {
+      relAngle -= 2 * math.pi;
+    }
+
+    final baseTarget = widget.tolovlogoot > 0
+        ? widget.tolovlogoot
+        : (widget.orlogo + widget.avlaga > 0 ? widget.orlogo + widget.avlaga : 1.0);
+    final orlogoRatio = (widget.orlogo / baseTarget).clamp(0.0, 1.0);
+    final sweepOrlogo = widget.orlogo > 0 ? math.max(0.28, 2 * math.pi * orlogoRatio) : 0.0;
+
+    if (relAngle <= sweepOrlogo) {
       _onTapSegment(1); // Орлого
-    } else if (dist >= 48.w) {
+    } else {
       _onTapSegment(2); // Авлага
-    } else if (dist >= 37.w) {
-      _onTapSegment(3); // Зардал
     }
   }
 
@@ -729,14 +1158,13 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     ];
 
     final ratios = [
-      1.0, // Төлөвлөгөөт нь 100% суурь хүрээ
+      1.0,
       (widget.orlogo / baseTarget).clamp(0.0, 1.0),
       (widget.avlaga / baseTarget).clamp(0.0, 1.0),
       (widget.zardal / baseTarget).clamp(0.0, 1.0),
     ];
 
     final percentages = ratios.map((r) => r * 100).toList();
-    final collectionPercent = percentages[1];
 
     // Төвийн мэдээлэл
     IconData centerIcon;
@@ -752,16 +1180,20 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
       centerValue = _mungu(values[idx]);
       final p = percentages[idx];
       final pStr = (p > 0 && p < 1) ? p.toStringAsFixed(1) : p.round().toString();
-      centerSubtitle = idx == 0
-          ? '100% (Суурь нэхэмжлэх)'
-          : '$pStr% (${subtitles[idx]})';
+
+      if (idx == 0) {
+        centerSubtitle = '100% (Нэхэмжлэл)';
+      } else if (idx == 3) {
+        centerSubtitle = 'Жагсаалт харах ›';
+      } else {
+        centerSubtitle = '$pStr% (${subtitles[idx]})';
+      }
       centerColor = colors[idx];
     } else {
       centerIcon = Icons.pie_chart_rounded;
       centerTitle = 'Төлөлт';
-      final cpStr = (collectionPercent > 0 && collectionPercent < 1)
-          ? collectionPercent.toStringAsFixed(1)
-          : collectionPercent.round().toString();
+      final cp = percentages[1];
+      final cpStr = (cp > 0 && cp < 1) ? cp.toStringAsFixed(1) : cp.round().toString();
       centerValue = '$cpStr%';
       centerSubtitle = 'орлогын гүйцэтгэл';
       centerColor = context.textPrimaryColor;
@@ -769,17 +1201,67 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
 
     return Column(
       children: [
-        SizedBox(height: 6.h),
-        // Интерактив Олон Цагирагт (Concentric Rings) Диаграмм
+        // Дээд талын 4 төрлийн сонгогч таб
+        Container(
+          padding: EdgeInsets.all(3.w),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Row(
+            children: List.generate(4, (i) {
+              final isSel = _selectedIndex == i;
+              final col = colors[i];
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => _onTapSegment(i),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: EdgeInsets.symmetric(vertical: 6.h),
+                    decoration: BoxDecoration(
+                      color: isSel ? col : Colors.transparent,
+                      borderRadius: BorderRadius.circular(9.r),
+                      boxShadow: isSel
+                          ? [
+                              BoxShadow(
+                                color: col.withValues(alpha: 0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      titles[i],
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
+                        color: isSel
+                            ? Colors.white
+                            : (isDark ? Colors.white70 : const Color(0xFF475569)),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        SizedBox(height: 12.h),
+
+        // Нэгдмэл Донут график (Single Hero Donut & Inner Zardal Arc)
         SizedBox(
-          height: 180.h,
+          height: 196.h,
           child: LayoutBuilder(
             builder: (ctx, constraints) {
-              final size = Size(174.w, 174.w);
+              final size = Size(190.w, 190.w);
               return Center(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTapUp: (details) => _handleRingTap(details.localPosition, size),
+                  onTapUp: (details) => _handleDonutTap(details.localPosition, size),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -790,10 +1272,11 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
                             width: size.width,
                             height: size.height,
                             child: CustomPaint(
-                              painter: _MultiRingPainter(
-                                values: values,
-                                ratios: ratios,
-                                colors: colors,
+                              painter: _SingleDonutPainter(
+                                orlogo: widget.orlogo,
+                                avlaga: widget.avlaga,
+                                zardal: widget.zardal,
+                                tolovlogoot: widget.tolovlogoot,
                                 selectedIndex: _selectedIndex,
                                 progress: _curve.value,
                                 isDark: isDark,
@@ -804,65 +1287,80 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
                       ),
                       // Төв дэх KPI мэдээлэл
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        padding: EdgeInsets.symmetric(horizontal: 26.w),
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 200),
-                          child: Column(
+                          child: InkWell(
                             key: ValueKey<int>(_selectedIndex),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 28.w,
-                                height: 28.w,
-                                decoration: BoxDecoration(
-                                  color: centerColor.withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  centerIcon,
-                                  size: 14.5.w,
-                                  color: centerColor,
-                                ),
-                              ),
-                              SizedBox(height: 3.h),
-                              Text(
-                                centerTitle,
-                                style: TextStyle(
-                                  fontSize: 10.5.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: context.textSecondaryColor,
-                                ),
-                              ),
-                              SizedBox(height: 1.h),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  centerValue,
-                                  style: TextStyle(
-                                    fontSize: _selectedIndex >= 0 ? 15.sp : 19.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: centerColor,
-                                    letterSpacing: -0.3,
+                            onTap: () {
+                              if (_selectedIndex == 3) {
+                                widget.onZardalTap?.call();
+                              } else {
+                                setState(() {
+                                  _selectedIndex = (_selectedIndex + 1) % 4;
+                                });
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(16.r),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 32.w,
+                                    height: 32.w,
+                                    decoration: BoxDecoration(
+                                      color: centerColor.withValues(alpha: 0.14),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      centerIcon,
+                                      size: 16.w,
+                                      color: centerColor,
+                                    ),
                                   ),
-                                ),
-                              ),
-                              SizedBox(height: 2.h),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
-                                decoration: BoxDecoration(
-                                  color: centerColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: Text(
-                                  centerSubtitle,
-                                  style: TextStyle(
-                                    fontSize: 9.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: centerColor,
+                                  SizedBox(height: 3.h),
+                                  Text(
+                                    centerTitle,
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: context.textSecondaryColor,
+                                    ),
                                   ),
-                                ),
+                                  SizedBox(height: 1.h),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      centerValue,
+                                      style: TextStyle(
+                                        fontSize: _selectedIndex >= 0 ? 16.sp : 20.sp,
+                                        fontWeight: FontWeight.w800,
+                                        color: centerColor,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 3.h),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                                    decoration: BoxDecoration(
+                                      color: centerColor.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(8.r),
+                                    ),
+                                    child: Text(
+                                      centerSubtitle,
+                                      style: TextStyle(
+                                        fontSize: 9.5.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: centerColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -874,6 +1372,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
           ),
         ),
         SizedBox(height: 14.h),
+
         // 4 үзүүлэлтийн интерактив 2x2 карт
         Row(
           children: [
@@ -929,7 +1428,11 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
                 amount: _mungu(widget.zardal),
                 percent: percentages[3],
                 isSelected: _selectedIndex == 3,
-                onTap: () => _onTapSegment(3),
+                actionText: 'Жагсаалт ›',
+                onTap: () {
+                  _onTapSegment(3);
+                  widget.onZardalTap?.call();
+                },
               ),
             ),
           ],
@@ -949,6 +1452,7 @@ class _ChartLegendItem extends StatelessWidget {
     required this.percent,
     required this.isSelected,
     required this.onTap,
+    this.actionText,
   });
 
   final Color color;
@@ -959,6 +1463,7 @@ class _ChartLegendItem extends StatelessWidget {
   final double percent;
   final bool isSelected;
   final VoidCallback onTap;
+  final String? actionText;
 
   @override
   Widget build(BuildContext context) {
@@ -1014,23 +1519,40 @@ class _ChartLegendItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: isSelected ? 0.22 : 0.1),
-                    borderRadius: BorderRadius.circular(6.r),
-                  ),
-                  child: Text(
-                    percent > 0 && percent < 1
-                        ? '${percent.toStringAsFixed(1)}%'
-                        : '${percent.round()}%',
-                    style: TextStyle(
-                      fontSize: 9.5.sp,
-                      fontWeight: FontWeight.w700,
-                      color: color,
+                if (actionText != null)
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Text(
+                      actionText!,
+                      style: TextStyle(
+                        fontSize: 9.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: isSelected ? 0.22 : 0.1),
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Text(
+                      percent > 0 && percent < 1
+                          ? '${percent.toStringAsFixed(1)}%'
+                          : '${percent.round()}%',
+                      style: TextStyle(
+                        fontSize: 9.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             SizedBox(height: 6.h),
@@ -1054,7 +1576,6 @@ class _ChartLegendItem extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 6.h),
-            // Пропорци заах жижиг прогресс бар
             ClipRRect(
               borderRadius: BorderRadius.circular(2.r),
               child: Container(
@@ -1075,19 +1596,21 @@ class _ChartLegendItem extends StatelessWidget {
   }
 }
 
-class _MultiRingPainter extends CustomPainter {
-  _MultiRingPainter({
-    required this.values,
-    required this.ratios,
-    required this.colors,
+class _SingleDonutPainter extends CustomPainter {
+  _SingleDonutPainter({
+    required this.orlogo,
+    required this.avlaga,
+    required this.zardal,
+    required this.tolovlogoot,
     required this.selectedIndex,
     required this.progress,
     required this.isDark,
   });
 
-  final List<double> values;
-  final List<double> ratios;
-  final List<Color> colors;
+  final double orlogo;
+  final double avlaga;
+  final double zardal;
+  final double tolovlogoot;
   final int selectedIndex;
   final double progress;
   final bool isDark;
@@ -1095,110 +1618,251 @@ class _MultiRingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
+    final outerRadius = 80.w;
+    final outerStroke = 14.w;
+    final innerRadius = 59.w;
+    final innerStroke = 7.w;
 
-    // 4 цагирагийн радиусууд: Outer -> Inner
-    // 0: Төлөвлөгөөт (R: 77)
-    // 1: Орлого (R: 65)
-    // 2: Авлага (R: 53)
-    // 3: Зардал (R: 41)
-    final radii = [77.0, 65.0, 53.0, 41.0];
-    const baseWidth = 7.2;
+    final baseTarget = tolovlogoot > 0
+        ? tolovlogoot
+        : (orlogo + avlaga > 0 ? orlogo + avlaga : 1.0);
+
     const startAngle = -math.pi / 2; // 12 цаг
 
-    for (var i = 0; i < 4; i++) {
-      final r = radii[i];
-      final isSelected = selectedIndex == i;
-      final hasSelection = selectedIndex >= 0;
-      final strokeW = isSelected ? baseWidth + 3.2 : baseWidth;
+    // ── 1. Гадна суурь зам (Төлөвлөгөөт 100%) ──
+    final isTolovlogootSelected = selectedIndex == 0;
+    final trackColor = _CircleDonutChart.tolovlogootColor.withValues(
+      alpha: isTolovlogootSelected ? (isDark ? 0.35 : 0.25) : (isDark ? 0.14 : 0.08),
+    );
+    final trackStroke = isTolovlogootSelected ? outerStroke + 3.w : outerStroke;
 
-      final color = colors[i];
-      final activeColor = hasSelection && !isSelected
-          ? color.withValues(alpha: 0.28)
-          : color;
-
-      // 1. Арын бүтэн суурь зам (Background track)
-      final trackPaint = Paint()
-        ..color = isDark
-            ? color.withValues(alpha: 0.12)
-            : color.withValues(alpha: 0.09)
+    if (isTolovlogootSelected) {
+      canvas.drawCircle(
+        center,
+        outerRadius,
+        Paint()
+          ..color = _CircleDonutChart.tolovlogootColor.withValues(alpha: 0.25)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = trackStroke + 6.w
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      );
+    }
+    canvas.drawCircle(
+      center,
+      outerRadius,
+      Paint()
+        ..color = trackColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = isSelected ? strokeW - 1.0 : baseWidth;
-      canvas.drawCircle(center, r, trackPaint);
+        ..strokeWidth = trackStroke,
+    );
 
-      // 2. Явцын нум (Progress Arc)
-      final ratio = ratios[i].clamp(0.0, 1.0);
-      final rawSweep = (2 * math.pi * ratio) * progress;
+    // ── 2. Орлого (Маргад ногоон нум) ──
+    final orlogoRatio = (orlogo / baseTarget).clamp(0.0, 1.0);
+    final rawSweepOrlogo = (2 * math.pi * orlogoRatio) * progress;
+    final sweepOrlogo = orlogo > 0 ? math.max(0.28, rawSweepOrlogo) : 0.0;
+    final isOrlogoSelected = selectedIndex == 1;
 
-      // 0.5% гэх мэт бага утга ч 1 пиксел болохгүй, тод үзэгдэх суурь нум
-      final sweep = ratio > 0 ? math.max(0.10, rawSweep) : 0.0;
+    if (sweepOrlogo > 0) {
+      final orlogoStroke = isOrlogoSelected ? outerStroke + 4.w : outerStroke;
+      final orlogoColor = _CircleDonutChart.orlogoColor;
 
-      // Сонгогдсон цагирагт зөөлөн glow аура
-      if (isSelected && sweep > 0) {
-        final glowPaint = Paint()
-          ..color = activeColor.withValues(alpha: 0.32)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeW + 5.0
-          ..strokeCap = StrokeCap.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
-
+      // Glow aura
+      if (isOrlogoSelected) {
         canvas.drawArc(
-          Rect.fromCircle(center: center, radius: r),
+          Rect.fromCircle(center: center, radius: outerRadius),
           startAngle,
-          sweep,
+          sweepOrlogo,
           false,
-          glowPaint,
+          Paint()
+            ..color = orlogoColor.withValues(alpha: 0.4)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = orlogoStroke + 6.w
+            ..strokeCap = StrokeCap.round
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
         );
       }
 
-      if (sweep > 0) {
-        final arcPaint = Paint()
-          ..color = activeColor
+      // Main arc
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: outerRadius),
+        startAngle,
+        sweepOrlogo,
+        false,
+        Paint()
+          ..color = orlogoColor
           ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeW
-          ..strokeCap = StrokeCap.round;
+          ..strokeWidth = orlogoStroke
+          ..strokeCap = StrokeCap.round,
+      );
 
+      // Jewel tip
+      final tipAngle = startAngle + sweepOrlogo;
+      final tipPos = Offset(
+        center.dx + outerRadius * math.cos(tipAngle),
+        center.dy + outerRadius * math.sin(tipAngle),
+      );
+      canvas.drawCircle(
+        tipPos,
+        orlogoStroke / 2 + 1.5,
+        Paint()..color = orlogoColor.withValues(alpha: 0.4),
+      );
+      canvas.drawCircle(
+        tipPos,
+        orlogoStroke / 2 - 0.5,
+        Paint()..color = orlogoColor,
+      );
+      canvas.drawCircle(
+        tipPos,
+        2.2,
+        Paint()..color = Colors.white,
+      );
+    }
+
+    // ── 3. Авлага (Алтлаг шар нум) ──
+    final avlagaRatio = (avlaga / baseTarget).clamp(0.0, 1.0);
+    final gap = 0.05;
+    final avlagaStart = startAngle + sweepOrlogo + (sweepOrlogo > 0 ? gap : 0.0);
+    final availableForAvlaga =
+        math.max(0.0, 2 * math.pi - sweepOrlogo - (sweepOrlogo > 0 ? gap * 2 : 0.0));
+    final rawSweepAvlaga = (availableForAvlaga * avlagaRatio) * progress;
+    final sweepAvlaga = avlaga > 0 ? math.max(0.28, rawSweepAvlaga) : 0.0;
+    final isAvlagaSelected = selectedIndex == 2;
+
+    if (sweepAvlaga > 0) {
+      final avlagaStroke = isAvlagaSelected ? outerStroke + 4.w : outerStroke;
+      final avlagaColor = _CircleDonutChart.avlagaColor;
+
+      if (isAvlagaSelected) {
         canvas.drawArc(
-          Rect.fromCircle(center: center, radius: r),
-          startAngle,
-          sweep,
+          Rect.fromCircle(center: center, radius: outerRadius),
+          avlagaStart,
+          sweepAvlaga,
           false,
-          arcPaint,
-        );
-
-        // 3. Нумын төгсгөлийн тод гэрэлтсэн цэг (Jewel Tip Bullet)
-        final endAngle = startAngle + sweep;
-        final tipOffset = Offset(
-          center.dx + r * math.cos(endAngle),
-          center.dy + r * math.sin(endAngle),
-        );
-
-        canvas.drawCircle(
-          tipOffset,
-          strokeW / 2 + 1.2,
-          Paint()..color = activeColor.withValues(alpha: 0.35),
-        );
-        canvas.drawCircle(
-          tipOffset,
-          strokeW / 2 - 0.5,
-          Paint()..color = activeColor,
-        );
-        canvas.drawCircle(
-          tipOffset,
-          1.8,
-          Paint()..color = Colors.white,
+          Paint()
+            ..color = avlagaColor.withValues(alpha: 0.4)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = avlagaStroke + 6.w
+            ..strokeCap = StrokeCap.round
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
         );
       }
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: outerRadius),
+        avlagaStart,
+        sweepAvlaga,
+        false,
+        Paint()
+          ..color = avlagaColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = avlagaStroke
+          ..strokeCap = StrokeCap.round,
+      );
+
+      final tipAngle = avlagaStart + sweepAvlaga;
+      final tipPos = Offset(
+        center.dx + outerRadius * math.cos(tipAngle),
+        center.dy + outerRadius * math.sin(tipAngle),
+      );
+      canvas.drawCircle(
+        tipPos,
+        avlagaStroke / 2 + 1.5,
+        Paint()..color = avlagaColor.withValues(alpha: 0.4),
+      );
+      canvas.drawCircle(
+        tipPos,
+        avlagaStroke / 2 - 0.5,
+        Paint()..color = avlagaColor,
+      );
+      canvas.drawCircle(
+        tipPos,
+        2.2,
+        Paint()..color = Colors.white,
+      );
+    }
+
+    // ── 4. Дотор нум — Зардал (Шүрэн улаан) ──
+    final isZardalSelected = selectedIndex == 3;
+    final innerTrackColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
+
+    canvas.drawCircle(
+      center,
+      innerRadius,
+      Paint()
+        ..color = innerTrackColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isZardalSelected ? innerStroke + 2.w : innerStroke,
+    );
+
+    final zardalRatio = (zardal / baseTarget).clamp(0.0, 1.0);
+    final rawSweepZardal = (2 * math.pi * zardalRatio) * progress;
+    final sweepZardal = zardal > 0 ? math.max(0.26, rawSweepZardal) : 0.0;
+
+    if (sweepZardal > 0) {
+      final zardalStroke = isZardalSelected ? innerStroke + 3.w : innerStroke;
+      final zardalColor = _CircleDonutChart.zardalColor;
+
+      if (isZardalSelected) {
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: innerRadius),
+          startAngle,
+          sweepZardal,
+          false,
+          Paint()
+            ..color = zardalColor.withValues(alpha: 0.4)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = zardalStroke + 5.w
+            ..strokeCap = StrokeCap.round
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        );
+      }
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: innerRadius),
+        startAngle,
+        sweepZardal,
+        false,
+        Paint()
+          ..color = zardalColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = zardalStroke
+          ..strokeCap = StrokeCap.round,
+      );
+
+      final tipAngle = startAngle + sweepZardal;
+      final tipPos = Offset(
+        center.dx + innerRadius * math.cos(tipAngle),
+        center.dy + innerRadius * math.sin(tipAngle),
+      );
+      canvas.drawCircle(
+        tipPos,
+        zardalStroke / 2 + 1.2,
+        Paint()..color = zardalColor.withValues(alpha: 0.35),
+      );
+      canvas.drawCircle(
+        tipPos,
+        zardalStroke / 2 - 0.5,
+        Paint()..color = zardalColor,
+      );
+      canvas.drawCircle(
+        tipPos,
+        1.8,
+        Paint()..color = Colors.white,
+      );
     }
   }
 
   @override
-  bool shouldRepaint(covariant _MultiRingPainter oldDelegate) {
-    return oldDelegate.values != values ||
-        oldDelegate.ratios != ratios ||
-        oldDelegate.colors != colors ||
-        oldDelegate.selectedIndex != selectedIndex ||
-        oldDelegate.progress != progress ||
-        oldDelegate.isDark != isDark;
+  bool shouldRepaint(covariant _SingleDonutPainter old) {
+    return old.orlogo != orlogo ||
+        old.avlaga != avlaga ||
+        old.zardal != zardal ||
+        old.tolovlogoot != tolovlogoot ||
+        old.selectedIndex != selectedIndex ||
+        old.progress != progress ||
+        old.isDark != isDark;
   }
 }
 
