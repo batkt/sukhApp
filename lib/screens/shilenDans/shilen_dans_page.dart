@@ -627,6 +627,34 @@ class _CircleDonutChart extends StatefulWidget {
   static const Color avlagaColor = Color(0xFFF59E0B);      // Шаргал (Amber Gold)
   static const Color zardalColor = Color(0xFFEF4444);      // Улаан (Coral Red)
 
+  /// 0.5% гэх мэт маш бага дүн ч тойрог дээр 1 пиксел болж алга болохгүй,
+  /// нүдэнд тод, амархан дарагдах боломжтой суурь өнцөгтэй (min-floor) хуваарилалт
+  static List<double> computeSweeps(List<double> values) {
+    const double totalAngle = 2 * math.pi;
+    const double gap = 0.055;
+    final int count = values.length;
+    final double totalGaps = count * gap;
+    final double allocatable = totalAngle - totalGaps;
+
+    final double sum = values.fold<double>(0, (s, v) => s + math.max(0, v));
+
+    // Хамгийн бага өнцөг = 0.36 rad (~20.6° нум)
+    const double minSweep = 0.36;
+    final double reserved = minSweep * count;
+
+    if (sum <= 0 || reserved >= allocatable) {
+      final double equalSweep = allocatable / count;
+      return List<double>.filled(count, equalSweep);
+    }
+
+    final double remaining = allocatable - reserved;
+    return List<double>.generate(count, (i) {
+      final double v = math.max(0.0, values[i]);
+      final double weight = v / sum;
+      return minSweep + (weight * remaining);
+    });
+  }
+
   @override
   State<_CircleDonutChart> createState() => _CircleDonutChartState();
 }
@@ -681,7 +709,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     const innerRadius = 35.0;
 
     // Зөвхөн donut-ын цагираг дээр дарвал
-    if (dist < innerRadius || dist > outerRadius + 15) {
+    if (dist < innerRadius || dist > outerRadius + 18) {
       if (dist < innerRadius) {
         // Төв дээр дарвал ерөнхий тойм руу буцна
         setState(() => _selectedIndex = -1);
@@ -689,14 +717,8 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
       return;
     }
 
-    final rawTotal = values.fold<double>(0, (sum, v) => sum + math.max(0, v));
-    final displayValues = List<double>.generate(values.length, (i) {
-      final v = math.max(0.0, values[i]);
-      if (rawTotal <= 0) return 1.0;
-      return v > 0 ? v : rawTotal * 0.055;
-    });
-    final total = displayValues.fold<double>(0, (s, v) => s + v);
-    if (total <= 0) return;
+    final sweeps = _CircleDonutChart.computeSweeps(values);
+    const double gap = 0.055;
 
     var angle = math.atan2(dy, dx);
     // 12 цагаас (-pi / 2) эхэлсэн өнцөг рүү шилжүүлэх [0, 2*pi]
@@ -704,8 +726,8 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     if (relAngle < 0) relAngle += 2 * math.pi;
 
     double curr = 0;
-    for (var i = 0; i < displayValues.length; i++) {
-      final sweep = (displayValues[i] / total) * 2 * math.pi;
+    for (var i = 0; i < sweeps.length; i++) {
+      final sweep = sweeps[i] + gap;
       if (relAngle >= curr && relAngle <= curr + sweep) {
         _onTapSegment(i);
         return;
@@ -761,7 +783,8 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
       centerTitle = titles[_selectedIndex];
       centerValue = _mungu(values[_selectedIndex]);
       final p = percentages[_selectedIndex];
-      centerSubtitle = '${p.toStringAsFixed(1)}% (${subtitles[_selectedIndex]})';
+      final pStr = (p > 0 && p < 1) ? p.toStringAsFixed(1) : p.round().toString();
+      centerSubtitle = '$pStr% (${subtitles[_selectedIndex]})';
       centerColor = colors[_selectedIndex];
     } else {
       centerIcon = Icons.pie_chart_rounded;
@@ -1026,7 +1049,9 @@ class _ChartLegendItem extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6.r),
                   ),
                   child: Text(
-                    '${percent.toStringAsFixed(percent < 10 && percent > 0 ? 1 : 0)}%',
+                    percent > 0 && percent < 1
+                        ? '${percent.toStringAsFixed(1)}%'
+                        : '${percent.round()}%',
                     style: TextStyle(
                       fontSize: 9.5.sp,
                       fontWeight: FontWeight.w700,
@@ -1066,7 +1091,7 @@ class _ChartLegendItem extends StatelessWidget {
                 color: color.withValues(alpha: 0.12),
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
-                  widthFactor: (percent / 100).clamp(0.02, 1.0),
+                  widthFactor: (percent / 100).clamp(0.06, 1.0),
                   child: Container(color: color),
                 ),
               ),
@@ -1108,27 +1133,13 @@ class _DonutPainter extends CustomPainter {
 
     canvas.drawCircle(center, baseRadius, bgPaint);
 
-    final rawTotal = values.fold<double>(0, (sum, v) => sum + math.max(0, v));
-    // Бүх 4 өнгө (Төлөвлөгөөт, Орлого, Авлага, Зардал) тойрог дээр үргэлж
-    // тод харагдаж, сонгох боломжтой байх үүднээс 0 байсан ч харагдах суурь хэмжээ өгнө.
-    final displayValues = List<double>.generate(values.length, (i) {
-      final v = math.max(0.0, values[i]);
-      if (rawTotal <= 0) return 1.0;
-      return v > 0 ? v : rawTotal * 0.055;
-    });
-    final total = displayValues.fold<double>(0, (s, v) => s + v);
-    if (total <= 0) return;
-
+    final sweeps = _CircleDonutChart.computeSweeps(values);
     double startAngle = -math.pi / 2; // 12 цагаас эхэлнэ
-    const gap = 0.045;
+    const gap = 0.055;
 
-    for (var i = 0; i < displayValues.length; i++) {
-      final val = displayValues[i];
-      if (val <= 0) continue;
-
-      final fullSweep = (val / total) * 2 * math.pi;
-      final sweep = fullSweep * progress;
-      final effectiveSweep = math.max(0.02, sweep - gap);
+    for (var i = 0; i < sweeps.length; i++) {
+      final sweep = sweeps[i] * progress;
+      final effectiveSweep = math.max(0.12, sweep);
 
       final isSelected = selectedIndex == i;
       final hasSelection = selectedIndex >= 0;
@@ -1143,7 +1154,7 @@ class _DonutPainter extends CustomPainter {
       // Сонгогдсон хэсэгт зөөлөн glow аура нэмэх
       if (isSelected) {
         final glowPaint = Paint()
-          ..color = paintColor.withValues(alpha: 0.28)
+          ..color = paintColor.withValues(alpha: 0.32)
           ..style = PaintingStyle.stroke
           ..strokeWidth = arcWidth + 6.0
           ..strokeCap = StrokeCap.round
@@ -1172,7 +1183,7 @@ class _DonutPainter extends CustomPainter {
         paint,
       );
 
-      startAngle += sweep;
+      startAngle += sweeps[i] + gap;
     }
   }
 
