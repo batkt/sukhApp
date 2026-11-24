@@ -149,7 +149,9 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
     final orlogo = _toDouble(d['tulsun']);
     final zardal = _toDouble(d['zardal']);
     final khurimtlal = _toDouble(d['khurimtlal']);
+    final nekhemjilsen = _toDouble(d['nekhemjilsen']);
     final ail = Map<String, dynamic>.from(d['ailiinAvlaga'] as Map? ?? {});
+    final avlaga = _toDouble(d['tuluugui'] ?? ail['niit']);
     final ner = [d['baiguullagiinNer'], d['barilgiinNer']]
         .where((e) => e != null && '$e'.isNotEmpty)
         .join(' · ');
@@ -208,7 +210,20 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
         ],
       ),
       Divider(height: 28.h, color: context.borderColor),
-      Text('Орлого, зардал',
+      Text('Санхүүгийн бүтэц',
+          style: TextStyle(
+              fontSize: 15.sp, fontWeight: FontWeight.w600, color: context.textPrimaryColor)),
+      SizedBox(height: 8.h),
+      _Kart(
+        child: _CircleDonutChart(
+          tolovlogoot: nekhemjilsen,
+          orlogo: orlogo,
+          avlaga: avlaga,
+          zardal: zardal,
+        ),
+      ),
+      SizedBox(height: 16.h),
+      Text('Орлого, зардал (6 сарын хандлага)',
           style: TextStyle(
               fontSize: 15.sp, fontWeight: FontWeight.w600, color: context.textPrimaryColor)),
       SizedBox(height: 8.h),
@@ -258,7 +273,7 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
     final boloogui = _toDouble(ail['boloogui']);
     final khetersenKhuvi = niit > 0 ? khetersen / niit : 0.0;
     final ailToo = (ail['khetersenAilToo'] as num?)?.toInt() ?? 0;
-    // Сервер зөвхөн тоот + дүн явуулна
+    // Сервер тоот + дүн + хэтэрсэн хоног явуулна
     final ailuud = ail['ailuud'] is List
         ? (ail['ailuud'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList()
         : <Map<String, dynamic>>[];
@@ -365,6 +380,10 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
           _Mur(
             ner: '${a['toot'] ?? '—'} тоот',
             utga: _mungu(_toDouble(a['dun'])),
+            dedUtga: ((a['khonog'] as num?)?.toInt() ?? 0) > 0
+                ? '${(a['khonog'] as num?)?.toInt()} хоног'
+                : null,
+            ungu: const Color(0xFFC05621),
           ),
     ];
   }
@@ -524,6 +543,7 @@ class _Mur extends StatelessWidget {
     this.ungu,
     this.tseg,
     this.dedNer,
+    this.dedUtga,
   });
 
   final String ner;
@@ -531,6 +551,7 @@ class _Mur extends StatelessWidget {
   final Color? ungu;
   final Color? tseg;
   final String? dedNer;
+  final String? dedUtga;
 
   @override
   Widget build(BuildContext context) {
@@ -560,17 +581,314 @@ class _Mur extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            utga,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              color: ungu ?? context.textPrimaryColor,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                utga,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: ungu ?? context.textPrimaryColor,
+                ),
+              ),
+              if (dedUtga != null && dedUtga!.isNotEmpty) ...[
+                SizedBox(width: 6.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: _Ungu.sharga.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(5.r),
+                  ),
+                  child: Text(
+                    dedUtga!,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF9A6A12),
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
     );
+  }
+}
+
+/// Дугуй график (Donut) — Төлөвлөгөөт, Орлого, Авлага, Зардал
+class _CircleDonutChart extends StatelessWidget {
+  const _CircleDonutChart({
+    required this.tolovlogoot,
+    required this.orlogo,
+    required this.avlaga,
+    required this.zardal,
+  });
+
+  final double tolovlogoot;
+  final double orlogo;
+  final double avlaga;
+  final double zardal;
+
+  static const Color tolovlogootColor = Color(0xFF2563EB); // Цэнхэр
+  static const Color orlogoColor = Color(0xFF1E7B3C);      // Ногоон
+  static const Color avlagaColor = Color(0xFFE8B04A);      // Шаргал
+  static const Color zardalColor = Color(0xFFDC2626);      // Улаан
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    final collectionPercent = tolovlogoot > 0 ? ((orlogo / tolovlogoot) * 100).round() : 0;
+
+    return Column(
+      children: [
+        SizedBox(height: 6.h),
+        // Дугуй график
+        SizedBox(
+          height: 150.h,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 140.w,
+                height: 140.w,
+                child: CustomPaint(
+                  painter: _DonutPainter(
+                    values: [tolovlogoot, orlogo, avlaga, zardal],
+                    colors: const [
+                      tolovlogootColor,
+                      orlogoColor,
+                      avlagaColor,
+                      zardalColor,
+                    ],
+                    backgroundColor: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0xFFF0F3F1),
+                    strokeWidth: 14.w,
+                  ),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Төлөлт',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w400,
+                      color: context.textSecondaryColor,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    '$collectionPercent%',
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.w700,
+                      color: context.textPrimaryColor,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'гүйцэтгэл',
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: context.textSecondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 16.h),
+        // 4 үзүүлэлтийн 2x2 grid карт
+        Row(
+          children: [
+            Expanded(
+              child: _ChartLegendItem(
+                color: tolovlogootColor,
+                title: 'Төлөвлөгөөт',
+                subtitle: 'Нэхэмжилсэн',
+                amount: _mungu(tolovlogoot),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: _ChartLegendItem(
+                color: orlogoColor,
+                title: 'Орлого',
+                subtitle: 'Төлөгдсөн',
+                amount: _mungu(orlogo),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          children: [
+            Expanded(
+              child: _ChartLegendItem(
+                color: avlagaColor,
+                title: 'Авлага',
+                subtitle: 'Төлөөгүй үлдсэн',
+                amount: _mungu(avlaga),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: _ChartLegendItem(
+                color: zardalColor,
+                title: 'Зардал',
+                subtitle: 'СӨХ-ийн зардал',
+                amount: _mungu(zardal),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ChartLegendItem extends StatelessWidget {
+  const _ChartLegendItem({
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+  });
+
+  final Color color;
+  final String title;
+  final String subtitle;
+  final String amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : const Color(0xFFF9FAFA),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: context.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8.w,
+                height: 8.w,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: context.textPrimaryColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            amount,
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 1.h),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10.sp,
+              color: context.textSecondaryColor,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DonutPainter extends CustomPainter {
+  _DonutPainter({
+    required this.values,
+    required this.colors,
+    required this.backgroundColor,
+    this.strokeWidth = 14.0,
+  });
+
+  final List<double> values;
+  final List<Color> colors;
+  final Color backgroundColor;
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) - strokeWidth) / 2;
+    if (radius <= 0) return;
+
+    final bgPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, bgPaint);
+
+    final total = values.fold<double>(0, (sum, v) => sum + math.max(0, v));
+    if (total <= 0) return;
+
+    double startAngle = -math.pi / 2; // 12 цагаас эхэлнэ
+    final nonZeroCount = values.where((v) => v > 0).length;
+    final gap = nonZeroCount > 1 ? 0.05 : 0.0;
+
+    for (var i = 0; i < values.length; i++) {
+      final val = math.max(0, values[i]);
+      if (val <= 0) continue;
+
+      final sweep = (val / total) * 2 * math.pi;
+      final effectiveSweep = math.max(0.01, sweep - gap);
+
+      final paint = Paint()
+        ..color = colors[i]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle + (gap / 2),
+        effectiveSweep,
+        false,
+        paint,
+      );
+
+      startAngle += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter oldDelegate) {
+    return oldDelegate.values != values ||
+        oldDelegate.colors != colors ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }
 
