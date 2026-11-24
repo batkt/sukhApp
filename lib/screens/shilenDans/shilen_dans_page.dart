@@ -608,7 +608,7 @@ class _Mur extends StatelessWidget {
   }
 }
 
-/// Дугуй график (Donut) — Интерактив Төлөвлөгөөт, Орлого, Авлага, Зардал
+/// Бүрэн шинэчилсэн санхүүгийн олон цагирагт (Concentric Activity Rings) систем
 class _CircleDonutChart extends StatefulWidget {
   const _CircleDonutChart({
     required this.tolovlogoot,
@@ -622,38 +622,10 @@ class _CircleDonutChart extends StatefulWidget {
   final double avlaga;
   final double zardal;
 
-  static const Color tolovlogootColor = Color(0xFF2563EB); // Цэнхэр
-  static const Color orlogoColor = Color(0xFF10B981);      // Ногоон (Emerald)
-  static const Color avlagaColor = Color(0xFFF59E0B);      // Шаргал (Amber Gold)
-  static const Color zardalColor = Color(0xFFEF4444);      // Улаан (Coral Red)
-
-  /// 0.5% гэх мэт маш бага дүн ч тойрог дээр 1 пиксел болж алга болохгүй,
-  /// нүдэнд тод, амархан дарагдах боломжтой суурь өнцөгтэй (min-floor) хуваарилалт
-  static List<double> computeSweeps(List<double> values) {
-    const double totalAngle = 2 * math.pi;
-    const double gap = 0.055;
-    final int count = values.length;
-    final double totalGaps = count * gap;
-    final double allocatable = totalAngle - totalGaps;
-
-    final double sum = values.fold<double>(0, (s, v) => s + math.max(0, v));
-
-    // Хамгийн бага өнцөг = 0.36 rad (~20.6° нум)
-    const double minSweep = 0.36;
-    final double reserved = minSweep * count;
-
-    if (sum <= 0 || reserved >= allocatable) {
-      final double equalSweep = allocatable / count;
-      return List<double>.filled(count, equalSweep);
-    }
-
-    final double remaining = allocatable - reserved;
-    return List<double>.generate(count, (i) {
-      final double v = math.max(0.0, values[i]);
-      final double weight = v / sum;
-      return minSweep + (weight * remaining);
-    });
-  }
+  static const Color tolovlogootColor = Color(0xFF2563EB); // Цэнхэр (Төлөвлөгөөт)
+  static const Color orlogoColor = Color(0xFF10B981);      // Маргад ногоон (Орлого)
+  static const Color avlagaColor = Color(0xFFF59E0B);      // Алтлаг шаргал (Авлага)
+  static const Color zardalColor = Color(0xFFEF4444);      // Шүрэн улаан (Зардал)
 
   @override
   State<_CircleDonutChart> createState() => _CircleDonutChartState();
@@ -670,7 +642,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     super.initState();
     _anim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 650),
+      duration: const Duration(milliseconds: 750),
     );
     _curve = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
     _anim.forward();
@@ -700,69 +672,54 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     });
   }
 
-  void _handleDonutTap(Offset localPos, Size size, List<double> values) {
+  void _handleRingTap(Offset localPos, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPos.dx - center.dx;
     final dy = localPos.dy - center.dy;
     final dist = math.sqrt(dx * dx + dy * dy);
-    final outerRadius = math.min(size.width, size.height) / 2;
-    const innerRadius = 35.0;
 
-    // Зөвхөн donut-ын цагираг дээр дарвал
-    if (dist < innerRadius || dist > outerRadius + 18) {
-      if (dist < innerRadius) {
-        // Төв дээр дарвал ерөнхий тойм руу буцна
-        setState(() => _selectedIndex = -1);
-      }
+    if (dist < 37.w) {
+      // Төв дээр дарвал ерөнхий тойм руу шилжинэ
+      setState(() => _selectedIndex = -1);
       return;
     }
 
-    final sweeps = _CircleDonutChart.computeSweeps(values);
-    const double gap = 0.055;
-
-    var angle = math.atan2(dy, dx);
-    // 12 цагаас (-pi / 2) эхэлсэн өнцөг рүү шилжүүлэх [0, 2*pi]
-    var relAngle = angle + (math.pi / 2);
-    if (relAngle < 0) relAngle += 2 * math.pi;
-
-    double curr = 0;
-    for (var i = 0; i < sweeps.length; i++) {
-      final sweep = sweeps[i] + gap;
-      if (relAngle >= curr && relAngle <= curr + sweep) {
-        _onTapSegment(i);
-        return;
-      }
-      curr += sweep;
+    // 4 цагирагийн радиусын бүсүүд
+    if (dist >= 72.w) {
+      _onTapSegment(0); // Төлөвлөгөөт
+    } else if (dist >= 60.w) {
+      _onTapSegment(1); // Орлого
+    } else if (dist >= 48.w) {
+      _onTapSegment(2); // Авлага
+    } else if (dist >= 37.w) {
+      _onTapSegment(3); // Зардал
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
+
+    final baseTarget = widget.tolovlogoot > 0
+        ? widget.tolovlogoot
+        : (widget.orlogo + widget.avlaga > 0 ? widget.orlogo + widget.avlaga : 1.0);
+
     final values = [
       widget.tolovlogoot,
       widget.orlogo,
       widget.avlaga,
       widget.zardal,
     ];
+
     const colors = [
       _CircleDonutChart.tolovlogootColor,
       _CircleDonutChart.orlogoColor,
       _CircleDonutChart.avlagaColor,
       _CircleDonutChart.zardalColor,
     ];
+
     final titles = ['Төлөвлөгөөт', 'Орлого', 'Авлага', 'Зардал'];
     final subtitles = ['Нэхэмжилсэн', 'Төлөгдсөн', 'Төлөөгүй үлдсэн', 'СӨХ-ийн зардал'];
-
-    final rawTotal = values.fold<double>(0, (sum, v) => sum + math.max(0, v));
-    final percentages = List<double>.generate(4, (i) {
-      if (rawTotal <= 0) return 0.0;
-      return (math.max(0.0, values[i]) / rawTotal) * 100;
-    });
-
-    final collectionPercent = widget.tolovlogoot > 0
-        ? ((widget.orlogo / widget.tolovlogoot) * 100).round()
-        : 0;
 
     final icons = [
       Icons.receipt_long_rounded,
@@ -771,7 +728,17 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
       Icons.shopping_bag_outlined,
     ];
 
-    // Төв хэсэгт сонгосон үзүүлэлтээс хамаарч мэдээлэл харуулах
+    final ratios = [
+      1.0, // Төлөвлөгөөт нь 100% суурь хүрээ
+      (widget.orlogo / baseTarget).clamp(0.0, 1.0),
+      (widget.avlaga / baseTarget).clamp(0.0, 1.0),
+      (widget.zardal / baseTarget).clamp(0.0, 1.0),
+    ];
+
+    final percentages = ratios.map((r) => r * 100).toList();
+    final collectionPercent = percentages[1];
+
+    // Төвийн мэдээлэл
     IconData centerIcon;
     String centerTitle;
     String centerValue;
@@ -779,34 +746,40 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     Color centerColor;
 
     if (_selectedIndex >= 0 && _selectedIndex < 4) {
-      centerIcon = icons[_selectedIndex];
-      centerTitle = titles[_selectedIndex];
-      centerValue = _mungu(values[_selectedIndex]);
-      final p = percentages[_selectedIndex];
+      final idx = _selectedIndex;
+      centerIcon = icons[idx];
+      centerTitle = titles[idx];
+      centerValue = _mungu(values[idx]);
+      final p = percentages[idx];
       final pStr = (p > 0 && p < 1) ? p.toStringAsFixed(1) : p.round().toString();
-      centerSubtitle = '$pStr% (${subtitles[_selectedIndex]})';
-      centerColor = colors[_selectedIndex];
+      centerSubtitle = idx == 0
+          ? '100% (Суурь нэхэмжлэх)'
+          : '$pStr% (${subtitles[idx]})';
+      centerColor = colors[idx];
     } else {
       centerIcon = Icons.pie_chart_rounded;
       centerTitle = 'Төлөлт';
-      centerValue = '$collectionPercent%';
-      centerSubtitle = 'нийт гүйцэтгэл';
+      final cpStr = (collectionPercent > 0 && collectionPercent < 1)
+          ? collectionPercent.toStringAsFixed(1)
+          : collectionPercent.round().toString();
+      centerValue = '$cpStr%';
+      centerSubtitle = 'орлогын гүйцэтгэл';
       centerColor = context.textPrimaryColor;
     }
 
     return Column(
       children: [
         SizedBox(height: 6.h),
-        // Интерактив Дугуй график
+        // Интерактив Олон Цагирагт (Concentric Rings) Диаграмм
         SizedBox(
-          height: 165.h,
+          height: 180.h,
           child: LayoutBuilder(
             builder: (ctx, constraints) {
-              final size = Size(154.w, 154.w);
+              final size = Size(174.w, 174.w);
               return Center(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTapUp: (details) => _handleDonutTap(details.localPosition, size, values),
+                  onTapUp: (details) => _handleRingTap(details.localPosition, size),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -817,22 +790,21 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
                             width: size.width,
                             height: size.height,
                             child: CustomPaint(
-                              painter: _DonutPainter(
+                              painter: _MultiRingPainter(
                                 values: values,
+                                ratios: ratios,
                                 colors: colors,
                                 selectedIndex: _selectedIndex,
                                 progress: _curve.value,
-                                backgroundColor: isDark
-                                    ? Colors.white.withValues(alpha: 0.06)
-                                    : const Color(0xFFF1F5F9),
-                                strokeWidth: 15.w,
+                                isDark: isDark,
                               ),
                             ),
                           );
                         },
                       ),
+                      // Төв дэх KPI мэдээлэл
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20.w),
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 200),
                           child: Column(
@@ -840,15 +812,15 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: 26.w,
-                                height: 26.w,
+                                width: 28.w,
+                                height: 28.w,
                                 decoration: BoxDecoration(
                                   color: centerColor.withValues(alpha: 0.12),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
                                   centerIcon,
-                                  size: 13.5.w,
+                                  size: 14.5.w,
                                   color: centerColor,
                                 ),
                               ),
@@ -1103,98 +1075,130 @@ class _ChartLegendItem extends StatelessWidget {
   }
 }
 
-class _DonutPainter extends CustomPainter {
-  _DonutPainter({
+class _MultiRingPainter extends CustomPainter {
+  _MultiRingPainter({
     required this.values,
+    required this.ratios,
     required this.colors,
     required this.selectedIndex,
     required this.progress,
-    required this.backgroundColor,
-    this.strokeWidth = 15.0,
+    required this.isDark,
   });
 
   final List<double> values;
+  final List<double> ratios;
   final List<Color> colors;
   final int selectedIndex;
   final double progress;
-  final Color backgroundColor;
-  final double strokeWidth;
+  final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final baseRadius = (math.min(size.width, size.height) - strokeWidth) / 2;
-    if (baseRadius <= 0) return;
 
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
+    // 4 цагирагийн радиусууд: Outer -> Inner
+    // 0: Төлөвлөгөөт (R: 77)
+    // 1: Орлого (R: 65)
+    // 2: Авлага (R: 53)
+    // 3: Зардал (R: 41)
+    final radii = [77.0, 65.0, 53.0, 41.0];
+    const baseWidth = 7.2;
+    const startAngle = -math.pi / 2; // 12 цаг
 
-    canvas.drawCircle(center, baseRadius, bgPaint);
-
-    final sweeps = _CircleDonutChart.computeSweeps(values);
-    double startAngle = -math.pi / 2; // 12 цагаас эхэлнэ
-    const gap = 0.055;
-
-    for (var i = 0; i < sweeps.length; i++) {
-      final sweep = sweeps[i] * progress;
-      final effectiveSweep = math.max(0.12, sweep);
-
+    for (var i = 0; i < 4; i++) {
+      final r = radii[i];
       final isSelected = selectedIndex == i;
       final hasSelection = selectedIndex >= 0;
+      final strokeW = isSelected ? baseWidth + 3.2 : baseWidth;
 
-      final paintColor = hasSelection && !isSelected
-          ? colors[i].withValues(alpha: 0.32)
-          : colors[i];
+      final color = colors[i];
+      final activeColor = hasSelection && !isSelected
+          ? color.withValues(alpha: 0.28)
+          : color;
 
-      final arcRadius = isSelected ? baseRadius + 3.0 : baseRadius;
-      final arcWidth = isSelected ? strokeWidth + 4.5 : strokeWidth;
+      // 1. Арын бүтэн суурь зам (Background track)
+      final trackPaint = Paint()
+        ..color = isDark
+            ? color.withValues(alpha: 0.12)
+            : color.withValues(alpha: 0.09)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? strokeW - 1.0 : baseWidth;
+      canvas.drawCircle(center, r, trackPaint);
 
-      // Сонгогдсон хэсэгт зөөлөн glow аура нэмэх
-      if (isSelected) {
+      // 2. Явцын нум (Progress Arc)
+      final ratio = ratios[i].clamp(0.0, 1.0);
+      final rawSweep = (2 * math.pi * ratio) * progress;
+
+      // 0.5% гэх мэт бага утга ч 1 пиксел болохгүй, тод үзэгдэх суурь нум
+      final sweep = ratio > 0 ? math.max(0.10, rawSweep) : 0.0;
+
+      // Сонгогдсон цагирагт зөөлөн glow аура
+      if (isSelected && sweep > 0) {
         final glowPaint = Paint()
-          ..color = paintColor.withValues(alpha: 0.32)
+          ..color = activeColor.withValues(alpha: 0.32)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = arcWidth + 6.0
+          ..strokeWidth = strokeW + 5.0
           ..strokeCap = StrokeCap.round
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
 
         canvas.drawArc(
-          Rect.fromCircle(center: center, radius: arcRadius),
-          startAngle + (gap / 2),
-          effectiveSweep,
+          Rect.fromCircle(center: center, radius: r),
+          startAngle,
+          sweep,
           false,
           glowPaint,
         );
       }
 
-      final paint = Paint()
-        ..color = paintColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = arcWidth
-        ..strokeCap = StrokeCap.round;
+      if (sweep > 0) {
+        final arcPaint = Paint()
+          ..color = activeColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeW
+          ..strokeCap = StrokeCap.round;
 
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: arcRadius),
-        startAngle + (gap / 2),
-        effectiveSweep,
-        false,
-        paint,
-      );
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: r),
+          startAngle,
+          sweep,
+          false,
+          arcPaint,
+        );
 
-      startAngle += sweeps[i] + gap;
+        // 3. Нумын төгсгөлийн тод гэрэлтсэн цэг (Jewel Tip Bullet)
+        final endAngle = startAngle + sweep;
+        final tipOffset = Offset(
+          center.dx + r * math.cos(endAngle),
+          center.dy + r * math.sin(endAngle),
+        );
+
+        canvas.drawCircle(
+          tipOffset,
+          strokeW / 2 + 1.2,
+          Paint()..color = activeColor.withValues(alpha: 0.35),
+        );
+        canvas.drawCircle(
+          tipOffset,
+          strokeW / 2 - 0.5,
+          Paint()..color = activeColor,
+        );
+        canvas.drawCircle(
+          tipOffset,
+          1.8,
+          Paint()..color = Colors.white,
+        );
+      }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _DonutPainter oldDelegate) {
+  bool shouldRepaint(covariant _MultiRingPainter oldDelegate) {
     return oldDelegate.values != values ||
+        oldDelegate.ratios != ratios ||
         oldDelegate.colors != colors ||
         oldDelegate.selectedIndex != selectedIndex ||
         oldDelegate.progress != progress ||
-        oldDelegate.backgroundColor != backgroundColor ||
-        oldDelegate.strokeWidth != strokeWidth;
+        oldDelegate.isDark != isDark;
   }
 }
 
