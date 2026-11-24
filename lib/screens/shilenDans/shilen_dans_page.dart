@@ -1011,7 +1011,7 @@ class _ZardalJagsaaltModal extends StatelessWidget {
   }
 }
 
-/// Санхүүгийн бүтэц — Нэгдмэл Донут тойрог (Unified Hero Donut & Zardal Arc)
+/// Санхүүгийн бүтэц — Circular Step Infographic (Хэрэглэгчийн хүссэн мокапын яг ижил загвар)
 class _CircleDonutChart extends StatefulWidget {
   const _CircleDonutChart({
     required this.tolovlogoot,
@@ -1040,7 +1040,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
   late Animation<double> _curve;
-  int _selectedIndex = 1; // Анхдагчаар "Орлого"-г сонгоно
+  int _selectedIndex = -1; // -1: Ерөнхий тойм, 0: Төлөвлөгөөт, 1: Орлого, 2: Авлага, 3: Зардал
 
   @override
   void initState() {
@@ -1078,51 +1078,139 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     });
   }
 
-  void _handleDonutTap(Offset localPos, Size size) {
+  void _handleInfographicTap(Offset localPos, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPos.dx - center.dx;
     final dy = localPos.dy - center.dy;
     final dist = math.sqrt(dx * dx + dy * dy);
 
-    // Хэрэв голын дотоод хэсэгт дарвал:
-    if (dist <= 48.w) {
+    // Төвийн цагаан таваг дээр дарвал:
+    if (dist <= 38.w) {
       if (_selectedIndex == 3) {
         widget.onZardalTap?.call();
       } else {
-        setState(() {
-          _selectedIndex = (_selectedIndex + 1) % 4;
-        });
+        setState(() => _selectedIndex = -1);
       }
       return;
     }
 
-    // Хэрэв дотор зардал нуман дээр дарвал (48.w <= dist <= 68.w):
-    if (dist <= 68.w) {
-      _onTapSegment(3);
-      return;
-    }
+    // Өнцгөөр 4 сегментийг ялгах [-pi, pi]
+    final angle = math.atan2(dy, dx);
 
-    // Гадна тойргийн өнцгөөр нь Орлого, Авлага ялгах:
-    var angle = math.atan2(dy, dx);
-    var relAngle = angle - (-math.pi / 2);
-    while (relAngle < 0) {
-      relAngle += 2 * math.pi;
-    }
-    while (relAngle >= 2 * math.pi) {
-      relAngle -= 2 * math.pi;
-    }
-
-    final baseTarget = widget.tolovlogoot > 0
-        ? widget.tolovlogoot
-        : (widget.orlogo + widget.avlaga > 0 ? widget.orlogo + widget.avlaga : 1.0);
-    final orlogoRatio = (widget.orlogo / baseTarget).clamp(0.0, 1.0);
-    final sweepOrlogo = widget.orlogo > 0 ? math.max(0.28, 2 * math.pi * orlogoRatio) : 0.0;
-
-    if (relAngle <= sweepOrlogo) {
-      _onTapSegment(1); // Орлого
+    if (angle >= -math.pi && angle < -math.pi / 2) {
+      // Top-Left (2-р квадрант) -> Төлөвлөгөөт (idx: 0)
+      _onTapSegment(0);
+    } else if (angle >= -math.pi / 2 && angle < 0) {
+      // Top-Right (1-р квадрант) -> Орлого (idx: 1)
+      _onTapSegment(1);
+    } else if (angle >= 0 && angle < math.pi / 2) {
+      // Bottom-Right (4-р квадрант) -> Зардал (idx: 3)
+      if (_selectedIndex == 3) {
+        widget.onZardalTap?.call();
+      } else {
+        _onTapSegment(3);
+      }
     } else {
-      _onTapSegment(2); // Авлага
+      // Bottom-Left (3-р квадрант) -> Авлага (idx: 2)
+      _onTapSegment(2);
     }
+  }
+
+  Widget _buildCallout({
+    required int idx,
+    required String step,
+    required String title,
+    required String amount,
+    required String subtitle,
+    required Color color,
+    required bool alignLeft,
+    required bool isDark,
+    String? actionText,
+    VoidCallback? onTap,
+  }) {
+    final isSelected = _selectedIndex == idx;
+    return GestureDetector(
+      onTap: onTap ?? () => _onTapSegment(idx),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: isDark ? 0.22 : 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment:
+              alignLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!alignLeft) ...[
+                  Container(
+                    width: 7.w,
+                    height: 7.w,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                  SizedBox(width: 5.w),
+                ],
+                Text(
+                  step,
+                  style: TextStyle(
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w900,
+                    color: color,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                if (alignLeft) ...[
+                  SizedBox(width: 5.w),
+                  Container(
+                    width: 7.w,
+                    height: 7.w,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                ],
+              ],
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              amount,
+              style: TextStyle(
+                fontSize: 14.5.sp,
+                fontWeight: FontWeight.w800,
+                color: isSelected ? color : context.textPrimaryColor,
+                letterSpacing: -0.2,
+              ),
+            ),
+            SizedBox(height: 1.5.h),
+            if (actionText != null)
+              Text(
+                actionText,
+                style: TextStyle(
+                  fontSize: 10.5.sp,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              )
+            else
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  color: context.textSecondaryColor,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1133,302 +1221,275 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
         ? widget.tolovlogoot
         : (widget.orlogo + widget.avlaga > 0 ? widget.orlogo + widget.avlaga : 1.0);
 
-    final values = [
-      widget.tolovlogoot,
-      widget.orlogo,
-      widget.avlaga,
-      widget.zardal,
-    ];
+    final orlogoPercent = (widget.orlogo / baseTarget * 100);
+    final avlagaPercent = (widget.avlaga / baseTarget * 100);
+    final orlogoPStr = (orlogoPercent > 0 && orlogoPercent < 1)
+        ? orlogoPercent.toStringAsFixed(1)
+        : orlogoPercent.round().toString();
+    final avlagaPStr = (avlagaPercent > 0 && avlagaPercent < 1)
+        ? avlagaPercent.toStringAsFixed(1)
+        : avlagaPercent.round().toString();
 
     const colors = [
-      _CircleDonutChart.tolovlogootColor,
-      _CircleDonutChart.orlogoColor,
-      _CircleDonutChart.avlagaColor,
-      _CircleDonutChart.zardalColor,
+      _CircleDonutChart.tolovlogootColor, // 0: Top-Left (Төлөвлөгөөт)
+      _CircleDonutChart.orlogoColor,      // 1: Top-Right (Орлого)
+      _CircleDonutChart.avlagaColor,      // 2: Bottom-Left (Авлага)
+      _CircleDonutChart.zardalColor,      // 3: Bottom-Right (Зардал)
     ];
 
-    final titles = ['Төлөвлөгөөт', 'Орлого', 'Авлага', 'Зардал'];
-    final subtitles = ['Нэхэмжилсэн', 'Төлөгдсөн', 'Төлөөгүй үлдсэн', 'СӨХ-ийн зардал'];
-
-    final icons = [
-      Icons.receipt_long_rounded,
-      Icons.account_balance_wallet_rounded,
-      Icons.pending_actions_rounded,
-      Icons.shopping_bag_outlined,
+    const icons = [
+      Icons.lightbulb_outline,                  // Төлөвлөгөөт (Мокап шиг гэрлийн шил)
+      Icons.account_balance_wallet_outlined,    // Орлого (Түрийвч / төлөлт)
+      Icons.hourglass_empty_rounded,            // Авлага (Цаг хугацаа / хүлээгдэж буй)
+      Icons.receipt_long_outlined,              // Зардал (Зарлагын баримт)
     ];
 
-    final ratios = [
-      1.0,
-      (widget.orlogo / baseTarget).clamp(0.0, 1.0),
-      (widget.avlaga / baseTarget).clamp(0.0, 1.0),
-      (widget.zardal / baseTarget).clamp(0.0, 1.0),
-    ];
-
-    final percentages = ratios.map((r) => r * 100).toList();
-
-    // Төвийн мэдээлэл
-    IconData centerIcon;
-    String centerTitle;
-    String centerValue;
-    String centerSubtitle;
-    Color centerColor;
-
-    if (_selectedIndex >= 0 && _selectedIndex < 4) {
-      final idx = _selectedIndex;
-      centerIcon = icons[idx];
-      centerTitle = titles[idx];
-      centerValue = _mungu(values[idx]);
-      final p = percentages[idx];
-      final pStr = (p > 0 && p < 1) ? p.toStringAsFixed(1) : p.round().toString();
-
-      if (idx == 0) {
-        centerSubtitle = '100% (Нэхэмжлэл)';
-      } else if (idx == 3) {
-        centerSubtitle = 'Жагсаалт харах ›';
-      } else {
-        centerSubtitle = '$pStr% (${subtitles[idx]})';
-      }
-      centerColor = colors[idx];
+    // Төвийн текст сонголтоос хамаарч өөрчлөгдөнө
+    Widget centerText;
+    if (_selectedIndex == 0) {
+      centerText = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('ТӨЛӨВЛӨГӨӨТ',
+              style: TextStyle(
+                  fontSize: 8.5.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _CircleDonutChart.tolovlogootColor)),
+          SizedBox(height: 1.h),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(_mungu(widget.tolovlogoot),
+                style: TextStyle(
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _CircleDonutChart.tolovlogootColor)),
+          ),
+          SizedBox(height: 1.h),
+          Text('100% суурь',
+              style: TextStyle(fontSize: 8.sp, color: context.textSecondaryColor)),
+        ],
+      );
+    } else if (_selectedIndex == 1) {
+      centerText = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('ОРЛОГО',
+              style: TextStyle(
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _CircleDonutChart.orlogoColor)),
+          SizedBox(height: 1.h),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(_mungu(widget.orlogo),
+                style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _CircleDonutChart.orlogoColor)),
+          ),
+          SizedBox(height: 1.h),
+          Text('$orlogoPStr% төлөгдсөн',
+              style: TextStyle(fontSize: 8.sp, color: context.textSecondaryColor)),
+        ],
+      );
+    } else if (_selectedIndex == 2) {
+      centerText = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('АВЛАГА',
+              style: TextStyle(
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _CircleDonutChart.avlagaColor)),
+          SizedBox(height: 1.h),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(_mungu(widget.avlaga),
+                style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _CircleDonutChart.avlagaColor)),
+          ),
+          SizedBox(height: 1.h),
+          Text('$avlagaPStr% төлөөгүй',
+              style: TextStyle(fontSize: 8.sp, color: context.textSecondaryColor)),
+        ],
+      );
+    } else if (_selectedIndex == 3) {
+      centerText = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('ЗАРДАЛ',
+              style: TextStyle(
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _CircleDonutChart.zardalColor)),
+          SizedBox(height: 1.h),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(_mungu(widget.zardal),
+                style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _CircleDonutChart.zardalColor)),
+          ),
+          SizedBox(height: 1.h),
+          Text('Жагсаалт ›',
+              style: TextStyle(
+                  fontSize: 8.5.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _CircleDonutChart.zardalColor)),
+        ],
+      );
     } else {
-      centerIcon = Icons.pie_chart_rounded;
-      centerTitle = 'Төлөлт';
-      final cp = percentages[1];
-      final cpStr = (cp > 0 && cp < 1) ? cp.toStringAsFixed(1) : cp.round().toString();
-      centerValue = '$cpStr%';
-      centerSubtitle = 'орлогын гүйцэтгэл';
-      centerColor = context.textPrimaryColor;
+      // Мокап шиг 3 мөр гоёмсог гарчиг
+      centerText = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'САНХҮҮ',
+            style: TextStyle(
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w800,
+              color: _CircleDonutChart.tolovlogootColor,
+              letterSpacing: 0.6,
+            ),
+          ),
+          Text(
+            'БҮТЭЦ',
+            style: TextStyle(
+              fontSize: 13.5.sp,
+              fontWeight: FontWeight.w900,
+              color: _CircleDonutChart.orlogoColor,
+              letterSpacing: 0.6,
+            ),
+          ),
+          Text(
+            'ТОЙМ',
+            style: TextStyle(
+              fontSize: 8.5.sp,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFFE8B04A),
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      );
     }
 
     return Column(
       children: [
-        // Дээд талын 4 төрлийн сонгогч таб
-        Container(
-          padding: EdgeInsets.all(3.w),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: context.borderColor),
-          ),
-          child: Row(
-            children: List.generate(4, (i) {
-              final isSel = _selectedIndex == i;
-              final col = colors[i];
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => _onTapSegment(i),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: EdgeInsets.symmetric(vertical: 6.h),
-                    decoration: BoxDecoration(
-                      color: isSel ? col : Colors.transparent,
-                      borderRadius: BorderRadius.circular(9.r),
-                      boxShadow: isSel
-                          ? [
-                              BoxShadow(
-                                color: col.withValues(alpha: 0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      titles[i],
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
-                        color: isSel
-                            ? Colors.white
-                            : (isDark ? Colors.white70 : const Color(0xFF475569)),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-        SizedBox(height: 12.h),
-
-        // Нэгдмэл Донут график (Single Hero Donut & Inner Zardal Arc)
-        SizedBox(
-          height: 196.h,
-          child: LayoutBuilder(
-            builder: (ctx, constraints) {
-              final size = Size(190.w, 190.w);
-              return Center(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (details) => _handleDonutTap(details.localPosition, size),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _curve,
-                        builder: (context, _) {
-                          return SizedBox(
-                            width: size.width,
-                            height: size.height,
-                            child: CustomPaint(
-                              painter: _SingleDonutPainter(
-                                orlogo: widget.orlogo,
-                                avlaga: widget.avlaga,
-                                zardal: widget.zardal,
-                                tolovlogoot: widget.tolovlogoot,
-                                selectedIndex: _selectedIndex,
-                                progress: _curve.value,
-                                isDark: isDark,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      // Төв дэх KPI мэдээлэл
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 26.w),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: InkWell(
-                            key: ValueKey<int>(_selectedIndex),
-                            onTap: () {
-                              if (_selectedIndex == 3) {
-                                widget.onZardalTap?.call();
-                              } else {
-                                setState(() {
-                                  _selectedIndex = (_selectedIndex + 1) % 4;
-                                });
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(16.r),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 32.w,
-                                    height: 32.w,
-                                    decoration: BoxDecoration(
-                                      color: centerColor.withValues(alpha: 0.14),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      centerIcon,
-                                      size: 16.w,
-                                      color: centerColor,
-                                    ),
-                                  ),
-                                  SizedBox(height: 3.h),
-                                  Text(
-                                    centerTitle,
-                                    style: TextStyle(
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: context.textSecondaryColor,
-                                    ),
-                                  ),
-                                  SizedBox(height: 1.h),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      centerValue,
-                                      style: TextStyle(
-                                        fontSize: _selectedIndex >= 0 ? 16.sp : 20.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: centerColor,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 3.h),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
-                                    decoration: BoxDecoration(
-                                      color: centerColor.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(8.r),
-                                    ),
-                                    child: Text(
-                                      centerSubtitle,
-                                      style: TextStyle(
-                                        fontSize: 9.5.sp,
-                                        fontWeight: FontWeight.w700,
-                                        color: centerColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        SizedBox(height: 14.h),
-
-        // 4 үзүүлэлтийн интерактив 2x2 карт
+        // ── 1. Дээд 2 үзүүлэлт (Төлөвлөгөөт & Орлого) ──
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _ChartLegendItem(
-                color: _CircleDonutChart.tolovlogootColor,
-                icon: icons[0],
+              child: _buildCallout(
+                idx: 0,
+                step: 'ТӨЛӨВЛӨГӨӨТ',
                 title: 'Төлөвлөгөөт',
-                subtitle: 'Нэхэмжилсэн',
                 amount: _mungu(widget.tolovlogoot),
-                percent: percentages[0],
-                isSelected: _selectedIndex == 0,
-                onTap: () => _onTapSegment(0),
+                subtitle: 'Нэхэмжилсэн · 100%',
+                color: _CircleDonutChart.tolovlogootColor,
+                alignLeft: true,
+                isDark: isDark,
               ),
             ),
             SizedBox(width: 8.w),
             Expanded(
-              child: _ChartLegendItem(
-                color: _CircleDonutChart.orlogoColor,
-                icon: icons[1],
+              child: _buildCallout(
+                idx: 1,
+                step: 'ОРЛОГО',
                 title: 'Орлого',
-                subtitle: 'Төлөгдсөн',
                 amount: _mungu(widget.orlogo),
-                percent: percentages[1],
-                isSelected: _selectedIndex == 1,
-                onTap: () => _onTapSegment(1),
+                subtitle: 'Төлөгдсөн · $orlogoPStr%',
+                color: _CircleDonutChart.orlogoColor,
+                alignLeft: false,
+                isDark: isDark,
               ),
             ),
           ],
         ),
-        SizedBox(height: 8.h),
+
+        SizedBox(height: 4.h),
+
+        // ── 2. Төвийн Circular Step Infographic ──
+        Center(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (details) =>
+                _handleInfographicTap(details.localPosition, Size(196.w, 196.w)),
+            child: SizedBox(
+              width: 196.w,
+              height: 196.w,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  AnimatedBuilder(
+                    animation: _curve,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: Size(196.w, 196.w),
+                        painter: _CircularStepInfographicPainter(
+                          colors: colors,
+                          icons: icons,
+                          selectedIndex: _selectedIndex,
+                          progress: _curve.value,
+                          isDark: isDark,
+                        ),
+                      );
+                    },
+                  ),
+                  // Голын дугуй цагаан таваг дээрх текст
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 56.w),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        key: ValueKey<int>(_selectedIndex),
+                        alignment: Alignment.center,
+                        child: centerText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        SizedBox(height: 4.h),
+
+        // ── 3. Доод 2 үзүүлэлт (Авлага & Зардал) ──
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _ChartLegendItem(
-                color: _CircleDonutChart.avlagaColor,
-                icon: icons[2],
+              child: _buildCallout(
+                idx: 2,
+                step: 'АВЛАГА',
                 title: 'Авлага',
-                subtitle: 'Төлөөгүй үлдсэн',
                 amount: _mungu(widget.avlaga),
-                percent: percentages[2],
-                isSelected: _selectedIndex == 2,
-                onTap: () => _onTapSegment(2),
+                subtitle: 'Төлөөгүй · $avlagaPStr%',
+                color: _CircleDonutChart.avlagaColor,
+                alignLeft: true,
+                isDark: isDark,
               ),
             ),
             SizedBox(width: 8.w),
             Expanded(
-              child: _ChartLegendItem(
-                color: _CircleDonutChart.zardalColor,
-                icon: icons[3],
+              child: _buildCallout(
+                idx: 3,
+                step: 'ЗАРДАЛ',
                 title: 'Зардал',
-                subtitle: 'СӨХ-ийн зардал',
                 amount: _mungu(widget.zardal),
-                percent: percentages[3],
-                isSelected: _selectedIndex == 3,
-                actionText: 'Жагсаалт ›',
+                subtitle: 'СӨХ-ийн зардал',
+                actionText: 'Жагсаалт харах ›',
+                color: _CircleDonutChart.zardalColor,
+                alignLeft: false,
+                isDark: isDark,
                 onTap: () {
                   _onTapSegment(3);
                   widget.onZardalTap?.call();
@@ -1442,175 +1503,19 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
   }
 }
 
-class _ChartLegendItem extends StatelessWidget {
-  const _ChartLegendItem({
-    required this.color,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.amount,
-    required this.percent,
-    required this.isSelected,
-    required this.onTap,
-    this.actionText,
-  });
-
-  final Color color;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String amount;
-  final double percent;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final String? actionText;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = context.isDarkMode;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: isDark ? 0.22 : 0.08)
-              : (isDark ? AppColors.darkSurface : const Color(0xFFF8FAFC)),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: isSelected ? color : context.borderColor,
-            width: isSelected ? 1.6 : 0.9,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.16),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 22.w,
-                  height: 22.w,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(6.r),
-                  ),
-                  child: Icon(icon, size: 12.5.w, color: color),
-                ),
-                SizedBox(width: 6.w),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 11.5.sp,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: isSelected ? color : context.textPrimaryColor,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (actionText != null)
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
-                    child: Text(
-                      actionText!,
-                      style: TextStyle(
-                        fontSize: 9.5.sp,
-                        fontWeight: FontWeight.w700,
-                        color: color,
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: isSelected ? 0.22 : 0.1),
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
-                    child: Text(
-                      percent > 0 && percent < 1
-                          ? '${percent.toStringAsFixed(1)}%'
-                          : '${percent.round()}%',
-                      style: TextStyle(
-                        fontSize: 9.5.sp,
-                        fontWeight: FontWeight.w700,
-                        color: color,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              amount,
-              style: TextStyle(
-                fontSize: 13.5.sp,
-                fontWeight: FontWeight.w800,
-                color: isSelected ? color : context.textPrimaryColor,
-                letterSpacing: -0.2,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 9.5.sp,
-                color: context.textSecondaryColor,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 6.h),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2.r),
-              child: Container(
-                height: 3.h,
-                width: double.infinity,
-                color: color.withValues(alpha: 0.12),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: (percent / 100).clamp(0.06, 1.0),
-                  child: Container(color: color),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SingleDonutPainter extends CustomPainter {
-  _SingleDonutPainter({
-    required this.orlogo,
-    required this.avlaga,
-    required this.zardal,
-    required this.tolovlogoot,
+/// Circular Step Infographic Custom Painter
+/// Хэрэглэгчийн мокап дахь дугуй блок, цагаан дүрс, холбогч шугамтай яг ижил зурагч
+class _CircularStepInfographicPainter extends CustomPainter {
+  _CircularStepInfographicPainter({
+    required this.colors,
+    required this.icons,
     required this.selectedIndex,
     required this.progress,
     required this.isDark,
   });
 
-  final double orlogo;
-  final double avlaga;
-  final double zardal;
-  final double tolovlogoot;
+  final List<Color> colors;
+  final List<IconData> icons;
   final int selectedIndex;
   final double progress;
   final bool isDark;
@@ -1618,248 +1523,188 @@ class _SingleDonutPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final outerRadius = 80.w;
-    final outerStroke = 14.w;
-    final innerRadius = 59.w;
-    final innerStroke = 7.w;
+    final outerR = 76.w;
+    final innerR = 43.w;
+    final centerDiscR = 40.5.w;
+    final gap = 0.08; // Сегментүүд хоорондын цэвэр цагаан зай (~4.6 градус)
 
-    final baseTarget = tolovlogoot > 0
-        ? tolovlogoot
-        : (orlogo + avlaga > 0 ? orlogo + avlaga : 1.0);
+    // 4 квадрантын өнцгүүд ба төв өнцгүүд:
+    // idx 0: Top-Left (Төлөвлөгөөт, цэнхэр)   -> midAngle: -3*pi/4 (-135°)
+    // idx 1: Top-Right (Орлого, ногоон)       -> midAngle: -pi/4   (-45°)
+    // idx 2: Bottom-Left (Авлага, шар)        -> midAngle: 3*pi/4  (135°)
+    // idx 3: Bottom-Right (Зардал, улаан)     -> midAngle: pi/4    (45°)
 
-    const startAngle = -math.pi / 2; // 12 цаг
+    final sectorAngles = [
+      // 0: Top-Left
+      {'start': -math.pi, 'mid': -3 * math.pi / 4},
+      // 1: Top-Right
+      {'start': -math.pi / 2, 'mid': -math.pi / 4},
+      // 2: Bottom-Left
+      {'start': math.pi / 2, 'mid': 3 * math.pi / 4},
+      // 3: Bottom-Right
+      {'start': 0.0, 'mid': math.pi / 4},
+    ];
 
-    // ── 1. Гадна суурь зам (Төлөвлөгөөт 100%) ──
-    final isTolovlogootSelected = selectedIndex == 0;
-    final trackColor = _CircleDonutChart.tolovlogootColor.withValues(
-      alpha: isTolovlogootSelected ? (isDark ? 0.35 : 0.25) : (isDark ? 0.14 : 0.08),
-    );
-    final trackStroke = isTolovlogootSelected ? outerStroke + 3.w : outerStroke;
+    // ── 1. 4 өнгийн цагираг блок сегментүүдийг зурах ──
+    for (var i = 0; i < 4; i++) {
+      final info = sectorAngles[i];
+      final start = (info['start']! + gap / 2);
+      final sweep = (math.pi / 2 - gap) * progress;
+      final mid = info['mid']!;
+      final color = colors[i];
+      final isSel = selectedIndex == i;
 
-    if (isTolovlogootSelected) {
-      canvas.drawCircle(
-        center,
-        outerRadius,
-        Paint()
-          ..color = _CircleDonutChart.tolovlogootColor.withValues(alpha: 0.25)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = trackStroke + 6.w
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      // Сонгогдсон үед сектор бага зэрэг гадагшаа тодорч түрэх (pop-out)
+      final popDist = isSel ? 4.5.w : 0.0;
+      final sectorCenter = Offset(
+        center.dx + popDist * math.cos(mid),
+        center.dy + popDist * math.sin(mid),
       );
-    }
-    canvas.drawCircle(
-      center,
-      outerRadius,
-      Paint()
-        ..color = trackColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = trackStroke,
-    );
 
-    // ── 2. Орлого (Маргад ногоон нум) ──
-    final orlogoRatio = (orlogo / baseTarget).clamp(0.0, 1.0);
-    final rawSweepOrlogo = (2 * math.pi * orlogoRatio) * progress;
-    final sweepOrlogo = orlogo > 0 ? math.max(0.28, rawSweepOrlogo) : 0.0;
-    final isOrlogoSelected = selectedIndex == 1;
+      // Сонгогдсон үед зөөлөн glow аура
+      if (isSel) {
+        final glowPath = Path()
+          ..arcTo(
+            Rect.fromCircle(center: sectorCenter, radius: outerR + 4.w),
+            start,
+            sweep,
+            false,
+          )
+          ..arcTo(
+            Rect.fromCircle(center: sectorCenter, radius: innerR - 2.w),
+            start + sweep,
+            -sweep,
+            false,
+          )
+          ..close();
 
-    if (sweepOrlogo > 0) {
-      final orlogoStroke = isOrlogoSelected ? outerStroke + 4.w : outerStroke;
-      final orlogoColor = _CircleDonutChart.orlogoColor;
-
-      // Glow aura
-      if (isOrlogoSelected) {
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: outerRadius),
-          startAngle,
-          sweepOrlogo,
-          false,
+        canvas.drawPath(
+          glowPath,
           Paint()
-            ..color = orlogoColor.withValues(alpha: 0.4)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = orlogoStroke + 6.w
-            ..strokeCap = StrokeCap.round
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
-        );
-      }
-
-      // Main arc
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: outerRadius),
-        startAngle,
-        sweepOrlogo,
-        false,
-        Paint()
-          ..color = orlogoColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = orlogoStroke
-          ..strokeCap = StrokeCap.round,
-      );
-
-      // Jewel tip
-      final tipAngle = startAngle + sweepOrlogo;
-      final tipPos = Offset(
-        center.dx + outerRadius * math.cos(tipAngle),
-        center.dy + outerRadius * math.sin(tipAngle),
-      );
-      canvas.drawCircle(
-        tipPos,
-        orlogoStroke / 2 + 1.5,
-        Paint()..color = orlogoColor.withValues(alpha: 0.4),
-      );
-      canvas.drawCircle(
-        tipPos,
-        orlogoStroke / 2 - 0.5,
-        Paint()..color = orlogoColor,
-      );
-      canvas.drawCircle(
-        tipPos,
-        2.2,
-        Paint()..color = Colors.white,
-      );
-    }
-
-    // ── 3. Авлага (Алтлаг шар нум) ──
-    final avlagaRatio = (avlaga / baseTarget).clamp(0.0, 1.0);
-    final gap = 0.05;
-    final avlagaStart = startAngle + sweepOrlogo + (sweepOrlogo > 0 ? gap : 0.0);
-    final availableForAvlaga =
-        math.max(0.0, 2 * math.pi - sweepOrlogo - (sweepOrlogo > 0 ? gap * 2 : 0.0));
-    final rawSweepAvlaga = (availableForAvlaga * avlagaRatio) * progress;
-    final sweepAvlaga = avlaga > 0 ? math.max(0.28, rawSweepAvlaga) : 0.0;
-    final isAvlagaSelected = selectedIndex == 2;
-
-    if (sweepAvlaga > 0) {
-      final avlagaStroke = isAvlagaSelected ? outerStroke + 4.w : outerStroke;
-      final avlagaColor = _CircleDonutChart.avlagaColor;
-
-      if (isAvlagaSelected) {
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: outerRadius),
-          avlagaStart,
-          sweepAvlaga,
-          false,
-          Paint()
-            ..color = avlagaColor.withValues(alpha: 0.4)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = avlagaStroke + 6.w
-            ..strokeCap = StrokeCap.round
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
-        );
-      }
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: outerRadius),
-        avlagaStart,
-        sweepAvlaga,
-        false,
-        Paint()
-          ..color = avlagaColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = avlagaStroke
-          ..strokeCap = StrokeCap.round,
-      );
-
-      final tipAngle = avlagaStart + sweepAvlaga;
-      final tipPos = Offset(
-        center.dx + outerRadius * math.cos(tipAngle),
-        center.dy + outerRadius * math.sin(tipAngle),
-      );
-      canvas.drawCircle(
-        tipPos,
-        avlagaStroke / 2 + 1.5,
-        Paint()..color = avlagaColor.withValues(alpha: 0.4),
-      );
-      canvas.drawCircle(
-        tipPos,
-        avlagaStroke / 2 - 0.5,
-        Paint()..color = avlagaColor,
-      );
-      canvas.drawCircle(
-        tipPos,
-        2.2,
-        Paint()..color = Colors.white,
-      );
-    }
-
-    // ── 4. Дотор нум — Зардал (Шүрэн улаан) ──
-    final isZardalSelected = selectedIndex == 3;
-    final innerTrackColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
-
-    canvas.drawCircle(
-      center,
-      innerRadius,
-      Paint()
-        ..color = innerTrackColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isZardalSelected ? innerStroke + 2.w : innerStroke,
-    );
-
-    final zardalRatio = (zardal / baseTarget).clamp(0.0, 1.0);
-    final rawSweepZardal = (2 * math.pi * zardalRatio) * progress;
-    final sweepZardal = zardal > 0 ? math.max(0.26, rawSweepZardal) : 0.0;
-
-    if (sweepZardal > 0) {
-      final zardalStroke = isZardalSelected ? innerStroke + 3.w : innerStroke;
-      final zardalColor = _CircleDonutChart.zardalColor;
-
-      if (isZardalSelected) {
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: innerRadius),
-          startAngle,
-          sweepZardal,
-          false,
-          Paint()
-            ..color = zardalColor.withValues(alpha: 0.4)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = zardalStroke + 5.w
-            ..strokeCap = StrokeCap.round
+            ..color = color.withValues(alpha: 0.35)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
         );
       }
 
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: innerRadius),
-        startAngle,
-        sweepZardal,
-        false,
+      // Үндсэн өнгийн блок сегмент
+      final segPath = Path()
+        ..arcTo(
+          Rect.fromCircle(center: sectorCenter, radius: outerR),
+          start,
+          sweep,
+          false,
+        )
+        ..arcTo(
+          Rect.fromCircle(center: sectorCenter, radius: innerR),
+          start + sweep,
+          -sweep,
+          false,
+        )
+        ..close();
+
+      canvas.drawPath(
+        segPath,
         Paint()
-          ..color = zardalColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = zardalStroke
-          ..strokeCap = StrokeCap.round,
+          ..color = color
+          ..style = PaintingStyle.fill,
       );
 
-      final tipAngle = startAngle + sweepZardal;
-      final tipPos = Offset(
-        center.dx + innerRadius * math.cos(tipAngle),
-        center.dy + innerRadius * math.sin(tipAngle),
+      // ── 2. Блок доторх цагаан дүрс (White Icon) ──
+      final icon = icons[i];
+      final iconR = (outerR + innerR) / 2;
+      final tp = TextPainter(
+        text: TextSpan(
+          text: String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            fontSize: 20.w,
+            fontFamily: icon.fontFamily,
+            package: icon.fontPackage,
+            color: Colors.white,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final iconPos = Offset(
+        sectorCenter.dx + iconR * math.cos(mid) - tp.width / 2,
+        sectorCenter.dy + iconR * math.sin(mid) - tp.height / 2,
       );
-      canvas.drawCircle(
-        tipPos,
-        zardalStroke / 2 + 1.2,
-        Paint()..color = zardalColor.withValues(alpha: 0.35),
+      tp.paint(canvas, iconPos);
+
+      // ── 3. Мокап дахь өнцөгт холбогч шугам (Angled Connector Lines) ──
+      final linePaint = Paint()
+        ..color = isSel ? color : color.withValues(alpha: isDark ? 0.6 : 0.45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSel ? 1.8.w : 1.2.w
+        ..strokeCap = StrokeCap.round;
+
+      final startPt = Offset(
+        center.dx + (outerR + 2.w) * math.cos(mid),
+        center.dy + (outerR + 2.w) * math.sin(mid),
       );
-      canvas.drawCircle(
-        tipPos,
-        zardalStroke / 2 - 0.5,
-        Paint()..color = zardalColor,
+
+      // 4 зүг рүү тэлэх өнцөгт цэгүүд:
+      final signX = math.cos(mid) > 0 ? 1 : -1;
+      final signY = math.sin(mid) > 0 ? 1 : -1;
+
+      final cornerPt = Offset(
+        startPt.dx + 11.w * signX,
+        startPt.dy + 11.w * signY,
       );
+      final endPt = Offset(
+        cornerPt.dx + 12.w * signX,
+        cornerPt.dy,
+      );
+
+      final linePath = Path()
+        ..moveTo(startPt.dx, startPt.dy)
+        ..lineTo(cornerPt.dx, cornerPt.dy)
+        ..lineTo(endPt.dx, endPt.dy);
+
+      canvas.drawPath(linePath, linePaint);
+
+      // Төгсгөлийн цэг (Pin Dot)
       canvas.drawCircle(
-        tipPos,
-        1.8,
-        Paint()..color = Colors.white,
+        endPt,
+        isSel ? 3.w : 2.2.w,
+        Paint()..color = color..style = PaintingStyle.fill,
       );
     }
+
+    // ── 4. Голын цагаан өргөгдсөн таваг (Elevated Center Disc with Shadow) ──
+    // Зөөлөн сүүдэр
+    canvas.drawCircle(
+      center,
+      centerDiscR,
+      Paint()
+        ..color = Colors.black.withValues(alpha: isDark ? 0.45 : 0.10)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+
+    // Цагаан дэвсгэр
+    canvas.drawCircle(
+      center,
+      centerDiscR,
+      Paint()
+        ..color = isDark ? const Color(0xFF1E293B) : Colors.white
+        ..style = PaintingStyle.fill,
+    );
+
+    // Хүрээ
+    canvas.drawCircle(
+      center,
+      centerDiscR,
+      Paint()
+        ..color = isDark ? Colors.white12 : const Color(0xFFF1F5F9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.w,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _SingleDonutPainter old) {
-    return old.orlogo != orlogo ||
-        old.avlaga != avlaga ||
-        old.zardal != zardal ||
-        old.tolovlogoot != tolovlogoot ||
+  bool shouldRepaint(covariant _CircularStepInfographicPainter old) {
+    return old.colors != colors ||
+        old.icons != icons ||
         old.selectedIndex != selectedIndex ||
         old.progress != progress ||
         old.isDark != isDark;
