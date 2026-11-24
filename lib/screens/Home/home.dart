@@ -2788,6 +2788,12 @@ class _BookingScreenState extends State<NuurKhuudas>
       {'name': 'дуудлага', 'label': 'Дуудлага', 'icon': CupertinoIcons.wrench},
       {'name': 'цэвэрлэгээ', 'label': 'Цэвэрлэгээ', 'icon': CupertinoIcons.sparkles},
       {'name': 'санал', 'label': 'Асуулга', 'icon': CupertinoIcons.chart_bar_square},
+      // Барилгын групп чат — оршин суугчид ба СӨХ-ийн ажилтнууд
+      {'name': 'чат', 'label': 'Чат', 'icon': CupertinoIcons.chat_bubble_2},
+      // Вебийн «Нэмэлт тохиргоо → Шилэн данс аппад харуулах» асаалттай үед л
+      // (профайлын `shilenDansEsekh`).
+      if (_userProfile?['shilenDansEsekh'] == true)
+        {'name': 'шилэн', 'label': 'Шилэн данс', 'icon': CupertinoIcons.chart_pie},
     ];
 
     return Column(
@@ -2933,6 +2939,14 @@ class _BookingScreenState extends State<NuurKhuudas>
         }
         if (service['name'] == 'цэвэрлэгээ') {
           context.push('/tseverlegee');
+          return;
+        }
+        if (service['name'] == 'чат') {
+          context.push('/barilgiin-chat');
+          return;
+        }
+        if (service['name'] == 'шилэн') {
+          context.push('/shilen-dans');
           return;
         }
 

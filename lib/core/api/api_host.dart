@@ -10,8 +10,10 @@ class ApiHost {
 
   /// `true` бол dev сервер, `false` бол production.
   ///
-  /// Release болгохын өмнө `false` болгоно.
-  static const bool devEsekh = false;
+  /// Анхдагч нь production. Dev сервер рүү туршихдаа кодыг өөрчлөхгүйгээр:
+  /// `flutter run --dart-define=DEV=true` — release build санамсаргүй dev
+  /// рүү заахгүй.
+  static const bool devEsekh = bool.fromEnvironment('DEV', defaultValue: false);
 
   static const String _productionOrigin = 'https://amarhome.mn';
   static const String _devOrigin = 'https://dev.amarhome.mn';

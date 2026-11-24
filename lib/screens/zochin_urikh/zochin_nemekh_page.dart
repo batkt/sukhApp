@@ -9,6 +9,7 @@ import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/mongol_plate_keyboard.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart';
 import 'package:sukh_app/screens/zochin_urikh/top_toast.dart';
+import 'package:sukh_app/screens/zochin_urikh/zochin_kvot_tailbar.dart';
 
 Color _yashil(BuildContext context) =>
     context.isDarkMode ? AppColors.secondaryLight : AppColors.deepGreen;
@@ -117,6 +118,8 @@ class _ZochinNemekhPageState extends State<ZochinNemekhPage> {
             'freeMinutesPerGuest': data['freeMinutesPerGuest'] ?? data['zochinTusBurUneguiMinut'] ?? 90,
             'hasRight': data['hasRight'] ?? data['zochinUrikhEsekh'] ?? true,
             'nekhemjlekhEsekh': data['nekhemjlekhEsekh'] == true,
+            // Нэг зэрэг горим: квот нь зогсоолд байгаа/ирээгүй зочны тоо.
+            ...zochinKvotGorimTalbaruud(data),
           };
 
           final hasRight = _quotaStatus!['hasRight'] as bool;
@@ -150,7 +153,7 @@ class _ZochinNemekhPageState extends State<ZochinNemekhPage> {
 
     try {
       if (!_hasQuota) {
-        throw Exception('Таны зочин урих лимит дууссан байна');
+        throw Exception(zochinKvotDuussanTailbar(_quotaStatus));
       }
 
       final baiguullagiinId = await StorageService.getBaiguullagiinId();
@@ -270,7 +273,7 @@ class _ZochinNemekhPageState extends State<ZochinNemekhPage> {
                               ),
                               SizedBox(height: 2.h),
                               Text(
-                                'Үлдсэн урилгын эрх: ${_quotaStatus!['total'] == 0 ? "Хязгааргүй" : "${_quotaStatus!['remaining']}/${_quotaStatus!['total']}"}',
+                                zochinKvotTailbar(_quotaStatus!),
                                 style: TextStyle(
                                   fontSize: 11.sp,
                                   color: context.textSecondaryColor,

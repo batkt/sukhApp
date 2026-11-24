@@ -33,6 +33,8 @@ import 'package:sukh_app/screens/zochin_urikh/zochin_urikh_page.dart';
 import 'package:sukh_app/screens/parking/parkease_page.dart';
 import 'package:sukh_app/screens/camera/camera_page.dart';
 import 'package:sukh_app/screens/lift/lift_page.dart';
+import 'package:sukh_app/screens/barilgiin_chat/barilgiin_chat_page.dart';
+import 'package:sukh_app/screens/shilenDans/shilen_dans_page.dart';
 import 'package:sukh_app/screens/blog/blog_screen.dart';
 import 'package:sukh_app/screens/Home/utility_add_page.dart';
 import 'package:sukh_app/screens/Home/utility_code_input_page.dart';
@@ -479,6 +481,22 @@ final GoRouter appRouter = GoRouter(
           PageTransitions.buildFadeThroughTransition(
             key: state.pageKey,
             child: const LiftPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/barilgiin-chat',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const BarilgiinChatPage(),
+          ),
+    ),
+    GoRoute(
+      path: '/shilen-dans',
+      pageBuilder: (context, state) =>
+          PageTransitions.buildFadeThroughTransition(
+            key: state.pageKey,
+            child: const ShilenDansPage(),
           ),
     ),
     GoRoute(

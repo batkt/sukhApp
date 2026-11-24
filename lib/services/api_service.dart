@@ -5786,4 +5786,43 @@ class ApiService {
       return null;
     }
   }
+
+  /// Шилэн данс — СӨХ-ийн сарын орлого, зарлага, үлдэгдэл, айлын авлага.
+  ///
+  /// Вебийн «Нэмэлт тохиргоо → Шилэн данс аппад харуулах» унтраалттай бол
+  /// сервер 403 + `khaalttai: true` буцаана.
+  /// [sar] нь "YYYY-MM" (null бол энэ сар).
+  static Future<Map<String, dynamic>> fetchShilenDans({String? sar}) async {
+    try {
+      final baiguullagiinId = await StorageService.getBaiguullagiinId();
+      final barilgiinId = await StorageService.getBarilgiinId();
+      final headers = await getAuthHeaders();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/shilenDans/app'),
+        headers: headers,
+        body: json.encode({
+          // tokenShalgakh нь body.baiguullagiinId-г токеноор дардаг тул өөр нэр
+          'songosonBaiguullagiinId': baiguullagiinId,
+          'barilgiinId': barilgiinId,
+          if (sar != null) 'sar': sar,
+        }),
+      );
+      await _checkTokenExpiry(response);
+
+      final data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(data as Map);
+      }
+      if (response.statusCode == 403 && data is Map && data['khaalttai'] == true) {
+        return {'success': false, 'khaalttai': true};
+      }
+      throw Exception(
+        (data is Map ? (data['message'] ?? data['aldaa']) : null) ??
+            httpStatusMessage(response.statusCode),
+      );
+    } catch (e) {
+      throw _aldaa('Шилэн дансны мэдээлэл авахад алдаа гарлаа', e);
+    }
+  }
 }
