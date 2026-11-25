@@ -5787,6 +5787,27 @@ class ApiService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> fetchBarilgiinChatMinii() async {
+    try {
+      final headers = await getAuthHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/barilgiinChat/minii'),
+        headers: headers,
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) return [];
+      final decoded = json.decode(response.body);
+      if (decoded is! Map) return [];
+      final raw = decoded['chatuud'];
+      if (raw is! List) return [];
+      return raw
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Шилэн данс — СӨХ-ийн сарын орлого, зарлага, үлдэгдэл, айлын авлага.
   ///
   /// Вебийн «Нэмэлт тохиргоо → Шилэн данс аппад харуулах» унтраалттай бол

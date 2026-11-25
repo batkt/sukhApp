@@ -7,6 +7,7 @@ import 'package:intl/intl.dart' show NumberFormat;
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/services/api_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
+import 'package:sukh_app/widgets/skeleton_box.dart';
 import 'package:sukh_app/widgets/standard_app_bar.dart' show buildStandardAppBar;
 
 /// Шилэн данс — СӨХ-ийн сарын орлого, зарцуулалт, дансны үлдэгдэл, айлын
@@ -84,6 +85,177 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
     }
   }
 
+  void _showKhurimtlalModal(
+    BuildContext context,
+    double orlogo,
+    double zardal,
+    double khurimtlal,
+  ) {
+    final isDark = context.isDarkMode;
+    final isNegative = khurimtlal < 0;
+    final accent = isNegative ? Colors.redAccent : _Ungu.nogoon;
+    final message = isNegative
+        ? 'Энэ сарын зардлын хэмжээ орлогын хэмжээнээс их байгаа учир хасахтай харагдаж байна.'
+        : 'Энэ сарын орлого нь зардлаас их буюу тэнцүү байгаа тул хуримтлал эерэг харагдаж байна.';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 22.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36.w,
+                    height: 4.5.h,
+                    decoration: BoxDecoration(
+                      color: context.borderColor.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(3.r),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 14.h),
+                Row(
+                  children: [
+                    Container(
+                      width: 36.w,
+                      height: 36.w,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                      child: Icon(
+                        isNegative
+                            ? Icons.info_outline_rounded
+                            : Icons.savings_outlined,
+                        color: accent,
+                        size: 20.w,
+                      ),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Text(
+                        'Энэ сарын хуримтлал',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                          color: context.textPrimaryColor,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 22.sp,
+                        color: context.textSecondaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10.h),
+                Container(
+                  padding: EdgeInsets.all(14.w),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: isDark ? 0.14 : 0.08),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: accent.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      fontSize: 13.5.sp,
+                      height: 1.45,
+                      fontWeight: FontWeight.w500,
+                      color: context.textPrimaryColor,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkBackground : const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Энэ сарын орлого',
+                              style: TextStyle(fontSize: 12.5.sp, color: context.textSecondaryColor)),
+                          Text(_mungu(orlogo),
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600,
+                                color: _Ungu.nogoon,
+                              )),
+                        ],
+                      ),
+                      SizedBox(height: 6.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Энэ сарын зардал',
+                              style: TextStyle(fontSize: 12.5.sp, color: context.textSecondaryColor)),
+                          Text(_mungu(zardal),
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.redAccent,
+                              )),
+                        ],
+                      ),
+                      Divider(height: 16.h, color: context.borderColor),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Хуримтлал (Орлого − Зардал)',
+                              style: TextStyle(
+                                fontSize: 12.5.sp,
+                                fontWeight: FontWeight.w600,
+                                color: context.textPrimaryColor,
+                              )),
+                          Text(
+                            '${khurimtlal < 0 ? '−' : ''}${_mungu(khurimtlal.abs())}',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w800,
+                              color: accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showTolovlogootModal(BuildContext context, Map<String, dynamic> d) {
     final rawSaraar = d['saraar'] as List? ?? [];
     showModalBottomSheet(
@@ -104,6 +276,7 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _OrlogoJagsaaltModal(
+        sar: _sar,
         sarNer: sarNer,
         sarOrlogo: orlogo,
         orloguud: rawOrloguud.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
@@ -167,7 +340,32 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
 
   Widget _body(bool isDark) {
     if (_loading && _data == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return ListView(
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 24.h),
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SkeletonBox(width: 140.w, height: 18.h, borderRadius: 8.r),
+              SkeletonBox(width: 100.w, height: 32.h, borderRadius: 8.r),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          SkeletonBox(height: 92.h, borderRadius: 14.r),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              Expanded(child: SkeletonBox(height: 54.h, borderRadius: 12.r)),
+              SizedBox(width: 12.w),
+              Expanded(child: SkeletonBox(height: 54.h, borderRadius: 12.r)),
+            ],
+          ),
+          SizedBox(height: 22.h),
+          SkeletonBox(height: 290.h, borderRadius: 14.r),
+          SizedBox(height: 18.h),
+          SkeletonBox(height: 210.h, borderRadius: 14.r),
+        ],
+      );
     }
     if (_khaalttai) {
       return _Medegdel(
@@ -241,26 +439,40 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
         ],
       ),
       SizedBox(height: 12.h),
-      _Kart(
-        ungu: _Ungu.nogoon.withValues(alpha: isDark ? 0.18 : 0.08),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Энэ сарын хуримтлал',
-                style: TextStyle(fontSize: 13.sp, color: context.textSecondaryColor)),
-            SizedBox(height: 4.h),
-            Text(
-              '${khurimtlal < 0 ? '−' : ''}${_mungu(khurimtlal.abs())}',
-              style: TextStyle(
-                fontSize: 28.sp,
-                fontWeight: FontWeight.w600,
-                color: khurimtlal < 0 ? Colors.redAccent : context.textPrimaryColor,
+      GestureDetector(
+        onTap: () => _showKhurimtlalModal(context, orlogo, zardal, khurimtlal),
+        behavior: HitTestBehavior.opaque,
+        child: _Kart(
+          ungu: _Ungu.nogoon.withValues(alpha: isDark ? 0.18 : 0.08),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Энэ сарын хуримтлал',
+                      style: TextStyle(fontSize: 13.sp, color: context.textSecondaryColor)),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 16.sp,
+                    color: khurimtlal < 0 ? Colors.redAccent : context.textSecondaryColor,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(height: 2.h),
-            Text('Орлого − Зардал',
-                style: TextStyle(fontSize: 11.sp, color: context.textSecondaryColor)),
-          ],
+              SizedBox(height: 4.h),
+              Text(
+                '${khurimtlal < 0 ? '−' : ''}${_mungu(khurimtlal.abs())}',
+                style: TextStyle(
+                  fontSize: 28.sp,
+                  fontWeight: FontWeight.w600,
+                  color: khurimtlal < 0 ? Colors.redAccent : context.textPrimaryColor,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text('Орлого − Зардал',
+                  style: TextStyle(fontSize: 11.sp, color: context.textSecondaryColor)),
+            ],
+          ),
         ),
       ),
       SizedBox(height: 12.h),
@@ -295,6 +507,7 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
           orlogo: orlogo,
           avlaga: avlaga,
           zardal: zardal,
+          avlagaAilToo: (ail['tuluuguiAilToo'] as num?)?.toInt() ?? 0,
           onTolovlogootTap: () => _showTolovlogootModal(context, d),
           onOrlogoTap: () => _showOrlogoModal(context, d, orlogo),
           onAvlagaTap: () => _showAvlagaModal(context, d),
@@ -302,13 +515,19 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
         ),
       ),
       SizedBox(height: 16.h),
-      Text('Орлого, зардал (6 сарын хандлага)',
+      Text('Орлого, зардал (өдрийн хандлага)',
           style: TextStyle(
               fontSize: 15.sp, fontWeight: FontWeight.w600, color: context.textPrimaryColor)),
       SizedBox(height: 8.h),
       _Kart(
         child: _InteractiveUrsgalGraph(
-          saraar: saraar,
+          sar: _sar,
+          orloguud: (d['orloguud'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList(),
+          zarlaguud: (d['zarlaguud'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList(),
           tekstUngu: context.textSecondaryColor,
           shugamUngu: context.borderColor,
         ),
@@ -323,6 +542,9 @@ class _ShilenDansPageState extends State<ShilenDansPage> {
       ),
       _Mur(
         ner: 'Төлөөгүй (нийт)',
+        dedNer: ((ail['tuluuguiAilToo'] as num?)?.toInt() ?? 0) > 0
+            ? '${ail['tuluuguiAilToo']} айл · Жагсаалт харах ›'
+            : null,
         utga: _mungu(_toDouble(d['tuluugui'])),
         onTap: () => _showAvlagaModal(context, d),
       ),
@@ -1086,6 +1308,9 @@ class _AvlagaJagsaaltModalState extends State<_AvlagaJagsaaltModal> {
                                 )
                               : null,
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
                           contentPadding: EdgeInsets.symmetric(vertical: 9.h),
                         ),
                       ),
@@ -1253,11 +1478,13 @@ class _AvlagaJagsaaltModalState extends State<_AvlagaJagsaaltModal> {
 /// Сүүлийн орлогын жагсаалт харуулах модал
 class _OrlogoJagsaaltModal extends StatefulWidget {
   const _OrlogoJagsaaltModal({
+    required this.sar,
     required this.sarNer,
     required this.sarOrlogo,
     required this.orloguud,
   });
 
+  final String sar;
   final String sarNer;
   final double sarOrlogo;
   final List<Map<String, dynamic>> orloguud;
@@ -1280,12 +1507,30 @@ class _OrlogoJagsaaltModalState extends State<_OrlogoJagsaaltModal> {
     final isDark = context.isDarkMode;
     final q = _searchCtrl.text.trim().toLowerCase();
 
-    final filtered = widget.orloguud.where((item) {
+    final monthFiltered = widget.orloguud.where((item) {
+      final ognoo = '${item['ognoo'] ?? item['createdAt'] ?? ''}'.trim();
+      if (ognoo.isEmpty || ognoo == 'null') return false;
+      return ognoo.startsWith(widget.sar);
+    }).toList();
+
+    final filtered = monthFiltered.where((item) {
       if (q.isEmpty) return true;
       final toot = '${item['toot'] ?? ''}'.toLowerCase();
       final tailbar = '${item['tailbar'] ?? ''}'.toLowerCase();
-      final ajiltan = '${item['ajiltniiNer'] ?? ''}'.toLowerCase();
-      return toot.contains(q) || tailbar.contains(q) || ajiltan.contains(q);
+      final zardal = '${item['zardliinNer'] ?? ''}'.toLowerCase();
+      final nemelt = '${item['nemeltTailbar'] ?? ''}'.toLowerCase();
+      final turul = '${item['turul'] ?? ''}'.toLowerCase();
+      final source = '${item['source'] ?? item['tulburiinKhelber'] ?? ''}'.toLowerCase();
+      final ajiltan = '${item['ajiltniiNer'] ?? item['guilgeeKhiisenAjiltniiNer'] ?? ''}'.toLowerCase();
+      final ognoo = '${item['ognoo'] ?? ''}'.toLowerCase();
+      return toot.contains(q) ||
+          tailbar.contains(q) ||
+          zardal.contains(q) ||
+          nemelt.contains(q) ||
+          turul.contains(q) ||
+          source.contains(q) ||
+          ajiltan.contains(q) ||
+          ognoo.contains(q);
     }).toList();
 
     return Container(
@@ -1412,7 +1657,7 @@ class _OrlogoJagsaaltModalState extends State<_OrlogoJagsaaltModal> {
                               style: TextStyle(fontSize: 11.sp, color: context.textSecondaryColor)),
                           SizedBox(height: 2.h),
                           Text(
-                            '${widget.orloguud.length} гүйлгээ',
+                            '${monthFiltered.length} гүйлгээ',
                             style: TextStyle(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w700,
@@ -1441,7 +1686,7 @@ class _OrlogoJagsaaltModalState extends State<_OrlogoJagsaaltModal> {
                   onChanged: (_) => setState(() {}),
                   style: TextStyle(fontSize: 13.sp, color: context.textPrimaryColor),
                   decoration: InputDecoration(
-                    hintText: 'Тоот, гүйлгээний утгаар хайх...',
+                    hintText: 'Тоот, огноогоор хайх...',
                     hintStyle: TextStyle(fontSize: 12.sp, color: context.textSecondaryColor),
                     prefixIcon: Icon(Icons.search_rounded, size: 18.sp, color: context.textSecondaryColor),
                     suffixIcon: _searchCtrl.text.isNotEmpty
@@ -1454,6 +1699,9 @@ class _OrlogoJagsaaltModalState extends State<_OrlogoJagsaaltModal> {
                           )
                         : null,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
                     contentPadding: EdgeInsets.symmetric(vertical: 9.h),
                   ),
                 ),
@@ -1477,20 +1725,50 @@ class _OrlogoJagsaaltModalState extends State<_OrlogoJagsaaltModal> {
                       separatorBuilder: (_, i) => Divider(height: 12.h, color: context.borderColor.withValues(alpha: 0.6)),
                       itemBuilder: (ctx, i) {
                         final item = filtered[i];
-                        final toot = '${item['toot'] ?? ''}';
+                        final rawToot = '${item['toot'] ?? ''}'.trim();
+                        final toot = (rawToot == '—' || rawToot == '-' || rawToot == 'null')
+                            ? ''
+                            : rawToot;
                         final dun = _toDouble(item['dun']);
-                        final ognoo = '${item['ognoo'] ?? ''}'.split('T').first;
-                        final tailbar = '${item['tailbar'] ?? ''}'.trim();
-                        final ajiltan = '${item['ajiltniiNer'] ?? ''}'.trim();
+                        final rawOgnoo = '${item['ognoo'] ?? item['createdAt'] ?? ''}'.trim();
+                        final ognoo = rawOgnoo.split('T').first;
+                        final tailbarCandidates = [
+                          '${item['tailbar'] ?? ''}'.trim(),
+                          '${item['zardliinNer'] ?? ''}'.trim(),
+                          '${item['nemeltTailbar'] ?? ''}'.trim(),
+                        ].where((s) => s.isNotEmpty && s != 'null' && s != '—').toList();
+                        final tailbar = tailbarCandidates.isNotEmpty
+                            ? tailbarCandidates.first
+                            : '';
+                        final turul = '${item['turul'] ?? ''}'.trim();
+                        final ajiltan = '${item['ajiltniiNer'] ?? item['guilgeeKhiisenAjiltniiNer'] ?? ''}'.trim();
+                        final rawSource = '${item['tulburiinKhelber'] ?? item['khelber'] ?? item['source'] ?? ''}'.trim();
 
-                        final ded = [
-                          if (ognoo.isNotEmpty) ognoo,
-                          if (ajiltan.isNotEmpty) ajiltan,
-                        ].join(' · ');
+                        String resolveChannel() {
+                          if (ajiltan.isNotEmpty && ajiltan != '—' && ajiltan != 'null') {
+                            return ajiltan;
+                          }
+                          final s = rawSource.toLowerCase();
+                          final txt = '$tailbar $turul'.toLowerCase();
+                          if (s == 'qpay' || txt.contains('qpay')) return 'QPay';
+                          if (s == 'bank' || txt.contains('банк') || txt.contains('данс')) {
+                            return 'Банк';
+                          }
+                          if (s == 'gar') return 'Гараар';
+                          if (s == 'system' || s == 'excel_import') return 'Систем';
+                          if (rawSource.isNotEmpty && rawSource != 'null') return rawSource;
+                          return '';
+                        }
+
+                        final channel = resolveChannel();
+                        final metaParts = [
+                          if (ognoo.isNotEmpty && ognoo != 'null') ognoo,
+                        ];
 
                         return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4.h),
+                          padding: EdgeInsets.symmetric(vertical: 5.h),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Container(
                                 width: 38.w,
@@ -1500,44 +1778,70 @@ class _OrlogoJagsaaltModalState extends State<_OrlogoJagsaaltModal> {
                                   borderRadius: BorderRadius.circular(10.r),
                                 ),
                                 alignment: Alignment.center,
-                                child: Text(
-                                  toot.isNotEmpty ? toot : '₮',
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: _CircleDonutChart.orlogoColor,
-                                  ),
-                                ),
+                                child: toot.isNotEmpty
+                                    ? Text(
+                                        toot,
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w800,
+                                          color: _CircleDonutChart.orlogoColor,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      )
+                                    : Icon(
+                                        Icons.payments_outlined,
+                                        size: 18.w,
+                                        color: _CircleDonutChart.orlogoColor,
+                                      ),
                               ),
                               SizedBox(width: 12.w),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      toot.isNotEmpty ? '$toot тоот' : (tailbar.isNotEmpty ? tailbar : 'Төлөлт'),
-                                      style: TextStyle(
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: context.textPrimaryColor,
-                                      ),
-                                    ),
-                                    if (tailbar.isNotEmpty && toot.isNotEmpty) ...[
-                                      SizedBox(height: 2.h),
-                                      Text(
-                                        tailbar,
-                                        style: TextStyle(
-                                          fontSize: 11.5.sp,
-                                          color: context.textSecondaryColor,
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            toot.isNotEmpty ? '$toot тоот' : 'Төлбөр төлөлт',
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w600,
+                                              color: context.textPrimaryColor,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                    if (ded.isNotEmpty) ...[
+                                        if (channel.isNotEmpty) ...[
+                                          SizedBox(width: 6.w),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 6.w,
+                                              vertical: 1.5.h,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _CircleDonutChart.orlogoColor
+                                                  .withValues(alpha: isDark ? 0.18 : 0.10),
+                                              borderRadius: BorderRadius.circular(5.r),
+                                            ),
+                                            child: Text(
+                                              channel,
+                                              style: TextStyle(
+                                                fontSize: 9.5.sp,
+                                                fontWeight: FontWeight.w600,
+                                                color: _CircleDonutChart.orlogoColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                    if (metaParts.isNotEmpty) ...[
                                       SizedBox(height: 2.h),
                                       Text(
-                                        ded,
+                                        metaParts.join(' · '),
                                         style: TextStyle(
                                           fontSize: 11.sp,
                                           color: context.textSecondaryColor.withValues(alpha: 0.8),
@@ -1547,6 +1851,7 @@ class _OrlogoJagsaaltModalState extends State<_OrlogoJagsaaltModal> {
                                   ],
                                 ),
                               ),
+                              SizedBox(width: 8.w),
                               Text(
                                 '+${_mungu(dun)}',
                                 style: TextStyle(
@@ -1584,12 +1889,25 @@ class _TolovlogootModal extends StatefulWidget {
 class _TolovlogootModalState extends State<_TolovlogootModal> {
   int _selectedYear = 2026;
   late List<int> _years;
+  late List<Map<String, dynamic>> _activeSaraar;
 
   @override
   void initState() {
     super.initState();
+    // Эхэлсэн хамгийн эхний идэвхтэй сараас өмнөх хоосон саруудыг хасна
+    final sorted = List<Map<String, dynamic>>.from(widget.saraar)
+      ..sort((a, b) => '${a['sar'] ?? ''}'.compareTo('${b['sar'] ?? ''}'));
+    final firstActiveIdx = sorted.indexWhere((s) =>
+        _toDouble(s['nekhemjilsen']) > 0 ||
+        _toDouble(s['tulsun']) > 0 ||
+        _toDouble(s['zardal']) > 0);
+    final trimmed = firstActiveIdx >= 0
+        ? sorted.sublist(firstActiveIdx)
+        : (sorted.isNotEmpty ? [sorted.last] : <Map<String, dynamic>>[]);
+    _activeSaraar = trimmed.reversed.toList();
+
     final ySet = <int>{};
-    for (final s in widget.saraar) {
+    for (final s in _activeSaraar) {
       final j = (s['jil'] as num?)?.toInt();
       if (j != null && j > 0) {
         ySet.add(j);
@@ -1613,7 +1931,7 @@ class _TolovlogootModalState extends State<_TolovlogootModal> {
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
 
-    final filtered = widget.saraar.where((s) {
+    final filtered = _activeSaraar.where((s) {
       final j = (s['jil'] as num?)?.toInt();
       if (j != null && j > 0) return j == _selectedYear;
       final sarStr = '${s['sar'] ?? ''}';
@@ -1923,13 +2241,14 @@ class _TolovlogootModalState extends State<_TolovlogootModal> {
   }
 }
 
-/// Санхүүгийн бүтэц — Circular Step Infographic (Хэрэглэгчийн мокап загвартай яг ижил шийдэл)
+/// Санхүүгийн бүтэц — Пропорциональ цагираг график ба 2×2 үзүүлэлтийн карт.
 class _CircleDonutChart extends StatefulWidget {
   const _CircleDonutChart({
     required this.tolovlogoot,
     required this.orlogo,
     required this.avlaga,
     required this.zardal,
+    this.avlagaAilToo = 0,
     this.onTolovlogootTap,
     this.onOrlogoTap,
     this.onAvlagaTap,
@@ -1940,6 +2259,7 @@ class _CircleDonutChart extends StatefulWidget {
   final double orlogo;
   final double avlaga;
   final double zardal;
+  final int avlagaAilToo;
   final VoidCallback? onTolovlogootTap;
   final VoidCallback? onOrlogoTap;
   final VoidCallback? onAvlagaTap;
@@ -1954,18 +2274,39 @@ class _CircleDonutChart extends StatefulWidget {
   State<_CircleDonutChart> createState() => _CircleDonutChartState();
 }
 
+class _DonutSlice {
+  const _DonutSlice({
+    required this.index,
+    required this.startAngle,
+    required this.sweepAngle,
+    required this.color,
+  });
+
+  final int index;
+  final double startAngle;
+  final double sweepAngle;
+  final Color color;
+}
+
 class _CircleDonutChartState extends State<_CircleDonutChart>
     with SingleTickerProviderStateMixin {
   late AnimationController _anim;
   late Animation<double> _curve;
-  int _selectedIndex = -1; // -1: Бүх нийтийн тойм
+  int _selectedIndex = -1;
+
+  static const _colors = [
+    _CircleDonutChart.tolovlogootColor,
+    _CircleDonutChart.orlogoColor,
+    _CircleDonutChart.avlagaColor,
+    _CircleDonutChart.zardalColor,
+  ];
 
   @override
   void initState() {
     super.initState();
     _anim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 650),
     );
     _curve = CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
     _anim.forward();
@@ -1989,6 +2330,93 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     super.dispose();
   }
 
+  List<_DonutSlice> _computeSlices() {
+    final values = [
+      math.max(0.0, widget.tolovlogoot),
+      math.max(0.0, widget.orlogo),
+      math.max(0.0, widget.avlaga),
+      math.max(0.0, widget.zardal),
+    ];
+
+    final activeIndices = <int>[
+      for (var i = 0; i < values.length; i++)
+        if (values[i] > 0) i,
+    ];
+    if (activeIndices.isEmpty) return const [];
+
+    if (activeIndices.length == 1) {
+      final idx = activeIndices.first;
+      return [
+        _DonutSlice(
+          index: idx,
+          startAngle: -math.pi / 2,
+          sweepAngle: 2 * math.pi,
+          color: _colors[idx],
+        ),
+      ];
+    }
+
+    const gap = 0.045; // ~2.6 градусын цэвэр зай
+    const minSweep = 0.10;
+    final totalSweep = 2 * math.pi - activeIndices.length * gap;
+    final sum = activeIndices.fold<double>(0, (acc, i) => acc + values[i]);
+
+    final rawSweeps = <int, double>{
+      for (final i in activeIndices) i: (values[i] / sum) * totalSweep,
+    };
+
+    // Жижиг утгатай сегмент харагдахуйц байхын тулд хамгийн бага өнцгийг хадгална
+    var lockedSweep = 0.0;
+    var flexibleSum = 0.0;
+    final locked = <int>{};
+    for (final i in activeIndices) {
+      if (rawSweeps[i]! < minSweep) {
+        locked.add(i);
+        lockedSweep += minSweep;
+      } else {
+        flexibleSum += values[i];
+      }
+    }
+
+    final remainingSweep = math.max(0.0, totalSweep - lockedSweep);
+    final slices = <_DonutSlice>[];
+    var cursor = -math.pi / 2;
+
+    for (final i in activeIndices) {
+      final sweep = locked.contains(i)
+          ? minSweep
+          : (flexibleSum > 0 ? (values[i] / flexibleSum) * remainingSweep : 0.0);
+      slices.add(
+        _DonutSlice(
+          index: i,
+          startAngle: cursor,
+          sweepAngle: sweep,
+          color: _colors[i],
+        ),
+      );
+      cursor += sweep + gap;
+    }
+
+    return slices;
+  }
+
+  void _openModalForIndex(int idx) {
+    switch (idx) {
+      case 0:
+        widget.onTolovlogootTap?.call();
+        break;
+      case 1:
+        widget.onOrlogoTap?.call();
+        break;
+      case 2:
+        widget.onAvlagaTap?.call();
+        break;
+      case 3:
+        widget.onZardalTap?.call();
+        break;
+    }
+  }
+
   void _onTapSegment(int idx) {
     HapticFeedback.selectionClick();
     setState(() {
@@ -1996,156 +2424,139 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
     });
   }
 
-  void _handleInfographicTap(Offset localPos, Size size) {
+  void _handleDonutTap(Offset localPos, Size size, List<_DonutSlice> slices) {
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPos.dx - center.dx;
     final dy = localPos.dy - center.dy;
     final dist = math.sqrt(dx * dx + dy * dy);
 
-    // Голын төв таваг дээр дарвал (радиус ~48.w):
-    if (dist <= size.width * 0.24) {
-      if (_selectedIndex == 0) {
-        widget.onTolovlogootTap?.call();
-      } else if (_selectedIndex == 1) {
-        widget.onOrlogoTap?.call();
-      } else if (_selectedIndex == 2) {
-        widget.onAvlagaTap?.call();
-      } else if (_selectedIndex == 3) {
-        widget.onZardalTap?.call();
-      } else {
+    final innerR = size.width * 0.285;
+    final outerR = size.width * 0.48;
+
+    if (dist <= innerR) {
+      if (_selectedIndex >= 0) {
+        _openModalForIndex(_selectedIndex);
+      }
+      return;
+    }
+
+    if (dist > outerR || slices.isEmpty) {
+      if (_selectedIndex != -1) {
         setState(() => _selectedIndex = -1);
       }
       return;
     }
 
-    final angle = math.atan2(dy, dx); // [-pi, pi]
+    // Өнцгийг -pi/2-оос эхлэн [0, 2*pi) мужид хөрвүүлнэ
+    var angle = math.atan2(dy, dx) - (-math.pi / 2);
+    while (angle < 0) {
+      angle += 2 * math.pi;
+    }
+    while (angle >= 2 * math.pi) {
+      angle -= 2 * math.pi;
+    }
 
-    if (angle >= -math.pi && angle < -math.pi / 2) {
-      // Top-Left (2-р квадрант) -> Төлөвлөгөөт
-      if (_selectedIndex == 0) {
-        widget.onTolovlogootTap?.call();
-      } else {
-        _onTapSegment(0);
+    for (final s in slices) {
+      var start = s.startAngle - (-math.pi / 2);
+      while (start < 0) {
+        start += 2 * math.pi;
       }
-    } else if (angle >= -math.pi / 2 && angle < 0) {
-      // Top-Right (1-р квадрант) -> Орлого
-      if (_selectedIndex == 1) {
-        widget.onOrlogoTap?.call();
-      } else {
-        _onTapSegment(1);
-      }
-    } else if (angle >= 0 && angle < math.pi / 2) {
-      // Bottom-Right (4-р квадрант) -> Зардал
-      if (_selectedIndex == 3) {
-        widget.onZardalTap?.call();
-      } else {
-        _onTapSegment(3);
-      }
-    } else {
-      // Bottom-Left (3-р квадрант) -> Авлага
-      if (_selectedIndex == 2) {
-        widget.onAvlagaTap?.call();
-      } else {
-        _onTapSegment(2);
+      if (angle >= start && angle <= start + s.sweepAngle + 0.04) {
+        if (_selectedIndex == s.index) {
+          _openModalForIndex(s.index);
+        } else {
+          _onTapSegment(s.index);
+        }
+        return;
       }
     }
   }
 
-  Widget _buildCalloutItem({
+  Widget _buildMetricTile({
     required int idx,
-    required String step,
+    required String label,
     required String amount,
     required String subtitle,
     required Color color,
-    required bool alignLeft,
     required bool isDark,
-    String? actionText,
-    VoidCallback? onTap,
+    required VoidCallback onTap,
   }) {
     final isSelected = _selectedIndex == idx;
+    final bgColor = isSelected
+        ? color.withValues(alpha: isDark ? 0.16 : 0.08)
+        : (isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : const Color(0xFFF8FAFC));
+    final borderColor = isSelected
+        ? color.withValues(alpha: 0.55)
+        : (isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : const Color(0xFFE2E8F0));
+
     return GestureDetector(
-      onTap: onTap ?? () => _onTapSegment(idx),
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+        padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 10.h),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: isDark ? 0.20 : 0.09)
-              : Colors.transparent,
+          color: bgColor,
           borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(
-            color: isSelected ? color.withValues(alpha: 0.55) : Colors.transparent,
-            width: 1.2,
-          ),
+          border: Border.all(color: borderColor, width: isSelected ? 1.3 : 1.0),
         ),
         child: Column(
-          crossAxisAlignment:
-              alignLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                if (!alignLeft) ...[
-                  Container(
-                    width: 7.w,
-                    height: 7.w,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                  ),
-                  SizedBox(width: 5.w),
-                ],
-                Text(
-                  step,
-                  style: TextStyle(
-                    fontSize: 10.5.sp,
-                    fontWeight: FontWeight.w800,
-                    color: color,
-                    letterSpacing: 0.5,
+                Container(
+                  width: 8.w,
+                  height: 8.w,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                ),
+                SizedBox(width: 6.w),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? color : context.textSecondaryColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (alignLeft) ...[
-                  SizedBox(width: 5.w),
-                  Container(
-                    width: 7.w,
-                    height: 7.w,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                  ),
-                ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 14.sp,
+                  color: isSelected ? color : context.textSecondaryColor,
+                ),
               ],
             ),
-            SizedBox(height: 2.5.h),
+            SizedBox(height: 5.h),
             FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: alignLeft ? Alignment.centerLeft : Alignment.centerRight,
+              alignment: Alignment.centerLeft,
               child: Text(
                 amount,
                 style: TextStyle(
-                  fontSize: 16.5.sp,
-                  fontWeight: FontWeight.w800,
-                  color: isSelected ? color : context.textPrimaryColor,
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
+                  color: context.textPrimaryColor,
                   letterSpacing: -0.2,
                 ),
               ),
             ),
             SizedBox(height: 2.h),
-            if (actionText != null)
-              Text(
-                actionText,
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              )
-            else
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  color: context.textSecondaryColor,
-                ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 10.sp,
+                color: context.textSecondaryColor,
               ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -2155,6 +2566,7 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
+    final slices = _computeSlices();
 
     final baseTarget = widget.tolovlogoot > 0
         ? widget.tolovlogoot
@@ -2169,315 +2581,218 @@ class _CircleDonutChartState extends State<_CircleDonutChart>
         ? avlagaPercent.toStringAsFixed(1)
         : avlagaPercent.round().toString();
 
-    const colors = [
-      _CircleDonutChart.tolovlogootColor, // 0: Top-Left (Төлөвлөгөөт)
-      _CircleDonutChart.orlogoColor,      // 1: Top-Right (Орлого)
-      _CircleDonutChart.avlagaColor,      // 2: Bottom-Left (Авлага)
-      _CircleDonutChart.zardalColor,      // 3: Bottom-Right (Зардал)
+    const labels = ['ТӨЛӨВЛӨГӨӨТ', 'ОРЛОГО', 'АВЛАГА', 'ЗАРДАЛ'];
+    final amounts = [
+      widget.tolovlogoot,
+      widget.orlogo,
+      widget.avlaga,
+      widget.zardal,
     ];
 
-    // Тод цул санхүүгийн дүрсүүд
-    const icons = [
-      Icons.fact_check_rounded,                // Төлөвлөгөөт (Нэхэмжлэх төлөвлөгөөний хуудас)
-      Icons.account_balance_wallet_rounded,    // Орлого (Цул цэвэр түрийвч)
-      Icons.pending_actions_rounded,            // Авлага (Хүлээгдэж буй хугацаа / үйлдэл)
-      Icons.receipt_long_rounded,              // Зардал (Цул зарлагын баримт)
-    ];
-
-    // Төвийн таваг дээрх мэдээлэл
-    Widget centerText;
-    if (_selectedIndex == 0) {
-      centerText = Column(
+    final Widget centerContent;
+    if (_selectedIndex >= 0 && _selectedIndex < 4) {
+      final selColor = _colors[_selectedIndex];
+      centerContent = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('ТӨЛӨВЛӨГӨӨТ',
-              style: TextStyle(
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.tolovlogootColor)),
+          Text(
+            labels[_selectedIndex],
+            style: TextStyle(
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w700,
+              color: selColor,
+              letterSpacing: 0.4,
+            ),
+          ),
           SizedBox(height: 2.h),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(_mungu(widget.tolovlogoot),
-                style: TextStyle(
-                    fontSize: 14.5.sp,
-                    fontWeight: FontWeight.w900,
-                    color: _CircleDonutChart.tolovlogootColor)),
+            child: Text(
+              _mungu(amounts[_selectedIndex]),
+              style: TextStyle(
+                fontSize: 14.5.sp,
+                fontWeight: FontWeight.w800,
+                color: context.textPrimaryColor,
+              ),
+            ),
           ),
           SizedBox(height: 2.h),
-          Text('Түүх харах ›',
-              style: TextStyle(
-                  fontSize: 8.5.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.tolovlogootColor)),
-        ],
-      );
-    } else if (_selectedIndex == 1) {
-      centerText = Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('ОРЛОГО',
-              style: TextStyle(
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.orlogoColor)),
-          SizedBox(height: 2.h),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(_mungu(widget.orlogo),
-                style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w900,
-                    color: _CircleDonutChart.orlogoColor)),
+          Text(
+            'Дэлгэрэнгүй ›',
+            style: TextStyle(
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w600,
+              color: selColor,
+            ),
           ),
-          SizedBox(height: 2.h),
-          Text('Төлөлтүүд ›',
-              style: TextStyle(
-                  fontSize: 8.5.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.orlogoColor)),
-        ],
-      );
-    } else if (_selectedIndex == 2) {
-      centerText = Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('АВЛАГА',
-              style: TextStyle(
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.avlagaColor)),
-          SizedBox(height: 2.h),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(_mungu(widget.avlaga),
-                style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w900,
-                    color: _CircleDonutChart.avlagaColor)),
-          ),
-          SizedBox(height: 2.h),
-          Text('Айлууд харах ›',
-              style: TextStyle(
-                  fontSize: 8.5.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.avlagaColor)),
-        ],
-      );
-    } else if (_selectedIndex == 3) {
-      centerText = Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('ЗАРДАЛ',
-              style: TextStyle(
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.zardalColor)),
-          SizedBox(height: 2.h),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(_mungu(widget.zardal),
-                style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w900,
-                    color: _CircleDonutChart.zardalColor)),
-          ),
-          SizedBox(height: 2.h),
-          Text('Жагсаалт харах ›',
-              style: TextStyle(
-                  fontSize: 8.5.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _CircleDonutChart.zardalColor)),
         ],
       );
     } else {
-      centerText = Column(
+      centerContent = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'САНХҮҮ',
+            'ТӨЛӨЛТ',
             style: TextStyle(
-              fontSize: 9.sp,
-              fontWeight: FontWeight.w800,
-              color: _CircleDonutChart.tolovlogootColor,
-              letterSpacing: 0.5,
+              fontSize: 9.5.sp,
+              fontWeight: FontWeight.w600,
+              color: context.textSecondaryColor,
+              letterSpacing: 0.6,
             ),
           ),
+          SizedBox(height: 1.h),
           Text(
-            'БҮТЭЦ',
+            '$orlogoPStr%',
             style: TextStyle(
-              fontSize: 14.5.sp,
-              fontWeight: FontWeight.w900,
-              color: _CircleDonutChart.orlogoColor,
-              letterSpacing: 0.5,
+              fontSize: 25.sp,
+              fontWeight: FontWeight.w800,
+              color: context.textPrimaryColor,
+              height: 1.1,
             ),
           ),
+          SizedBox(height: 1.h),
           Text(
-            'ТОЙМ',
+            'цугларалт',
             style: TextStyle(
-              fontSize: 8.5.sp,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFFE8B04A),
-              letterSpacing: 0.5,
+              fontSize: 10.sp,
+              color: context.textSecondaryColor,
             ),
           ),
         ],
       );
     }
 
-    final chartSize = 208.w;
+    final chartSize = 180.w;
 
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 6.h),
-      child: Column(
-        children: [
-          // ── ДЭЭД ЭГНЭЭ (Төлөвлөгөөт зүүн талд, Орлого баруун талд) ──
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildCalloutItem(
-                  idx: 0,
-                  step: 'ТӨЛӨВЛӨГӨӨТ',
-                  amount: _mungu(widget.tolovlogoot),
-                  subtitle: 'Нэхэмжилсэн · 100%',
-                  actionText: 'Түүх харах ›',
-                  color: _CircleDonutChart.tolovlogootColor,
-                  alignLeft: true,
-                  isDark: isDark,
-                  onTap: () {
-                    _onTapSegment(0);
-                    widget.onTolovlogootTap?.call();
-                  },
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: _buildCalloutItem(
-                  idx: 1,
-                  step: 'ОРЛОГО',
-                  amount: _mungu(widget.orlogo),
-                  subtitle: 'Төлөгдсөн · $orlogoPStr%',
-                  actionText: 'Төлөлтүүд ›',
-                  color: _CircleDonutChart.orlogoColor,
-                  alignLeft: false,
-                  isDark: isDark,
-                  onTap: () {
-                    _onTapSegment(1);
-                    widget.onOrlogoTap?.call();
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          SizedBox(height: 6.h),
-
-          // ── ГОЛЫН ТОМРУУЛСАН ИНФОГРАФИК ДУГУЙ (208.w x 208.w) ──
-          Center(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapUp: (details) =>
-                  _handleInfographicTap(details.localPosition, Size(chartSize, chartSize)),
-              child: SizedBox(
-                width: chartSize,
-                height: chartSize,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    AnimatedBuilder(
-                      animation: _curve,
-                      builder: (context, _) {
-                        return CustomPaint(
-                          size: Size(chartSize, chartSize),
-                          painter: _CircularStepInfographicPainter(
-                            colors: colors,
-                            icons: icons,
-                            selectedIndex: _selectedIndex,
-                            progress: _curve.value,
-                            isDark: isDark,
-                          ),
-                        );
-                      },
-                    ),
-                    // Төвийн цагаан өргөгдсөн таваг дээрх текст
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 52.w),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Container(
-                          key: ValueKey<int>(_selectedIndex),
-                          alignment: Alignment.center,
-                          child: centerText,
+    return Column(
+      children: [
+        SizedBox(height: 4.h),
+        Center(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (details) =>
+                _handleDonutTap(details.localPosition, Size(chartSize, chartSize), slices),
+            child: SizedBox(
+              width: chartSize,
+              height: chartSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  AnimatedBuilder(
+                    animation: _curve,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        size: Size(chartSize, chartSize),
+                        painter: _CircularStepInfographicPainter(
+                          slices: slices,
+                          selectedIndex: _selectedIndex,
+                          progress: _curve.value,
+                          isDark: isDark,
                         ),
+                      );
+                    },
+                  ),
+                  SizedBox(
+                    width: chartSize * 0.52,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: Container(
+                        key: ValueKey<int>(_selectedIndex),
+                        alignment: Alignment.center,
+                        child: centerContent,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-
-          SizedBox(height: 6.h),
-
-          // ── ДООД ЭГНЭЭ (Авлага зүүн талд, Зардал баруун талд) ──
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildCalloutItem(
-                  idx: 2,
-                  step: 'АВЛАГА',
-                  amount: _mungu(widget.avlaga),
-                  subtitle: 'Төлөөгүй · $avlagaPStr%',
-                  actionText: 'Айлууд харах ›',
-                  color: _CircleDonutChart.avlagaColor,
-                  alignLeft: true,
-                  isDark: isDark,
-                  onTap: () {
-                    _onTapSegment(2);
-                    widget.onAvlagaTap?.call();
-                  },
-                ),
+        ),
+        SizedBox(height: 14.h),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricTile(
+                idx: 0,
+                label: 'Төлөвлөгөөт',
+                amount: _mungu(widget.tolovlogoot),
+                subtitle: 'Нэхэмжилсэн',
+                color: _CircleDonutChart.tolovlogootColor,
+                isDark: isDark,
+                onTap: () {
+                  _onTapSegment(0);
+                  widget.onTolovlogootTap?.call();
+                },
               ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: _buildCalloutItem(
-                  idx: 3,
-                  step: 'ЗАРДАЛ',
-                  amount: _mungu(widget.zardal),
-                  subtitle: 'СӨХ-ийн зардал',
-                  actionText: 'Жагсаалт харах ›',
-                  color: _CircleDonutChart.zardalColor,
-                  alignLeft: false,
-                  isDark: isDark,
-                  onTap: () {
-                    _onTapSegment(3);
-                    widget.onZardalTap?.call();
-                  },
-                ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: _buildMetricTile(
+                idx: 1,
+                label: 'Орлого',
+                amount: _mungu(widget.orlogo),
+                subtitle: 'Төлөгдсөн · $orlogoPStr%',
+                color: _CircleDonutChart.orlogoColor,
+                isDark: isDark,
+                onTap: () {
+                  _onTapSegment(1);
+                  widget.onOrlogoTap?.call();
+                },
               ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricTile(
+                idx: 2,
+                label: 'Авлага',
+                amount: _mungu(widget.avlaga),
+                subtitle: widget.avlagaAilToo > 0
+                    ? 'Төлөөгүй ${widget.avlagaAilToo} айл'
+                    : 'Төлөөгүй · $avlagaPStr%',
+                color: _CircleDonutChart.avlagaColor,
+                isDark: isDark,
+                onTap: () {
+                  _onTapSegment(2);
+                  widget.onAvlagaTap?.call();
+                },
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: _buildMetricTile(
+                idx: 3,
+                label: 'Зардал',
+                amount: _mungu(widget.zardal),
+                subtitle: 'СӨХ-ийн зардал',
+                color: _CircleDonutChart.zardalColor,
+                isDark: isDark,
+                onTap: () {
+                  _onTapSegment(3);
+                  widget.onZardalTap?.call();
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
 
-/// Circular Step Infographic Custom Painter
-/// Алдаагүй, цэвэр төгс дугуй хэлбэр (no broken geometry) ба өнцөгт холбогч шугамтай зурагч
+/// Пропорциональ цагираг (Donut) зурагч
 class _CircularStepInfographicPainter extends CustomPainter {
   _CircularStepInfographicPainter({
-    required this.colors,
-    required this.icons,
+    required this.slices,
     required this.selectedIndex,
     required this.progress,
     required this.isDark,
   });
 
-  final List<Color> colors;
-  final List<IconData> icons;
+  final List<_DonutSlice> slices;
   final int selectedIndex;
   final double progress;
   final bool isDark;
@@ -2485,174 +2800,75 @@ class _CircularStepInfographicPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final outerR = size.width * 0.42;
-    final innerR = size.width * 0.245;
-    final centerDiscR = innerR - 2.w;
-    const gap = 0.055; // Сегментүүд хоорондын тэгш цэвэр зай (~3.2 градус)
+    final baseOuterR = size.width * 0.455;
+    final baseInnerR = size.width * 0.295;
+    final midR = (baseOuterR + baseInnerR) / 2;
+    final baseThickness = baseOuterR - baseInnerR;
 
-    // 4 квадрантын өнцгүүд ба төв өнцгүүд:
-    // idx 0: Top-Left (Төлөвлөгөөт) -> mid: -3*pi/4 (-135°)
-    // idx 1: Top-Right (Орлого)      -> mid: -pi/4   (-45°)
-    // idx 2: Bottom-Left (Авлага)   -> mid: 3*pi/4  (135°)
-    // idx 3: Bottom-Right (Зардал)  -> mid: pi/4    (45°)
-    final sectorAngles = [
-      {'start': -math.pi, 'mid': -3 * math.pi / 4},     // 0: Top-Left
-      {'start': -math.pi / 2, 'mid': -math.pi / 4},     // 1: Top-Right
-      {'start': math.pi / 2, 'mid': 3 * math.pi / 4},    // 2: Bottom-Left
-      {'start': 0.0, 'mid': math.pi / 4},               // 3: Bottom-Right
-    ];
+    // Суурь цагираг (track)
+    canvas.drawCircle(
+      center,
+      midR,
+      Paint()
+        ..color = isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : const Color(0xFFF1F5F9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = baseThickness,
+    );
 
-    // ── 1. 4 өнгийн цагираг блок сегментүүд (Албан төгс дугуй) ──
-    for (var i = 0; i < 4; i++) {
-      final info = sectorAngles[i];
-      final start = (info['start']! + gap / 2);
-      final sweep = (math.pi / 2 - gap) * progress;
-      final mid = info['mid']!;
-      final color = colors[i];
-      final isSel = selectedIndex == i;
+    if (slices.isEmpty) return;
 
-      // Үндсэн дугуй хэлбэрийг эвдэхгүйгээр төв нь ЯГ голдоо байрлана
+    final hasSelection = selectedIndex >= 0;
+
+    for (final slice in slices) {
+      final isSel = selectedIndex == slice.index;
+      final sweep = slice.sweepAngle * progress;
+      if (sweep <= 0.001) continue;
+
+      final outerR = isSel ? baseOuterR + 3.5.w : baseOuterR;
+      final innerR = isSel ? baseInnerR - 1.w : baseInnerR;
+
       final segPath = Path()
         ..arcTo(
           Rect.fromCircle(center: center, radius: outerR),
-          start,
+          slice.startAngle,
           sweep,
           false,
         )
         ..arcTo(
           Rect.fromCircle(center: center, radius: innerR),
-          start + sweep,
+          slice.startAngle + sweep,
           -sweep,
           false,
         )
         ..close();
 
-      // Сонгогдсон үед гадна талын тод glow болон цагаан хүрээ
-      if (isSel) {
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: outerR + 2.w),
-          start,
-          sweep,
-          false,
-          Paint()
-            ..color = color.withValues(alpha: 0.5)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 6.w
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-        );
-      }
-
-      // Цул өнгийн сектор
-      canvas.drawPath(
-        segPath,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.fill,
-      );
-
-      // Сонгогдсон сектор дээр гоёмсог тод цагаан хүрээ
       if (isSel) {
         canvas.drawPath(
           segPath,
           Paint()
-            ..color = Colors.white.withValues(alpha: 0.9)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.8.w,
+            ..color = slice.color.withValues(alpha: 0.35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
         );
       }
 
-      // ── 2. Блок доторх цул цагаан дүрс (White Icon) ──
-      final icon = icons[i];
-      final iconR = (outerR + innerR) / 2;
-      final tp = TextPainter(
-        text: TextSpan(
-          text: String.fromCharCode(icon.codePoint),
-          style: TextStyle(
-            fontSize: 22.w,
-            fontFamily: icon.fontFamily,
-            package: icon.fontPackage,
-            color: Colors.white,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
+      final fillColor = hasSelection && !isSel
+          ? slice.color.withValues(alpha: 0.32)
+          : slice.color;
 
-      final iconPos = Offset(
-        center.dx + iconR * math.cos(mid) - tp.width / 2,
-        center.dy + iconR * math.sin(mid) - tp.height / 2,
-      );
-      tp.paint(canvas, iconPos);
-
-      // ── 3. Өнцөгт холбогч шугам (Angled Connector Lines) ──
-      final linePaint = Paint()
-        ..color = isSel ? color : color.withValues(alpha: isDark ? 0.75 : 0.55)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isSel ? 1.8.w : 1.2.w
-        ..strokeCap = StrokeCap.round;
-
-      final startPt = Offset(
-        center.dx + (outerR + 2.w) * math.cos(mid),
-        center.dy + (outerR + 2.w) * math.sin(mid),
-      );
-
-      final signX = math.cos(mid) > 0 ? 1 : -1;
-      final signY = math.sin(mid) > 0 ? 1 : -1;
-
-      final cornerPt = Offset(
-        startPt.dx + 9.w * signX,
-        startPt.dy + 9.w * signY,
-      );
-      final endPt = Offset(
-        cornerPt.dx + 10.w * signX,
-        cornerPt.dy,
-      );
-
-      final linePath = Path()
-        ..moveTo(startPt.dx, startPt.dy)
-        ..lineTo(cornerPt.dx, cornerPt.dy)
-        ..lineTo(endPt.dx, endPt.dy);
-
-      canvas.drawPath(linePath, linePaint);
-
-      // Төгсгөлийн цэг (Pin Dot)
-      canvas.drawCircle(
-        endPt,
-        isSel ? 3.w : 2.2.w,
-        Paint()..color = color..style = PaintingStyle.fill,
+      canvas.drawPath(
+        segPath,
+        Paint()
+          ..color = fillColor
+          ..style = PaintingStyle.fill,
       );
     }
-
-    // ── 4. Голын цагаан өргөгдсөн таваг (Elevated Center Disc) ──
-    canvas.drawCircle(
-      center,
-      centerDiscR,
-      Paint()
-        ..color = Colors.black.withValues(alpha: isDark ? 0.35 : 0.08)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
-
-    canvas.drawCircle(
-      center,
-      centerDiscR,
-      Paint()
-        ..color = isDark ? const Color(0xFF1E293B) : Colors.white
-        ..style = PaintingStyle.fill,
-    );
-
-    canvas.drawCircle(
-      center,
-      centerDiscR,
-      Paint()
-        ..color = isDark ? Colors.white12 : const Color(0xFFE2E8F0)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.w,
-    );
   }
 
   @override
   bool shouldRepaint(covariant _CircularStepInfographicPainter old) {
-    return old.colors != colors ||
-        old.icons != icons ||
+    return old.slices != slices ||
         old.selectedIndex != selectedIndex ||
         old.progress != progress ||
         old.isDark != isDark;
@@ -2724,16 +2940,20 @@ class _Medegdel extends StatelessWidget {
   }
 }
 
-// ── Интерактив 6 сарын орлого, зардал график ───────────────────────────
+// ── Интерактив сарын өдрүүдийн орлого, зардал график ────────────────────
 
 class _InteractiveUrsgalGraph extends StatefulWidget {
   const _InteractiveUrsgalGraph({
-    required this.saraar,
+    required this.sar,
+    required this.orloguud,
+    required this.zarlaguud,
     required this.tekstUngu,
     required this.shugamUngu,
   });
 
-  final List<Map<String, dynamic>> saraar;
+  final String sar;
+  final List<Map<String, dynamic>> orloguud;
+  final List<Map<String, dynamic>> zarlaguud;
   final Color tekstUngu;
   final Color shugamUngu;
 
@@ -2743,32 +2963,96 @@ class _InteractiveUrsgalGraph extends StatefulWidget {
 
 class _InteractiveUrsgalGraphState extends State<_InteractiveUrsgalGraph> {
   int? _selectedIndex;
+  late List<Map<String, dynamic>> _odroor;
 
   @override
   void initState() {
     super.initState();
-    if (widget.saraar.isNotEmpty) {
-      _selectedIndex = widget.saraar.length - 1;
-    }
+    _odroor = _buildDailyData();
+    _pickDefaultIndex();
   }
 
   @override
   void didUpdateWidget(covariant _InteractiveUrsgalGraph oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.saraar.isEmpty) {
-      _selectedIndex = null;
-    } else if (_selectedIndex == null || _selectedIndex! >= widget.saraar.length) {
-      _selectedIndex = widget.saraar.length - 1;
+    if (oldWidget.sar != widget.sar ||
+        oldWidget.orloguud != widget.orloguud ||
+        oldWidget.zarlaguud != widget.zarlaguud) {
+      _odroor = _buildDailyData();
+      _pickDefaultIndex();
     }
   }
 
+  void _pickDefaultIndex() {
+    if (_odroor.isEmpty) {
+      _selectedIndex = null;
+      return;
+    }
+    // Хамгийн сүүлд гүйлгээ хийгдсэн өдөр, эсвэл сүүлийн өдрийг сонгоно
+    int lastActive = _odroor.length - 1;
+    for (var i = _odroor.length - 1; i >= 0; i--) {
+      if (_toDouble(_odroor[i]['tulsun']) > 0 ||
+          _toDouble(_odroor[i]['zardal']) > 0) {
+        lastActive = i;
+        break;
+      }
+    }
+    _selectedIndex = lastActive;
+  }
+
+  List<Map<String, dynamic>> _buildDailyData() {
+    final parts = widget.sar.split('-');
+    final now = DateTime.now();
+    final year = parts.length == 2 ? (int.tryParse(parts[0]) ?? now.year) : now.year;
+    final month = parts.length == 2 ? (int.tryParse(parts[1]) ?? now.month) : now.month;
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final isCurrentMonth = year == now.year && month == now.month;
+    final maxDay = isCurrentMonth ? math.min(now.day, daysInMonth) : daysInMonth;
+
+    final orlogoByDay = <int, double>{};
+    for (final o in widget.orloguud) {
+      final raw = '${o['ognoo'] ?? o['createdAt'] ?? ''}'.split('T').first;
+      if (!raw.startsWith(widget.sar)) continue;
+      final segs = raw.split('-');
+      if (segs.length == 3) {
+        final d = int.tryParse(segs[2]);
+        if (d != null && d >= 1 && d <= daysInMonth) {
+          orlogoByDay[d] = (orlogoByDay[d] ?? 0) + _toDouble(o['dun']);
+        }
+      }
+    }
+
+    final zardalByDay = <int, double>{};
+    for (final z in widget.zarlaguud) {
+      final raw = '${z['ognoo'] ?? ''}'.split('T').first;
+      if (!raw.startsWith(widget.sar)) continue;
+      final segs = raw.split('-');
+      if (segs.length == 3) {
+        final d = int.tryParse(segs[2]);
+        if (d != null && d >= 1 && d <= daysInMonth) {
+          zardalByDay[d] = (zardalByDay[d] ?? 0) + _toDouble(z['dun']);
+        }
+      }
+    }
+
+    return List.generate(maxDay, (i) {
+      final day = i + 1;
+      return {
+        'odor': day,
+        'ognoo': '${widget.sar}-${day.toString().padLeft(2, '0')}',
+        'tulsun': orlogoByDay[day] ?? 0.0,
+        'zardal': zardalByDay[day] ?? 0.0,
+      };
+    });
+  }
+
   void _onPositionUpdate(double localDx, double width) {
-    if (widget.saraar.isEmpty) return;
-    const zuun = 34.0;
-    final urgun = width - zuun - 8;
+    if (_odroor.isEmpty) return;
+    const zuun = 38.0;
+    final urgun = width - zuun - 10;
     if (urgun <= 0) return;
     final relX = (localDx - zuun).clamp(0.0, urgun);
-    final count = widget.saraar.length;
+    final count = _odroor.length;
     final idx = count == 1 ? 0 : ((relX / urgun) * (count - 1)).round().clamp(0, count - 1);
     if (idx != _selectedIndex) {
       setState(() => _selectedIndex = idx);
@@ -2778,27 +3062,26 @@ class _InteractiveUrsgalGraphState extends State<_InteractiveUrsgalGraph> {
   @override
   Widget build(BuildContext context) {
     final isDark = context.isDarkMode;
-    final saraar = widget.saraar;
+    final odroor = _odroor;
 
-    // Сонгосон сарын мэдээлэл
     Map<String, dynamic>? selectedItem;
-    if (_selectedIndex != null && _selectedIndex! >= 0 && _selectedIndex! < saraar.length) {
-      selectedItem = saraar[_selectedIndex!];
+    if (_selectedIndex != null && _selectedIndex! >= 0 && _selectedIndex! < odroor.length) {
+      selectedItem = odroor[_selectedIndex!];
     }
 
     double selOrlogo = 0;
     double selZardal = 0;
     double selZuruu = 0;
-    String selSarNer = '';
+    String selOgnooNer = '';
 
     if (selectedItem != null) {
       selOrlogo = _toDouble(selectedItem['tulsun']);
       selZardal = _toDouble(selectedItem['zardal']);
       selZuruu = selOrlogo - selZardal;
-      final parts = '${selectedItem['sar']}'.split('-');
-      selSarNer = parts.length == 2
-          ? '${parts[0]} оны ${int.tryParse(parts[1]) ?? parts[1]}-р сар'
-          : '${selectedItem['sar']}';
+      final parts = '${selectedItem['ognoo']}'.split('-');
+      selOgnooNer = parts.length == 3
+          ? '${int.tryParse(parts[1]) ?? parts[1]}-р сарын ${int.tryParse(parts[2]) ?? parts[2]}'
+          : '${selectedItem['ognoo']}';
     }
 
     return Column(
@@ -2816,28 +3099,34 @@ class _InteractiveUrsgalGraphState extends State<_InteractiveUrsgalGraph> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(4.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6.r),
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(4.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6.r),
+                            ),
+                            child: Icon(Icons.calendar_today_rounded, size: 12.w, color: AppColors.primary),
                           ),
-                          child: Icon(Icons.calendar_month_rounded, size: 13.w, color: AppColors.primary),
-                        ),
-                        SizedBox(width: 6.w),
-                        Text(
-                          selSarNer,
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: context.textPrimaryColor,
+                          SizedBox(width: 6.w),
+                          Flexible(
+                            child: Text(
+                              selOgnooNer,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w700,
+                                color: context.textPrimaryColor,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    SizedBox(width: 8.w),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
                       decoration: BoxDecoration(
@@ -2877,8 +3166,21 @@ class _InteractiveUrsgalGraphState extends State<_InteractiveUrsgalGraph> {
                             ),
                             SizedBox(width: 5.w),
                             Text('Орлого:', style: TextStyle(fontSize: 10.5.sp, color: context.textSecondaryColor)),
-                            const Spacer(),
-                            Text(_mungu(selOrlogo), style: TextStyle(fontSize: 11.5.sp, fontWeight: FontWeight.w700, color: const Color(0xFF10B981))),
+                            SizedBox(width: 4.w),
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  _mungu(selOrlogo),
+                                  style: TextStyle(
+                                    fontSize: 11.5.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF10B981),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2903,8 +3205,21 @@ class _InteractiveUrsgalGraphState extends State<_InteractiveUrsgalGraph> {
                             ),
                             SizedBox(width: 5.w),
                             Text('Зардал:', style: TextStyle(fontSize: 10.5.sp, color: context.textSecondaryColor)),
-                            const Spacer(),
-                            Text(_mungu(selZardal), style: TextStyle(fontSize: 11.5.sp, fontWeight: FontWeight.w700, color: Colors.redAccent)),
+                            SizedBox(width: 4.w),
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  _mungu(selZardal),
+                                  style: TextStyle(
+                                    fontSize: 11.5.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -2929,7 +3244,7 @@ class _InteractiveUrsgalGraphState extends State<_InteractiveUrsgalGraph> {
                 child: CustomPaint(
                   size: Size.infinite,
                   painter: _UrsgalPainter(
-                    saraar: saraar,
+                    odroor: odroor,
                     selectedIndex: _selectedIndex,
                     tekstUngu: widget.tekstUngu,
                     shugamUngu: widget.shugamUngu,
@@ -2956,17 +3271,17 @@ class _InteractiveUrsgalGraphState extends State<_InteractiveUrsgalGraph> {
 
 // ── Зураг ──────────────────────────────────────────────────────────────
 
-/// 6 сарын орлого (бүтэн гөлгөр муруй) ба зарцуулалт (тасархай муруй) — сая ₮-өөр.
+/// Сарын өдрүүдийн орлого (бүтэн гөлгөр муруй) ба зарцуулалт (тасархай муруй).
 class _UrsgalPainter extends CustomPainter {
   _UrsgalPainter({
-    required this.saraar,
+    required this.odroor,
     required this.tekstUngu,
     required this.shugamUngu,
     this.selectedIndex,
     this.accentUngu = const Color(0xFF10B981),
   });
 
-  final List<Map<String, dynamic>> saraar;
+  final List<Map<String, dynamic>> odroor;
   final Color tekstUngu;
   final Color shugamUngu;
   final int? selectedIndex;
@@ -2974,15 +3289,33 @@ class _UrsgalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (saraar.isEmpty) return;
-    const zuun = 34.0;
+    if (odroor.isEmpty) return;
+    const zuun = 38.0;
     const dood = 24.0;
-    const deed = 14.0;
-    final urgun = size.width - zuun - 8;
+    const deed = 16.0;
+    final urgun = size.width - zuun - 10;
     final undur = size.height - dood - deed;
+    if (urgun <= 0 || undur <= 0) return;
 
-    final tulsun = saraar.map((e) => _toDouble(e['tulsun']) / 1e6).toList();
-    final zardal = saraar.map((e) => _toDouble(e['zardal']) / 1e6).toList();
+    final rawMax = odroor.fold<double>(
+      0,
+      (acc, e) => math.max(acc, math.max(_toDouble(e['tulsun']), _toDouble(e['zardal']))),
+    );
+    final double divisor;
+    final String unitLabel;
+    if (rawMax >= 1e6) {
+      divisor = 1e6;
+      unitLabel = 'сая ₮';
+    } else if (rawMax >= 1e3) {
+      divisor = 1e3;
+      unitLabel = 'мян. ₮';
+    } else {
+      divisor = 1;
+      unitLabel = '₮';
+    }
+
+    final tulsun = odroor.map((e) => _toDouble(e['tulsun']) / divisor).toList();
+    final zardal = odroor.map((e) => _toDouble(e['zardal']) / divisor).toList();
     var ikh = [...tulsun, ...zardal].fold<double>(0, math.max);
     if (ikh <= 0) ikh = 1;
     final alkham = _goyAlkham(ikh / 4);
@@ -2993,25 +3326,25 @@ class _UrsgalPainter extends CustomPainter {
       ..strokeWidth = 0.7;
     final tekstStyle = TextStyle(fontSize: 8.5, color: tekstUngu);
 
-    _bich(canvas, 'сая ₮', const Offset(0, 0), tekstStyle);
+    _bich(canvas, unitLabel, const Offset(0, 0), tekstStyle);
     for (var v = 0.0; v <= ikh + 1e-9; v += alkham) {
       final y = deed + undur - (v / ikh) * undur;
-      _drawDashedLine(canvas, Offset(zuun, y), Offset(size.width - 8, y), tor, 4.0, 4.0);
+      _drawDashedLine(canvas, Offset(zuun, y), Offset(size.width - 10, y), tor, 4.0, 4.0);
       _bich(canvas, v.toStringAsFixed(alkham < 1 ? 1 : 0), Offset(0, y - 6), tekstStyle);
     }
 
     double x(int i) =>
-        zuun + (saraar.length == 1 ? urgun / 2 : i * urgun / (saraar.length - 1));
+        zuun + (odroor.length == 1 ? urgun / 2 : i * urgun / (odroor.length - 1));
     double y(double v) => deed + undur - (v / ikh) * undur;
 
     final orlogoPoints = <Offset>[];
     final zardalPoints = <Offset>[];
-    for (var i = 0; i < saraar.length; i++) {
+    for (var i = 0; i < odroor.length; i++) {
       orlogoPoints.add(Offset(x(i), y(tulsun[i])));
       zardalPoints.add(Offset(x(i), y(zardal[i])));
     }
 
-    // 1. Орлогын гөлгөр муруйн доорх тааламжтай градиент дэвсгэр
+    // 1. Орлогын гөлгөр муруйн доорх градиент дэвсгэр
     if (orlogoPoints.length > 1) {
       final orlogoSmooth = _buildSmoothPath(orlogoPoints);
       final fillPath = Path.from(orlogoSmooth)
@@ -3035,10 +3368,10 @@ class _UrsgalPainter extends CustomPainter {
       canvas.drawPath(fillPath, fillPaint);
     }
 
-    // 2. Сонгогдсон сарын босоо чиглүүлэгч шугам
+    // 2. Сонгогдсон өдрийн босоо чиглүүлэгч шугам
     if (selectedIndex != null &&
         selectedIndex! >= 0 &&
-        selectedIndex! < saraar.length) {
+        selectedIndex! < odroor.length) {
       final selX = x(selectedIndex!);
       final guidePaint = Paint()
         ..shader = LinearGradient(
@@ -3076,26 +3409,47 @@ class _UrsgalPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
       canvas.drawPath(orlogoSmooth, orlogoPaint);
+    } else if (orlogoPoints.length == 1) {
+      canvas.drawCircle(orlogoPoints[0], 3.5, Paint()..color = const Color(0xFF10B981));
     }
 
-    // Цэгүүд зурах
-    for (var i = 0; i < saraar.length; i++) {
-      // Орлого цэг
-      canvas.drawCircle(orlogoPoints[i], 3.2, Paint()..color = const Color(0xFF10B981));
-      canvas.drawCircle(orlogoPoints[i], 1.6, Paint()..color = Colors.white);
+    // 5. X тэнхлэгийн өдрүүдийн текст (давхцалгүй зайтай)
+    final count = odroor.length;
+    final step = count <= 7 ? 1 : (count <= 15 ? 3 : 5);
+    final labelIndices = <int>{0};
+    for (var i = step - 1; i < count - 1; i += step) {
+      if (i > 0) labelIndices.add(i);
+    }
+    if (count > 1) labelIndices.add(count - 1);
 
-      // Зардал цэг
-      canvas.drawCircle(zardalPoints[i], 3.0, Paint()..color = const Color(0xFF94A3B8));
-      canvas.drawCircle(zardalPoints[i], 1.5, Paint()..color = Colors.white);
+    // Сүүлийн хоёр шошго хэт ойрхон бол өмнөхийг нь хасна
+    final sortedLabels = labelIndices.toList()..sort();
+    final visibleLabels = <int>[];
+    const minLabelGap = 24.0;
+    for (final i in sortedLabels) {
+      if (visibleLabels.isNotEmpty &&
+          (x(i) - x(visibleLabels.last)).abs() < minLabelGap) {
+        if (i == count - 1) {
+          visibleLabels.removeLast();
+        } else {
+          continue;
+        }
+      }
+      visibleLabels.add(i);
     }
 
-    // 5. X тэнхлэгийн саруудын текст (сонгогдсон сард тод pill)
-    for (var i = 0; i < saraar.length; i++) {
+    final selX = (selectedIndex != null && selectedIndex! >= 0 && selectedIndex! < count)
+        ? x(selectedIndex!)
+        : null;
+
+    for (final i in visibleLabels) {
+      if (selX != null && i != selectedIndex && (x(i) - selX).abs() < minLabelGap) {
+        continue;
+      }
+      final dayStr = '${odroor[i]['odor']}';
       final isSel = selectedIndex == i;
-      final sar = '${saraar[i]['sar']}'.split('-');
-      final ner = sar.length == 2 ? '${int.tryParse(sar[1]) ?? sar[1]} сар' : '';
       final tp = _tekst(
-        ner,
+        dayStr,
         isSel
             ? TextStyle(
                 fontSize: 9.5,
@@ -3104,13 +3458,12 @@ class _UrsgalPainter extends CustomPainter {
               )
             : tekstStyle,
       );
-
-      final textPos = Offset(x(i) - tp.width / 2, size.height - dood + 6);
-
+      final clampedX = (x(i) - tp.width / 2).clamp(zuun, size.width - tp.width - 2);
+      final textPos = Offset(clampedX, size.height - dood + 6);
       if (isSel) {
         final pillRect = Rect.fromCenter(
-          center: Offset(x(i), size.height - dood + 12),
-          width: tp.width + 12,
+          center: Offset(clampedX + tp.width / 2, size.height - dood + 12),
+          width: tp.width + 10,
           height: tp.height + 4,
         );
         canvas.drawRRect(
@@ -3121,13 +3474,40 @@ class _UrsgalPainter extends CustomPainter {
       tp.paint(canvas, textPos);
     }
 
-    // 6. Сонгогдсон сарын цэгүүдийг 3 давхар гэрэлтүүлж тодруулах
+    // Сонгогдсон өдөр нь үндсэн шошгонд байхгүй бол тусад нь зурна
     if (selectedIndex != null &&
         selectedIndex! >= 0 &&
-        selectedIndex! < saraar.length) {
+        selectedIndex! < count &&
+        !visibleLabels.contains(selectedIndex)) {
+      final i = selectedIndex!;
+      final dayStr = '${odroor[i]['odor']}';
+      final tp = _tekst(
+        dayStr,
+        TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
+          color: accentUngu,
+        ),
+      );
+      final clampedX = (x(i) - tp.width / 2).clamp(zuun, size.width - tp.width - 2);
+      final pillRect = Rect.fromCenter(
+        center: Offset(clampedX + tp.width / 2, size.height - dood + 12),
+        width: tp.width + 10,
+        height: tp.height + 4,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(pillRect, const Radius.circular(6)),
+        Paint()..color = accentUngu.withValues(alpha: 0.12),
+      );
+      tp.paint(canvas, Offset(clampedX, size.height - dood + 6));
+    }
+
+    // 6. Сонгогдсон өдрийн цэгүүдийг 3 давхар гэрэлтүүлж тодруулах
+    if (selectedIndex != null &&
+        selectedIndex! >= 0 &&
+        selectedIndex! < odroor.length) {
       final idx = selectedIndex!;
 
-      // Орлого цэг glow
       final orlogoC = orlogoPoints[idx];
       canvas.drawCircle(
         orlogoC,
@@ -3137,7 +3517,6 @@ class _UrsgalPainter extends CustomPainter {
       canvas.drawCircle(orlogoC, 5.0, Paint()..color = const Color(0xFF10B981));
       canvas.drawCircle(orlogoC, 2.2, Paint()..color = Colors.white);
 
-      // Зардал цэг glow
       final zardalC = zardalPoints[idx];
       canvas.drawCircle(
         zardalC,
@@ -3209,7 +3588,7 @@ class _UrsgalPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _UrsgalPainter old) =>
-      old.saraar != saraar ||
+      old.odroor != odroor ||
       old.tekstUngu != tekstUngu ||
       old.shugamUngu != shugamUngu ||
       old.selectedIndex != selectedIndex ||

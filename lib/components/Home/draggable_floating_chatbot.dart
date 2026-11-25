@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:sukh_app/constants/constants.dart';
 import 'package:sukh_app/screens/Home/ai_tuslakh_page.dart';
+import 'package:sukh_app/screens/Home/support_chat_page.dart';
 import 'package:sukh_app/services/storage_service.dart';
 import 'package:sukh_app/utils/theme_extensions.dart';
 import 'package:sukh_app/widgets/glass_snackbar.dart';
@@ -79,11 +80,152 @@ class _DraggableFloatingChatbotState extends State<DraggableFloatingChatbot>
   }
 
   void _openChat() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        // Вэбийн AI туслахтай ижил (оператор руу шилжих товчтой)
-        builder: (context) => const AiTuslakhPage(),
+    final isDark = context.isDarkMode;
+    HapticFeedback.lightImpact();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E242B) : Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Text(
+                'Хэнтэй холбогдох вэ?',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                  color: context.textPrimaryColor,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              _buildChooserTile(
+                ctx: ctx,
+                icon: Icons.support_agent_rounded,
+                color: AppColors.deepGreen,
+                title: 'СӨХ-ийн ажилтан',
+                subtitle: 'Ажилтантай шууд чатлах, зураг/дуу илгээх',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SupportChatPage(extra: {}),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: 8.h),
+              _buildChooserTile(
+                ctx: ctx,
+                icon: Icons.auto_awesome_rounded,
+                color: const Color(0xFF0E8F68),
+                title: 'AI туслах',
+                subtitle: 'Төлбөр, И-баримт, зочин урих зэрэг түгээмэл асуулт',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AiTuslakhPage()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChooserTile({
+    required BuildContext ctx,
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    final isDark = ctx.isDarkMode;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14.r),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF6F9F7),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(
+            color: isDark ? Colors.white12 : color.withValues(alpha: 0.14),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40.w,
+              height: 40.w,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(icon, color: color, size: 20.sp),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: ctx.textPrimaryColor,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.5.sp,
+                      color: ctx.textSecondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 13.sp,
+              color: ctx.textSecondaryColor,
+            ),
+          ],
+        ),
       ),
     );
   }

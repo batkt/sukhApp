@@ -39,7 +39,9 @@ import 'package:sukh_app/services/theme_service.dart';
 import 'package:sukh_app/utils/responsive_helper.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sukh_app/widgets/app_logo.dart';
+import 'package:sukh_app/widgets/skeleton_box.dart';
 import 'package:sukh_app/components/Home/draggable_floating_chatbot.dart';
+import 'package:sukh_app/components/Home/animated_chat_preview_card.dart';
 import 'package:sukh_app/components/Home/guided_component.dart';
 import 'package:sukh_app/utils/error_message.dart';
 import 'support_chat_page.dart';
@@ -214,6 +216,9 @@ class _BookingScreenState extends State<NuurKhuudas>
   // Periodic refresh for balance (fallback when socket notification is missed)
   Timer? _balanceRefreshTimer;
 
+  // Сүүлийн чатуудын урьдчилсан харагдац (Миний байр / Бүх байр)
+  List<Map<String, dynamic>> _chatPreviews = [];
+
   // Socket notification callback (single ref so we can remove in dispose and avoid duplicates)
   void Function(Map<String, dynamic>)? _notificationCallback;
 
@@ -242,6 +247,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     _loadNekhemjlekhCron();
     _refreshBillingInfo(); // Consolidated refresh  
     _checkRecentWalletPayments();
+    _loadChatPreview();
 
     // Push token-ийг серверт бүртгэнэ (нийтлэл, санал асуулга, шинэчлэлтийн мэдэгдэл)
     PushService.serverteBurtgeye();
@@ -406,7 +412,49 @@ class _BookingScreenState extends State<NuurKhuudas>
       }
     };
     SocketService.instance.setNotificationCallback(_notificationCallback!);
+    final sock = SocketService.instance.socket;
+    if (sock != null) {
+      sock.off('barilgiinChat:messej', _onBarilgiinChatMessage);
+      sock.on('barilgiinChat:messej', _onBarilgiinChatMessage);
+      _joinBarilgiinChatRooms();
+    }
+  }
 
+  Future<void> _joinBarilgiinChatRooms() async {
+    final sock = SocketService.instance.socket;
+    if (sock == null || _chatPreviews.isEmpty) return;
+    final token = await StorageService.getToken();
+    if (token == null || token.isEmpty) return;
+    for (final c in _chatPreviews) {
+      final bid = c['barilgiinId']?.toString() ?? '';
+      if (bid.isNotEmpty) {
+        sock.emit('barilgiinChat:join', {'token': token, 'barilgiinId': bid});
+      }
+    }
+  }
+
+  void _onBarilgiinChatMessage(dynamic data) {
+    if (!mounted) return;
+    if (data is List && data.isNotEmpty) data = data.first;
+    if (data is! Map) return;
+    final m = Map<String, dynamic>.from(data);
+    final bid = m['barilgiinId']?.toString() ?? '';
+    if (bid.isEmpty) return;
+
+    final idx = _chatPreviews.indexWhere((c) => c['barilgiinId']?.toString() == bid);
+    if (idx < 0) return;
+
+    final updated = List<Map<String, dynamic>>.from(_chatPreviews);
+    final item = Map<String, dynamic>.from(updated[idx]);
+    item['suuliinMessej'] = {
+      'text': m['text']?.toString() ?? '',
+      'ilgeegchNer': m['ilgeegchNer']?.toString() ?? '',
+      'ognoo': (m['createdAt'] ?? DateTime.now().toIso8601String()).toString(),
+    };
+    updated[idx] = item;
+    setState(() {
+      _chatPreviews = updated;
+    });
   }
 
   @override
@@ -470,6 +518,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       SocketService.instance.removeNotificationCallback(_notificationCallback);
       _notificationCallback = null;
     }
+    SocketService.instance.socket?.off('barilgiinChat:messej', _onBarilgiinChatMessage);
     super.dispose();
   }
 
@@ -2125,6 +2174,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     _loadNotificationCount(),
                     // _loadGereeData is now handled within _refreshBillingInfo
                     _loadNekhemjlekhCron(),
+                    _loadChatPreview(),
                   ]);
                   BlogSliderSection.refresh();
                 },
@@ -2410,6 +2460,11 @@ class _BookingScreenState extends State<NuurKhuudas>
                         child: _buildAdditionalServicesSection(),
                       ),
 
+                      SizedBox(height: 16.h),
+
+                      // 2b. Байрны чат карт (Үйлчилгээний доор, төлбөрийн карттай ижил загвар)
+                      _buildChatPreviewCard(context.isDarkMode),
+
                       SizedBox(height: 22.h),
 
                       // 3. Billers Grid
@@ -2426,11 +2481,25 @@ class _BookingScreenState extends State<NuurKhuudas>
                         onNext: _nextGuideStep,
                         onSkip: _finishOnboardingGuide,
                         child: _isLoadingBillers
-                            ? SizedBox(
-                                height: 200.h,
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.deepGreen,
+                            ? Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8.h),
+                                child: GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 4,
+                                    crossAxisSpacing: 10.w,
+                                    mainAxisSpacing: 12.h,
+                                    childAspectRatio: 0.9,
+                                  ),
+                                  itemCount: 8,
+                                  itemBuilder: (_, __) => Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SkeletonBox(width: 48.w, height: 48.w, borderRadius: 16.r),
+                                      SizedBox(height: 6.h),
+                                      SkeletonBox(width: 44.w, height: 10.h, borderRadius: 6.r),
+                                    ],
                                   ),
                                 ),
                               )
@@ -2776,6 +2845,44 @@ class _BookingScreenState extends State<NuurKhuudas>
     );
   }
 
+  Future<void> _loadChatPreview() async {
+    final list = await ApiService.fetchBarilgiinChatMinii();
+    if (!mounted) return;
+    setState(() {
+      _chatPreviews = list;
+    });
+    _joinBarilgiinChatRooms();
+  }
+
+  String _formatChatTime(dynamic rawOgnoo) {
+    if (rawOgnoo == null) return '';
+    final dt = DateTime.tryParse(rawOgnoo.toString())?.toLocal();
+    if (dt == null) return '';
+    final now = DateTime.now();
+    if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    }
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (dt.year == yesterday.year &&
+        dt.month == yesterday.month &&
+        dt.day == yesterday.day) {
+      return 'Өчигдөр';
+    }
+    return '${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildChatPreviewCard(bool isDark) {
+    return AnimatedChatPreviewCard(
+      isDark: isDark,
+      chats: _chatPreviews,
+      formatTime: _formatChatTime,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        context.push('/barilgiin-chat').then((_) => _loadChatPreview());
+      },
+    );
+  }
+
   Widget _buildAdditionalServicesSection() {
     final isDark = context.isDarkMode;
 
@@ -2788,8 +2895,6 @@ class _BookingScreenState extends State<NuurKhuudas>
       {'name': 'дуудлага', 'label': 'Дуудлага', 'icon': CupertinoIcons.wrench},
       {'name': 'цэвэрлэгээ', 'label': 'Цэвэрлэгээ', 'icon': CupertinoIcons.sparkles},
       {'name': 'санал', 'label': 'Асуулга', 'icon': CupertinoIcons.chart_bar_square},
-      // Барилгын групп чат — оршин суугчид ба СӨХ-ийн ажилтнууд
-      {'name': 'чат', 'label': 'Чат', 'icon': CupertinoIcons.chat_bubble_2},
       // Вебийн «Нэмэлт тохиргоо → Шилэн данс аппад харуулах» асаалттай үед л
       // (профайлын `shilenDansEsekh`).
       if (_userProfile?['shilenDansEsekh'] == true)

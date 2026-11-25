@@ -310,10 +310,24 @@ class _AiTuslakhPageState extends State<AiTuslakhPage> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: 'Оператортой холбогдох',
-            icon: const Icon(Icons.support_agent_rounded),
-            onPressed: _operator,
+          Padding(
+            padding: EdgeInsets.only(right: 4.w),
+            child: TextButton.icon(
+              onPressed: _operator,
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.deepGreen.withValues(alpha: isDark ? 0.24 : 0.10),
+                foregroundColor: isDark ? const Color(0xFF7DF0C6) : AppColors.deepGreen,
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              icon: Icon(Icons.support_agent_rounded, size: 16.sp),
+              label: Text(
+                'СӨХ ажилтан',
+                style: TextStyle(fontSize: 11.5.sp, fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
           if (_tuukh.isNotEmpty)
             IconButton(
