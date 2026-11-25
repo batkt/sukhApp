@@ -15,12 +15,14 @@ class AnimatedChatPreviewCard extends StatefulWidget {
     required this.chats,
     required this.formatTime,
     required this.onTap,
+    this.lastReadMs = const {},
   });
 
   final bool isDark;
   final List<Map<String, dynamic>> chats;
   final String Function(dynamic) formatTime;
   final VoidCallback onTap;
+  final Map<String, int> lastReadMs;
 
   @override
   State<AnimatedChatPreviewCard> createState() => _AnimatedChatPreviewCardState();
@@ -116,6 +118,20 @@ class _AnimatedChatPreviewCardState extends State<AnimatedChatPreviewCard>
     final senderInitial = sender.isNotEmpty
         ? sender.characters.first.toUpperCase()
         : 'С';
+
+    bool isChatUnread(Map<String, dynamic>? c) {
+      if (c == null) return false;
+      final bid = c['barilgiinId']?.toString() ?? '';
+      final msg = c['suuliinMessej'];
+      if (bid.isEmpty || msg is! Map) return false;
+      final dt = DateTime.tryParse(msg['ognoo']?.toString() ?? '');
+      if (dt == null) return false;
+      final lastRead = widget.lastReadMs[bid] ?? 0;
+      return lastRead > 0 && dt.millisecondsSinceEpoch > lastRead;
+    }
+
+    final unreadCount = chats.where(isChatUnread).length;
+    final currentUnread = isChatUnread(chat);
 
     final fg = isDark ? Colors.white : const Color(0xFF0F2A21);
     final accent = isDark ? _mint : const Color(0xFF0E8F68);
@@ -243,10 +259,32 @@ class _AnimatedChatPreviewCardState extends State<AnimatedChatPreviewCard>
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            CupertinoIcons.chat_bubble_2_fill,
-                            color: accent,
-                            size: 18.sp,
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(
+                                CupertinoIcons.chat_bubble_2_fill,
+                                color: accent,
+                                size: 18.sp,
+                              ),
+                              if (unreadCount > 0)
+                                Positioned(
+                                  top: -3,
+                                  right: -4,
+                                  child: Container(
+                                    width: 8.w,
+                                    height: 8.w,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEF4444),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isDark ? _pine : Colors.white,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           SizedBox(width: 8.w),
                           Expanded(
@@ -452,13 +490,32 @@ class _AnimatedChatPreviewCardState extends State<AnimatedChatPreviewCard>
                               ),
                               if (timeText.isNotEmpty) ...[
                                 SizedBox(width: 8.w),
-                                Text(
-                                  timeText,
-                                  style: TextStyle(
-                                    fontSize: 10.5.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: fg.withValues(alpha: 0.52),
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      timeText,
+                                      style: TextStyle(
+                                        fontSize: 10.5.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: currentUnread
+                                            ? const Color(0xFFEF4444)
+                                            : fg.withValues(alpha: 0.52),
+                                      ),
+                                    ),
+                                    if (currentUnread) ...[
+                                      SizedBox(height: 2.h),
+                                      Container(
+                                        width: 6.w,
+                                        height: 6.w,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFEF4444),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
                             ],

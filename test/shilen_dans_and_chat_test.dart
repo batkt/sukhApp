@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sukh_app/components/Home/animated_chat_preview_card.dart';
+import 'package:sukh_app/components/shilenDans/shilen_dans_charts.dart';
 import 'package:sukh_app/widgets/skeleton_box.dart';
 
 Widget _wrapWithScreenUtil(Widget child) {
@@ -77,5 +78,53 @@ void main() {
     );
     await tester.pump();
     expect(find.byType(SkeletonBox), findsOneWidget);
+  });
+
+  testWidgets('CircleDonutChart renders proportional metrics and unpaid count',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrapWithScreenUtil(
+        const SingleChildScrollView(
+          child: CircleDonutChart(
+            tolovlogoot: 1000000,
+            orlogo: 800000,
+            avlaga: 200000,
+            zardal: 300000,
+            avlagaAilToo: 12,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(find.text('80%'), findsOneWidget);
+    expect(find.text('Төлөөгүй 12 айл'), findsOneWidget);
+    expect(find.text('1,000,000 ₮'), findsOneWidget);
+    expect(find.text('800,000 ₮'), findsOneWidget);
+  });
+
+  testWidgets('InteractiveUrsgalGraph aggregates daily income and expenses',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrapWithScreenUtil(
+        const InteractiveUrsgalGraph(
+          sar: '2026-11',
+          orloguud: [
+            {'ognoo': '2026-11-10', 'dun': 150000},
+            {'ognoo': '2026-11-10', 'dun': 50000},
+          ],
+          zarlaguud: [
+            {'ognoo': '2026-11-10', 'dun': 80000},
+          ],
+          tekstUngu: Colors.grey,
+          shugamUngu: Colors.grey,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('11-р сарын 10'), findsOneWidget);
+    expect(find.text('200,000 ₮'), findsOneWidget);
+    expect(find.text('80,000 ₮'), findsOneWidget);
   });
 }

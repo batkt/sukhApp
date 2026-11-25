@@ -381,7 +381,7 @@ class _AiTuslakhPageState extends State<AiTuslakhPage> {
           (s) => Padding(
             padding: EdgeInsets.only(bottom: 8.h),
             child: Material(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
               borderRadius: BorderRadius.circular(16.r),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16.r),
@@ -552,8 +552,8 @@ class _AiTuslakhPageState extends State<AiTuslakhPage> {
           color: user
               ? AppColors.deepGreen
               : m.aldaa
-                  ? const Color(0xFFE5484D).withOpacity(isDark ? 0.18 : 0.08)
-                  : (isDark ? Colors.white.withOpacity(0.07) : Colors.white),
+                  ? const Color(0xFFE5484D).withValues(alpha: isDark ? 0.18 : 0.08)
+                  : (isDark ? Colors.white.withValues(alpha: 0.07) : Colors.white),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(18.r),
             topRight: Radius.circular(18.r),
@@ -591,12 +591,12 @@ class _AiTuslakhPageState extends State<AiTuslakhPage> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 16.w),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.07) : Colors.white,
+                      color: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.white,
                       borderRadius: BorderRadius.circular(24.r),
                       border: Border.all(
                         color: isDark
-                            ? Colors.white.withOpacity(0.08)
-                            : Colors.black.withOpacity(0.06),
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.06),
                       ),
                     ),
                     child: TextField(
@@ -695,7 +695,7 @@ class _BichijBainaState extends State<_BichijBaina>
             width: 7.w,
             height: 7.w,
             decoration: BoxDecoration(
-              color: context.textSecondaryColor.withOpacity(o),
+              color: context.textSecondaryColor.withValues(alpha: o),
               shape: BoxShape.circle,
             ),
           );

@@ -885,6 +885,39 @@ class StorageService {
     } catch (_) {}
   }
 
+  static const String _chatLastReadKey = 'barilgiin_chat_last_read';
+
+  /// Барилгын чат бүрийн хамгийн сүүлд уншсан цаг (epoch ms).
+  static Future<Map<String, int>> getBarilgiinChatLastRead() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_chatLastReadKey);
+      if (raw == null || raw.isEmpty) return {};
+      final decoded = json.decode(raw);
+      if (decoded is! Map) return {};
+      return decoded.map(
+        (k, v) => MapEntry(k.toString(), v is num ? v.toInt() : 0),
+      );
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Өгөгдсөн чатуудыг уншсан гэж тэмдэглэнэ.
+  static Future<void> markBarilgiinChatsRead(Iterable<String> barilgiinIds) async {
+    try {
+      final ids = barilgiinIds.where((id) => id.isNotEmpty).toList();
+      if (ids.isEmpty) return;
+      final prefs = await SharedPreferences.getInstance();
+      final current = await getBarilgiinChatLastRead();
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      for (final id in ids) {
+        current[id] = nowMs;
+      }
+      await prefs.setString(_chatLastReadKey, json.encode(current));
+    } catch (_) {}
+  }
+
   /// Get tukhainBaaziinKholbolt (database connection identifier)
   static Future<String?> getTukhainBaaziinKholbolt() async {
     try {

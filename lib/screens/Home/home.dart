@@ -42,6 +42,7 @@ import 'package:sukh_app/widgets/app_logo.dart';
 import 'package:sukh_app/widgets/skeleton_box.dart';
 import 'package:sukh_app/components/Home/draggable_floating_chatbot.dart';
 import 'package:sukh_app/components/Home/animated_chat_preview_card.dart';
+import 'package:sukh_app/components/Home/home_sections.dart';
 import 'package:sukh_app/components/Home/guided_component.dart';
 import 'package:sukh_app/utils/error_message.dart';
 import 'support_chat_page.dart';
@@ -218,6 +219,7 @@ class _BookingScreenState extends State<NuurKhuudas>
 
   // Сүүлийн чатуудын урьдчилсан харагдац (Миний байр / Бүх байр)
   List<Map<String, dynamic>> _chatPreviews = [];
+  Map<String, int> _chatLastReadMs = {};
 
   // Socket notification callback (single ref so we can remove in dispose and avoid duplicates)
   void Function(Map<String, dynamic>)? _notificationCallback;
@@ -1808,17 +1810,17 @@ class _BookingScreenState extends State<NuurKhuudas>
     // Сэдвийн (цайвар/бараан) өнгө
     final isDark = context.isDarkMode;
     final fg = isDark ? Colors.white : const Color(0xFF0F2A21);
-    final accent = isDark ? _HomeTone.mint : const Color(0xFF0E8F68);
+    final accent = isDark ? HomeTone.mint : const Color(0xFF0E8F68);
     final danger = isDark ? const Color(0xFFFF9B95) : const Color(0xFFD93F3F);
     final cardBorder = isDark
-        ? Colors.white.withOpacity(0.12)
-        : AppColors.deepGreen.withOpacity(0.10);
+        ? Colors.white.withValues(alpha: 0.12)
+        : AppColors.deepGreen.withValues(alpha: 0.10);
     final panelBg = isDark
-        ? Colors.white.withOpacity(0.12)
-        : Colors.white.withOpacity(0.72);
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.white.withValues(alpha: 0.72);
     final panelBorder = isDark
-        ? Colors.white.withOpacity(0.16)
-        : AppColors.deepGreen.withOpacity(0.08);
+        ? Colors.white.withValues(alpha: 0.16)
+        : AppColors.deepGreen.withValues(alpha: 0.08);
     final btnBg = isDark ? Colors.white : AppColors.deepGreen;
     final btnFg = isDark ? AppColors.deepGreen : Colors.white;
 
@@ -1835,7 +1837,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: isDark
-                      ? const [Color(0xFF1A7A5E), Color(0xFF0E5642), _HomeTone.pine]
+                      ? const [Color(0xFF1A7A5E), Color(0xFF0E5642), HomeTone.pine]
                       : const [Color(0xFFFFFFFF), Color(0xFFEFF8F3), Color(0xFFDDF1E7)],
                 ),
               ),
@@ -1845,13 +1847,13 @@ class _BookingScreenState extends State<NuurKhuudas>
           Positioned(
             top: -90,
             right: -70,
-            child: _glow(240, (isDark ? _HomeTone.mint : const Color(0xFF6EE7B7)).withOpacity(isDark ? 0.32 : 0.35)),
+            child: _glow(240, (isDark ? HomeTone.mint : const Color(0xFF6EE7B7)).withValues(alpha: isDark ? 0.32 : 0.35)),
           ),
           // Гэрлийн туяа (зүүн доод)
           Positioned(
             bottom: -110,
             left: -60,
-            child: _glow(220, const Color(0xFF38BDF8).withOpacity(isDark ? 0.14 : 0.12)),
+            child: _glow(220, const Color(0xFF38BDF8).withValues(alpha: isDark ? 0.14 : 0.12)),
           ),
           Positioned.fill(
             child: DecoratedBox(
@@ -1881,13 +1883,13 @@ class _BookingScreenState extends State<NuurKhuudas>
                             Row(
                               children: [
                                 Icon(Icons.home_rounded,
-                                    size: 15, color: fg.withOpacity(0.85)),
+                                    size: 15, color: fg.withValues(alpha: 0.85)),
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
                                     hayag,
                                     style: TextStyle(
-                                      color: fg.withOpacity(0.9),
+                                      color: fg.withValues(alpha: 0.9),
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -1901,7 +1903,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                           Text(
                             dunShoshgo,
                             style: TextStyle(
-                              color: fg.withOpacity(0.6),
+                              color: fg.withValues(alpha: 0.6),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1946,7 +1948,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                     ),
                     const SizedBox(width: 10),
                     // Төлөх хүртэлх хоног — «Мөчлөгийн явц»-ын оронд
-                    _PaymentDaysRing(
+                    PaymentDaysRing(
                       progress: medeelelgui ? 0 : targetProgress,
                       days: medeelelgui ? null : displayDays,
                       caption: medeelelgui
@@ -1978,7 +1980,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                             size: 18,
                             color: hetersen
                                 ? danger
-                                : fg.withOpacity(0.85),
+                                : fg.withValues(alpha: 0.85),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -1991,7 +1993,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                                   style: TextStyle(
                                     color: hetersen
                                         ? danger
-                                        : fg.withOpacity(0.65),
+                                        : fg.withValues(alpha: 0.65),
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -2056,7 +2058,7 @@ class _BookingScreenState extends State<NuurKhuudas>
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withOpacity(0)]),
+          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
         ),
       ),
     );
@@ -2066,7 +2068,7 @@ class _BookingScreenState extends State<NuurKhuudas>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: fg.withOpacity(0.10),
+        color: fg.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Row(
@@ -2211,10 +2213,10 @@ class _BookingScreenState extends State<NuurKhuudas>
                             width: double.infinity,
                             margin: EdgeInsets.symmetric(vertical: 6.h),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                               borderRadius: BorderRadius.circular(28.r),
                               border: Border.all(
-                                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
                                 width: 1,
                               ),
                             ),
@@ -2731,7 +2733,7 @@ class _BookingScreenState extends State<NuurKhuudas>
           borderRadius: BorderRadius.circular(24.r),
           boxShadow: [
             BoxShadow(
-              color: (isDark ? Colors.black : AppColors.deepGreen).withOpacity(
+              color: (isDark ? Colors.black : AppColors.deepGreen).withValues(alpha: 
                 0.06,
               ),
               blurRadius: 20,
@@ -2740,8 +2742,8 @@ class _BookingScreenState extends State<NuurKhuudas>
           ],
           border: Border.all(
             color: isDark
-                ? Colors.white.withOpacity(0.05)
-                : AppColors.deepGreen.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.05)
+                : AppColors.deepGreen.withValues(alpha: 0.05),
             width: 1,
           ),
         ),
@@ -2757,8 +2759,8 @@ class _BookingScreenState extends State<NuurKhuudas>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.deepGreen.withOpacity(isDark ? 0.2 : 0.08),
-                    AppColors.deepGreen.withOpacity(isDark ? 0.1 : 0.03),
+                    AppColors.deepGreen.withValues(alpha: isDark ? 0.2 : 0.08),
+                    AppColors.deepGreen.withValues(alpha: isDark ? 0.1 : 0.03),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16.r),
@@ -2827,7 +2829,7 @@ class _BookingScreenState extends State<NuurKhuudas>
               padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.white.withOpacity(0.05)
+                    ? Colors.white.withValues(alpha: 0.05)
                     : const Color(0xFFF5F7FA),
                 shape: BoxShape.circle,
               ),
@@ -2835,7 +2837,7 @@ class _BookingScreenState extends State<NuurKhuudas>
                 Icons.arrow_forward_ios_rounded,
                 color: isDark
                     ? Colors.white70
-                    : AppColors.deepGreen.withOpacity(0.6),
+                    : AppColors.deepGreen.withValues(alpha: 0.6),
                 size: 12.sp,
               ),
             ),
@@ -2884,372 +2886,104 @@ class _BookingScreenState extends State<NuurKhuudas>
   }
 
   Widget _buildAdditionalServicesSection() {
-    final isDark = context.isDarkMode;
-
-    // Нэг өнгөт (брэнд ногоон) нимгэн шугаман icon — тансаг, тайван харагдана
-    final services = [
-      {'name': 'Зогсоол', 'label': 'Зогсоол', 'icon': CupertinoIcons.car_detailed},
-      {'name': 'камер', 'label': 'Камер', 'icon': CupertinoIcons.videocam},
-      {'name': 'лифт', 'label': 'Лифт', 'icon': CupertinoIcons.arrow_up_arrow_down_square},
-      {'name': 'зочин', 'label': 'Зочин', 'icon': CupertinoIcons.person_badge_plus},
-      {'name': 'дуудлага', 'label': 'Дуудлага', 'icon': CupertinoIcons.wrench},
-      {'name': 'цэвэрлэгээ', 'label': 'Цэвэрлэгээ', 'icon': CupertinoIcons.sparkles},
-      {'name': 'санал', 'label': 'Асуулга', 'icon': CupertinoIcons.chart_bar_square},
-      // Вебийн «Нэмэлт тохиргоо → Шилэн данс аппад харуулах» асаалттай үед л
-      // (профайлын `shilenDansEsekh`).
-      if (_userProfile?['shilenDansEsekh'] == true)
-        {'name': 'шилэн', 'label': 'Шилэн данс', 'icon': CupertinoIcons.chart_pie},
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Header
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.w),
-          child: Text(
-            'Үйлчилгээ',
-            style: TextStyle(
-              fontSize: 17.sp,
-              color: context.textPrimaryColor,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.4,
-            ),
-          ),
-        ),
-
-        SizedBox(height: 10.h),
-
-        // Services Grid — iOS-ийн бүлэглэсэн самбар дотор апп-icon маягаар
-        Container(
-          padding: EdgeInsets.fromLTRB(8.w, 14.h, 8.w, 6.h),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
-            borderRadius: BorderRadius.circular(26.r),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.04),
-            ),
-          ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 4.w,
-              mainAxisSpacing: 8.h,
-              childAspectRatio: 0.92,
-            ),
-            itemCount: services.length,
-            itemBuilder: (context, index) {
-              final service = services[index];
-              return _buildServiceCard(service, isDark);
-            },
-          ),
-        ),
-      ],
-    );
+    return AdditionalServicesSection(onServiceTap: _handleServiceTap);
   }
 
-  Widget _buildServiceCard(Map<String, dynamic> service, bool isDark) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () async {
-        if (service['name'] == 'Зогсоол') {
-          final baigId = await StorageService.getBaiguullagiinId();
-          final isNonOrg = baigId == null ||
-              baigId == 'null' ||
-              baigId.isEmpty ||
-              baigId == '698e7fd3b6dd386b6c56a808';
+  Future<void> _handleServiceTap(String name) async {
+    if (name == 'Зогсоол') {
+      final baigId = await StorageService.getBaiguullagiinId();
+      final isNonOrg = baigId == null ||
+          baigId == 'null' ||
+          baigId.isEmpty ||
+          baigId == '698e7fd3b6dd386b6c56a808';
 
-          if (isNonOrg) {
-            if (context.mounted) {
-              showGlassSnackBar(
-                context,
-                message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
-                icon: Icons.info_outline,
-                iconColor: Colors.orange,
-              );
-            }
-            return;
-          }
+      if (isNonOrg) {
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+            icon: Icons.info_outline,
+            iconColor: Colors.orange,
+          );
+        }
+        return;
+      }
 
-          // Show a progress indicator while checking settings
-          if (context.mounted) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (dialogCtx) => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        );
+      }
+
+      try {
+        final response = await ApiService.fetchParkingSettings();
+        final List<dynamic> list = response['jagsaalt'] ?? [];
+
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+
+        if (list.isEmpty || !list.any((s) => (s['khaalga'] as List? ?? []).isNotEmpty)) {
+          if (mounted) {
+            showGlassSnackBar(
+              context,
+              message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+              icon: Icons.info_outline,
+              iconColor: Colors.orange,
             );
           }
-
-          try {
-            final response = await ApiService.fetchParkingSettings();
-            final List<dynamic> list = response['jagsaalt'] ?? [];
-            
-            if (context.mounted && Navigator.canPop(context)) {
-              Navigator.pop(context); // Dismiss spinner
-            }
-
-            if (list.isEmpty || !list.any((s) => (s['khaalga'] as List? ?? []).isNotEmpty)) {
-              if (context.mounted) {
-                showGlassSnackBar(
-                  context,
-                  message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
-                  icon: Icons.info_outline,
-                  iconColor: Colors.orange,
-                );
-              }
-            } else {
-              if (context.mounted) {
-                context.push('/parkease');
-              }
-            }
-          } catch (e) {
-            if (context.mounted && Navigator.canPop(context)) {
-              Navigator.pop(context); // Dismiss spinner
-            }
-            if (context.mounted) {
-              showGlassSnackBar(
-                context,
-                message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
-                icon: Icons.info_outline,
-                iconColor: Colors.orange,
-              );
-            }
-          }
-          return;
+        } else if (mounted) {
+          context.push('/parkease');
         }
-        if (service['name'] == 'камер') {
-          context.push('/camera');
-          return;
+      } catch (e) {
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
         }
-        if (service['name'] == 'зочин') {
-          if (context.mounted) {
-            context.push('/zochin-urikh');
-          }
-          return;
+        if (mounted) {
+          showGlassSnackBar(
+            context,
+            message: 'Тухайн СӨХ нь зогсоолын холболт хийгээгүй байна.',
+            icon: Icons.info_outline,
+            iconColor: Colors.orange,
+          );
         }
-        if (service['name'] == 'лифт') {
-          context.push('/lift');
-          return;
-        }
-        if (service['name'] == 'санал') {
-          context.push('/sanal_asuulga');
-          return;
-        }
-        if (service['name'] == 'цэвэрлэгээ') {
-          context.push('/tseverlegee');
-          return;
-        }
-        if (service['name'] == 'чат') {
-          context.push('/barilgiin-chat');
-          return;
-        }
-        if (service['name'] == 'шилэн') {
-          context.push('/shilen-dans');
-          return;
-        }
-
-        // Disabled for now - show "Тун удахгүй" message
-        showGlassSnackBar(
-          context,
-          message: 'Тун удахгүй',
-          icon: Icons.info_outline,
-          iconColor: Colors.orange,
-        );
-      },
-      child: _UilchilgeeIcon(
-        icon: service['icon'] as IconData? ?? Icons.apps_rounded,
-        label: service['label'] as String? ?? '',
-        isDark: isDark,
-      ),
-    );
-  }
-}
-
-/// Нүүр хуудасны өнгөний токен: ойн ногоон суурь + гаа (mint) өргөлт.
-class _HomeTone {
-  static const Color pine = Color(0xFF0A3328);
-  static const Color mint = Color(0xFF7DF0C6);
-}
-
-/// Дараагийн төлөлт хүртэлх хоногийг цагирагаар харуулна.
-class _PaymentDaysRing extends StatelessWidget {
-  final double progress;
-  final int? days;
-  final String caption;
-  final Color color;
-  final Color foreground;
-  final Animation<double> animation;
-
-  const _PaymentDaysRing({
-    required this.progress,
-    required this.days,
-    required this.caption,
-    required this.color,
-    this.foreground = Colors.white,
-    required this.animation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 84,
-      height: 84,
-      child: AnimatedBuilder(
-        animation: animation,
-        builder: (context, _) => CustomPaint(
-          painter: _RingPainter(
-            progress: (progress * animation.value).clamp(0.0, 1.0),
-            color: color,
-            track: foreground.withOpacity(0.12),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  days?.toString() ?? '—',
-                  style: TextStyle(
-                    color: foreground,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    height: 1.0,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  caption,
-                  style: TextStyle(
-                    color: foreground.withOpacity(0.7),
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  final double progress;
-  final Color color;
-  final Color track;
-
-  _RingPainter({required this.progress, required this.color, required this.track});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const stroke = 6.0;
-    final rect = Rect.fromLTWH(
-      stroke / 2,
-      stroke / 2,
-      size.width - stroke,
-      size.height - stroke,
-    );
-    final trackPaint = Paint()
-      ..color = track
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke;
-    canvas.drawArc(rect, 0, 2 * math.pi, false, trackPaint);
-    if (progress > 0) {
-      final arc = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.round;
-      canvas.drawArc(rect, -math.pi / 2, 2 * math.pi * progress, false, arc);
+      }
+      return;
     }
-  }
+    if (name == 'камер') {
+      context.push('/camera');
+      return;
+    }
+    if (name == 'зочин') {
+      if (mounted) context.push('/zochin-urikh');
+      return;
+    }
+    if (name == 'лифт') {
+      context.push('/lift');
+      return;
+    }
+    if (name == 'санал') {
+      context.push('/sanal_asuulga');
+      return;
+    }
+    if (name == 'цэвэрлэгээ') {
+      context.push('/tseverlegee');
+      return;
+    }
+    if (name == 'шилэн') {
+      context.push('/shilen-dans');
+      return;
+    }
 
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress || old.color != color || old.track != track;
-}
-
-/// Үйлчилгээний icon — нэг өнгөт, дарахад зөөлөн шахагдана.
-class _UilchilgeeIcon extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final bool isDark;
-
-  const _UilchilgeeIcon({
-    required this.icon,
-    required this.label,
-    required this.isDark,
-  });
-
-  @override
-  State<_UilchilgeeIcon> createState() => _UilchilgeeIconState();
-}
-
-class _UilchilgeeIconState extends State<_UilchilgeeIcon> {
-  bool _darsan = false;
-
-  void _tuluv(bool v) {
-    if (_darsan != v) setState(() => _darsan = v);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = widget.isDark;
-    final tamga = dark ? _HomeTone.mint : AppColors.deepGreen;
-
-    return Listener(
-      onPointerDown: (_) => _tuluv(true),
-      onPointerUp: (_) => _tuluv(false),
-      onPointerCancel: (_) => _tuluv(false),
-      child: AnimatedScale(
-        scale: _darsan ? 0.94 : 1,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              width: 54.w,
-              height: 54.w,
-              decoration: BoxDecoration(
-                color: dark
-                    ? Colors.white.withOpacity(_darsan ? 0.11 : 0.06)
-                    : (_darsan ? const Color(0xFFE3ECE8) : const Color(0xFFF1F5F3)),
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(
-                  color: dark
-                      ? Colors.white.withOpacity(0.07)
-                      : AppColors.deepGreen.withOpacity(0.06),
-                ),
-              ),
-              child: Icon(widget.icon, color: tamga, size: 25.sp),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              widget.label,
-              style: TextStyle(
-                fontSize: 11.5.sp,
-                color: context.textPrimaryColor.withOpacity(0.85),
-                fontWeight: FontWeight.w500,
-                letterSpacing: -0.1,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
+    showGlassSnackBar(
+      context,
+      message: 'Тун удахгүй',
+      icon: Icons.info_outline,
+      iconColor: Colors.orange,
     );
   }
 }
