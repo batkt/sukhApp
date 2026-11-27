@@ -753,6 +753,7 @@ class _ZardalJagsaaltModal extends StatelessWidget {
 
   IconData _angilalIcon(String angilal) {
     final a = angilal.toLowerCase();
+    if (a.contains('бусад')) return Icons.receipt_long_outlined;
     if (a.contains('цэвэрлэгээ')) return Icons.cleaning_services_outlined;
     if (a.contains('засвар')) return Icons.build_outlined;
     if (a.contains('цалин')) return Icons.badge_outlined;
@@ -763,7 +764,34 @@ class _ZardalJagsaaltModal extends StatelessWidget {
     if (a.contains('лифт')) return Icons.elevator_outlined;
     if (a.contains('харуул') || a.contains('хамгаалалт')) return Icons.security_outlined;
     if (a.contains('банк') || a.contains('шимтгэл')) return Icons.credit_card_outlined;
-    return Icons.receipt_long_outlined;
+    return Icons.label_outline_rounded;
+  }
+
+  static const List<Color> _customPalette = [
+    Color(0xFF06B6D4),
+    Color(0xFF8B5CF6),
+    Color(0xFF10B981),
+    Color(0xFFF59E0B),
+    Color(0xFFEC4899),
+    Color(0xFF3B82F6),
+    Color(0xFFF97316),
+    Color(0xFF6366F1),
+  ];
+
+  Color _angilalColor(String angilal) {
+    final a = angilal.toLowerCase();
+    if (a.contains('бусад')) return const Color(0xFF64748B);
+    if (a.contains('цэвэрлэгээ')) return const Color(0xFF14B8A6);
+    if (a.contains('засвар')) return const Color(0xFFF97316);
+    if (a.contains('цалин')) return const Color(0xFF6366F1);
+    if (a.contains('ндш') || a.contains('татвар')) return const Color(0xFF8B5CF6);
+    if (a.contains('цахилгаан')) return const Color(0xFFF59E0B);
+    if (a.contains('ус')) return const Color(0xFF3B82F6);
+    if (a.contains('дулаан')) return const Color(0xFFEF4444);
+    if (a.contains('лифт')) return const Color(0xFF0EA5E9);
+    if (a.contains('харуул') || a.contains('хамгаалалт')) return const Color(0xFF10B981);
+    if (a.contains('банк') || a.contains('шимтгэл')) return const Color(0xFFEC4899);
+    return _customPalette[angilal.hashCode.abs() % _customPalette.length];
   }
 
   @override
@@ -956,12 +984,12 @@ class _ZardalJagsaaltModal extends StatelessWidget {
                                   width: 38.w,
                                   height: 38.w,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                                    color: _angilalColor(angilal).withValues(alpha: 0.14),
                                     borderRadius: BorderRadius.circular(10.r),
                                   ),
                                   child: Icon(
                                     _angilalIcon(angilal),
-                                    color: const Color(0xFFEF4444),
+                                    color: _angilalColor(angilal),
                                     size: 19.w,
                                   ),
                                 ),
@@ -1032,12 +1060,12 @@ class _ZardalJagsaaltModal extends StatelessWidget {
                                   width: 38.w,
                                   height: 38.w,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                                    color: _angilalColor(angilal).withValues(alpha: 0.14),
                                     borderRadius: BorderRadius.circular(10.r),
                                   ),
                                   child: Icon(
                                     _angilalIcon(angilal),
-                                    color: const Color(0xFFEF4444),
+                                    color: _angilalColor(angilal),
                                     size: 19.w,
                                   ),
                                 ),
@@ -2271,4 +2299,4 @@ class _Medegdel extends StatelessWidget {
     );
   }
 }
-
+
