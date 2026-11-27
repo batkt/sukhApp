@@ -2894,8 +2894,7 @@ class _BookingScreenState extends State<NuurKhuudas>
       final baigId = await StorageService.getBaiguullagiinId();
       final isNonOrg = baigId == null ||
           baigId == 'null' ||
-          baigId.isEmpty ||
-          baigId == '698e7fd3b6dd386b6c56a808';
+          baigId.isEmpty;
 
       if (isNonOrg) {
         if (mounted) {
